@@ -1,0 +1,12 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/DataProcess/FilterLowFreqTerm/bin
+/DataProcess/FilterLowFreqTerm/obj
+/packages/System.Numerics.Vectors.4.5.0
+/Seq2SeqConsole/bin
+/Seq2SeqConsole/obj
+/Seq2SeqSharp/bin
+/Seq2SeqSharp/obj
