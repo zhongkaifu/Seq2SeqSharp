@@ -1,0 +1,42 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26430.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Seq2SeqSharp", "Seq2SeqSharp\Seq2SeqSharp.csproj", "{6B096832-E138-4C53-8930-2BB6F78C57F6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Seq2SeqConsole", "Seq2SeqConsole\Seq2SeqConsole.csproj", "{01D50B42-415C-4E85-860D-DBBC4A759649}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DataProcess", "DataProcess", "{573CFFE4-D095-44B0-BE2B-EC64AD881044}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FilterLowFreqTerm", "DataProcess\FilterLowFreqTerm\FilterLowFreqTerm.csproj", "{380E44E6-D5AD-4D65-9740-289CA0A6698D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6B096832-E138-4C53-8930-2BB6F78C57F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B096832-E138-4C53-8930-2BB6F78C57F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B096832-E138-4C53-8930-2BB6F78C57F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B096832-E138-4C53-8930-2BB6F78C57F6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{01D50B42-415C-4E85-860D-DBBC4A759649}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{01D50B42-415C-4E85-860D-DBBC4A759649}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{01D50B42-415C-4E85-860D-DBBC4A759649}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{01D50B42-415C-4E85-860D-DBBC4A759649}.Release|Any CPU.Build.0 = Release|Any CPU
+		{380E44E6-D5AD-4D65-9740-289CA0A6698D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{380E44E6-D5AD-4D65-9740-289CA0A6698D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{380E44E6-D5AD-4D65-9740-289CA0A6698D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{380E44E6-D5AD-4D65-9740-289CA0A6698D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{380E44E6-D5AD-4D65-9740-289CA0A6698D} = {573CFFE4-D095-44B0-BE2B-EC64AD881044}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CAE1535E-6AF4-4CD0-8E90-EBACD99D865A}
+	EndGlobalSection
+EndGlobal
