@@ -1,2 +1,2 @@
 # Seq2SeqSharp
-Seq2SeqSharp is a encoder-decoder framework based on .NET Framework.
+Seq2SeqSharp is an encoder-decoder deep neural network framework based on .NET Framework. Encoder is based on bidirectional LSTM neural network, and decoder is based on LSTM-Attention neural network. It supports both dense and sparse feature types.
