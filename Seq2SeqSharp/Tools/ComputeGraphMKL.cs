@@ -70,21 +70,6 @@ namespace Seq2SeqSharp
         internal static extern float cblas_sdot(int n, float[] x, int incX, float[] y, int incY);
 
 
-        //[DllImport(mklDllName, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
-        //internal static extern int cblas_isamax(int n, float[] x, int incX);
-
-        //[DllImport(mklDllName, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
-        //internal static extern void vsExp(int n, float[] x, float[] y);
-
-        //[DllImport(mklDllName, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
-        //internal static extern float cblas_sasum(int n, float[] x, int incX);
-
-        //[DllImport(mklDllName, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
-        //internal static extern void cblas_sscal(int n, float alpha, float[] x, int incX);
-
-        //[DllImport(mklDllName, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
-        //internal static extern void cblas_saxpy(int n, float alpha, float[] x, int incX, float[] y, int incY);
-
         public ComputeGraphMKL(bool needBack = true)
         {
             this.needs_backprop = needBack;

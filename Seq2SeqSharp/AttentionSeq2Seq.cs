@@ -70,7 +70,7 @@ namespace Seq2SeqSharp
         {
         }
 
-        public AttentionSeq2Seq(int inputSize, int hiddenSize, int depth, Corpus trainCorpus, string srcVocabFilePath, string tgtVocabFilePath, bool useDropout, string modelFilePath)
+        public AttentionSeq2Seq(int inputSize, int hiddenSize, int depth, Corpus trainCorpus, string srcVocabFilePath, string tgtVocabFilePath, bool useSparseFeature, bool useDropout, string modelFilePath)
         {
             this.TrainCorpus = trainCorpus;
             this.Depth=depth;
@@ -80,7 +80,16 @@ namespace Seq2SeqSharp
 
             this.hidden_size = hiddenSize;
 
-            LoadVocab(srcVocabFilePath, tgtVocabFilePath);
+            if (String.IsNullOrEmpty(srcVocabFilePath) == false && String.IsNullOrEmpty(tgtVocabFilePath) == false)
+            {
+                Console.WriteLine($"Loading vocabulary files from '{srcVocabFilePath}' and '{tgtVocabFilePath}'...");
+                LoadVocab(srcVocabFilePath, tgtVocabFilePath);
+            }
+            else
+            {
+                Console.WriteLine("Building vocabulary from training corpus...");
+                BuildVocab(trainCorpus);
+            }
 
             this.Whd = new WeightMatrix(hidden_size , t_vocab.Count + 3,  true);
             this.bd = new WeightMatrix(1, t_vocab.Count + 3, 0);
@@ -92,7 +101,9 @@ namespace Seq2SeqSharp
             encoder = new Encoder(hidden_size, word_size, depth);
             ReversEncoder = new Encoder(hidden_size, word_size, depth);
 
-            decoder = new AttentionDecoder(s_vocab.Count + 3, hidden_size, word_size, depth);
+            int sparseFeatureSize = useSparseFeature ? s_vocab.Count + 3 : 0;
+
+            decoder = new AttentionDecoder(sparseFeatureSize, hidden_size, word_size, depth);
         }
 
         private void LoadVocab(string srcVocabFilePath, string tgtVocabFilePath)
@@ -132,6 +143,78 @@ namespace Seq2SeqSharp
                 t_indexToWord[q] = word;
                 q++;
             }
+
+        }
+
+
+        private void BuildVocab(Corpus trainCorpus, int minFreq = 1)
+        {
+            // count up all words
+            Dictionary<string, int> s_d = new Dictionary<string, int>();
+            s_wordToIndex = new ConcurrentDictionary<string, int>();
+            s_indexToWord = new ConcurrentDictionary<int, string>();
+            s_vocab = new List<string>();
+
+            Dictionary<string, int> t_d = new Dictionary<string, int>();
+            t_wordToIndex = new ConcurrentDictionary<string, int>();
+            t_indexToWord = new ConcurrentDictionary<int, string>();
+            t_vocab = new List<string>();
+
+
+            foreach (SntPair sntPair in trainCorpus)
+            {
+                var item = sntPair.SrcSnt;
+                for (int i = 0, n = item.Count; i < n; i++)
+                {
+                    var txti = item[i];
+                    if (s_d.Keys.Contains(txti)) { s_d[txti] += 1; }
+                    else { s_d.Add(txti, 1); }
+                }
+
+                var item2 = sntPair.TgtSnt;
+                for (int i = 0, n = item2.Count; i < n; i++)
+                {
+                    var txti = item2[i];
+                    if (t_d.Keys.Contains(txti)) { t_d[txti] += 1; }
+                    else { t_d.Add(txti, 1); }
+                }
+            }
+
+            // NOTE: start at one because we will have START and END tokens!
+            // that is, START token will be index 0 in model word vectors
+            // and END token will be index 0 in the next word softmax
+            var q = 3;
+            foreach (var ch in s_d)
+            {
+                if (ch.Value >= minFreq)
+                {
+                    // add word to vocab
+                    s_wordToIndex[ch.Key] = q;
+                    s_indexToWord[q] = ch.Key;
+                    s_vocab.Add(ch.Key);
+                    q++;
+                }
+
+            }
+
+            Console.WriteLine($"Source language Max term id = '{q}'");
+
+
+            q = 3;
+            foreach (var ch in t_d)
+            {
+                if (ch.Value >= minFreq)
+                {
+                    // add word to vocab
+                    t_wordToIndex[ch.Key] = q;
+                    t_indexToWord[q] = ch.Key;
+                    t_vocab.Add(ch.Key);
+                    q++;
+                }
+
+            }
+
+            Console.WriteLine($"Target language Max term id = '{q}'");
 
         }
 
@@ -202,7 +285,13 @@ namespace Seq2SeqSharp
         {
             var reversSentence = inputSentence.ToList();
             reversSentence.Reverse();
+
+#if MKL
             IComputeGraph g = new ComputeGraphMKL();
+#else
+            IComputeGraph g = new ComputeGraph();
+#endif
+
 
             cost = 0.0f;
             SparseWeightMatrix tmpSWM = new SparseWeightMatrix(1, Embedding.Columns);
@@ -318,8 +407,12 @@ namespace Seq2SeqSharp
             decoder.Reset();
           
             List<string> result = new List<string>();
-            var G2 = new ComputeGraphMKL(false);
 
+#if MKL
+            var G2 = new ComputeGraphMKL(false);
+#else
+            var G2 = new ComputeGraph(false);
+#endif
             List<string> revseq = inputSeq.ToList();
             revseq.Reverse();
             List<WeightMatrix>  encoded = new List<WeightMatrix>();

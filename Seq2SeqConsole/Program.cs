@@ -64,8 +64,10 @@ namespace Seq2SeqConsole
             return -1;
         }
 
-        static void Usage()
+        static void UsageTrain()
         {
+            Console.WriteLine("Seq2SeqConsole.exe train [parameters...]");
+            Console.WriteLine("Parameters:");
             Console.WriteLine("-WordVectorSize: The vector size of encoded source word.");
             Console.WriteLine("-HiddenSize: The hidden layer size of encoder. The hidden layer size of decoder is 2x (-HiddenSize)");
             Console.WriteLine("-LearningRate: Learning rate. Default value is 0.001");
@@ -76,6 +78,16 @@ namespace Seq2SeqConsole
             Console.WriteLine("-SrcLang: Source language name.");
             Console.WriteLine("-TgtLang: Target language name.");
             Console.WriteLine("-TrainCorpusPath: training corpus folder path");
+            Console.WriteLine("-UseSparseFeature: It indicates if sparse feature used for training.");
+        }
+
+        static void UsageTest()
+        {
+            Console.WriteLine("Seq2SeqConsole.exe predict [parameters...]");
+            Console.WriteLine("Parameters:");
+            Console.WriteLine("-InputTestFile: The input file for test.");
+            Console.WriteLine("-OutputTestFile: The test result file.");
+            Console.WriteLine("-ModelFilePath: The trained model file path.");
         }
 
 
@@ -88,7 +100,7 @@ namespace Seq2SeqConsole
             }
 
             AttentionSeq2Seq ss = null;
-            string modelFilePath = String.Empty;
+            string modelFilePath = DefaultEncodedModelFilePath;
             int i = 0;
             if ((i = ArgPos("-ModelFilePath", args)) >= 0) modelFilePath = args[i + 1];
 
@@ -104,6 +116,7 @@ namespace Seq2SeqConsole
                 string srcVocabFilePath = null;
                 string tgtVocabFilePath = null;
                 string sntTrainCorpusPath = String.Empty;
+                bool useSparseFeature = true;
 
                 if ((i = ArgPos("-WordVectorSize", args)) >= 0) wordVectorSize = int.Parse(args[i + 1]);
                 if ((i = ArgPos("-HiddenSize", args)) >= 0) hiddenSize = int.Parse(args[i + 1]);
@@ -114,16 +127,16 @@ namespace Seq2SeqConsole
                 if ((i = ArgPos("-SrcLang", args)) >= 0) srcLangName = args[i + 1];
                 if ((i = ArgPos("-TgtLang", args)) >= 0) tgtLangName = args[i + 1];
                 if ((i = ArgPos("-TrainCorpusPath", args)) >= 0) sntTrainCorpusPath = args[i + 1];
+                if ((i = ArgPos("-UseSparseFeature", args)) >= 0) useSparseFeature = bool.Parse(args[i + 1]);
 
                 Corpus trainCorpus = new Corpus(sntTrainCorpusPath, srcLangName, tgtLangName);
-                if (String.IsNullOrEmpty(modelFilePath) || File.Exists(modelFilePath) == false)
+                if (File.Exists(modelFilePath) == false)
                 {
-                    modelFilePath = DefaultEncodedModelFilePath;
-                    ss = new AttentionSeq2Seq(wordVectorSize, hiddenSize, depth, trainCorpus, srcVocabFilePath, tgtVocabFilePath, true, modelFilePath);
+                    ss = new AttentionSeq2Seq(wordVectorSize, hiddenSize, depth, trainCorpus, srcVocabFilePath, tgtVocabFilePath, useSparseFeature, true, modelFilePath);
                 }
                 else
                 {
-                    Console.WriteLine($"Loading model from {modelFilePath}");
+                    Console.WriteLine($"Loading model from '{modelFilePath}'...");
                     ss = new AttentionSeq2Seq();
                     ss.Load(modelFilePath);
                     ss.TrainCorpus = trainCorpus;
@@ -138,6 +151,7 @@ namespace Seq2SeqConsole
                 Console.WriteLine($"Word Vector Size = '{wordVectorSize}'");
                 Console.WriteLine($"Learning Rate = '{learningRate}'");
                 Console.WriteLine($"Network Layer = '{depth}'");
+                Console.WriteLine($"Use Sparse Feature = '{useSparseFeature}'");
 
                 ss.IterationDone += ss_IterationDone;
                 ss.Train(300, learningRate);
