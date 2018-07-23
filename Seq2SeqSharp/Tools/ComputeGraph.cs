@@ -41,11 +41,16 @@ namespace Seq2SeqSharp
 
     public class ComputeGraph : IComputeGraph
     {
+        internal static WeightMatrixFactory weightMatrixFactory = new WeightMatrixFactory();
+
+
         public ConcurrentList<Action> backprop = new ConcurrentList<Action>();
         public bool needs_backprop { get; set; }
         public ComputeGraph(bool needBack = true)
         {
             this.needs_backprop = needBack;
+
+            weightMatrixFactory.Clean();
         }
 
 
@@ -107,7 +112,7 @@ namespace Seq2SeqSharp
         public WeightMatrix tanh(WeightMatrix m)
         {
             // tanh nonlinearity
-            var res = new WeightMatrix(m.Rows, m.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(m.Rows, m.Columns);
             var n = m.Weight.Length;
             var moreItems = (n % Vector<float>.Count);
             var i = 0;
@@ -163,7 +168,7 @@ namespace Seq2SeqSharp
         public WeightMatrix addtanh(WeightMatrix m1, WeightMatrix m2)
         {
             // tanh nonlinearity
-            var res = new WeightMatrix(m1.Rows, m1.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
             var n = m1.Weight.Length;
             var moreItems = (n % Vector<float>.Count);
             var i = 0;
@@ -228,7 +233,7 @@ namespace Seq2SeqSharp
         public WeightMatrix concatRows(List<WeightMatrix> m1)
         { 
 
-            var res = new WeightMatrix(m1.Count,m1[0].Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Count,m1[0].Columns);
           
             for (var i = 0; i < m1.Count; i++)
             {
@@ -262,7 +267,7 @@ namespace Seq2SeqSharp
         public WeightMatrix RepeatRows( WeightMatrix  m1,int rows)
         {
 
-            var res = new WeightMatrix(rows, m1.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(rows, m1.Columns);
 
             for (var i = 0; i < rows; i++)
             {
@@ -302,7 +307,7 @@ namespace Seq2SeqSharp
                 sx = m1.Rows + m2.Rows;
                 sy = m1.Columns  ;
              
-            var res = new WeightMatrix(sx, sy);
+            var res = weightMatrixFactory.CreateWeightMatrix(sx, sy);
             var n = m1.Weight.Length;
             for (var i = 0; i < m1.Rows; i++)
             { 
@@ -358,7 +363,7 @@ namespace Seq2SeqSharp
             sy = m1.Columns + m2.Columns;
             sx = m1.Rows;
 
-            var res = new WeightMatrix(sx, sy);
+            var res = weightMatrixFactory.CreateWeightMatrix(sx, sy);
             var n = m1.Weight.Length;
 
 
@@ -435,7 +440,7 @@ namespace Seq2SeqSharp
         public WeightMatrix rowPluck(WeightMatrix m, int ix)
         {
             var d = m.Columns;
-            var res = new WeightMatrix(d, 1);
+            var res = weightMatrixFactory.CreateWeightMatrix(d, 1);
             for (int i = 0, n = d; i < n; i++) { res.Weight[i] = m.Weight[d * ix + i]; } // copy over the data
 
             if (this.needs_backprop)
@@ -451,7 +456,7 @@ namespace Seq2SeqSharp
         public WeightMatrix PeekRow(WeightMatrix m, int ix)
         {
             var d = m.Columns;
-            var res = new WeightMatrix(1, d);
+            var res = weightMatrixFactory.CreateWeightMatrix(1, d);
 
             Array.Copy(m.Weight, d * ix, res.Weight, 0, d);
 
@@ -459,7 +464,6 @@ namespace Seq2SeqSharp
             {
                 Action backward = () =>
                 {
-
                     var offset = d * ix;
                     var n = d;
                     var moreItems = (n % Vector<float>.Count);
@@ -481,7 +485,7 @@ namespace Seq2SeqSharp
                         i++;
                     }
 
-
+                    m.RowToBeUpdated.Add(ix);
 
                 };
                 this.backprop.Add(backward);
@@ -504,7 +508,7 @@ namespace Seq2SeqSharp
         public WeightMatrix sigmoid(WeightMatrix m)
         {
             // sigmoid nonlinearity
-            WeightMatrix res = new WeightMatrix(m.Rows, m.Columns);
+            WeightMatrix res = weightMatrixFactory.CreateWeightMatrix(m.Rows, m.Columns);
             var n = m.Weight.Length;
             var moreItems = (n % Vector<float>.Count);
             var i = 0;
@@ -557,7 +561,7 @@ namespace Seq2SeqSharp
 
         public WeightMatrix relu(WeightMatrix m)
         {
-            var res = new WeightMatrix(m.Rows, m.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(m.Rows, m.Columns);
             var n = m.Weight.Length;
             for (var i = 0; i < n; i++)
             {
@@ -580,7 +584,7 @@ namespace Seq2SeqSharp
         Random ra = new Random();
         public WeightMatrix Dropout(WeightMatrix V, float drop_prob)
         {
-            var res = new WeightMatrix(V.Rows, V.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(V.Rows, V.Columns);
             var N = V.Weight.Length;
             bool[] dropped = new bool[V.Rows * V.Columns];
             var V2 = V.Clone(); 
@@ -615,7 +619,7 @@ namespace Seq2SeqSharp
         }
         public WeightMatrix Dropout(WeightMatrix V , bool[] droppedMask)
         {
-            var res = new WeightMatrix(V.Rows, V.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(V.Rows, V.Columns);
             var N = V.Weight.Length; 
             var V2 = V.Clone();
 
@@ -652,7 +656,7 @@ namespace Seq2SeqSharp
         {
             var n = m1.Rows;
             var d = m2.Columns;
-            var res = new WeightMatrix(n, d, 0);
+            var res = weightMatrixFactory.CreateWeightMatrix(n, d);
             var moreItemsD = (d % Vector<float>.Count);
 
             Parallel.For(0, m1.Rows, i =>
@@ -759,7 +763,7 @@ namespace Seq2SeqSharp
         {
             var n = m1.Rows;
             var d = m2.Columns;
-            var res = new WeightMatrix(n, d, 0);
+            var res = weightMatrixFactory.CreateWeightMatrix(n, d);
             var moreItemsD = (d % Vector<float>.Count);
 
             foreach (KeyValuePair<int, Dictionary<int, float>> pairRow in m1.Weights)
@@ -767,7 +771,6 @@ namespace Seq2SeqSharp
                 // loop over rows of m1
 
                 var m1BaseIndex = d * pairRow.Key;
-                var m1ColBaseIndex = m1.Columns * pairRow.Key;
 
                 foreach (KeyValuePair<int, float> pairCol in pairRow.Value)
                 { // dot product loop
@@ -865,7 +868,7 @@ namespace Seq2SeqSharp
         {
             var n = m1.Rows;
             var d = m2.Columns;
-            var res = new WeightMatrix(n, d);
+            var res = weightMatrixFactory.CreateWeightMatrix(n, d);
             var moreItemsD = (d % Vector<float>.Count);
 
             Parallel.For(0, m1.Rows, i =>
@@ -989,7 +992,7 @@ namespace Seq2SeqSharp
 
         public virtual WeightMatrix add(WeightMatrix m1, WeightMatrix m2)
         {
-            var res = new WeightMatrix(m1.Rows, m1.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
 
             var n = m1.Weight.Length;
             var moreItems = (n % Vector<float>.Count);
@@ -1062,7 +1065,7 @@ namespace Seq2SeqSharp
 
         public WeightMatrix add(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3)
         {
-            var res = new WeightMatrix(m1.Rows, m1.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
 
             var n = m1.Weight.Length;
             var moreItems = (n % Vector<float>.Count);
@@ -1137,7 +1140,7 @@ namespace Seq2SeqSharp
 
         public WeightMatrix addtanh(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3)
         {
-            var res = new WeightMatrix(m1.Rows, m1.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
 
             var n = m1.Weight.Length;
             var moreItems = (n % Vector<float>.Count);
@@ -1212,7 +1215,7 @@ namespace Seq2SeqSharp
 
         public WeightMatrix addsigmoid(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3)
         {
-            var res = new WeightMatrix(m1.Rows, m1.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
 
             var n = m1.Weight.Length;
             var moreItems = (n % Vector<float>.Count);
@@ -1286,7 +1289,7 @@ namespace Seq2SeqSharp
 
         public WeightMatrix addsigmoid(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3, WeightMatrix m4)
         {
-            var res = new WeightMatrix(m1.Rows, m1.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
 
             var n = m1.Weight.Length;
             var moreItems = (n % Vector<float>.Count);
@@ -1364,7 +1367,7 @@ namespace Seq2SeqSharp
 
         public WeightMatrix addsigmoid(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3, WeightMatrix m4, WeightMatrix m5)
         {
-            var res = new WeightMatrix(m1.Rows, m1.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
 
             var n = m1.Weight.Length;
             var moreItems = (n % Vector<float>.Count);
@@ -1444,9 +1447,98 @@ namespace Seq2SeqSharp
 
         }
 
+
+        public WeightMatrix addsigmoid(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3, WeightMatrix m4, WeightMatrix m5, WeightMatrix m6)
+        {
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
+
+            var n = m1.Weight.Length;
+            var moreItems = (n % Vector<float>.Count);
+            var i = 0;
+            while (i < n - moreItems)
+            {
+                var vecM1W = new Vector<float>(m1.Weight, i);
+                var vecM2W = new Vector<float>(m2.Weight, i);
+                var vecM3W = new Vector<float>(m3.Weight, i);
+                var vecM4W = new Vector<float>(m4.Weight, i);
+                var vecM5W = new Vector<float>(m5.Weight, i);
+                var vecM6W = new Vector<float>(m6.Weight, i);
+                var vecRW = new Vector<float>(res.Weight, i);
+
+                vecRW = sig(vecM1W + vecM2W + vecM3W + vecM4W + vecM5W + vecM6W);
+                vecRW.CopyTo(res.Weight, i);
+
+                i += Vector<float>.Count;
+            }
+
+            while (i < n)
+            {
+                res.Weight[i] = sig(m1.Weight[i] + m2.Weight[i] + m3.Weight[i] + m4.Weight[i] + m5.Weight[i] + m6.Weight[i]);
+                i++;
+            }
+
+
+            if (this.needs_backprop)
+            {
+
+                Action backward = () =>
+                {
+                    i = 0;
+                    while (i < n - moreItems)
+                    {
+                        var vecRW = new Vector<float>(res.Weight, i);
+                        var vecRG = new Vector<float>(res.Gradient, i);
+                        var vecMG = vecRW * (Vector<float>.One - vecRW) * vecRG;
+
+                        var vecM1G = new Vector<float>(m1.Gradient, i);
+                        var vecM2G = new Vector<float>(m2.Gradient, i);
+                        var vecM3G = new Vector<float>(m3.Gradient, i);
+                        var vecM4G = new Vector<float>(m4.Gradient, i);
+                        var vecM5G = new Vector<float>(m5.Gradient, i);
+                        var vecM6G = new Vector<float>(m6.Gradient, i);
+
+                        vecM1G += vecMG;
+                        vecM2G += vecMG;
+                        vecM3G += vecMG;
+                        vecM4G += vecMG;
+                        vecM5G += vecMG;
+                        vecM6G += vecMG;
+
+                        vecM1G.CopyTo(m1.Gradient, i);
+                        vecM2G.CopyTo(m2.Gradient, i);
+                        vecM3G.CopyTo(m3.Gradient, i);
+                        vecM4G.CopyTo(m4.Gradient, i);
+                        vecM5G.CopyTo(m5.Gradient, i);
+                        vecM6G.CopyTo(m6.Gradient, i);
+
+                        i += Vector<float>.Count;
+                    }
+
+                    while (i < n)
+                    {
+                        var mwi = res.Weight[i];
+                        var g = mwi * (1.0 - mwi) * res.Gradient[i];
+
+                        m1.Gradient[i] += (float)g;
+                        m2.Gradient[i] += (float)g;
+                        m3.Gradient[i] += (float)g;
+                        m4.Gradient[i] += (float)g;
+                        m5.Gradient[i] += (float)g;
+                        m6.Gradient[i] += (float)g;
+                        i++;
+                    }
+
+                };
+                this.backprop.Add(backward);
+            }
+            return res;
+
+        }
+
+
         public WeightMatrix addtanh(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3, WeightMatrix m4)
         {
-            var res = new WeightMatrix(m1.Rows, m1.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
 
             var n = m1.Weight.Length;
             var moreItems = (n % Vector<float>.Count);
@@ -1528,7 +1620,7 @@ namespace Seq2SeqSharp
 
         public WeightMatrix addtanh(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3, WeightMatrix m4, WeightMatrix m5)
         {
-            var res = new WeightMatrix(m1.Rows, m1.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
 
             var n = m1.Weight.Length;
             var moreItems = (n % Vector<float>.Count);
@@ -1599,6 +1691,7 @@ namespace Seq2SeqSharp
                         m2.Gradient[i] += g;
                         m3.Gradient[i] += g;
                         m4.Gradient[i] += g;
+                        m5.Gradient[i] += g;
 
                         i++;
                     }
@@ -1610,9 +1703,99 @@ namespace Seq2SeqSharp
 
         }
 
+
+        public WeightMatrix addtanh(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3, WeightMatrix m4, WeightMatrix m5, WeightMatrix m6)
+        {
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
+
+            var n = m1.Weight.Length;
+            var moreItems = (n % Vector<float>.Count);
+            var i = 0;
+            while (i < n - moreItems)
+            {
+                var vecM1W = new Vector<float>(m1.Weight, i);
+                var vecM2W = new Vector<float>(m2.Weight, i);
+                var vecM3W = new Vector<float>(m3.Weight, i);
+                var vecM4W = new Vector<float>(m4.Weight, i);
+                var vecM5W = new Vector<float>(m5.Weight, i);
+                var vecM6W = new Vector<float>(m6.Weight, i);
+                var vecRW = new Vector<float>(res.Weight, i);
+
+                vecRW = FastTanh(vecM1W + vecM2W + vecM3W + vecM4W + vecM5W + vecM6W);
+                vecRW.CopyTo(res.Weight, i);
+
+                i += Vector<float>.Count;
+            }
+
+            while (i < n)
+            {
+                res.Weight[i] = FastTanh(m1.Weight[i] + m2.Weight[i] + m3.Weight[i] + m4.Weight[i] + m5.Weight[i] + m6.Weight[i]);
+                i++;
+            }
+
+
+            if (this.needs_backprop)
+            {
+
+                Action backward = () =>
+                {
+                    i = 0;
+                    while (i < n - moreItems)
+                    {
+                        var vecRW = new Vector<float>(res.Weight, i);
+                        var vecRG = new Vector<float>(res.Gradient, i);
+
+                        var vecMG = (Vector<float>.One - vecRW * vecRW) * vecRG;
+
+
+                        var vecM1G = new Vector<float>(m1.Gradient, i);
+                        var vecM2G = new Vector<float>(m2.Gradient, i);
+                        var vecM3G = new Vector<float>(m3.Gradient, i);
+                        var vecM4G = new Vector<float>(m4.Gradient, i);
+                        var vecM5G = new Vector<float>(m5.Gradient, i);
+                        var vecM6G = new Vector<float>(m6.Gradient, i);
+
+                        vecM1G += vecMG;
+                        vecM2G += vecMG;
+                        vecM3G += vecMG;
+                        vecM4G += vecMG;
+                        vecM5G += vecMG;
+                        vecM6G += vecMG;
+
+                        vecM1G.CopyTo(m1.Gradient, i);
+                        vecM2G.CopyTo(m2.Gradient, i);
+                        vecM3G.CopyTo(m3.Gradient, i);
+                        vecM4G.CopyTo(m4.Gradient, i);
+                        vecM5G.CopyTo(m5.Gradient, i);
+                        vecM6G.CopyTo(m6.Gradient, i);
+
+                        i += Vector<float>.Count;
+                    }
+
+                    while (i < n)
+                    {
+                        var mwi = res.Weight[i];
+                        var g = (float)(1.0 - mwi * mwi) * res.Gradient[i];
+
+                        m1.Gradient[i] += g;
+                        m2.Gradient[i] += g;
+                        m3.Gradient[i] += g;
+                        m4.Gradient[i] += g;
+                        m5.Gradient[i] += g;
+                        m6.Gradient[i] += g;
+
+                        i++;
+                    }
+
+                };
+                this.backprop.Add(backward);
+            }
+            return res;
+
+        }
         public WeightMatrix add(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3, WeightMatrix m4)
         {
-            var res = new WeightMatrix(m1.Rows, m1.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
 
             var n = m1.Weight.Length;
             var moreItems = (n % Vector<float>.Count);
@@ -1691,7 +1874,7 @@ namespace Seq2SeqSharp
         public WeightMatrix eladd(WeightMatrix m1, WeightMatrix m2)
         {
 
-            var res = new WeightMatrix(m1.Rows, m1.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
             for (int i = 0, n = m1.Weight.Length; i < n; i++)
             {
                 res.Weight[i] = m1.Weight[i] + m2.Weight[0];
@@ -1715,7 +1898,7 @@ namespace Seq2SeqSharp
 
         public virtual WeightMatrix eltmul(WeightMatrix m1, WeightMatrix m2)
         {
-            var res = new WeightMatrix(m1.Rows, m1.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
             var n = m1.Weight.Length;
             var i = 0;
             var moreItems = (n % Vector<float>.Count);
@@ -1778,7 +1961,7 @@ namespace Seq2SeqSharp
         public virtual WeightMatrix scalemul(WeightMatrix m1, WeightMatrix m2)
         {
 
-            var res = new WeightMatrix(m1.Rows, m1.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
             var n = m1.Weight.Length;
             var i = 0;
             var moreItems = (n % Vector<float>.Count);
@@ -1840,7 +2023,7 @@ namespace Seq2SeqSharp
         public WeightMatrix scalemuladd(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3)
         {
 
-            var res = new WeightMatrix(m1.Rows, m1.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
             var n = m1.Weight.Length;
             var i = 0;
             var moreItems = (n % Vector<float>.Count);
@@ -1906,8 +2089,8 @@ namespace Seq2SeqSharp
 
         public virtual WeightMatrix SoftmaxWithCrossEntropy(WeightMatrix m)
         {
-            var res = new WeightMatrix(m.Rows, m.Columns); // probability volume
-        //    res.UseArrayPool = false;
+            var res = weightMatrixFactory.CreateWeightMatrix(m.Rows, m.Columns); // probability volume
+       //     res.UseArrayPool = false;
 
             var maxval = -999999.0f;
             var n = m.Weight.Length;
@@ -1994,7 +2177,7 @@ namespace Seq2SeqSharp
 
         public WeightMatrix Softmax(WeightMatrix m)
         {
-            var res = new WeightMatrix(m.Rows, m.Columns); // probability volume
+            var res = weightMatrixFactory.CreateWeightMatrix(m.Rows, m.Columns); // probability volume
             var maxval = -999999.0f;
             var n = m.Weight.Length;
 
@@ -2037,7 +2220,7 @@ namespace Seq2SeqSharp
         public WeightMatrix weightRows(WeightMatrix m1, WeightMatrix weightRow)
         {
 
-            var res = new WeightMatrix(m1.Rows, m1.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
             for (int x = 0; x < m1.Rows; x++)
             {
                 for (int y = 0; y < m1.Columns; y++)
@@ -2072,7 +2255,7 @@ namespace Seq2SeqSharp
         public WeightMatrix sumColumns(WeightMatrix m1)
         {
 
-            var res = new WeightMatrix(1, m1.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(1, m1.Columns);
             for (int x = 0; x < m1.Rows; x++)
             {
                 for (int y = 0; y < m1.Columns; y++)
@@ -2109,7 +2292,7 @@ namespace Seq2SeqSharp
             for (int i = 0; i < n; i++)
             {
                 if (m[i].Weight[0] > maxval) maxval = m[i].Weight[0];
-                res.Add(new WeightMatrix(m[i].Rows,m[i].Columns));
+                res.Add(weightMatrixFactory.CreateWeightMatrix(m[i].Rows,m[i].Columns));
             }
 
             var s = 0.0;
@@ -2153,7 +2336,7 @@ namespace Seq2SeqSharp
 
         public WeightMatrix repeatSX(WeightMatrix m, int p)
         {
-            var res = new WeightMatrix(  p, m.Columns);
+            var res = weightMatrixFactory.CreateWeightMatrix(  p, m.Columns);
             for (int i = 0; i < p; i++)
             {
                 for (int j = 0; j < m.Columns; j++)

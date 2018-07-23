@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AdvUtils;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -10,23 +11,23 @@ namespace Seq2SeqSharp.Tools
 {
     public class SntPair
     {
-        public List<string> SrcSnt;
-        public List<string> TgtSnt;
+        public string[] SrcSnt;
+        public string[] TgtSnt;
     }
 
     public class Corpus : IEnumerable<SntPair>
     {
-        const int BLOCKSIZE = 100000;
+        int blockSize = 100000;
 
         List<string> srcFileList;
         List<string> tgtFileList;
 
-        void Shuffle(List<SntPair> sntPairs)
+        void Shuffle(SntPair[] sntPairs)
         {
             Random rnd = new Random(DateTime.Now.Millisecond);
-            for (int i = 0; i < sntPairs.Count; i++)
+            for (int i = 0; i < sntPairs.Length; i++)
             {
-                int idx = rnd.Next(0, sntPairs.Count);
+                int idx = rnd.Next(0, sntPairs.Length);
                 SntPair tmp = sntPairs[i];
                 sntPairs[i] = sntPairs[idx];
                 sntPairs[idx] = tmp;
@@ -35,12 +36,11 @@ namespace Seq2SeqSharp.Tools
 
         public IEnumerator<SntPair> GetEnumerator()
         {
+            List<SntPair> sntPairs = new List<SntPair>();
             for (int i = 0; i < srcFileList.Count; i++)
             {
                 StreamReader srSrc = new StreamReader(srcFileList[i]);
                 StreamReader srTgt = new StreamReader(tgtFileList[i]);
-
-                List<SntPair> sntPairs = new List<SntPair>();
 
                 while (true)
                 {
@@ -50,37 +50,45 @@ namespace Seq2SeqSharp.Tools
                     {
                         break;
                     }
-                    sntPair.SrcSnt = line.ToLower().Trim().Split(' ').ToList();
+                    sntPair.SrcSnt = line.ToLower().Trim().Split(' ').ToArray();
 
                     line = srTgt.ReadLine();
-                    sntPair.TgtSnt = line.ToLower().Trim().Split(' ').ToList();
+                    sntPair.TgtSnt = line.ToLower().Trim().Split(' ').ToArray();
 
                   
                     sntPairs.Add(sntPair);
-                    if (sntPairs.Count >= BLOCKSIZE)
+                    if (blockSize > 0 && sntPairs.Count >= blockSize)
                     {
-                        Console.WriteLine($"Shuffle training corpus...");
-                        Shuffle(sntPairs);
-                        foreach (var item in sntPairs)
+                        SntPair[] arraySntPairs = sntPairs.ToArray();
+                        sntPairs = new List<SntPair>();
+                        GC.Collect();
+
+                        Logger.WriteLine($"Shuffle training corpus...");
+                        Shuffle(arraySntPairs);
+                        foreach (var item in arraySntPairs)
                         {
                             yield return item;
                         }
-                        sntPairs.Clear();
+                        
                     }
-                }
-
-                if (sntPairs.Count > 0)
-                {
-                    Shuffle(sntPairs);
-                    foreach (var item in sntPairs)
-                    {
-                        yield return item;
-                    }
-                    sntPairs.Clear();
                 }
 
                 srSrc.Close();
                 srTgt.Close();
+            }
+
+            if (sntPairs.Count > 0)
+            {
+                SntPair[] arraySntPairs = sntPairs.ToArray();
+                sntPairs = new List<SntPair>();
+                GC.Collect();
+
+                Logger.WriteLine($"Shuffle training corpus...");
+                Shuffle(arraySntPairs);
+                foreach (var item in arraySntPairs)
+                {
+                    yield return item;
+                }
             }
         }
 
@@ -89,8 +97,10 @@ namespace Seq2SeqSharp.Tools
             return GetEnumerator();
         }
 
-        public Corpus(string corpusFilePath, string srcLangName, string tgtLangName)
+        public Corpus(string corpusFilePath, string srcLangName, string tgtLangName, int shuffleBlockSize = -1)
         {
+            blockSize = shuffleBlockSize;
+
             srcFileList = new List<string>();
             tgtFileList = new List<string>();
             string[] srcFiles = Directory.GetFiles(corpusFilePath, $"*.{srcLangName}.snt", SearchOption.TopDirectoryOnly);

@@ -1,5 +1,6 @@
 ﻿
 
+using AdvUtils;
 using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Concurrent;
@@ -35,8 +36,8 @@ namespace Seq2SeqSharp
         public ConcurrentDictionary<int, string> t_indexToWord;
         public List<string> t_vocab = new List<string>();
 
-        public int hidden_size;
-        public int word_size;
+        public int HiddenSize { get; set; }
+        public int WordVectorSize { get; set; }
 
         public Corpus TrainCorpus;
 
@@ -50,11 +51,10 @@ namespace Seq2SeqSharp
         public WeightMatrix s_Embedding;
         public WeightMatrix t_Embedding;
         public Encoder encoder;
-        public Encoder ReversEncoder;
+        public Encoder reversEncoder;
         public AttentionDecoder decoder;
-        public int ProcessedLine = 0;
 
-        public bool UseDropout { get; set; }
+        public bool UseDropout { get; set; } = false;
 
 
         //Output Layer Weights
@@ -62,53 +62,91 @@ namespace Seq2SeqSharp
         public WeightMatrix bd { get; set; }
 
         public int Depth { get; set; }
-
-        public DateTime StartDateTime { get; set; }
         public string EncodedModelFilePath { get; set; }
+
+        private const string m_UNK = "<UNK>";
+        private const string m_END = "<END>";
+        private const string m_START = "<START>";
+
 
         public AttentionSeq2Seq()
         {
         }
 
-        public AttentionSeq2Seq(int inputSize, int hiddenSize, int depth, Corpus trainCorpus, string srcVocabFilePath, string tgtVocabFilePath, bool useSparseFeature, bool useDropout, string modelFilePath)
+        public AttentionSeq2Seq(int inputSize, int hiddenSize, int depth, Corpus trainCorpus, string srcVocabFilePath, string tgtVocabFilePath, string srcEmbeddingFilePath, string tgtEmbeddingFilePath,
+            bool useSparseFeature, bool useDropout, string modelFilePath)
         {
             this.TrainCorpus = trainCorpus;
             this.Depth=depth;
             // list of sizes of hidden layers
-            word_size = inputSize; // size of word embeddings.
+            WordVectorSize = inputSize; // size of word embeddings.
             EncodedModelFilePath = modelFilePath;
 
-            this.hidden_size = hiddenSize;
+            this.HiddenSize = hiddenSize;
 
             if (String.IsNullOrEmpty(srcVocabFilePath) == false && String.IsNullOrEmpty(tgtVocabFilePath) == false)
             {
-                Console.WriteLine($"Loading vocabulary files from '{srcVocabFilePath}' and '{tgtVocabFilePath}'...");
+                Logger.WriteLine($"Loading vocabulary files from '{srcVocabFilePath}' and '{tgtVocabFilePath}'...");
                 LoadVocab(srcVocabFilePath, tgtVocabFilePath);
             }
             else
             {
-                Console.WriteLine("Building vocabulary from training corpus...");
+                Logger.WriteLine("Building vocabulary from training corpus...");
                 BuildVocab(trainCorpus);
             }
 
-            this.Whd = new WeightMatrix(hidden_size , t_vocab.Count + 3,  true);
+            this.Whd = new WeightMatrix(HiddenSize , t_vocab.Count + 3,  true);
             this.bd = new WeightMatrix(1, t_vocab.Count + 3, 0);
 
              
-            s_Embedding = new WeightMatrix(s_vocab.Count + 3, word_size,   true);
-            t_Embedding = new WeightMatrix(t_vocab.Count + 3, word_size, true);
+            s_Embedding = new WeightMatrix(s_vocab.Count, WordVectorSize,   true);
+            t_Embedding = new WeightMatrix(t_vocab.Count + 3, WordVectorSize, true);
 
-            encoder = new Encoder(hidden_size, word_size, depth);
-            ReversEncoder = new Encoder(hidden_size, word_size, depth);
+            if (String.IsNullOrEmpty(srcEmbeddingFilePath) == false)
+            {
+                Logger.WriteLine($"Loading ExtEmbedding model from '{srcEmbeddingFilePath}' for source side.");
+                LoadWordEmbedding(srcEmbeddingFilePath, s_Embedding, s_wordToIndex);
+            }
 
-            int sparseFeatureSize = useSparseFeature ? s_vocab.Count + 3 : 0;
+            if (String.IsNullOrEmpty(tgtEmbeddingFilePath) == false)
+            {
+                Logger.WriteLine($"Loading ExtEmbedding model from '{tgtEmbeddingFilePath}' for target side.");
+                LoadWordEmbedding(tgtEmbeddingFilePath, t_Embedding, t_wordToIndex);
+            }
 
-            decoder = new AttentionDecoder(sparseFeatureSize, hidden_size, word_size, depth);
+            encoder = new Encoder(HiddenSize, WordVectorSize, depth);
+            reversEncoder = new Encoder(HiddenSize, WordVectorSize, depth);
+
+            int sparseFeatureSize = useSparseFeature ? s_vocab.Count : 0;
+
+            decoder = new AttentionDecoder(sparseFeatureSize, HiddenSize, WordVectorSize, depth);
+        }
+
+
+        private void LoadWordEmbedding(string extEmbeddingFilePath, WeightMatrix embeddingMatrix, ConcurrentDictionary<string, int> wordToIndex)
+        {
+            Txt2Vec.Model extEmbeddingModel = new Txt2Vec.Model();
+            extEmbeddingModel.LoadBinaryModel(extEmbeddingFilePath);
+
+            if (extEmbeddingModel.VectorSize != embeddingMatrix.Columns)
+            {
+                throw new ArgumentException($"Inconsistent embedding size. ExtEmbeddingModel size = '{extEmbeddingModel.VectorSize}', EmbeddingMatrix column size = '{embeddingMatrix.Columns}'");
+            }
+
+            foreach (KeyValuePair<string, int> pair in wordToIndex)
+            {
+                float[] vector = extEmbeddingModel.GetVector(pair.Key);
+
+                if (vector != null)
+                {
+                    embeddingMatrix.Set(pair.Value, vector);
+                }
+            }
         }
 
         private void LoadVocab(string srcVocabFilePath, string tgtVocabFilePath)
         {
-            Console.WriteLine("Loading vocabulary files...");
+            Logger.WriteLine("Loading vocabulary files...");
             string[] srcVocab = File.ReadAllLines(srcVocabFilePath);
             string[] tgtVocab = File.ReadAllLines(tgtVocabFilePath);
 
@@ -119,6 +157,18 @@ namespace Seq2SeqSharp
             t_wordToIndex = new ConcurrentDictionary<string, int>();
             t_indexToWord = new ConcurrentDictionary<int, string>();
             t_vocab = new List<string>();
+
+            s_vocab.Add(m_END);
+            s_vocab.Add(m_START);
+            s_vocab.Add(m_UNK);
+
+            s_wordToIndex[m_END] = (int)SENTTAGS.END;
+            s_wordToIndex[m_START] = (int)SENTTAGS.START;
+            s_wordToIndex[m_UNK] = (int)SENTTAGS.UNK;
+
+            s_indexToWord[(int)SENTTAGS.END] = m_END;
+            s_indexToWord[(int)SENTTAGS.START] = m_START;
+            s_indexToWord[(int)SENTTAGS.UNK] = m_UNK;
 
             int q = 3;
             foreach (string line in srcVocab)
@@ -164,7 +214,7 @@ namespace Seq2SeqSharp
             foreach (SntPair sntPair in trainCorpus)
             {
                 var item = sntPair.SrcSnt;
-                for (int i = 0, n = item.Count; i < n; i++)
+                for (int i = 0, n = item.Length; i < n; i++)
                 {
                     var txti = item[i];
                     if (s_d.Keys.Contains(txti)) { s_d[txti] += 1; }
@@ -172,13 +222,26 @@ namespace Seq2SeqSharp
                 }
 
                 var item2 = sntPair.TgtSnt;
-                for (int i = 0, n = item2.Count; i < n; i++)
+                for (int i = 0, n = item2.Length; i < n; i++)
                 {
                     var txti = item2[i];
                     if (t_d.Keys.Contains(txti)) { t_d[txti] += 1; }
                     else { t_d.Add(txti, 1); }
                 }
             }
+
+            s_vocab.Add(m_END);
+            s_vocab.Add(m_START);
+            s_vocab.Add(m_UNK);
+
+            s_wordToIndex[m_END] = (int)SENTTAGS.END;
+            s_wordToIndex[m_START] = (int)SENTTAGS.START;
+            s_wordToIndex[m_UNK] = (int)SENTTAGS.UNK;
+
+            s_indexToWord[(int)SENTTAGS.END] = m_END;
+            s_indexToWord[(int)SENTTAGS.START] = m_START;
+            s_indexToWord[(int)SENTTAGS.UNK] = m_UNK;
+
 
             // NOTE: start at one because we will have START and END tokens!
             // that is, START token will be index 0 in model word vectors
@@ -197,7 +260,7 @@ namespace Seq2SeqSharp
 
             }
 
-            Console.WriteLine($"Source language Max term id = '{q}'");
+            Logger.WriteLine($"Source language Max term id = '{q}'");
 
 
             q = 3;
@@ -214,15 +277,14 @@ namespace Seq2SeqSharp
 
             }
 
-            Console.WriteLine($"Target language Max term id = '{q}'");
+            Logger.WriteLine($"Target language Max term id = '{q}'");
 
         }
 
         public void Train(int trainingEpoch, float startLearningRate)
         {
-            Console.WriteLine("Start to train...");
+            Logger.WriteLine("Start to train...");
             learning_rate = startLearningRate;
-            StartDateTime = DateTime.Now;
             solver = new Optimizer();
 
          
@@ -232,10 +294,12 @@ namespace Seq2SeqSharp
                 learning_rate /= 2.0f;
             }
         }
-
-        double costInTotal = 0.0;
+        
         private void TrainEp(int ep)
         {
+            double costInTotal = 0.0;
+            int processedLine = 0;
+            DateTime startDateTime = DateTime.Now;
             foreach (SntPair sntPair in TrainCorpus)
             {
                 IComputeGraph g;
@@ -243,45 +307,52 @@ namespace Seq2SeqSharp
                 List<WeightMatrix> encoded = new List<WeightMatrix>();
                 SparseWeightMatrix sparseEncoder;
 
-                g = Encode(sntPair.SrcSnt, out cost, out sparseEncoder, encoded, encoder, ReversEncoder, s_Embedding);
+                List<string> srcSnt = new List<string>();
+           //     srcSnt.Add(m_START);
+                srcSnt.AddRange(sntPair.SrcSnt);
+           //     srcSnt.Add(m_END);
+
+                g = Encode(srcSnt, out cost, out sparseEncoder, encoded, encoder, reversEncoder, s_Embedding);
                 cost = DecodeOutput(sntPair.TgtSnt, g, cost, sparseEncoder, encoded, decoder, Whd, bd, t_Embedding);
                 g.backward();
 
-                UpdateParameters(encoder, ReversEncoder, decoder, Whd, bd, s_Embedding, t_Embedding);
+                UpdateParameters(encoder, reversEncoder, decoder, Whd, bd, s_Embedding, t_Embedding);
 
                 if (float.IsInfinity(cost) == false && float.IsNaN(cost) == false)
                 {
-                    costInTotal += (cost / sntPair.TgtSnt.Count);
+                    costInTotal += (cost / sntPair.TgtSnt.Length);
                 }
 
-                Reset(encoder, ReversEncoder, decoder);
+                Reset(encoder, reversEncoder, decoder);
 
-                System.Threading.Interlocked.Increment(ref ProcessedLine);
+                System.Threading.Interlocked.Increment(ref processedLine);
 
-                if (IterationDone != null && ProcessedLine % 10 == 0)
+                if (IterationDone != null && processedLine % 20 == 0)
                 {
                     IterationDone(this, new CostEventArg()
                     {
                         LearningRate = learning_rate,
-                        Cost = cost / sntPair.TgtSnt.Count,
+                        Cost = cost / sntPair.TgtSnt.Length,
                         CostInTotal = costInTotal,
                         Epoch = ep,
-                        ProcessedInTotal = ProcessedLine,
-                        SentenceLength = sntPair.TgtSnt.Count,
-                        StartDateTime = StartDateTime
+                        ProcessedInTotal = processedLine,
+                        SentenceLength = sntPair.TgtSnt.Length,
+                        StartDateTime = startDateTime
                     });
                 }
 
-                if (ProcessedLine % 1000 == 0)
+                if (processedLine % 1000 == 0)
                 {
                     Save();
                 }
             }
 
+            CleanWeightsCash(encoder, reversEncoder, decoder, Whd, bd, s_Embedding, t_Embedding);
+
             Save();
         }
 
-        private IComputeGraph Encode(List<string> inputSentence, out float cost,   out SparseWeightMatrix sWM, List<WeightMatrix> encoded, Encoder encoder, Encoder ReversEncoder, WeightMatrix Embedding)
+        private IComputeGraph Encode(List<string> inputSentence, out float cost, out SparseWeightMatrix sWM, List<WeightMatrix> encoded, Encoder encoder, Encoder reversEncoder, WeightMatrix Embedding)
         {
             var reversSentence = inputSentence.ToList();
             reversSentence.Reverse();
@@ -295,12 +366,13 @@ namespace Seq2SeqSharp
 
             cost = 0.0f;
             SparseWeightMatrix tmpSWM = new SparseWeightMatrix(1, Embedding.Columns);
-            for (int i = 0; i < inputSentence.Count; i++)
-            {
-                WeightMatrix eOutput = null;
-                WeightMatrix eOutput2 = null;                
-                Parallel.Invoke(
-                    () =>
+            List<WeightMatrix> forwardOutputs = new List<WeightMatrix>();
+            List<WeightMatrix> backwardOutputs = new List<WeightMatrix>();
+
+            Parallel.Invoke(
+                () =>
+                {
+                    for (int i = 0; i < inputSentence.Count; i++)
                     {
                         int ix_source = (int)SENTTAGS.UNK;
 
@@ -309,12 +381,15 @@ namespace Seq2SeqSharp
                             ix_source = s_wordToIndex[inputSentence[i]];
                         }
                         var x = g.PeekRow(Embedding, ix_source);
-                        eOutput = encoder.Encode(x, g);
+                        var eOutput = encoder.Encode(x, g);
+                        forwardOutputs.Add(eOutput);
 
                         tmpSWM.AddWeight(0, ix_source, 1.0f);
-
-                    },
-                    () =>
+                    }
+                },
+                () =>
+                {
+                    for (int i = 0; i < inputSentence.Count; i++)
                     {
                         int ix_source2 = (int)SENTTAGS.UNK;
 
@@ -324,11 +399,17 @@ namespace Seq2SeqSharp
                         }
 
                         var x2 = g.PeekRow(Embedding, ix_source2);
-                        eOutput2 = ReversEncoder.Encode(x2, g);
-                    });
+                        var eOutput2 = reversEncoder.Encode(x2, g);
+                        backwardOutputs.Add(eOutput2);
+                    }
+                });
 
+            backwardOutputs.Reverse();
 
-                encoded.Add( g.concatColumns(eOutput, eOutput2));
+            for (int i = 0; i < inputSentence.Count; i++)
+            {
+                //encoded.Add(g.concatColumns(forwardOutputs[i], backwardOutputs[i]));
+                encoded.Add(g.add(forwardOutputs[i], backwardOutputs[i]));
             }
 
             sWM = tmpSWM;
@@ -336,14 +417,14 @@ namespace Seq2SeqSharp
             return g;
         }
 
-        private float DecodeOutput(List<string> OutputSentence, IComputeGraph g, float cost, SparseWeightMatrix sparseInput, List<WeightMatrix> encoded, AttentionDecoder decoder, WeightMatrix Whd, WeightMatrix bd, WeightMatrix Embedding)
+        private float DecodeOutput(string[] OutputSentence, IComputeGraph g, float cost, SparseWeightMatrix sparseInput, List<WeightMatrix> encoded, AttentionDecoder decoder, WeightMatrix Whd, WeightMatrix bd, WeightMatrix Embedding)
         {
 
             int ix_input = (int)SENTTAGS.START;
-            for (int i = 0; i < OutputSentence.Count + 1; i++)
+            for (int i = 0; i < OutputSentence.Length + 1; i++)
             {
                 int ix_target = (int)SENTTAGS.UNK;
-                if (i == OutputSentence.Count) 
+                if (i == OutputSentence.Length) 
                 {
                     ix_target = (int)SENTTAGS.END; 
                 }
@@ -389,20 +470,32 @@ namespace Seq2SeqSharp
             model.Add(t_Embedding);
             model.Add(Whd);
             model.Add(bd);
-            solver.setp(model, learning_rate, regc, clipval);
+            solver.UpdateWeights(model, learning_rate, regc, clipval);
         }
 
-        private void Reset(Encoder encoder, Encoder ReversEncoder, AttentionDecoder decoder)
+        private void CleanWeightsCash(Encoder encoder, Encoder ReversEncoder, AttentionDecoder decoder, WeightMatrix Whd, WeightMatrix bd, WeightMatrix s_Embedding, WeightMatrix t_Embedding)
+        {
+            var model = encoder.getParams();
+            model.AddRange(decoder.getParams());
+            model.AddRange(ReversEncoder.getParams());
+            model.Add(s_Embedding);
+            model.Add(t_Embedding);
+            model.Add(Whd);
+            model.Add(bd);
+            solver.CleanCash(model);
+        }
+
+        private void Reset(Encoder encoder, Encoder reversEncoder, AttentionDecoder decoder)
         {
             encoder.Reset();
-            ReversEncoder.Reset();
+            reversEncoder.Reset();
             decoder.Reset();
         }
 
     
-        public List<string> Predict(List<string> inputSeq)
+        public List<string> Predict(List<string> input)
         {
-            ReversEncoder.Reset();
+            reversEncoder.Reset();
             encoder.Reset();
             decoder.Reset();
           
@@ -413,45 +506,70 @@ namespace Seq2SeqSharp
 #else
             var G2 = new ComputeGraph(false);
 #endif
+
+            List<string> inputSeq = new List<string>();
+        //    inputSeq.Add(m_START);
+            inputSeq.AddRange(input);
+        //    inputSeq.Add(m_END);
+
             List<string> revseq = inputSeq.ToList();
             revseq.Reverse();
+
+            List<WeightMatrix> forwardEncoded = new List<WeightMatrix>();
+            List<WeightMatrix> backwardEncoded = new List<WeightMatrix>();
             List<WeightMatrix>  encoded = new List<WeightMatrix>();
             SparseWeightMatrix sparseInput = new SparseWeightMatrix(1, s_Embedding.Columns);
+
+            Parallel.Invoke(
+            () =>
+            {
+                for (int i = 0; i < inputSeq.Count; i++)
+                {
+                    int ix = (int)SENTTAGS.UNK;
+                    if (s_wordToIndex.ContainsKey(inputSeq[i]) == false)
+                    {
+                        Logger.WriteLine($"Unknow input word: {inputSeq[i]}");
+                    }
+                    else
+                    {
+                        ix = s_wordToIndex[inputSeq[i]];
+                    }
+
+                    var x2 = G2.PeekRow(s_Embedding, ix);
+                    var o = encoder.Encode(x2, G2);
+                    forwardEncoded.Add(o);
+
+                    sparseInput.AddWeight(0, ix, 1.0f);
+                }
+            },
+            () =>
+            {
+
+                for (int i = 0; i < inputSeq.Count; i++)
+                {
+                    int ix = (int)SENTTAGS.UNK;
+                    if (s_wordToIndex.ContainsKey(revseq[i]) == false)
+                    {
+                        Logger.WriteLine($"Unknow input word: {revseq[i]}");
+                    }
+                    else
+                    {
+                        ix = s_wordToIndex[revseq[i]];
+                    }
+
+                    var x2 = G2.PeekRow(s_Embedding, ix);
+                    var o = reversEncoder.Encode(x2, G2);
+                    backwardEncoded.Add(o);
+
+                }
+            });
+
+            backwardEncoded.Reverse();
             for (int i = 0; i < inputSeq.Count; i++)
             {
-                int ix = (int)SENTTAGS.UNK;
-                int ix2 = (int)SENTTAGS.UNK;
-                if (s_wordToIndex.ContainsKey(inputSeq[i]) == false)
-                {
-                    Console.WriteLine($"Unknow input word: {inputSeq[i]}");
-                }
-                else
-                {
-                    ix = s_wordToIndex[inputSeq[i]];
-                }
-
-                if (s_wordToIndex.ContainsKey(revseq[i]) == false)
-                {
-                    Console.WriteLine($"Unknow input word: {revseq[i]}");
-                }
-                else
-                {
-                    ix2 = s_wordToIndex[revseq[i]];
-                }
-
-                var x2 = G2.PeekRow(s_Embedding, ix);
-                var o = encoder.Encode(x2, G2);
-                var x3 = G2.PeekRow(s_Embedding, ix2);
-                var eOutput2 = ReversEncoder.Encode(x3, G2);
-
-                var d = G2.concatColumns(o, eOutput2);
-
-                sparseInput.AddWeight(0, ix, 1.0f);
-
-                encoded.Add(d);
-                 
+                //encoded.Add(G2.concatColumns(forwardEncoded[i], backwardEncoded[i]));
+                encoded.Add(G2.add(forwardEncoded[i], backwardEncoded[i]));
             }
-
              
             //if (UseDropout)
             //{
@@ -497,7 +615,7 @@ namespace Seq2SeqSharp
                 
                 if (result.Count > max_word) { break; } // something is wrong 
 
-                var letter2 = "UNK";
+                var letter2 = m_UNK;
                 if (t_indexToWord.ContainsKey(pred))
                 {
                     letter2 = t_indexToWord[pred];
@@ -518,12 +636,12 @@ namespace Seq2SeqSharp
             tosave.decoder = this.decoder;
             tosave.Depth = this.Depth;
             tosave.encoder = this.encoder;
-            tosave.hidden_sizes = this.hidden_size;
+            tosave.hidden_sizes = this.HiddenSize;
             tosave.learning_rate = this.learning_rate;
-            tosave.letter_size = this.word_size;
+            tosave.letter_size = this.WordVectorSize;
             tosave.max_chars_gen = this.max_word;
             tosave.regc = this.regc;
-            tosave.ReversEncoder = this.ReversEncoder;
+            tosave.ReversEncoder = this.reversEncoder;
             tosave.UseDropout = this.UseDropout;
             tosave.Whd = this.Whd;
             tosave.s_Wil = this.s_Embedding;
@@ -544,7 +662,7 @@ namespace Seq2SeqSharp
             }
             catch (Exception err)
             {
-                Console.WriteLine($"Failed to save model to file. Exception = '{err.Message}'");
+                Logger.WriteLine($"Failed to save model to file. Exception = '{err.Message}'");
             }
         }
         public void Load(string modelFilePath)
@@ -564,12 +682,12 @@ namespace Seq2SeqSharp
             this.decoder = tosave.decoder;
             this.Depth = tosave.Depth;
             this.encoder = tosave.encoder;
-            this.hidden_size = tosave.hidden_sizes;
+            this.HiddenSize = tosave.hidden_sizes;
             this.learning_rate = tosave.learning_rate;
-            this.word_size = tosave.letter_size;
+            this.WordVectorSize = tosave.letter_size;
             this.max_word = 100;
             this.regc = tosave.regc;
-            this.ReversEncoder = tosave.ReversEncoder;
+            this.reversEncoder = tosave.ReversEncoder;
             this.UseDropout = tosave.UseDropout;
             this.Whd = tosave.Whd;
             this.s_Embedding = tosave.s_Wil;

@@ -17,6 +17,7 @@ namespace Seq2SeqSharp
 
         public WeightMatrix WcC { get; set; }
 
+
         public WeightMatrix WiS { get; set; }
         public WeightMatrix WfS { get; set; }
         public WeightMatrix WoS { get; set; }
@@ -33,7 +34,7 @@ namespace Seq2SeqSharp
         public LSTMAttentionDecoderCell(int sdim, int hdim, int dim)
             : base(hdim, dim)
         {
-            int contextSize = hdim * 2;
+            int contextSize = hdim; // * 2;
             this.WiC = new WeightMatrix(contextSize, hdim, true);
             this.WfC = new WeightMatrix(contextSize, hdim, true);
             this.WoC = new WeightMatrix(contextSize, hdim, true);

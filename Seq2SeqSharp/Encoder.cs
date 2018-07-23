@@ -25,11 +25,11 @@ namespace Seq2SeqSharp
         {
             encoders.Add(new LSTMCell(hdim, dim));
 
-            //for (int i = 1; i < depth; i++)
-            //{
-            //   encoders.Add(new LSTMCell(hdim, hdim));
+            for (int i = 1; i < depth; i++)
+            {
+                encoders.Add(new LSTMCell(hdim, hdim));
 
-            //}
+            }
             this.hdim = hdim;
             this.dim = dim;
             this.depth = depth;

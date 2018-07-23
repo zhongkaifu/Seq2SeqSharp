@@ -16,13 +16,14 @@ namespace Seq2SeqSharp
         public WeightMatrix bUa { get; set; }
         public WeightMatrix Wa { get; set; }
         public WeightMatrix bWa { get; set; }
-        public int MaxIndex { get; set; }
-        public AttentionUnit()
-        {
-        }
+     //   public int MaxIndex { get; set; }
+        //public AttentionUnit()
+        //{
+        //}
         public AttentionUnit(int size)
         {
-            this.Ua = new WeightMatrix((size * 2)  , size, true);
+            //this.Ua = new WeightMatrix((size * 2)  , size, true);
+            this.Ua = new WeightMatrix(size, size, true);
 
             this.Wa = new WeightMatrix(size  , size, true);
 
@@ -33,8 +34,6 @@ namespace Seq2SeqSharp
             this.V = new WeightMatrix(size, 1, true);
         }
 
-
-        private object locker = new object();
         public WeightMatrix Perform(List<WeightMatrix> input, WeightMatrix state, IComputeGraph g)
         {
             WeightMatrix context;
@@ -52,17 +51,17 @@ namespace Seq2SeqSharp
             });
 
             var res = g.Softmax(atten);
-            var cmax = res[0].Weight[0];
-            int maxAtt = 0;
-            for (int i = 1; i < res.Count; i++)
-            {
-                if (res[i].Weight[0] > cmax)
-                {
-                    cmax = res[i].Weight[0];
-                    maxAtt = i;
-                }
-            }
-            this.MaxIndex = maxAtt;
+            //var cmax = res[0].Weight[0];
+            //int maxAtt = 0;
+            //for (int i = 1; i < res.Count; i++)
+            //{
+            //    if (res[i].Weight[0] > cmax)
+            //    {
+            //        cmax = res[i].Weight[0];
+            //        maxAtt = i;
+            //    }
+            //}
+            //this.MaxIndex = maxAtt;
 
 
             context = g.scalemul(input[0], res[0]);

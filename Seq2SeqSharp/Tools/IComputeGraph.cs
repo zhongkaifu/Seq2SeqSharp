@@ -13,6 +13,7 @@ namespace Seq2SeqSharp
         WeightMatrix addsigmoid(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3);
         WeightMatrix addtanh(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3, WeightMatrix m4);
         WeightMatrix addtanh(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3, WeightMatrix m4, WeightMatrix m5);
+        WeightMatrix addtanh(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3, WeightMatrix m4, WeightMatrix m5, WeightMatrix m6);
         WeightMatrix addtanh(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3);
         WeightMatrix eltmul(WeightMatrix m1, WeightMatrix m2);
         WeightMatrix add(WeightMatrix m1, WeightMatrix m2);
@@ -20,6 +21,7 @@ namespace Seq2SeqSharp
 
         WeightMatrix addsigmoid(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3, WeightMatrix m4);
         WeightMatrix addsigmoid(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3, WeightMatrix m4, WeightMatrix m5);
+        WeightMatrix addsigmoid(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3, WeightMatrix m4, WeightMatrix m5, WeightMatrix m6);
         WeightMatrix muladd(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3);
         WeightMatrix addtanh(WeightMatrix m1, WeightMatrix m2);
         WeightMatrix Softmax(WeightMatrix m);

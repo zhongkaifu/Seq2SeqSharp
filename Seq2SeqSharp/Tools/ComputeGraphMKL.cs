@@ -70,16 +70,16 @@ namespace Seq2SeqSharp
         internal static extern float cblas_sdot(int n, float[] x, int incX, float[] y, int incY);
 
 
-        public ComputeGraphMKL(bool needBack = true)
+        public ComputeGraphMKL(bool needBack = true) 
+            : base(needBack)
         {
-            this.needs_backprop = needBack;
         }
 
         public override WeightMatrix mul(WeightMatrix m1, WeightMatrix m2)
         {
             var n = m1.Rows;
             var d = m2.Columns;
-            var res = new WeightMatrix(n, d, 0);
+            var res = weightMatrixFactory.CreateWeightMatrix(n, d);
 
             cblas_sgemm(Order.Row, Transpose.NoTrans, Transpose.NoTrans, m1.Rows, m2.Columns, m1.Columns, 1.0f, m1.Weight, m1.Columns, m2.Weight, m2.Columns, 0.0f, res.Weight, m2.Columns);
 
@@ -96,12 +96,35 @@ namespace Seq2SeqSharp
         }
 
 
+        public override WeightMatrix add(WeightMatrix m1, WeightMatrix m2)
+        {
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
+            vsAdd(res.Weight.Length, m1.Weight, m2.Weight, res.Weight);
+
+
+            if (this.needs_backprop)
+            {
+
+                Action backward = () =>
+                {
+
+                    vsAdd(res.Gradient.Length, res.Gradient, m1.Gradient, m1.Gradient);
+                    vsAdd(res.Gradient.Length, res.Gradient, m2.Gradient, m2.Gradient);
+                  
+                };
+                this.backprop.Add(backward);
+            }
+            return res;
+
+        }
+
+
 
         public override WeightMatrix muladd(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3)
         {
             var n = m1.Rows;
             var d = m2.Columns;
-            var res = new WeightMatrix(n, d);
+            var res = weightMatrixFactory.CreateWeightMatrix(n, d);
 
             cblas_scopy(m3.Weight.Length, m3.Weight, 1, res.Weight, 1);
             cblas_sgemm(Order.Row, Transpose.NoTrans, Transpose.NoTrans, m1.Rows, m2.Columns, m1.Columns, 1.0f, m1.Weight, m1.Columns, m2.Weight, m2.Columns, 1.0f, res.Weight, m2.Columns);
@@ -121,32 +144,6 @@ namespace Seq2SeqSharp
             }
             return res;
         }
-
-
-
-
-        //public override WeightMatrix add(WeightMatrix m1, WeightMatrix m2)
-        //{
-        //    var res = new WeightMatrix(m1.Rows, m1.Columns);
-        //    var n = m1.Weight.Length;
-
-        //    vsAdd(n, m1.Weight, m2.Weight, res.Weight);
-
-            
-        //    if (this.needs_backprop)
-        //    {
-
-        //        Action backward = () =>
-        //        {
-        //            vsAdd(n, m1.Gradient, res.Gradient, m1.Gradient);
-        //            vsAdd(n, m2.Gradient, res.Gradient, m2.Gradient);                   
-        //        };
-        //        this.backprop.Add(backward);
-        //    }
-        //    return res;
-
-        //}
-
 
 
 

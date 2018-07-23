@@ -32,6 +32,9 @@
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AdvUtils">
+      <HintPath>..\dll\AdvUtils.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
@@ -43,14 +46,14 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="txt2vec">
+      <HintPath>..\dll\txt2vec.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ContextSeq2Seq.cs" />
     <Compile Include="AttentionUnit.cs" />
     <Compile Include="AttentionDecoder.cs" />
     <Compile Include="Decoder.cs" />
-    <Compile Include="ContextDecoder.cs" />
-    <Compile Include="LSTMContextDecoderCell.cs" />
     <Compile Include="AttentionSeq2Seq.cs" />
     <Compile Include="CostEventArg.cs" />
     <Compile Include="Encoder.cs" />
@@ -69,6 +72,7 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

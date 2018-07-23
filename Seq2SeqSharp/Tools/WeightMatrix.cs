@@ -4,10 +4,67 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Seq2SeqSharp
 {
+    public class WeightMatrixList
+    {
+        public List<WeightMatrix> WeightMatrixs = new List<WeightMatrix>();
+        public int index = 0;
+
+    }
+
+    public class WeightMatrixFactory
+    {
+        private object locker = new object();
+        ConcurrentDictionary<int, ConcurrentDictionary<int, WeightMatrixList>> buffer = new ConcurrentDictionary<int, ConcurrentDictionary<int, WeightMatrixList>>();
+        public WeightMatrix CreateWeightMatrix(int row, int column)
+        {
+            var k = buffer.GetOrAdd(row, x => new ConcurrentDictionary<int, WeightMatrixList>());
+            var mList = k.GetOrAdd(column, x => new WeightMatrixList());
+
+            bool newMatrix = false;
+            WeightMatrix r;
+            lock (locker)
+            {
+                if (mList.index == mList.WeightMatrixs.Count)
+                {
+                    r = new WeightMatrix(row, column);
+                    mList.WeightMatrixs.Add(r);
+                    newMatrix = true;
+                }
+                else
+                {
+                    r = mList.WeightMatrixs[mList.index];
+                }
+
+                mList.index++;
+            }
+
+            if (newMatrix == false)
+            {
+                Array.Clear(r.Gradient, 0, r.Gradient.Length);
+            }
+
+            return r;
+            
+        }
+
+        public void Clean()
+        {
+            foreach (var kv in buffer)
+            {
+                foreach (var subKV in kv.Value)
+                {
+                    subKV.Value.index = 0;
+                }
+            }
+
+        }
+    }
+
      
     [Serializable]
     public class WeightMatrix
@@ -17,6 +74,7 @@ namespace Seq2SeqSharp
         public float[] Weight { get; set; }
         public float[] Gradient { get; set; }
         public float[] Cash { get; set; }
+        public HashSet<int> RowToBeUpdated = new HashSet<int>();
 
         public WeightMatrix( )
         {
@@ -25,12 +83,12 @@ namespace Seq2SeqSharp
         public WeightMatrix(float[] weights)
         {
             this.Rows = weights.Length;
-            this.Columns = 1; 
-          //  this.Weight = new float[this.Rows];
+            this.Columns = 1;
+            //  this.Weight = new float[this.Rows];
             this.Gradient = new float[this.Rows];
             this.Cash = new float[this.Rows];
-              this.Weight = weights ;
-             
+            this.Weight = weights;
+
         }
 
         public WeightMatrix CloneWithSharedParameters()
@@ -69,38 +127,14 @@ namespace Seq2SeqSharp
 
         }
 
-
-        //private static ConcurrentDictionary<int, ConcurrentQueue<float[]>> size2QW = new ConcurrentDictionary<int, ConcurrentQueue<float[]>>();
-        //public bool UseArrayPool = true;
-
         public WeightMatrix(int rows, int columns)
         {
             this.Rows = rows;
             this.Columns = columns;
             var n = rows * columns;
-                   this.Weight = new float[n];
+            this.Weight = new float[n];
             this.Gradient = new float[n];
-
-            //var q = size2QW.GetOrAdd(n, x => new ConcurrentQueue<float[]>());
-            //float[] w;
-            //if (q.TryDequeue(out w))
-            //{
-            //    this.Weight = w;
-            //}
-            //else
-            //{
-            //    this.Weight = new float[n];
-            //}
         }
-
-        //~WeightMatrix()
-        //{
-        //    if (UseArrayPool && size2QW.Count < 10000)
-        //    {
-        //        var q = size2QW.GetOrAdd(Weight.Length, x => new ConcurrentQueue<float[]>());
-        //        q.Enqueue(this.Weight);
-        //    }
-        //}
 
         public WeightMatrix(int rows, int columns, float c)
         {
@@ -136,6 +170,12 @@ namespace Seq2SeqSharp
         {
             var ix = ((this.Columns * x) + y)  ;
               this.Weight[ix]=v;
+        }
+
+        public void Set(int row, float[] v)
+        {
+            var offset = this.Columns * row;
+            Array.Copy(v, 0, Weight, offset, v.Length);
         }
 
         public void Add(int x, int y, float v)

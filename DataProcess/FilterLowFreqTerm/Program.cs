@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AdvUtils;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -48,7 +49,7 @@ namespace FilterLowFreqTerm
         {
             if (args.Length != 5)
             {
-                Console.WriteLine($"FilterLowFreqTerm.exe [Corpus File Path] [Source Language Name] [Target Language Name] [Min Term Freq] [Output Corpus File Name]");
+                Logger.WriteLine($"FilterLowFreqTerm.exe [Corpus File Path] [Source Language Name] [Target Language Name] [Min Term Freq] [Output Corpus File Name]");
                 return;
             }
 
@@ -109,7 +110,7 @@ namespace FilterLowFreqTerm
                 }
             }
 
-            Console.WriteLine($"{newSrcCorpus.Count} sentence pairs saved.");                   
+            Logger.WriteLine($"{newSrcCorpus.Count} sentence pairs saved.");                   
 
             File.WriteAllLines($"{outputCorpusFileName}.{srcLangName}.snt", newSrcCorpus);
             File.WriteAllLines($"{outputCorpusFileName}.{tgtLangName}.snt", newTgtCorpus);
@@ -140,7 +141,7 @@ namespace FilterLowFreqTerm
                 }
             }
             File.WriteAllLines("SrcVocab.txt", vocabList);
-            Console.WriteLine($"Src vocab size = '{vocabList.Count}'");
+            Logger.WriteLine($"Src vocab size = '{vocabList.Count}'");
 
             sdict.Clear();
             vocabList.Clear();
@@ -166,7 +167,7 @@ namespace FilterLowFreqTerm
                 }
             }
             File.WriteAllLines("TgtVocab.txt", vocabList);
-            Console.WriteLine($"Tgt vocab size = '{vocabList.Count}'");
+            Logger.WriteLine($"Tgt vocab size = '{vocabList.Count}'");
         }
 
 
@@ -200,7 +201,7 @@ namespace FilterLowFreqTerm
             {
                 string tgtFile = srcFile.Replace($".{srcLangName}.", $".{tgtLangName}.");
 
-                Console.WriteLine($"Loading training corpus file path = '{srcFile}' and '{tgtFile}'");
+                Logger.WriteLine($"Loading training corpus file path = '{srcFile}' and '{tgtFile}'");
 
                 var data_sents_raw1 = File.ReadAllLines(srcFile);
                 var data_sents_raw2 = File.ReadAllLines(tgtFile);
@@ -223,7 +224,7 @@ namespace FilterLowFreqTerm
                 setSnt.Clear();
             }
 
-            Console.WriteLine($"{sntCnt} sentence pairs loaded.");
+            Logger.WriteLine($"{sntCnt} sentence pairs loaded.");
         }
     }
 }
