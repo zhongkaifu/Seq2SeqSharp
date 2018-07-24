@@ -308,9 +308,9 @@ namespace Seq2SeqSharp
                 SparseWeightMatrix sparseEncoder;
 
                 List<string> srcSnt = new List<string>();
-           //     srcSnt.Add(m_START);
+                srcSnt.Add(m_START);
                 srcSnt.AddRange(sntPair.SrcSnt);
-           //     srcSnt.Add(m_END);
+                srcSnt.Add(m_END);
 
                 g = Encode(srcSnt, out cost, out sparseEncoder, encoded, encoder, reversEncoder, s_Embedding);
                 cost = DecodeOutput(sntPair.TgtSnt, g, cost, sparseEncoder, encoded, decoder, Whd, bd, t_Embedding);
@@ -508,9 +508,9 @@ namespace Seq2SeqSharp
 #endif
 
             List<string> inputSeq = new List<string>();
-        //    inputSeq.Add(m_START);
+            inputSeq.Add(m_START);
             inputSeq.AddRange(input);
-        //    inputSeq.Add(m_END);
+            inputSeq.Add(m_END);
 
             List<string> revseq = inputSeq.ToList();
             revseq.Reverse();
