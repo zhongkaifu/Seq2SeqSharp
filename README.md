@@ -43,5 +43,7 @@ So, train01.chs.snt has the corresponding translated sentences:
 
 # Performance  
 Seq2SeqSharp supports both CPU and GPU mode. For CPU mode, it leverages System.Numerics.Vector and Intel MKL(https://software.intel.com/en-us/mkl) to get better performance by SSE/AVX/AVX2 instructions. For GPU mode, it calls CUDA APIs to run on GPU which is powered by modified TensorSharp (https://github.com/alex-weaver/TensorSharp).  
+
 Seq2SeqSharp can switch CPU and GPU mode by the setting in project's conditional compilation symbols: "MKL" is for CPU mode with MKL, "CUDA" is for GPU mode. Empty symbol means CPU mode with System.Numerics.Vector only.  
+
 Note that if Seq2SeqSharp is compiled with "MKL" compilation symbols, "mklvars.bat" is required to run before launching Seq2SeqSharp.exe, such as "C:\Program Files (x86)\IntelSWTools\parallel_studio_xe_2018\compilers_and_libraries_2018\windows\mkl\bin\mklvars.bat intel64"  
