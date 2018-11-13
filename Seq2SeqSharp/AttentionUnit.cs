@@ -1,8 +1,10 @@
-﻿using System;
+﻿using Seq2SeqSharp.Tools;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TensorSharp;
 
 namespace Seq2SeqSharp
 {
@@ -11,107 +13,121 @@ namespace Seq2SeqSharp
     public class AttentionUnit
     {
 
-        public WeightMatrix V { get; set; }
-        public WeightMatrix Ua { get; set; }
-        public WeightMatrix bUa { get; set; }
-        public WeightMatrix Wa { get; set; }
-        public WeightMatrix bWa { get; set; }
-     //   public int MaxIndex { get; set; }
-        //public AttentionUnit()
-        //{
-        //}
+//#if CUDA
+//      //  public IWeightMatrix W { get; set; }
+//#endif
+
+        public IWeightMatrix V { get; set; }
+        public IWeightMatrix Ua { get; set; }
+        public IWeightMatrix bUa { get; set; }
+        public IWeightMatrix Wa { get; set; }
+        public IWeightMatrix bWa { get; set; }
+
         public AttentionUnit(int size)
         {
-            //this.Ua = new WeightMatrix((size * 2)  , size, true);
-            this.Ua = new WeightMatrix(size, size, true);
+#if CUDA
+            //ComputeGraphTensor g = new ComputeGraphTensor(false);
+            //W = new WeightTensor((size * 2) + size + 1 + 1, size, true);
+            //List<IWeightMatrix> Ws = g.SplitRows(W, size * 2, size, 1, 1);
+            //Ua = Ws[0];
+            //Wa = Ws[1];
+            //bUa = Ws[2];
+            //bWa = Ws[3];
 
-            this.Wa = new WeightMatrix(size  , size, true);
 
-             
+
+            this.Ua = new WeightTensor((size * 2), size, true);
+            this.Wa = new WeightTensor(size, size, true);
+            this.bUa = new WeightTensor(1, size, 0);
+            this.bWa = new WeightTensor(1, size, 0);
+            this.V = new WeightTensor(size, 1, true);
+#else
+            this.Ua = new WeightMatrix((size * 2)  , size, true);
+            //this.Ua = new WeightMatrix(size, size, true);
+            this.Wa = new WeightMatrix(size  , size, true);             
             this.bUa = new WeightMatrix(1, size, 0);
             this.bWa = new WeightMatrix(1, size, 0);
 
             this.V = new WeightMatrix(size, 1, true);
+#endif
         }
 
-        public WeightMatrix Perform(List<WeightMatrix> input, WeightMatrix state, IComputeGraph g)
+
+
+        IWeightMatrix bUas;
+        IWeightMatrix uhs;
+        public void PreProcess(IWeightMatrix inputs, IComputeGraph g)
         {
-            WeightMatrix context;
-            WeightMatrix[] atten = new WeightMatrix[input.Count];
+            bUas = g.RepeatRows(bUa, inputs.Rows);
+            uhs = g.MulAdd(inputs, Ua, bUas);
 
-            var wc = g.muladd(state, Wa, bWa);
-            Parallel.For(0, input.Count, i =>
-            {
-                var h_j = input[i];
-                var uh = g.muladd(h_j, Ua, bUa);
-                var gg = g.addtanh(uh, wc);
-                var aa = g.mul(gg, V);
+        }
 
-                atten[i] = aa;
-            });
-
-            var res = g.Softmax(atten);
-            //var cmax = res[0].Weight[0];
-            //int maxAtt = 0;
-            //for (int i = 1; i < res.Count; i++)
-            //{
-            //    if (res[i].Weight[0] > cmax)
-            //    {
-            //        cmax = res[i].Weight[0];
-            //        maxAtt = i;
-            //    }
-            //}
-            //this.MaxIndex = maxAtt;
+        public IWeightMatrix Perform(IWeightMatrix inputs, IWeightMatrix state, IComputeGraph g)
+        {
+            var wc = g.MulAdd(state, Wa, bWa);
+            var wcs = g.RepeatRows(wc, inputs.Rows);
 
 
-            context = g.scalemul(input[0], res[0]);
-            for (int hj = 1; hj < input.Count; hj++)
-            {
-                context = g.scalemuladd(input[hj], res[hj], context);
-            }
+            //  var inputs = g.ConcatRows(input);
+            //var bUas = g.RepeatRows(bUa, inputs.Rows);
+            //var uhs = g.MulAdd(inputs, Ua, bUas);
+
+
+
+            var ggs = g.AddTanh(uhs, wcs);
+            var atten = g.Mul(ggs, V);
+            var attenT = g.Transpose2(atten);
+
+            var attenSoftmax = g.Softmax(attenT);
+
+            IWeightMatrix context = g.Mul(attenSoftmax, inputs);
+                      
             return context;
+
         }
 
-        public WeightMatrix Perform(WeightMatrix input, WeightMatrix state, IComputeGraph g)
+        public virtual List<IWeightMatrix> getParams()
         {
-            WeightMatrix context;
-            List<WeightMatrix> atten = new List<WeightMatrix>();
+            List<IWeightMatrix> response = new List<IWeightMatrix>();
 
-            var stateRepeat = g.RepeatRows(state, input.Rows);
-            var baiseInput = new WeightMatrix(input.Rows, 1, 1);
-            var inputb = g.concatColumns(input, baiseInput);
+//#if CUDA
+//            response.Add(W);
+//#else
 
-
-            var uh = g.mul(inputb, Ua);
-
-
-            baiseInput = new WeightMatrix(stateRepeat.Rows, 1, 1);
-            stateRepeat = g.concatColumns(stateRepeat, baiseInput);
-
-
-            var wc = g.mul(stateRepeat, Wa);
-            var gg = g.addtanh(uh, wc);
-            var aa = g.mul(gg, V);
-
-
-            var res = g.Softmax(aa);
-
-              
-            var weighted = g.weightRows(input, res); ;
-            context = g.sumColumns(weighted);
-
-            return context; 
-        }
-
-        public virtual List<WeightMatrix> getParams()
-        {
-            List<WeightMatrix> response = new List<WeightMatrix>();
             response.Add(this.Ua);
             response.Add(this.Wa);
             response.Add(this.bUa);
             response.Add(this.bWa);
             response.Add(this.V);
+//#endif
             return response;
         }
+
+        //public virtual List<float[]> GetWeightList()
+        //{
+        //    List<float[]> weightList = new List<float[]>();
+
+        //    weightList.Add(Ua.ToWeightArray());
+        //    weightList.Add(Wa.ToWeightArray());
+        //    weightList.Add(bUa.ToWeightArray());
+        //    weightList.Add(bWa.ToWeightArray());
+        //    weightList.Add(V.ToWeightArray());
+
+        //    return weightList;
+
+        //}
+
+        //public virtual void SetWeightList(List<float[]> wl)
+        //{
+        //    Ua.SetWeightArray(wl[0]);
+        //    Wa.SetWeightArray(wl[1]);
+        //    bUa.SetWeightArray(wl[2]);
+        //    bWa.SetWeightArray(wl[3]);
+        //    V.SetWeightArray(wl[4]);
+
+        //    wl.RemoveRange(0, 5);
+
+        //}
     }
 }

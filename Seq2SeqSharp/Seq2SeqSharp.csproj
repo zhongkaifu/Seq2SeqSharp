@@ -26,10 +26,11 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE;MKL</DefineConstants>
+    <DefineConstants>TRACE;CUDA</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>x64</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="AdvUtils">
@@ -53,7 +54,6 @@
   <ItemGroup>
     <Compile Include="AttentionUnit.cs" />
     <Compile Include="AttentionDecoder.cs" />
-    <Compile Include="Decoder.cs" />
     <Compile Include="AttentionSeq2Seq.cs" />
     <Compile Include="CostEventArg.cs" />
     <Compile Include="Encoder.cs" />
@@ -61,18 +61,31 @@
     <Compile Include="LSTMAttentionDecoderCell.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Optimizer.cs" />
+    <Compile Include="TensorAllocator.cs" />
     <Compile Include="Tools\ComputeGraph.cs" />
     <Compile Include="Tools\ComputeGraphMKL.cs" />
+    <Compile Include="Tools\ComputeGraphTensor.cs" />
     <Compile Include="Tools\Corpus.cs" />
     <Compile Include="Tools\IComputeGraph.cs" />
+    <Compile Include="Tools\IWeightMatrix.cs" />
     <Compile Include="Tools\RandomGenerator.cs" />
     <Compile Include="Tools\SparseWeightMatrix.cs" />
     <Compile Include="Tools\WeightMatrix.cs" />
+    <Compile Include="Tools\WeightTensor.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\TensorSharp.CUDA\TensorSharp.CUDA.csproj">
+      <Project>{95890d35-0fe3-4a20-8260-e9829a636eb1}</Project>
+      <Name>TensorSharp.CUDA</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\TensorSharp\TensorSharp.csproj">
+      <Project>{75332198-952c-48de-9f2b-21f49bc68ed2}</Project>
+      <Name>TensorSharp</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

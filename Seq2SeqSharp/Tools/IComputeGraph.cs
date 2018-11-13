@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Seq2SeqSharp.Tools;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,35 +9,39 @@ namespace Seq2SeqSharp
 {
     public interface IComputeGraph
     {
-        WeightMatrix mul(WeightMatrix m1, WeightMatrix m2);
-        WeightMatrix mul(SparseWeightMatrix m1, WeightMatrix m2);
-        WeightMatrix addsigmoid(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3);
-        WeightMatrix addtanh(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3, WeightMatrix m4);
-        WeightMatrix addtanh(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3, WeightMatrix m4, WeightMatrix m5);
-        WeightMatrix addtanh(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3, WeightMatrix m4, WeightMatrix m5, WeightMatrix m6);
-        WeightMatrix addtanh(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3);
-        WeightMatrix eltmul(WeightMatrix m1, WeightMatrix m2);
-        WeightMatrix add(WeightMatrix m1, WeightMatrix m2);
-        WeightMatrix tanh(WeightMatrix m);
+        IWeightMatrix Mul(IWeightMatrix w1, IWeightMatrix w2);
+        IWeightMatrix Mul(SparseWeightMatrix m1, IWeightMatrix w2);
+        IWeightMatrix EltMul(IWeightMatrix w1, IWeightMatrix w2);
+        IWeightMatrix Add(IWeightMatrix w1, IWeightMatrix w2);
+        IWeightMatrix Add(IWeightMatrix w1, IWeightMatrix w2, IWeightMatrix w3);
+        IWeightMatrix Add(IWeightMatrix w1, IWeightMatrix w2, IWeightMatrix w3, IWeightMatrix w4);
+        IWeightMatrix Tanh(IWeightMatrix w);
+        IWeightMatrix Sigmoid(IWeightMatrix w);
 
-        WeightMatrix addsigmoid(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3, WeightMatrix m4);
-        WeightMatrix addsigmoid(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3, WeightMatrix m4, WeightMatrix m5);
-        WeightMatrix addsigmoid(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3, WeightMatrix m4, WeightMatrix m5, WeightMatrix m6);
-        WeightMatrix muladd(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3);
-        WeightMatrix addtanh(WeightMatrix m1, WeightMatrix m2);
-        WeightMatrix Softmax(WeightMatrix m);
-        List<WeightMatrix> Softmax(WeightMatrix[] m);
+        IWeightMatrix MulAdd(IWeightMatrix m1, IWeightMatrix m2, IWeightMatrix m3);
 
-        WeightMatrix scalemul(WeightMatrix m1, WeightMatrix m2);
-        WeightMatrix scalemuladd(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3);
-        WeightMatrix RepeatRows(WeightMatrix m1, int rows);
-        WeightMatrix concatColumns(WeightMatrix m1, WeightMatrix m2);
-        WeightMatrix weightRows(WeightMatrix m1, WeightMatrix weightRow);
-        WeightMatrix sumColumns(WeightMatrix m1);
-        void backward();
-        WeightMatrix PeekRow(WeightMatrix m, int ix);
-        WeightMatrix Dropout(WeightMatrix V, float drop_prob);
-        WeightMatrix SoftmaxWithCrossEntropy(WeightMatrix m);
+        IWeightMatrix AddTanh(IWeightMatrix w1, IWeightMatrix w2);
+
+        IWeightMatrix ConcatColumns(IWeightMatrix m1, IWeightMatrix m2);
+        void Backward();
+        IWeightMatrix PeekRow(IWeightMatrix w, int ix);
+        IWeightMatrix Dropout(IWeightMatrix V, float drop_prob);
+        IWeightMatrix SoftmaxWithCrossEntropy(IWeightMatrix src);
+
+        void DropoutPredict(IWeightMatrix V, float drop_prob);
+
+        IWeightMatrix Softmax(IWeightMatrix w);
+        IWeightMatrix ConcatColumns(IWeightMatrix[] wl);        
+
+        List<IWeightMatrix> SplitColumns(IWeightMatrix w, params int[] sizes);
+
+        IWeightMatrix ConcatRows(List<IWeightMatrix> wl);
+
+        IWeightMatrix RepeatRows(IWeightMatrix w, int n);
+
+        IWeightMatrix Transpose2(IWeightMatrix w);
+
+        List<IWeightMatrix> SplitRows(IWeightMatrix w, params int[] sizes);
 
     }
 }

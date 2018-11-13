@@ -59,13 +59,16 @@ namespace FilterLowFreqTerm
             int minTermFreq = int.Parse(args[3]);
             string outputCorpusFileName = args[4];
 
-            List<List<string>> srcCorpus = new List<List<string>>();
-            List<List<string>> tgtCorpus = new List<List<string>>();
+            List<string[]> srcCorpus = new List<string[]>();
+            List<string[]> tgtCorpus = new List<string[]>();
 
             LoadTrainingCorpus(srcCorpus, tgtCorpus, srcLangName, tgtLangName, inputCorpusFilePath);
 
             Dictionary<string, long> srcWord2Cnt = new Dictionary<string, long>();
             Dictionary<string, long> tgtWord2Cnt = new Dictionary<string, long>();
+
+
+            Console.WriteLine($"Start to cocunt words...");
 
             foreach (var sent in srcCorpus)
             {
@@ -99,8 +102,8 @@ namespace FilterLowFreqTerm
 
             for (int i = 0; i < srcCorpus.Count; i++)
             {
-                List<string> srcSnt = srcCorpus[i];
-                List<string> tgtSnt = tgtCorpus[i];
+                string[] srcSnt = srcCorpus[i];
+                string[] tgtSnt = tgtCorpus[i];
 
                 if (ShouldRemoved(srcSnt, srcWord2Cnt, minTermFreq) == false &&
                     ShouldRemoved(tgtSnt, tgtWord2Cnt, minTermFreq) == false)
@@ -171,7 +174,7 @@ namespace FilterLowFreqTerm
         }
 
 
-        private static bool ShouldRemoved(List<string> snt, Dictionary<string, long> word2Cnt, int minFreq)
+        private static bool ShouldRemoved(string[] snt, Dictionary<string, long> word2Cnt, int minFreq)
         {
             foreach (string word in snt)
             {
@@ -190,7 +193,7 @@ namespace FilterLowFreqTerm
         }
 
 
-        private static void LoadTrainingCorpus(List<List<string>> input, List<List<string>> output, string srcLangName, string tgtLangName, string sntCorpusPath)
+        private static void LoadTrainingCorpus(List<string[]> input, List<string[]> output, string srcLangName, string tgtLangName, string sntCorpusPath)
         {
             HashSet<string> setSnt = new HashSet<string>();
 
@@ -206,22 +209,25 @@ namespace FilterLowFreqTerm
                 var data_sents_raw1 = File.ReadAllLines(srcFile);
                 var data_sents_raw2 = File.ReadAllLines(tgtFile);
 
-                for (int k = 0; k < data_sents_raw1.Length; k++)
-                {
-                    string s = $"{data_sents_raw1[k].ToLower().Trim()}\t{data_sents_raw2[k].ToLower().Trim()}";
+                input.Add(data_sents_raw1);
+                output.Add(data_sents_raw2);
 
-                    if (setSnt.Contains(s) == false)
-                    {
-                        input.Add(data_sents_raw1[k].ToLower().Trim().Split(' ').ToList());
-                        output.Add(data_sents_raw2[k].ToLower().Trim().Split(' ').ToList());
+                //for (int k = 0; k < data_sents_raw1.Length; k++)
+                //{
+                //    string s = $"{data_sents_raw1[k].ToLower().Trim()}\t{data_sents_raw2[k].ToLower().Trim()}";
 
-                        sntCnt++;
+                //    if (setSnt.Contains(s) == false)
+                //    {
+                //        input.Add(data_sents_raw1[k].ToLower().Trim().Split(' ').ToList());
+                //        output.Add(data_sents_raw2[k].ToLower().Trim().Split(' ').ToList());
 
-                        setSnt.Add(s);
-                    }
-                }
+                //        sntCnt++;
 
-                setSnt.Clear();
+                //        setSnt.Add(s);
+                //    }
+                //}
+
+                //setSnt.Clear();
             }
 
             Logger.WriteLine($"{sntCnt} sentence pairs loaded.");

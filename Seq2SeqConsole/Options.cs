@@ -61,6 +61,9 @@ namespace Seq2SeqConsole
         [Arg("The shuffle block size", "ShuffleBlockSize")]
         public int ShuffleBlockSize = -1;
 
+        [Arg("Clip gradients", "GradClip")]
+        public float GradClip = 5.0f;
+
 
     }
 }

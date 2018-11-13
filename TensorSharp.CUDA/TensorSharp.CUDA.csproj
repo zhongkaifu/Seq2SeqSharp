@@ -1,0 +1,195 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{95890D35-0FE3-4A20-8260-E9829A636EB1}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>TensorSharp.CUDA</RootNamespace>
+    <AssemblyName>TensorSharp.CUDA</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'ReleaseCpuOnly|AnyCPU'">
+    <OutputPath>bin\ReleaseCpuOnly\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'ReleaseCpuOnly|x64'">
+    <OutputPath>bin\x64\ReleaseCpuOnly\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="CudaBlas, Version=7.5.7.0, Culture=neutral, PublicKeyToken=539d54d12e99fedb, processorArchitecture=AMD64">
+      <HintPath>..\packages\ManagedCuda-75-x64.7.5.7\lib\net40\x64\CudaBlas.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="CudaDNN, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\ManagedCuda-CudaDNN.5.0.1\lib\net40\CudaDNN.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="CudaFFT, Version=7.5.7.0, Culture=neutral, PublicKeyToken=f066edfa1acb2f23, processorArchitecture=AMD64">
+      <HintPath>..\packages\ManagedCuda-75-x64.7.5.7\lib\net40\x64\CudaFFT.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="CudaRand, Version=7.5.7.0, Culture=neutral, PublicKeyToken=fe981579f4e9a066, processorArchitecture=AMD64">
+      <HintPath>..\packages\ManagedCuda-75-x64.7.5.7\lib\net40\x64\CudaRand.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="CudaSolve, Version=7.5.7.0, Culture=neutral, processorArchitecture=AMD64">
+      <HintPath>..\packages\ManagedCuda-75-x64.7.5.7\lib\net40\x64\CudaSolve.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="CudaSparse, Version=7.5.7.0, Culture=neutral, PublicKeyToken=f65ee2ae6b331585, processorArchitecture=AMD64">
+      <HintPath>..\packages\ManagedCuda-75-x64.7.5.7\lib\net40\x64\CudaSparse.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="ManagedCuda, Version=7.5.7.0, Culture=neutral, PublicKeyToken=242d898828717aa0, processorArchitecture=MSIL">
+      <HintPath>..\packages\ManagedCuda-75-x64.7.5.7\lib\net40\x64\ManagedCuda.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="NPP, Version=7.5.7.0, Culture=neutral, processorArchitecture=AMD64">
+      <HintPath>..\packages\ManagedCuda-75-x64.7.5.7\lib\net40\x64\NPP.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="NVRTC, Version=7.5.7.0, Culture=neutral, processorArchitecture=AMD64">
+      <HintPath>..\packages\ManagedCuda-75-x64.7.5.7\lib\net40\x64\NVRTC.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="ApplySpecialization.cs" />
+    <Compile Include="ApplyUtils.cs" />
+    <Compile Include="ContextState\BasicDeviceAllocator.cs" />
+    <Compile Include="ContextState\CudaKernelCache.cs" />
+    <Compile Include="ContextState\IDeviceAllocator.cs" />
+    <Compile Include="ContextState\PoolingDeviceAllocator.cs" />
+    <Compile Include="CudaAllocator.cs" />
+    <Compile Include="CudaRandom.cs" />
+    <Compile Include="DeviceCode\GatherScatterKernels.cs" />
+    <Compile Include="DeviceCode\Im2ColKernels.cs" />
+    <Compile Include="DeviceCode\IndexSelectKernels.cs" />
+    <Compile Include="DeviceCode\NNThreads.cs" />
+    <Compile Include="DeviceCode\ReduceDimIndexKernels.cs" />
+    <Compile Include="DeviceCode\CudaCode.cs" />
+    <Compile Include="DeviceCode\CudaReduceAllKernels.cs" />
+    <Compile Include="DeviceCode\CudaReduceKernels.cs" />
+    <Compile Include="DeviceCode\ElementwiseKernels.cs" />
+    <Compile Include="DeviceCode\FillCopyKernels.cs" />
+    <Compile Include="DeviceCode\Headers\ApplyMacros.cs" />
+    <Compile Include="DeviceCode\Headers\Fp16.cs" />
+    <Compile Include="DeviceCode\Headers\Reduce.cs" />
+    <Compile Include="DeviceCode\Headers\ReduceAll.cs" />
+    <Compile Include="DeviceCode\Headers\ReduceAllMacros.cs" />
+    <Compile Include="DeviceCode\Headers\ReduceIndex.cs" />
+    <Compile Include="DeviceCode\Headers\ReduceMacros.cs" />
+    <Compile Include="DeviceCode\PermutationGenerator.cs" />
+    <Compile Include="DeviceCode\SpatialMaxPoolKernels.cs" />
+    <Compile Include="DeviceCode\VarStdKernels.cs" />
+    <Compile Include="DeviceState.cs" />
+    <Compile Include="DNN.cs" />
+    <Compile Include="CudaIndexingOps.cs" />
+    <Compile Include="KernelOps\CopyOps.cs" />
+    <Compile Include="CudaBasicOps.cs" />
+    <Compile Include="DeviceCode\Headers\General.cs" />
+    <Compile Include="DeviceCode\Headers\Math.cs" />
+    <Compile Include="DeviceCode\Headers\PointwiseApply.cs" />
+    <Compile Include="DeviceCode\Headers\ReduceApplyUtils.cs" />
+    <Compile Include="DeviceCode\Headers\ReduceBlock.cs" />
+    <Compile Include="KernelOps\ElementwiseTOp.cs" />
+    <Compile Include="KernelOps\ReduceAllOp.cs" />
+    <Compile Include="KernelOps\ReduceInitType.cs" />
+    <Compile Include="KernelOps\ReductionOp.cs" />
+    <Compile Include="RuntimeCompiler\ConvertTensorArgs.cs" />
+    <Compile Include="RuntimeCompiler\CudaCompiler.cs" />
+    <Compile Include="MatrixMul\CudaMatrixMulDot.cs" />
+    <Compile Include="MatrixMul\CudaMatrixMulMM.cs" />
+    <Compile Include="MatrixMul\CudaMatrixMulMV.cs" />
+    <Compile Include="CudaHelpers.cs" />
+    <Compile Include="CudaStorage.cs" />
+    <Compile Include="RuntimeCompiler\CudaIncludeAttribute.cs" />
+    <Compile Include="RuntimeCompiler\KernelConfig.cs" />
+    <Compile Include="SpatialConvolution.cs" />
+    <Compile Include="Util\ObjectPool.cs" />
+    <Compile Include="PrecompileAttribute.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RuntimeCompiler\DeviceKernel.cs" />
+    <Compile Include="RuntimeCompiler\DeviceKernelTemplate.cs" />
+    <Compile Include="RuntimeCompiler\KernelDiskCache.cs" />
+    <Compile Include="TSCudaContext.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TensorSharp\TensorSharp.csproj">
+      <Project>{75332198-952c-48de-9f2b-21f49bc68ed2}</Project>
+      <Name>TensorSharp</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

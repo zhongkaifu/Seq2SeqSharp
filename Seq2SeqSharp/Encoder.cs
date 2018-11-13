@@ -1,9 +1,11 @@
 ﻿
+using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TensorSharp;
 
 namespace Seq2SeqSharp
 {
@@ -16,12 +18,7 @@ namespace Seq2SeqSharp
         public int dim { get; set; }
         public int depth { get; set; }
 
-        public Encoder()
-        {
-
-        }
-
-        public Encoder(int hdim, int dim, int depth )
+        public Encoder(int hdim, int dim, int depth)
         {
             encoders.Add(new LSTMCell(hdim, dim));
 
@@ -43,31 +40,21 @@ namespace Seq2SeqSharp
 
         }
 
-        public WeightMatrix Encode(WeightMatrix V, IComputeGraph g)
+        public IWeightMatrix Encode(IWeightMatrix V, IComputeGraph g)
         {
-            foreach (var encoder in encoders)
-            {
-                var e = encoder.Step(V, g); 
-                    V = e; 
-  
-            }
-            return V;
-        }
-        public List<WeightMatrix> Encode2(WeightMatrix V, IComputeGraph g)
-        {
-            List<WeightMatrix> res = new List<WeightMatrix>();
             foreach (var encoder in encoders)
             {
                 var e = encoder.Step(V, g);
                 V = e;
-                res.Add(e);
             }
-            return res;
+
+            return V;
         }
 
-        public List<WeightMatrix> getParams()
+
+        public List<IWeightMatrix> getParams()
         {
-            List<WeightMatrix> response = new List<WeightMatrix>();
+            List<IWeightMatrix> response = new List<IWeightMatrix>();
 
             foreach (var item in encoders)
             {
@@ -75,10 +62,27 @@ namespace Seq2SeqSharp
 
             }
 
-
-
             return response;
         }
 
+        //public List<float[]> GetWeightList()
+        //{
+        //    List<float[]> wl = new List<float[]>();
+
+        //    foreach (var item in encoders)
+        //    {
+        //        wl.AddRange(item.GetWeightList());
+        //    }
+
+        //    return wl;
+        //}
+
+        //public void SetWeightList(List<float[]> wl)
+        //{
+        //    foreach (var item in encoders)
+        //    {
+        //        item.SetWeightList(wl);
+        //    }
+        //}
     }
 }

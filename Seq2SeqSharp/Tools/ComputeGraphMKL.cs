@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Seq2SeqSharp.Tools;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -52,22 +54,31 @@ namespace Seq2SeqSharp
 
 
         [DllImport(mklDllName, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
-        internal static extern void cblas_scopy(int n, float[] x, int incX, float[] y, int incY);
+        internal static unsafe extern void cblas_scopy(int n, float* x, int incX, float* y, int incY);
 
         [DllImport(mklDllName, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
-        internal static extern void vsAdd(int n, float[] a, float[] b, float[] y);
+        internal static unsafe extern void vsAdd(int n, float* a, float* b, float* y);
 
         [DllImport(mklDllName, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
         internal static extern void vsMul(int n, float[] a, float[] b, float[] y);
 
         [DllImport(mklDllName, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
-        internal static extern void cblas_saxpy(int n, float alpha, float[] x, int incX, float[] y, int incY);
+        internal static unsafe extern void cblas_saxpy(int n, float alpha, float* x, int incX, float* y, int incY);
 
         [DllImport(mklDllName, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
         internal static extern void cblas_sscal(int n, float alpha, float[] x, int incX);
 
         [DllImport(mklDllName, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
-        internal static extern float cblas_sdot(int n, float[] x, int incX, float[] y, int incY);
+        internal static unsafe extern float cblas_sdot(int n, float* x, int incX, float* y, int incY);
+
+        [DllImport(mklDllName, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int cblas_isamax(int n, float[] x, int incX);
+
+        [DllImport(mklDllName, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void saxpy(int n, float alpha, float[] x, int incX, float[] y, int incY);
+
+        [DllImport(mklDllName, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void vsDiv(int n, float[] a, float[] b, float[] y);
 
 
         public ComputeGraphMKL(bool needBack = true) 
@@ -75,8 +86,11 @@ namespace Seq2SeqSharp
         {
         }
 
-        public override WeightMatrix mul(WeightMatrix m1, WeightMatrix m2)
+        public override IWeightMatrix Mul(IWeightMatrix w1, IWeightMatrix w2)
         {
+            var m1 = w1 as WeightMatrix;
+            var m2 = w2 as WeightMatrix;
+
             var n = m1.Rows;
             var d = m2.Columns;
             var res = weightMatrixFactory.CreateWeightMatrix(n, d);
@@ -96,21 +110,34 @@ namespace Seq2SeqSharp
         }
 
 
-        public override WeightMatrix add(WeightMatrix m1, WeightMatrix m2)
+        public override IWeightMatrix Add(IWeightMatrix w1, IWeightMatrix w2)
         {
-            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
-            vsAdd(res.Weight.Length, m1.Weight, m2.Weight, res.Weight);
+            var m1 = w1 as WeightMatrix;
+            var m2 = w2 as WeightMatrix;
 
+            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
+
+            unsafe
+            {
+                fixed (float* m1W = m1.Weight, m2W = m2.Weight, resW = res.Weight)
+                {
+                    vsAdd(res.Weight.Length, m1W, m2W, resW);
+                }
+            }
 
             if (this.needs_backprop)
             {
 
                 Action backward = () =>
                 {
-
-                    vsAdd(res.Gradient.Length, res.Gradient, m1.Gradient, m1.Gradient);
-                    vsAdd(res.Gradient.Length, res.Gradient, m2.Gradient, m2.Gradient);
-                  
+                    unsafe
+                    {
+                        fixed (float* resG = res.Gradient, m1G = m1.Gradient, m2G = m2.Gradient)
+                        {
+                            vsAdd(res.Gradient.Length, resG, m1G, m1G);
+                            vsAdd(res.Gradient.Length, resG, m2G, m2G);
+                        }
+                    }
                 };
                 this.backprop.Add(backward);
             }
@@ -118,23 +145,33 @@ namespace Seq2SeqSharp
 
         }
 
-
-
-        public override WeightMatrix muladd(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3)
+        public override WeightMatrix MulAdd(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3)
         {
             var n = m1.Rows;
             var d = m2.Columns;
             var res = weightMatrixFactory.CreateWeightMatrix(n, d);
 
-            cblas_scopy(m3.Weight.Length, m3.Weight, 1, res.Weight, 1);
+            unsafe
+            {
+                fixed (float* m3W = m3.Weight, resW = res.Weight)
+                {
+                    cblas_scopy(m3.Weight.Length, m3W, 1, resW, 1);
+                }
+            }
+
             cblas_sgemm(Order.Row, Transpose.NoTrans, Transpose.NoTrans, m1.Rows, m2.Columns, m1.Columns, 1.0f, m1.Weight, m1.Columns, m2.Weight, m2.Columns, 1.0f, res.Weight, m2.Columns);
 
             if (this.needs_backprop)
             {
                 Action backward = () =>
                 {
-
-                    vsAdd(m3.Gradient.Length, m3.Gradient, res.Gradient, m3.Gradient);
+                    unsafe
+                    {
+                        fixed (float* m3G = m3.Gradient, resG = res.Gradient)
+                        {
+                            vsAdd(m3.Gradient.Length, m3G, resG, m3G);
+                        }
+                    }
 
                     cblas_sgemm(Order.Row, Transpose.NoTrans, Transpose.Trans, m1.Rows, m1.Columns, res.Columns, 1.0f, res.Gradient, res.Columns, m2.Weight, res.Columns, 1.0f, m1.Gradient, m1.Columns);
                     cblas_sgemm(Order.Row, Transpose.Trans, Transpose.NoTrans, m2.Rows, m2.Columns, res.Rows, 1.0f, m1.Weight, m2.Rows, res.Gradient, m2.Columns, 1.0f, m2.Gradient, m2.Columns);
@@ -146,56 +183,152 @@ namespace Seq2SeqSharp
         }
 
 
+        //public override WeightMatrix SoftmaxWithCrossEntropy(WeightMatrix m)
+        //{
+        //    var res = weightMatrixFactory.CreateWeightMatrix(m.Rows, m.Columns); // probability volume
+
+        //    var maxval = -999999.0f;
+        //    var n = m.Weight.Length;
+        //    var moreItem = (n % Vector<float>.Count);
+
+        //    var k = 0;
+        //    var vecMaxVal = new Vector<float>(maxval);
+        //    while (k < n - moreItem)
+        //    {
+        //        var vecMW = new Vector<float>(m.Weight, k);
+        //        vecMaxVal = Vector.Max(vecMW, vecMaxVal);
+
+        //        k += Vector<float>.Count;
+        //    }
+
+        //    for (int i = 0; i < Vector<float>.Count; i++)
+        //    {
+        //        if (vecMaxVal[i] > maxval)
+        //        {
+        //            maxval = vecMaxVal[i];
+        //        }
+        //    }
 
 
+        //    while (k < n)
+        //    {
+        //        if (m.Weight[k] > maxval) maxval = m.Weight[k];
 
+        //        k++;
+        //    }
+
+
+        //    double s = 0.0;
+        //    k = 0;
+        //    vecMaxVal = new Vector<float>(maxval);
+        //    while (k < n - moreItem)
+        //    {
+        //        var vecMW = new Vector<float>(m.Weight, k);
+        //        var vecV = FastExp(vecMW - vecMaxVal);
+        //        vecV.CopyTo(res.Weight, k);
+
+        //        s += Vector.Dot(vecV, Vector<float>.One);
+
+        //        k += Vector<float>.Count;
+        //    }
+
+        //    k = n - moreItem;
+        //    while (k < n)
+        //    {
+        //        float v = FastExp(m.Weight[k] - maxval);
+        //        res.Weight[k] = (float)v;
+        //        s += v;
+
+        //        k++;
+        //    }
+
+
+        //    cblas_sscal(n, (float)(1.0 / s), res.Weight, 1);
+
+
+        //    // no backward pass here needed
+        //    // since we will use the computed probabilities outside
+        //    // to set gradients directly on m
+        //    return res;
+        //}
+
+
+        //public override WeightMatrix SoftmaxWithCrossEntropy(WeightMatrix m)
+        //{
+        //    var res = weightMatrixFactory.CreateWeightMatrix(m.Rows, m.Columns); // probability volume
+
+        //    var n = m.Weight.Length;
+        //    var moreItem = (n % Vector<float>.Count);
+
+        //    var maxIdx = cblas_isamax(n, m.Weight, 1);
+        //    var maxval = m.Weight[maxIdx];
+
+        //    var k = 0;
+
+        //    double s = 0.0;
+        //    k = 0;
+        //    var vecMaxVal = new Vector<float>(maxval);
+        //    while (k < n - moreItem)
+        //    {
+        //        var vecMW = new Vector<float>(m.Weight, k);
+        //        var vecV = FastExp(vecMW - vecMaxVal);
+        //        vecV.CopyTo(res.Weight, k);
+
+        //        s += Vector.Dot(vecV, Vector<float>.One);
+
+        //        k += Vector<float>.Count;
+        //    }
+
+        //    k = n - moreItem;
+        //    while (k < n)
+        //    {
+        //        float v = FastExp(m.Weight[k] - maxval);
+        //        res.Weight[k] = (float)v;
+        //        s += v;
+
+        //        k++;
+        //    }
+
+        //    cblas_sscal(n, (float)(1.0 / s), res.Weight, 1);
+
+
+        //    // no backward pass here needed
+        //    // since we will use the computed probabilities outside
+        //    // to set gradients directly on m
+        //    return res;
+        //}
 
 
         //public override WeightMatrix eltmul(WeightMatrix m1, WeightMatrix m2)
         //{
-
-        //    var res = new WeightMatrix(m1.Rows, m1.Columns);
+        //    var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
         //    var n = m1.Weight.Length;
-
         //    vsMul(n, m1.Weight, m2.Weight, res.Weight);
 
 
-        //    if (this.needs_backprop)
-        //    {
-        //        Action backward = () =>
-        //        {
-        //            float[] tmp = new float[m1.Gradient.Length];
-        //            vsMul(n, m2.Weight, res.Gradient, tmp);
-        //            vsAdd(n, m1.Gradient, tmp, m1.Gradient);
-
-        //            vsMul(n, m1.Weight, res.Gradient, tmp);
-        //            vsAdd(n, m2.Gradient, tmp, m2.Gradient);
-
-        //        };
-        //        this.backprop.Add(backward);
-        //    }
-        //    return res;
-        //}
-
-        //public override WeightMatrix scalemul(WeightMatrix m1, WeightMatrix m2)
-        //{
-
-        //    var res = new WeightMatrix(m1.Rows, m1.Columns);
-        //    var n = m1.Weight.Length;
-
-        //    cblas_saxpy(n, m2.Weight[0], m1.Weight, 1, res.Weight, 1);
 
         //    if (this.needs_backprop)
         //    {
 
         //        Action backward = () =>
         //        {
+        //            float[] tmp = new float[n];
 
-        //            cblas_saxpy(n, m2.Weight[0], res.Gradient, 1, m1.Gradient, 1);
-        //            m2.Gradient[0] = cblas_sdot(n, m1.Weight, 1, res.Gradient, 1);
+        //            unsafe
+        //            {
+        //                vsMul(n, m2.Weight, res.Gradient, tmp);
+        //                fixed (float* tmpP = tmp, m1G = m1.Gradient)
+        //                {
+        //                    vsAdd(n, m1G, tmpP, m1G);
+        //                }
 
-                   
 
+        //                vsMul(n, m1.Weight, res.Gradient, tmp);
+        //                fixed (float* tmpP = tmp, m2G = m2.Gradient)
+        //                {
+        //                    vsAdd(n, m2G, tmpP, m2G);
+        //                }
+        //            }
         //        };
         //        this.backprop.Add(backward);
         //    }

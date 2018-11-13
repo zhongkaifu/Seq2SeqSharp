@@ -17,10 +17,15 @@ namespace Seq2SeqSharp.Tools
 
     public class Corpus : IEnumerable<SntPair>
     {
-        int blockSize = 100000;
+        int blockSize = 1000000;
 
         List<string> srcFileList;
         List<string> tgtFileList;
+
+        private const string srcShuffledFilePath = "shuffled.src.snt";
+        private const string tgtShuffledFilePath = "shuffled.tgt.snt";
+
+        public int CorpusSize = 0;
 
         void Shuffle(SntPair[] sntPairs)
         {
@@ -34,9 +39,21 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        public IEnumerator<SntPair> GetEnumerator()
+        public void ShuffleAll(bool notShulledForExistingFiles)
         {
+            Logger.WriteLine("Shuffling training corpus...");
+
+            if (File.Exists(srcShuffledFilePath) && File.Exists(tgtShuffledFilePath) && notShulledForExistingFiles)
+            {
+                return;
+            }
+
+
+            StreamWriter swSrc = new StreamWriter(srcShuffledFilePath, false);
+            StreamWriter swTgt = new StreamWriter(tgtShuffledFilePath, false);
+
             List<SntPair> sntPairs = new List<SntPair>();
+            CorpusSize = 0;
             for (int i = 0; i < srcFileList.Count; i++)
             {
                 StreamReader srSrc = new StreamReader(srcFileList[i]);
@@ -55,8 +72,9 @@ namespace Seq2SeqSharp.Tools
                     line = srTgt.ReadLine();
                     sntPair.TgtSnt = line.ToLower().Trim().Split(' ').ToArray();
 
-                  
+
                     sntPairs.Add(sntPair);
+                    CorpusSize++;
                     if (blockSize > 0 && sntPairs.Count >= blockSize)
                     {
                         SntPair[] arraySntPairs = sntPairs.ToArray();
@@ -67,9 +85,10 @@ namespace Seq2SeqSharp.Tools
                         Shuffle(arraySntPairs);
                         foreach (var item in arraySntPairs)
                         {
-                            yield return item;
+                            swSrc.WriteLine(String.Join(" ", item.SrcSnt));
+                            swTgt.WriteLine(String.Join(" ", item.TgtSnt));
                         }
-                        
+
                     }
                 }
 
@@ -87,9 +106,41 @@ namespace Seq2SeqSharp.Tools
                 Shuffle(arraySntPairs);
                 foreach (var item in arraySntPairs)
                 {
-                    yield return item;
+                    swSrc.WriteLine(String.Join(" ", item.SrcSnt));
+                    swTgt.WriteLine(String.Join(" ", item.TgtSnt));
                 }
             }
+
+
+            swSrc.Close();
+            swTgt.Close();
+        }
+
+        public IEnumerator<SntPair> GetEnumerator()
+        {
+            ShuffleAll(true);
+
+            StreamReader srSrc = new StreamReader(srcShuffledFilePath);
+            StreamReader srTgt = new StreamReader(tgtShuffledFilePath);
+
+            while (true)
+            {
+                string line;
+                SntPair sntPair = new SntPair();
+                if ((line = srSrc.ReadLine()) == null)
+                {
+                    break;
+                }
+                sntPair.SrcSnt = line.ToLower().Trim().Split(' ').ToArray();
+
+                line = srTgt.ReadLine();
+                sntPair.TgtSnt = line.ToLower().Trim().Split(' ').ToArray();
+
+                yield return sntPair;
+            }
+
+            srSrc.Close();
+            srTgt.Close();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -111,7 +162,6 @@ namespace Seq2SeqSharp.Tools
                 srcFileList.Add(srcFile);
                 tgtFileList.Add(tgtFile);
             }
-
         }
     }
 }

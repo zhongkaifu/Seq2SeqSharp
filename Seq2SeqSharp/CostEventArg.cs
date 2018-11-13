@@ -8,9 +8,8 @@ namespace Seq2SeqSharp
 {
     public class CostEventArg : EventArgs
     {
-        public float LearningRate { get; set; }
-        public float Cost { get; set; }
-        public double CostInTotal { get; set; }
+        public float CostPerWord { get; set; }
+        public double avgCostInTotal { get; set; }
 
         public int Epoch { get; set; }
 
@@ -19,5 +18,7 @@ namespace Seq2SeqSharp
         public int SentenceLength { get; set; }
 
         public DateTime StartDateTime { get; set; }
+
+        public float AvgLearningRate { get; set; }
     }
 }

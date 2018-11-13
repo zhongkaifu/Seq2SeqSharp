@@ -17,7 +17,7 @@ namespace Seq2SeqConsole
         {
             CostEventArg ep = e as CostEventArg;
 
-            if (float.IsInfinity(ep.Cost) == false)
+            if (float.IsInfinity(ep.CostPerWord) == false)
             {
                 TimeSpan ts = DateTime.Now - ep.StartDateTime;
                 double sentPerMin = 0;
@@ -25,7 +25,7 @@ namespace Seq2SeqConsole
                 {
                     sentPerMin = ep.ProcessedInTotal / ts.TotalMinutes;
                 }
-                Logger.WriteLine($"Epoch = '{ep.Epoch}' Learning Rate = '{ep.LearningRate}', Avg Cost = '{(ep.CostInTotal / ep.ProcessedInTotal).ToString("F6")}', SentInTotal = '{ep.ProcessedInTotal}', SentPerMin = '{sentPerMin.ToString("F")}'");
+                Logger.WriteLine($"Epoch = '{ep.Epoch}' LR = '{ep.AvgLearningRate}', Current Cost = '{ep.CostPerWord.ToString("F6")}', Avg Cost = '{ep.avgCostInTotal.ToString("F6")}', SentInTotal = '{ep.ProcessedInTotal}', SentPerMin = '{sentPerMin.ToString("F")}'");
             }
 
         }
@@ -87,9 +87,10 @@ namespace Seq2SeqConsole
                 Logger.WriteLine($"Learning Rate = '{options.LearningRate}'");
                 Logger.WriteLine($"Network Layer = '{ss.Depth}'");
                 Logger.WriteLine($"Use Sparse Feature = '{options.SparseFeature}'");
+                Logger.WriteLine($"Gradient Clip = '{options.GradClip}'");
 
                 ss.IterationDone += ss_IterationDone;
-                ss.Train(300, options.LearningRate);
+                ss.Train(300, options.LearningRate, options.GradClip);
             }
             else if (String.Equals(options.TaskName, "test", StringComparison.InvariantCultureIgnoreCase))
             {
