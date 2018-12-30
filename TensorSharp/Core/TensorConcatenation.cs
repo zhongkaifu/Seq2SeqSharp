@@ -60,7 +60,12 @@ namespace TensorSharp.Core
                     {
                         if (dimSize != GetDimSize(tensors[j], i))
                         {
-                            throw new InvalidOperationException("Inconsistent tensor sizes");
+                            string message = "";
+                            for (int k = 0; k < tensors.Length; k++)
+                            {
+                                message += $"{k}: ({tensors[k].Sizes[0]}, {tensors[k].Sizes[1]}) ";
+                            }
+                            throw new InvalidOperationException($"Inconsistent tensor sizes. {message}");
                         }
                     }
                 }

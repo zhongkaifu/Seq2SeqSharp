@@ -226,10 +226,6 @@ namespace TensorSharp.CUDA
         [RegisterOpStorageType("sigmoid", typeof(CudaStorage))]
         public Tensor Sigmoid(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseKernels, "sigmoid", result, src); }
 
-
-        [RegisterOpStorageType("sigmoidD", typeof(CudaStorage))]
-        public Tensor SigmoidD(Tensor result, Tensor resW, Tensor resG) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "sigmoidD", result, resW, resG); }
-
         [RegisterOpStorageType("addsigmoidD", typeof(CudaStorage))]
         public Tensor AddSigmoidD(Tensor result, Tensor t, Tensor resW, Tensor resG) { return ElementwiseTTTTOp.Invoke(elementwiseKernels, "addsigmoidD", result, t, resW, resG); }
 
@@ -257,10 +253,6 @@ namespace TensorSharp.CUDA
         public Tensor AddMulV(Tensor result, Tensor x, Tensor y, float z) { return ElementwiseTTTSOp.Invoke(elementwiseKernels, "addmulv", result, x, y, z); }
 
 
-        [RegisterOpStorageType("updatelr", typeof(CudaStorage))]
-        public Tensor UpdateLR(Tensor result, Tensor delta, Tensor lr, float baselr) { return ElementwiseTTTSOp.Invoke(elementwiseKernels, "updatelr", result, delta, lr, baselr); }
-
-
         [RegisterOpStorageType("updatecash", typeof(CudaStorage))]
         public Tensor UpdateCash(Tensor result, Tensor s, Tensor g, float d) { return ElementwiseTTTSOp.Invoke(elementwiseKernels, "updatecash", result, s, g, d); }
 
@@ -268,14 +260,14 @@ namespace TensorSharp.CUDA
         public Tensor UpdateDelta(Tensor result, Tensor g, Tensor s, float eps) { return ElementwiseTTTSOp.Invoke(elementwiseKernels, "updatedelta", result, g, s, eps); }
 
 
-        [RegisterOpStorageType("rsqrtone", typeof(CudaStorage))]
-        public Tensor RsqrtOne(Tensor result, Tensor x, float y) { return ElementwiseTTSOp.Invoke(elementwiseKernels, "rsqrtone", result, x, y); }
-
         [RegisterOpStorageType("expsub", typeof(CudaStorage))]
         public Tensor ExpSub(Tensor result, Tensor x, float y) { return ElementwiseTTSOp.Invoke(elementwiseKernels, "expsub", result, x, y); }
 
-        [RegisterOpStorageType("updateweight", typeof(CudaStorage))]
-        public Tensor UpdateWeight(Tensor result, Tensor weight, Tensor delta, Tensor lr, float regc) { return ElementwiseTTTTSOp.Invoke(elementwiseKernels, "updateweight", result, weight, delta, lr, regc); }
+        [RegisterOpStorageType("expsub2", typeof(CudaStorage))]
+        public Tensor ExpSub2(Tensor result, Tensor x, Tensor y) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "expsub2", result, x, y); }
+
+        [RegisterOpStorageType("updateweight2", typeof(CudaStorage))]
+        public Tensor UpdateWeight2(Tensor result, Tensor weight, Tensor delta, Tensor lr, float step_size, float regc) { return ElementwiseTTTTSSOp.Invoke(elementwiseKernels, "updateweight2", result, weight, delta, lr, step_size, regc); }
 
 
         [RegisterOpStorageType("atan2", typeof(CudaStorage))]

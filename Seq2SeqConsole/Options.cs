@@ -49,9 +49,6 @@ namespace Seq2SeqConsole
         [Arg("Training corpus folder path", "TrainCorpusPath")]
         public string TrainCorpusPath;
 
-        [Arg("It indicates if sparse feature used for training.", "SparseFeature")]
-        public bool SparseFeature = false;
-
         [Arg("The input file for test.", "InputTestFile")]
         public string InputTestFile;
 
@@ -64,6 +61,13 @@ namespace Seq2SeqConsole
         [Arg("Clip gradients", "GradClip")]
         public float GradClip = 5.0f;
 
+        [Arg("The batch size", "BatchSize")]
+        public int BatchSize = 1;
 
+        [Arg("Dropout ratio", "Dropout")]
+        public float DropoutRatio = 0.1f;
+
+        [Arg("Arch type: 0 - GPU, 1 - CPU, 2 - CPU MKL", "ArchType")]
+        public int ArchType = 0;
     }
 }

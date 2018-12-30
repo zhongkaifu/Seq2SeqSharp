@@ -13,6 +13,9 @@ namespace TensorSharp.CUDA.ContextState
 
         private readonly CudaContext context;
         private Dictionary<long, Queue<IDeviceMemory>> pools = new Dictionary<long, Queue<IDeviceMemory>>();
+        //private long allocatedSize = 0;
+        //private long missingCacheSize = 0;
+        //private const long maxSize = (long)(1024L * 1024L * 1024L * 4L);
         private static object locker = new object();
 
         public PoolingDeviceAllocator(CudaContext context)
@@ -20,15 +23,37 @@ namespace TensorSharp.CUDA.ContextState
             this.context = context;
         }
 
+        public void FreeMemory()
+        {
+            lock (locker)
+            {
+                foreach (var kv in pools)
+                {
+                    while (kv.Value.Count > 0)
+                    {
+                        var item = kv.Value.Dequeue();
+                        if (item != null)
+                        {
+                            context.FreeMemory(item.Pointer);
+                        }
+                    }
+                }
+
+           //     pools.Clear();
+            }
+        }
+      
+
         public IDeviceMemory Allocate(long byteCount)
         {
-            var size = PadToAlignment(byteCount, MemoryAlignment);
+           // FreePools();
 
-
+            var size = PadToAlignment(byteCount, MemoryAlignment);          
             Queue<IDeviceMemory> sizedPool;
 
             lock (locker)
             {
+             //   allocatedSize += size;
                 if (pools.TryGetValue(size, out sizedPool))
                 {
                     if (sizedPool.Count > 0)
@@ -47,15 +72,26 @@ namespace TensorSharp.CUDA.ContextState
                     pools.Add(size, sizedPool);
                 }
 
+                CUdeviceptr buffer;
+                try
+                {
 
-                // If control flow gets to this point, sizedPool exists in the dictionary and is empty.
+                    // If control flow gets to this point, sizedPool exists in the dictionary and is empty.
+                    buffer = context.AllocateMemory(size);
+                    //    missingCacheSize += size;
+                }
+                catch (ManagedCuda.CudaException err)
+                {
+                    FreeMemory();
+                    buffer = context.AllocateMemory(size);
+                }
 
-                var buffer = context.AllocateMemory(size);
                 BasicDeviceMemory devMemory = null;
                 devMemory = new BasicDeviceMemory(buffer, () =>
                 {
                     lock (locker)
                     {
+  //                      context.FreeMemory(devMemory.Pointer);
                         sizedPool.Enqueue(devMemory);
                     }
                 });

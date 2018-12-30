@@ -1,6 +1,7 @@
 ﻿using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,15 +12,8 @@ namespace Seq2SeqSharp
     [Serializable]
     public class LSTMCell 
     {
-#if CUDA
-
-      //  public IWeightMatrix W { get; set; }
         public IWeightMatrix Wxh { get; set; }
-#endif
 
-
-        public IWeightMatrix Wx { get; set; }
-        public IWeightMatrix Wh { get; set; }
         public IWeightMatrix b { get; set; }
 
         public IWeightMatrix ht { get; set; }
@@ -29,39 +23,24 @@ namespace Seq2SeqSharp
         public int hdim { get; set; }
         public int dim { get; set; }
 
-        public LSTMCell(int hdim, int dim)
+        private int batchSize;
+
+        public LSTMCell(int batchSize, int hdim, int dim, ArchTypeEnums archType)
         {
-#if CUDA
-            //ComputeGraphTensor g = new ComputeGraphTensor(false);
-            //W = new WeightTensor(dim + hdim + 1, hdim * 4, true);
-            //List<IWeightMatrix> Ws = g.SplitRows(W, dim + hdim, 1);
-            ////Wx = Ws[0];
-            ////Wh = Ws[1];
+            if (archType == ArchTypeEnums.GPU_CUDA)
+            {
+                Wxh = new WeightTensor(dim + hdim, hdim * 4, true);
+                b = new WeightTensor(1, hdim * 4, 0);
+            }
+            else
+            {
+                Wxh = new WeightMatrix(dim + hdim, hdim * 4, true);
+                b = new WeightMatrix(1, hdim * 4, 0);
+            }
 
-            //Wxh = Ws[0];
-            //b = Ws[1];
-
-            Wxh = new WeightTensor(dim + hdim, hdim * 4, true);
-            b = new WeightTensor(1, hdim * 4, 0);
-
-            //Wx = new WeightTensor(dim, hdim * 4, true);
-            //Wh = new WeightTensor(hdim, hdim * 4, true);
-            //b = new WeightTensor(1, hdim * 4, true);
-
-            this.ht = new WeightTensor(1, hdim, 0);
-            this.ct = new WeightTensor(1, hdim, 0);
-#else
-
-            Wx = new WeightMatrix(dim, hdim * 4, true);
-            Wh = new WeightMatrix(hdim, hdim * 4, true);
-            b = new WeightMatrix(1, hdim * 4, true);
-
-            this.ht = new WeightMatrix(1, hdim, 0);
-            this.ct = new WeightMatrix(1, hdim, 0);
-
-#endif
             this.hdim = hdim;
             this.dim = dim;
+            this.batchSize = batchSize;
         }
 
         public IWeightMatrix Step(IWeightMatrix input, IComputeGraph innerGraph)
@@ -71,14 +50,9 @@ namespace Seq2SeqSharp
             var cell = this;
             IWeightMatrix input_gate = null, forget_gate = null, output_gate = null, cell_write = null;
 
-#if CUDA
+            var bs = innerGraph.RepeatRows(b, input.Rows);
             var inputs = innerGraph.ConcatColumns(input, hidden_prev);
-            var hhSum = innerGraph.MulAdd(inputs, Wxh, b);
-#else
-            var hx = innerGraph.Mul(input, Wx);
-            var hh = innerGraph.Mul(hidden_prev, Wh);
-            var hhSum = innerGraph.Add(hx, hh, b);
-#endif
+            var hhSum = innerGraph.MulAdd(inputs, Wxh, bs);
             var paramList = innerGraph.SplitColumns(hhSum, hdim * 3, hdim);
 
             var gates = innerGraph.Sigmoid(paramList[0]);
@@ -106,49 +80,36 @@ namespace Seq2SeqSharp
         public virtual List<IWeightMatrix> getParams()
         {
             List<IWeightMatrix> response = new List<IWeightMatrix>();
-#if CUDA
             response.Add(Wxh);
             response.Add(b);
-#else
-            response.Add(Wx);
-            response.Add(Wh);
-            response.Add(b);
-#endif
+
             return response;
         }
 
-        //public virtual List<float[]> GetWeightList()
-        //{
-        //    List<float[]> weightList = new List<float[]>();
-
-        //    weightList.Add(Wx.ToWeightArray());
-        //    weightList.Add(Wh.ToWeightArray());
-        //    weightList.Add(b.ToWeightArray());
-
-        //    return weightList;
-
-        //}
-
-        //public virtual void SetWeightList(List<float[]> wl)
-        //{        
-        //    Wx.SetWeightArray(wl[0]);
-        //    Wh.SetWeightArray(wl[1]);
-        //    b.SetWeightArray(wl[2]);
-
-        //    wl.RemoveRange(0, 3);
-
-        //}
-
-
-        public void Reset()
+        public void SetBatchSize(IWeightFactory weightFactory, int batchSize)
         {
-            ht.ClearWeight();
-            ct.ClearWeight();
-
-            ht.ClearGradient();
-            ct.ClearGradient();
+            this.batchSize = batchSize;
+            Reset(weightFactory);
         }
 
+        public void Reset(IWeightFactory weightFactory)
+        {
+            ht = weightFactory.CreateWeights(batchSize, hdim, true);
+            ct = weightFactory.CreateWeights(batchSize, hdim, true);
+        }
+
+        public void Save(Stream stream)
+        {
+            Wxh.Save(stream);
+            b.Save(stream);
+        }
+
+
+        public void Load(Stream stream)
+        {
+            Wxh.Load(stream);
+            b.Load(stream);
+        }
     }
      
 }

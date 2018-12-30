@@ -16,12 +16,13 @@
     <PlatformTarget>x64</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
-    <Optimize>true</Optimize>
+    <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>x64</PlatformTarget>
@@ -62,6 +63,10 @@
     <ProjectReference Include="..\Seq2SeqSharp\Seq2SeqSharp.csproj">
       <Project>{6b096832-e138-4c53-8930-2bb6f78c57f6}</Project>
       <Name>Seq2SeqSharp</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\TensorSharp\TensorSharp.csproj">
+      <Project>{75332198-952C-48DE-9F2B-21F49BC68ED2}</Project>
+      <Name>TensorSharp</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -1,6 +1,7 @@
 ﻿using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,121 +14,109 @@ namespace Seq2SeqSharp
     public class AttentionUnit
     {
 
-//#if CUDA
-//      //  public IWeightMatrix W { get; set; }
-//#endif
-
         public IWeightMatrix V { get; set; }
         public IWeightMatrix Ua { get; set; }
         public IWeightMatrix bUa { get; set; }
         public IWeightMatrix Wa { get; set; }
         public IWeightMatrix bWa { get; set; }
 
-        public AttentionUnit(int size)
+        int m_batchSize;
+
+        public AttentionUnit(int batchSize, int size, ArchTypeEnums archType)
         {
-#if CUDA
-            //ComputeGraphTensor g = new ComputeGraphTensor(false);
-            //W = new WeightTensor((size * 2) + size + 1 + 1, size, true);
-            //List<IWeightMatrix> Ws = g.SplitRows(W, size * 2, size, 1, 1);
-            //Ua = Ws[0];
-            //Wa = Ws[1];
-            //bUa = Ws[2];
-            //bWa = Ws[3];
+            m_batchSize = batchSize;
 
-
-
-            this.Ua = new WeightTensor((size * 2), size, true);
-            this.Wa = new WeightTensor(size, size, true);
-            this.bUa = new WeightTensor(1, size, 0);
-            this.bWa = new WeightTensor(1, size, 0);
-            this.V = new WeightTensor(size, 1, true);
-#else
-            this.Ua = new WeightMatrix((size * 2)  , size, true);
-            //this.Ua = new WeightMatrix(size, size, true);
-            this.Wa = new WeightMatrix(size  , size, true);             
-            this.bUa = new WeightMatrix(1, size, 0);
-            this.bWa = new WeightMatrix(1, size, 0);
-
-            this.V = new WeightMatrix(size, 1, true);
-#endif
+            if (archType == ArchTypeEnums.GPU_CUDA)
+            {
+                this.Ua = new WeightTensor((size * 2), size, true);
+                this.Wa = new WeightTensor(size, size, true);
+                this.bUa = new WeightTensor(1, size, 0);
+                this.bWa = new WeightTensor(1, size, 0);
+                this.V = new WeightTensor(size, 1, true);
+            }
+            else
+            {
+                this.Ua = new WeightMatrix((size * 2), size, true);
+                this.Wa = new WeightMatrix(size, size, true);
+                this.bUa = new WeightMatrix(1, size, 0);
+                this.bWa = new WeightMatrix(1, size, 0);
+                this.V = new WeightMatrix(size, 1, true);
+            }
         }
 
-
-
-        IWeightMatrix bUas;
         IWeightMatrix uhs;
+        List<IWeightMatrix> inputsUnfolder;
+
         public void PreProcess(IWeightMatrix inputs, IComputeGraph g)
         {
-            bUas = g.RepeatRows(bUa, inputs.Rows);
+            IWeightMatrix bUas = g.RepeatRows(bUa, inputs.Rows);
             uhs = g.MulAdd(inputs, Ua, bUas);
 
+            inputsUnfolder = g.UnFolderRow(inputs, m_batchSize);
+
         }
 
-        public IWeightMatrix Perform(IWeightMatrix inputs, IWeightMatrix state, IComputeGraph g)
+        public IWeightMatrix Perform(IWeightMatrix state, IComputeGraph g)
         {
-            var wc = g.MulAdd(state, Wa, bWa);
-            var wcs = g.RepeatRows(wc, inputs.Rows);
-
-
-            //  var inputs = g.ConcatRows(input);
-            //var bUas = g.RepeatRows(bUa, inputs.Rows);
-            //var uhs = g.MulAdd(inputs, Ua, bUas);
-
-
-
+            var bWas = g.RepeatRows(bWa, state.Rows);
+            var wc = g.MulAdd(state, Wa, bWas);
+            var wcs = g.RepeatRows(wc, inputsUnfolder[0].Rows);
             var ggs = g.AddTanh(uhs, wcs);
             var atten = g.Mul(ggs, V);
-            var attenT = g.Transpose2(atten);
 
-            var attenSoftmax = g.Softmax(attenT);
+            List<IWeightMatrix> attens = g.UnFolderRow(atten, m_batchSize);
+            List<IWeightMatrix> contexts = new List<IWeightMatrix>();
+            for (int i = 0; i < m_batchSize; i++)
+            {
+                var attenT = g.Transpose2(attens[i]);
+                var attenSoftmax = g.Softmax(attenT);
 
-            IWeightMatrix context = g.Mul(attenSoftmax, inputs);
-                      
-            return context;
+                IWeightMatrix context = g.Mul(attenSoftmax, inputsUnfolder[i]);
+                contexts.Add(context);
+            }
 
+            return g.ConcatRows(contexts);
         }
+
 
         public virtual List<IWeightMatrix> getParams()
         {
             List<IWeightMatrix> response = new List<IWeightMatrix>();
 
-//#if CUDA
-//            response.Add(W);
-//#else
+            response.Add(Ua);
+            response.Add(Wa);
+            response.Add(bUa);
+            response.Add(bWa);
+            response.Add(V);
 
-            response.Add(this.Ua);
-            response.Add(this.Wa);
-            response.Add(this.bUa);
-            response.Add(this.bWa);
-            response.Add(this.V);
-//#endif
             return response;
         }
 
-        //public virtual List<float[]> GetWeightList()
-        //{
-        //    List<float[]> weightList = new List<float[]>();
+        public void SetBatchSize(int batchSize)
+        {
+            m_batchSize = batchSize;
+        }
 
-        //    weightList.Add(Ua.ToWeightArray());
-        //    weightList.Add(Wa.ToWeightArray());
-        //    weightList.Add(bUa.ToWeightArray());
-        //    weightList.Add(bWa.ToWeightArray());
-        //    weightList.Add(V.ToWeightArray());
+        public void Save(Stream stream)
+        {
+            Ua.Save(stream);
+            Wa.Save(stream);
+            bUa.Save(stream);
+            bWa.Save(stream);
+            V.Save(stream);
+        }
 
-        //    return weightList;
 
-        //}
-
-        //public virtual void SetWeightList(List<float[]> wl)
-        //{
-        //    Ua.SetWeightArray(wl[0]);
-        //    Wa.SetWeightArray(wl[1]);
-        //    bUa.SetWeightArray(wl[2]);
-        //    bWa.SetWeightArray(wl[3]);
-        //    V.SetWeightArray(wl[4]);
-
-        //    wl.RemoveRange(0, 5);
-
-        //}
+        public void Load(Stream stream)
+        {
+            Ua.Load(stream);
+            Wa.Load(stream);
+            bUa.Load(stream);
+            bWa.Load(stream);
+            V.Load(stream);
+        }
     }
 }
+
+
+

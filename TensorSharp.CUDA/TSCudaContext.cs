@@ -70,6 +70,13 @@ namespace TensorSharp.CUDA
         public CudaKernelCache KernelCache { get { return kernelCache; } }
 
 
+        public void FreeMemory()
+        {
+            foreach (var device in devices)
+            {
+                device.FreeMemory();
+            }
+        }
 
         public void Dispose()
         {
@@ -122,17 +129,6 @@ namespace TensorSharp.CUDA
         public PooledObject<CudaBlas> BlasForTensor(Tensor tensor)
         {
             return BlasForDevice(CudaHelpers.GetDeviceId(tensor));
-        }
-
-        public PooledObject<ManagedCuda.CudaDNN.CudaDNNContext> DNNForTensor(Tensor tensor)
-        {
-            var deviceId = CudaHelpers.GetDeviceId(tensor);
-            return devices[deviceId].DnnHandles.Get();
-        }
-
-        public PooledObject<ManagedCuda.CudaDNN.CudaDNNContext> DNNForDevice(int deviceId)
-        {
-            return devices[deviceId].DnnHandles.Get();
         }
 
         public bool CanAccessPeer(int srcDevice, int peerDevice)

@@ -2,6 +2,7 @@
 using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,24 +19,33 @@ namespace Seq2SeqSharp
         public int dim { get; set; }
         public int depth { get; set; }
 
-        public Encoder(int hdim, int dim, int depth)
+        public Encoder(int batchSize, int hdim, int dim, int depth, ArchTypeEnums archType)
         {
-            encoders.Add(new LSTMCell(hdim, dim));
+            encoders.Add(new LSTMCell(batchSize, hdim, dim, archType));
 
             for (int i = 1; i < depth; i++)
             {
-                encoders.Add(new LSTMCell(hdim, hdim));
+                encoders.Add(new LSTMCell(batchSize, hdim, hdim, archType));
 
             }
             this.hdim = hdim;
             this.dim = dim;
             this.depth = depth;
         }
-        public void Reset()
+
+        public void SetBatchSize(IWeightFactory weightFactory, int batchSize)
         {
             foreach (var item in encoders)
             {
-                item.Reset();
+                item.SetBatchSize(weightFactory, batchSize);
+            }
+        }
+
+        public void Reset(IWeightFactory weightFactory)
+        {
+            foreach (var item in encoders)
+            {
+                item.Reset(weightFactory);
             }
 
         }
@@ -65,24 +75,20 @@ namespace Seq2SeqSharp
             return response;
         }
 
-        //public List<float[]> GetWeightList()
-        //{
-        //    List<float[]> wl = new List<float[]>();
+        public void Save(Stream stream)
+        {
+            foreach (var item in encoders)
+            {
+                item.Save(stream);
+            }
+        }
 
-        //    foreach (var item in encoders)
-        //    {
-        //        wl.AddRange(item.GetWeightList());
-        //    }
-
-        //    return wl;
-        //}
-
-        //public void SetWeightList(List<float[]> wl)
-        //{
-        //    foreach (var item in encoders)
-        //    {
-        //        item.SetWeightList(wl);
-        //    }
-        //}
+        public void Load(Stream stream)
+        {
+            foreach (var item in encoders)
+            {
+                item.Load(stream);
+            }
+        }
     }
 }

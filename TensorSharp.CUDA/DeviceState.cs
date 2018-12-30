@@ -21,7 +21,7 @@ namespace TensorSharp.CUDA
         public readonly CudaDeviceProperties DeviceInfo;
 
         public readonly ObjectPool<CudaBlas> BlasHandles;
-        public readonly ObjectPool<ManagedCuda.CudaDNN.CudaDNNContext> DnnHandles;
+       // public readonly ObjectPool<ManagedCuda.CudaDNN.CudaDNNContext> DnnHandles;
 
         public readonly IDeviceAllocator MemoryAllocator;
         public readonly ScratchSpace ScratchSpace;
@@ -39,15 +39,21 @@ namespace TensorSharp.CUDA
             },
                 blas => blas.Dispose());
 
-            this.DnnHandles = new ObjectPool<ManagedCuda.CudaDNN.CudaDNNContext>(0, () =>
-            {
-                CudaContext.SetCurrent();
-                return new ManagedCuda.CudaDNN.CudaDNNContext();
-            },
-                dnn => dnn.Dispose());
+            //this.DnnHandles = new ObjectPool<ManagedCuda.CudaDNN.CudaDNNContext>(0, () =>
+            //{
+            //    CudaContext.SetCurrent();
+            //    return new ManagedCuda.CudaDNN.CudaDNNContext();
+            //},
+            //    dnn => dnn.Dispose());
 
             this.MemoryAllocator = new PoolingDeviceAllocator(CudaContext);
             this.ScratchSpace = AllocScratchSpace(CudaContext, DeviceInfo);
+        }
+
+
+        public void FreeMemory()
+        {
+            MemoryAllocator.FreeMemory();
         }
 
         public void Dispose()

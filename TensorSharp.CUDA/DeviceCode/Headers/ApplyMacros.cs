@@ -122,6 +122,18 @@ extern ""C"" {\
     }\
 }
 
+#define APPLY_TTTSS(INDEX_TYPE, DIMSA, DIMSB, DIMSC, KERNEL_NAME, OP_CODE)\
+struct ConcreteOp##KERNEL_NAME {\
+    float d;\
+    float e;\
+    __device__ ConcreteOp##KERNEL_NAME(float dVal, float eVal) { this->d = dVal; this->e = eVal; }\
+    __device__ __forceinline__ void operator()(float* a, float* b, float* c) const { OP_CODE } };\
+extern ""C"" {\
+    __global__ void KERNEL_NAME(TensorInfo<INDEX_TYPE> a, TensorInfo<INDEX_TYPE> b, TensorInfo<INDEX_TYPE> c, float d, float e, __int64 totalElements)\
+    {\
+        pointwiseApply3<ConcreteOp##KERNEL_NAME, INDEX_TYPE, DIMSA, DIMSB, DIMSC>(a, b, c, (INDEX_TYPE)totalElements, ConcreteOp##KERNEL_NAME(d, e));\
+    }\
+}
 
 #define APPLY_TTTTS(INDEX_TYPE, DIMSA, DIMSB, DIMSC, DIMSD, KERNEL_NAME, OP_CODE)\
 struct ConcreteOp##KERNEL_NAME {\
@@ -132,6 +144,19 @@ extern ""C"" {\
     __global__ void KERNEL_NAME(TensorInfo<INDEX_TYPE> a, TensorInfo<INDEX_TYPE> b, TensorInfo<INDEX_TYPE> c, TensorInfo<INDEX_TYPE> d, float e, __int64 totalElements)\
     {\
         pointwiseApply4<ConcreteOp##KERNEL_NAME, INDEX_TYPE, DIMSA, DIMSB, DIMSC, DIMSD>(a, b, c, d, (INDEX_TYPE)totalElements, ConcreteOp##KERNEL_NAME(e));\
+    }\
+}
+
+#define APPLY_TTTTS(INDEX_TYPE, DIMSA, DIMSB, DIMSC, DIMSD, KERNEL_NAME, OP_CODE)\
+struct ConcreteOp##KERNEL_NAME {\
+    float e;\
+    float f;\
+    __device__ ConcreteOp##KERNEL_NAME(float eVal, float fVal) { this->e = eVal; this->f = fVal; }\
+    __device__ __forceinline__ void operator()(float* a, float* b, float* c, float* d) const { OP_CODE } };\
+extern ""C"" {\
+    __global__ void KERNEL_NAME(TensorInfo<INDEX_TYPE> a, TensorInfo<INDEX_TYPE> b, TensorInfo<INDEX_TYPE> c, TensorInfo<INDEX_TYPE> d, float e, float f, __int64 totalElements)\
+    {\
+        pointwiseApply4<ConcreteOp##KERNEL_NAME, INDEX_TYPE, DIMSA, DIMSB, DIMSC, DIMSD>(a, b, c, d, (INDEX_TYPE)totalElements, ConcreteOp##KERNEL_NAME(e, f));\
     }\
 }
 

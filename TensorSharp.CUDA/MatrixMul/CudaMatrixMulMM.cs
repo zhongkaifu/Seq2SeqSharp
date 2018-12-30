@@ -169,7 +169,7 @@ namespace TensorSharp.CUDA.MatrixMul
 
                     var _statusF32 = CudaBlasNativeMethods.cublasSgemm_v2(blas.Value.CublasHandle,
                         transa, transb, m, n, k, ref alpha, aPtrSingle, lda, bPtrSingle, ldb, ref beta, cPtrSingle, ldc);
-                    if (_statusF32 != CublasStatus.Success) throw new CudaBlasException(_statusF32, $"m = '{m}', n = '{n}', k = '{k}', lda = '{lda}', ldb = '{ldb}', ldc = '{ldc}'", new Exception());
+                    if (_statusF32 != CublasStatus.Success) throw new CudaBlasException(_statusF32);
                 }
                 else if (c.ElementType == DType.Float64)
                 {

@@ -2,6 +2,7 @@
 using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,30 +15,40 @@ namespace Seq2SeqSharp
     [Serializable]
     public class AttentionDecoder
     {
-        public List<LSTMAttentionDecoderCell> decoders = new List<LSTMAttentionDecoderCell>(); 
+        public List<LSTMAttentionDecoderCell> decoders = new List<LSTMAttentionDecoderCell>();
         public int hdim { get; set; }
         public int dim { get; set; }
         public int depth { get; set; }
         public AttentionUnit attentionLayer { get; set; }
 
-        public AttentionDecoder(int sdim, int hdim, int dim, int depth)
+        public AttentionDecoder(int batchSize, int hdim, int dim, int depth, ArchTypeEnums archType)
         {
-            attentionLayer = new AttentionUnit(hdim);
+            attentionLayer = new AttentionUnit(batchSize, hdim, archType);
             this.hdim = hdim;
             this.dim = dim;
             this.depth = depth;
 
-            decoders.Add(new LSTMAttentionDecoderCell(sdim, hdim, dim));
+            decoders.Add(new LSTMAttentionDecoderCell(batchSize, hdim, dim, archType));
             for (int i = 1; i < depth; i++)
             {
-                decoders.Add(new LSTMAttentionDecoderCell(0, hdim, hdim));
+                decoders.Add(new LSTMAttentionDecoderCell(batchSize, hdim, hdim, archType));
             }
         }
-        public void Reset()
+
+        public void SetBatchSize(IWeightFactory weightFactory, int batchSize)
+        {
+            attentionLayer.SetBatchSize(batchSize);
+            foreach (var item in decoders)
+            {
+                item.SetBatchSize(weightFactory, batchSize);
+            }
+        }
+
+        public void Reset(IWeightFactory weightFactory)
         {
             foreach (var item in decoders)
             {
-                item.Reset();
+                item.Reset(weightFactory);
             }
 
         }
@@ -48,20 +59,20 @@ namespace Seq2SeqSharp
         }
 
 
-        public IWeightMatrix Decode(SparseWeightMatrix sparseInput, IWeightMatrix input, IWeightMatrix encoderOutput, IComputeGraph g)
+        public IWeightMatrix Decode(IWeightMatrix input, IComputeGraph g)
         {
             var V = input;
             var lastStatus = this.decoders.FirstOrDefault().ct;
-            var context = attentionLayer.Perform(encoderOutput, lastStatus, g);
+            var context = attentionLayer.Perform(lastStatus, g);
 
             foreach (var decoder in decoders)
             {
-                var e = decoder.Step(sparseInput, context, V, g);
+                var e = decoder.Step(context, V, g);
                 V = e;
             }
 
             return V;
-        } 
+        }
 
         public List<IWeightMatrix> getParams()
         {
@@ -76,29 +87,121 @@ namespace Seq2SeqSharp
             return response;
         }
 
-        //public List<float[]> GetWeightList()
-        //{
-        //    List<float[]> wl = new List<float[]>();
+        public void Save(Stream stream)
+        {
+            attentionLayer.Save(stream);
+            foreach (var item in decoders)
+            {
+                item.Save(stream);
+            }
+        }
 
-        //    foreach (var item in decoders)
-        //    {
-        //        wl.AddRange(item.GetWeightList());
-        //    }
-
-        //    wl.AddRange(attentionLayer.GetWeightList());
-
-        //    return wl;
-        //}
-
-        //public void SetWeightList(List<float[]> wl)
-        //{
-        //    foreach (var item in decoders)
-        //    {
-        //        item.SetWeightList(wl);
-        //    }
-
-        //    attentionLayer.SetWeightList(wl);
-        //}
-
+        public void Load(Stream stream)
+        {
+            attentionLayer.Load(stream);
+            foreach (var item in decoders)
+            {
+                item.Load(stream);
+            }
+        }
     }
 }
+
+
+//using Seq2SeqSharp.Tools;
+//using System;
+//using System.Collections.Generic;
+//using System.IO;
+//using System.Linq;
+//using System.Text;
+//using System.Threading.Tasks;
+//using TensorSharp;
+
+//namespace Seq2SeqSharp
+//{
+
+
+//    [Serializable]
+//    public class AttentionDecoder
+//    {
+//        public List<LSTMAttentionDecoderCell> decoders = new List<LSTMAttentionDecoderCell>();
+//        public int hdim { get; set; }
+//        public int dim { get; set; }
+//        public int depth { get; set; }
+//        public AttentionUnit attentionLayer { get; set; }
+
+//        public AttentionDecoder(int hdim, int dim, int depth, bool isGPU)
+//        {
+//            attentionLayer = new AttentionUnit(hdim, isGPU);
+//            this.hdim = hdim;
+//            this.dim = dim;
+//            this.depth = depth;
+
+//            decoders.Add(new LSTMAttentionDecoderCell(hdim, dim, isGPU));
+//            for (int i = 1; i < depth; i++)
+//            {
+//                decoders.Add(new LSTMAttentionDecoderCell(hdim, hdim, isGPU));
+//            }
+//        }
+//        public void Reset(IWeightFactory weightFactory)
+//        {
+//            foreach (var item in decoders)
+//            {
+//                item.Reset(weightFactory);
+//            }
+
+//        }
+
+//        public void PreProcess(IWeightMatrix encoderOutput, IComputeGraph g)
+//        {
+//            attentionLayer.PreProcess(encoderOutput, g);
+//        }
+
+
+//        public IWeightMatrix Decode(IWeightMatrix input, IWeightMatrix encoderOutput, IComputeGraph g)
+//        {
+//            var V = input;
+//            var lastStatus = this.decoders.FirstOrDefault().ct;
+//            var context = attentionLayer.Perform(encoderOutput, lastStatus, g);
+
+//            foreach (var decoder in decoders)
+//            {
+//                var e = decoder.Step(context, V, g);
+//                V = e;
+//            }
+
+//            return V;
+//        }
+
+//        public List<IWeightMatrix> getParams()
+//        {
+//            List<IWeightMatrix> response = new List<IWeightMatrix>();
+
+//            foreach (var item in decoders)
+//            {
+//                response.AddRange(item.getParams());
+//            }
+//            response.AddRange(attentionLayer.getParams());
+
+//            return response;
+//        }
+
+//        public void Save(Stream stream)
+//        {
+//            attentionLayer.Save(stream);
+//            foreach (var item in decoders)
+//            {
+//                item.Save(stream);
+//            }
+//        }
+
+//        public void Load(Stream stream)
+//        {
+//            attentionLayer.Load(stream);
+//            foreach (var item in decoders)
+//            {
+//                item.Load(stream);
+//            }
+//        }
+//    }
+//}

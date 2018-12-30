@@ -17,7 +17,10 @@ namespace Seq2SeqSharp.Tools
 
     public class Corpus : IEnumerable<SntPair>
     {
+        public const int MaxSentLength = 32;
+
         int blockSize = 1000000;
+        int batchSize = 1;
 
         List<string> srcFileList;
         List<string> tgtFileList;
@@ -27,16 +30,69 @@ namespace Seq2SeqSharp.Tools
 
         public int CorpusSize = 0;
 
-        void Shuffle(SntPair[] sntPairs)
+        void Shuffle(List<SntPair> sntPairs)
         {
-            Random rnd = new Random(DateTime.Now.Millisecond);
-            for (int i = 0; i < sntPairs.Length; i++)
+            //Put sentence pair with same source length into the bucket
+            Dictionary<int, List<SntPair>> dict = new Dictionary<int, List<SntPair>>(); //<source sentence length, sentence pair set>
+            foreach (SntPair item in sntPairs)
             {
-                int idx = rnd.Next(0, sntPairs.Length);
-                SntPair tmp = sntPairs[i];
-                sntPairs[i] = sntPairs[idx];
-                sntPairs[idx] = tmp;
+                if (dict.ContainsKey(item.SrcSnt.Length) == false)
+                {
+                    dict.Add(item.SrcSnt.Length, new List<SntPair>());
+                }
+                dict[item.SrcSnt.Length].Add(item);
             }
+
+            //Randomized the order of sentence pairs with same length in source side
+            Random rnd = new Random(DateTime.Now.Millisecond);
+            foreach (KeyValuePair<int, List<SntPair>> pair in dict)
+            {
+                var sntPairList = pair.Value;
+                for (int i = 0; i < sntPairList.Count; i++)
+                {
+                    int idx = rnd.Next(0, sntPairList.Count);
+                    SntPair tmp = sntPairList[i];
+                    sntPairList[i] = sntPairList[idx];
+                    sntPairList[idx] = tmp;
+                }
+            }
+
+            SortedDictionary<int, List<SntPair>> sdict = new SortedDictionary<int, List<SntPair>>(); //<The bucket size, sentence pair set>
+            foreach (KeyValuePair<int, List<SntPair>> pair in dict)
+            {
+                if (pair.Value.Count < batchSize)
+                {
+                    //If the bucket size is less than batch size, ignore it
+                    continue;
+                }
+
+                //Align the bucket size to batch size
+                int externalItemCnt = pair.Value.Count % batchSize;
+                pair.Value.RemoveRange(pair.Value.Count - externalItemCnt, externalItemCnt);
+
+                if (sdict.ContainsKey(pair.Value.Count) == false)
+                {
+                    sdict.Add(pair.Value.Count, new List<SntPair>());
+                }
+                sdict[pair.Value.Count].AddRange(pair.Value);
+            }
+
+            sntPairs.Clear();
+
+            int[] keys = sdict.Keys.ToArray();
+            for (int i = 0; i < keys.Length; i++)
+            {
+                int idx = rnd.Next(0, keys.Length);
+                int tmp = keys[i];
+                keys[i] = keys[idx];
+                keys[idx] = tmp;
+            }
+
+            foreach (var key in keys)
+            {
+                sntPairs.AddRange(sdict[key]);
+            }
+            
         }
 
         public void ShuffleAll(bool notShulledForExistingFiles)
@@ -54,6 +110,7 @@ namespace Seq2SeqSharp.Tools
 
             List<SntPair> sntPairs = new List<SntPair>();
             CorpusSize = 0;
+            var tooLongSntCnt = 0;
             for (int i = 0; i < srcFileList.Count; i++)
             {
                 StreamReader srSrc = new StreamReader(srcFileList[i]);
@@ -67,28 +124,30 @@ namespace Seq2SeqSharp.Tools
                     {
                         break;
                     }
+
                     sntPair.SrcSnt = line.ToLower().Trim().Split(' ').ToArray();
 
                     line = srTgt.ReadLine();
                     sntPair.TgtSnt = line.ToLower().Trim().Split(' ').ToArray();
 
+                    if (sntPair.SrcSnt.Length >= MaxSentLength || sntPair.TgtSnt.Length >= MaxSentLength)
+                    {
+                        tooLongSntCnt++;
+                        continue;
+                    }
 
                     sntPairs.Add(sntPair);
                     CorpusSize++;
                     if (blockSize > 0 && sntPairs.Count >= blockSize)
                     {
-                        SntPair[] arraySntPairs = sntPairs.ToArray();
-                        sntPairs = new List<SntPair>();
-                        GC.Collect();
-
                         Logger.WriteLine($"Shuffle training corpus...");
-                        Shuffle(arraySntPairs);
-                        foreach (var item in arraySntPairs)
+                        Shuffle(sntPairs);
+                        foreach (var item in sntPairs)
                         {
                             swSrc.WriteLine(String.Join(" ", item.SrcSnt));
                             swTgt.WriteLine(String.Join(" ", item.TgtSnt));
                         }
-
+                        sntPairs.Clear();
                     }
                 }
 
@@ -98,22 +157,23 @@ namespace Seq2SeqSharp.Tools
 
             if (sntPairs.Count > 0)
             {
-                SntPair[] arraySntPairs = sntPairs.ToArray();
-                sntPairs = new List<SntPair>();
-                GC.Collect();
-
                 Logger.WriteLine($"Shuffle training corpus...");
-                Shuffle(arraySntPairs);
-                foreach (var item in arraySntPairs)
+                Shuffle(sntPairs);
+                foreach (var item in sntPairs)
                 {
                     swSrc.WriteLine(String.Join(" ", item.SrcSnt));
                     swTgt.WriteLine(String.Join(" ", item.TgtSnt));
                 }
+
+                sntPairs.Clear();
             }
 
 
             swSrc.Close();
             swTgt.Close();
+
+            Logger.WriteLine($"Shuffled '{CorpusSize}' sentence pairs.");
+            Logger.WriteLine($"Found {tooLongSntCnt} sentences are longer than '{MaxSentLength}' tokens, ignore them.");
         }
 
         public IEnumerator<SntPair> GetEnumerator()
@@ -122,6 +182,10 @@ namespace Seq2SeqSharp.Tools
 
             StreamReader srSrc = new StreamReader(srcShuffledFilePath);
             StreamReader srTgt = new StreamReader(tgtShuffledFilePath);
+            Random rnd = new Random(DateTime.Now.Millisecond);
+            int lastSrcSntLen = -1;
+            const int maxOutputsSize = 1000000;
+            List<SntPair> outputs = new List<SntPair>();
 
             while (true)
             {
@@ -136,11 +200,43 @@ namespace Seq2SeqSharp.Tools
                 line = srTgt.ReadLine();
                 sntPair.TgtSnt = line.ToLower().Trim().Split(' ').ToArray();
 
-                yield return sntPair;
+                if ((lastSrcSntLen > 0 && lastSrcSntLen != sntPair.SrcSnt.Length) || outputs.Count > maxOutputsSize)
+                {
+                    for (int i = 0; i < outputs.Count; i++)
+                    {
+                        int idx = rnd.Next(0, outputs.Count);
+                        var tmp = outputs[i];
+                        outputs[i] = outputs[idx];
+                        outputs[idx] = tmp;
+                    }
+
+                    foreach (var sntPairItem in outputs)
+                    {
+                        yield return sntPairItem;
+                    }
+
+                    outputs.Clear();
+                }
+
+                outputs.Add(sntPair);
+                lastSrcSntLen = sntPair.SrcSnt.Length;
             }
 
             srSrc.Close();
             srTgt.Close();
+
+            for (int i = 0; i < outputs.Count; i++)
+            {
+                int idx = rnd.Next(0, outputs.Count);
+                var tmp = outputs[i];
+                outputs[i] = outputs[idx];
+                outputs[idx] = tmp;
+            }
+
+            foreach (var sntPairItem in outputs)
+            {
+                yield return sntPairItem;
+            }
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -148,8 +244,9 @@ namespace Seq2SeqSharp.Tools
             return GetEnumerator();
         }
 
-        public Corpus(string corpusFilePath, string srcLangName, string tgtLangName, int shuffleBlockSize = -1)
+        public Corpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1)
         {
+            this.batchSize = batchSize;
             blockSize = shuffleBlockSize;
 
             srcFileList = new List<string>();
@@ -157,7 +254,7 @@ namespace Seq2SeqSharp.Tools
             string[] srcFiles = Directory.GetFiles(corpusFilePath, $"*.{srcLangName}.snt", SearchOption.TopDirectoryOnly);
             foreach (string srcFile in srcFiles)
             {
-                string tgtFile = srcFile.Replace($".{srcLangName}.", $".{tgtLangName}.");
+                string tgtFile = srcFile.ToLower().Replace($".{srcLangName.ToLower()}.", $".{tgtLangName.ToLower()}.");
 
                 srcFileList.Add(srcFile);
                 tgtFileList.Add(tgtFile);

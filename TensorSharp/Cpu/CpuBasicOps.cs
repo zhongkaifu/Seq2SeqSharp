@@ -169,11 +169,6 @@ namespace TensorSharp.Cpu
         [RegisterOpStorageType("sigmoid", typeof(CpuStorage))]
         public Tensor Sigmoid(Tensor result, Tensor src) { return NativeWrapper.InvokeNullableResultElementwise(sigmoid_func, result, src); }
 
-        private MethodInfo sigmoidD_func = NativeWrapper.GetMethod("TS_SigmoidD");
-        [RegisterOpStorageType("sigmoidD", typeof(CpuStorage))]
-        public Tensor SigmoidD(Tensor result, Tensor resW, Tensor resG) { return NativeWrapper.InvokeNullableResultElementwise(sigmoidD_func, result, resW, resG); }
-
-
         private MethodInfo tanhD_func = NativeWrapper.GetMethod("TS_TanhD");
         [RegisterOpStorageType("tanhD", typeof(CpuStorage))]
         public Tensor TanhD(Tensor result, Tensor resW, Tensor resG) { return NativeWrapper.InvokeNullableResultElementwise(tanhD_func, result, resW, resG); }

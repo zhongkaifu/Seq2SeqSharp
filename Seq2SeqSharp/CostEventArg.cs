@@ -15,8 +15,6 @@ namespace Seq2SeqSharp
 
         public int ProcessedInTotal { get; set; }
 
-        public int SentenceLength { get; set; }
-
         public DateTime StartDateTime { get; set; }
 
         public float AvgLearningRate { get; set; }

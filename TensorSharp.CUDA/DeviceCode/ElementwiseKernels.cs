@@ -45,8 +45,6 @@ namespace TensorSharp.CUDA.DeviceCode
 
             AppendTTFunc(result, "sigmoid", "Sigmoid");
 
-
-            AppendTTTFunc(result, "sigmoidD", "SigmoidD");
             AppendTTTFunc(result, "tanhD", "TanhD");
             AppendTTTTFunc(result, "addsigmoidD", "AddSigmoidD");
             AppendTTTTFunc(result, "addtanhD", "AddTanhD");
@@ -58,14 +56,14 @@ namespace TensorSharp.CUDA.DeviceCode
             AppendTTTTFunc(result, "addmul", "AddMul");
 
             AppendTTTSFunc(result, "addmulv", "AddMulV");
-            AppendTTTSFunc(result, "updatelr", "UpdateLR");
             AppendTTTSFunc(result, "updatecash", "UpdateCash");
             AppendTTTSFunc(result, "updatedelta", "UpdateDelta");
 
-            AppendTTSFunc(result, "rsqrtone", "RsqrtOne");
             AppendTTSFunc(result, "expsub", "ExpSub");
 
-            AppendTTTTSFunc(result, "updateweight", "UpdateWeight");
+            AppendTTTFunc(result, "expsub2", "ExpSub2");
+
+            AppendTTTTSSFunc(result, "updateweight2", "UpdateWeight2");
 
             result.AddApplyTTT("atan2", "*a = atan2f(*b, *c);");
 
@@ -133,6 +131,12 @@ namespace TensorSharp.CUDA.DeviceCode
         {
             pg.AddApplyTTTS("t1_" + kernelBaseName, string.Format("*a = {0}(*a, *b, *c, d);", func));
             pg.AddApplyTTTTS("t2_" + kernelBaseName, string.Format("*a = {0}(*b, *c, *d, e);", func));
+        }
+
+        private static void AppendTTTTSSFunc(PermutationGenerator pg, string kernelBaseName, string func)
+        {
+            pg.AddApplyTTTSS("t1_" + kernelBaseName, string.Format("*a = {0}(*a, *b, *c, d, e);", func));
+            pg.AddApplyTTTTSS("t2_" + kernelBaseName, string.Format("*a = {0}(*b, *c, *d, e, f);", func));
         }
 
         private static void AppendTTTFunc(PermutationGenerator pg, string kernelBaseName, string func)

@@ -141,6 +141,26 @@ namespace TensorSharp.CUDA.KernelOps
         }
     }
 
+    public static class ElementwiseTTTTSSOp
+    {
+        public static Tensor Invoke(ElementwiseKernels kernels, string funcName, Tensor result, Tensor src, Tensor src2, Tensor src3, float step_size, float value)
+        {
+            var context = CudaHelpers.TSContextForTensor(src);
+            var cudaContext = context.CudaContextForTensor(src);
+
+            var writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
+            var elementCount = writeTarget.ElementCount();
+
+            var ptx = kernels.GetPtx(context.Compiler);
+
+            if (result == src)
+                ApplyOpInvoke.Invoke(context, cudaContext, ptx, "t1_" + funcName, writeTarget, src2, src3, step_size, value, elementCount);
+            else
+                ApplyOpInvoke.Invoke(context, cudaContext, ptx, "t2_" + funcName, writeTarget, src, src2, src3, step_size, value, elementCount);
+
+            return writeTarget;
+        }
+    }
 
     public static class ElementwiseTTTOp
     {

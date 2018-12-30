@@ -48,6 +48,14 @@ namespace TensorSharp
             this.storage.AddRef();
         }
 
+        //~Tensor()
+        //{
+        //    if (!isDisposed)
+        //    {
+        //        Dispose();
+        //    }
+        //}
+
         public override string ToString()
         {
             return TensorFormatting.FormatTensorTypeAndSize(this);

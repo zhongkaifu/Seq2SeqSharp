@@ -49,13 +49,8 @@ template<typename T> INLINE_FUNC T UpdateDelta(T g, T s, T eps) {
 }
 
 
-template<typename T> INLINE_FUNC T UpdateLR(T delta, T lr, T baselr) {
-	return baselr / (sqrtf(lr + delta * delta) + T(1));
-}
-
-
-template<typename T> INLINE_FUNC T RsqrtOne(T x, T y) {
-	return y / (sqrtf(x) + T(1));
+template<typename T> INLINE_FUNC T UpdateWeight2(T weight, T delta, T lrw, T step, T regc) {
+	return weight + weight * regc + delta * (step / (sqrtf(lrw) + T(1)));
 }
 
 
@@ -63,7 +58,9 @@ template<typename T> INLINE_FUNC T ExpSub(T x, T y) {
 	return __expf(x - y);
 }
 
-
+template<typename T> INLINE_FUNC T ExpSub2(T x, T y) {
+	return __expf(x - y);
+}
 
 template<typename T> INLINE_FUNC T AddMul(T x, T y, T z) {
 	return x + y * z;
@@ -83,10 +80,6 @@ template<typename T> INLINE_FUNC T Add4(T x, T y, T z, T w) {
 	return x + y + z + w;
 }
 
-template<typename T> INLINE_FUNC T UpdateWeight(T weight, T delta, T lr, T regc) {
-	return weight + weight * regc + delta * lr;
-}
-
 template<typename T> INLINE_FUNC T Frac(T x) {
 	return x - trunc(x);
 }
@@ -97,10 +90,6 @@ template<typename T> INLINE_FUNC T Lerp(T a, T b, T weight) {
 
 template<typename T> INLINE_FUNC T Sigmoid(T x) {
 	return T(1) / (T(1) + __expf(-x));
-}
-
-template<typename T> INLINE_FUNC T SigmoidD(T resW, T resG) {
-	return resW * (T(1) - resW) * resG;
 }
 
 template<typename T> INLINE_FUNC T AddSigmoidD(T t, T resW, T resG) {

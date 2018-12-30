@@ -3,67 +3,14 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Seq2SeqSharp
-{
-    public class WeightMatrixList
-    {
-        public List<WeightMatrix> WeightMatrixs = new List<WeightMatrix>();
-        public int index = 0;
-
-    }
-
-    public class WeightMatrixFactory
-    {
-        //private object locker = new object();
-        ConcurrentDictionary<int, ConcurrentDictionary<int, WeightMatrixList>> buffer = new ConcurrentDictionary<int, ConcurrentDictionary<int, WeightMatrixList>>();
-        public WeightMatrix CreateWeightMatrix(int row, int column)
-        {
-            var k = buffer.GetOrAdd(row, x => new ConcurrentDictionary<int, WeightMatrixList>());
-            var mList = k.GetOrAdd(column, x => new WeightMatrixList());
-
-            bool newMatrix = false;
-            WeightMatrix r;
-            if (mList.index == mList.WeightMatrixs.Count)
-            {
-                r = new WeightMatrix(row, column);
-                mList.WeightMatrixs.Add(r);
-                newMatrix = true;
-            }
-            else
-            {
-                r = mList.WeightMatrixs[mList.index];
-            }
-
-            mList.index++;
-
-            if (newMatrix == false)
-            {
-                r.ClearGradient();
-            }
-
-            return r;
-
-        }
-
-        public void Clean()
-        {
-            foreach (var kv in buffer)
-            {
-                foreach (var subKV in kv.Value)
-                {
-                    subKV.Value.index = 0;
-                }
-            }
-
-        }
-    }
-
-     
+{     
     [Serializable]
     public class WeightMatrix : IWeightMatrix
     {
@@ -73,7 +20,7 @@ namespace Seq2SeqSharp
         public float[] Gradient { get; set; }
         public float[] Cash { get; set; }
         public float[] LrW { get; set; }
-        public HashSet<int> RowToBeUpdated { get; set; } = new HashSet<int>();
+        public Dictionary<int, int> RowToBeUpdated { get; set; } = new Dictionary<int, int>();
 
         //DEBUG variable
         public float AvgLearningRate { get; set; }
@@ -87,6 +34,23 @@ namespace Seq2SeqSharp
         public float[] ToWeightArray()
         {
             return Weight;
+        }
+
+        public int GetMaxWeightIdx()
+        {
+            float[] weights = ToWeightArray();
+            var maxv = weights[0];
+            var maxi = 0;
+            for (int i = 1; i < weights.Length; i++)
+            {
+                if (weights[i] > maxv)
+                {
+                    maxv = weights[i];
+                    maxi = i;
+                }
+            }
+
+            return maxi;
         }
 
         public void SetWeightArray(float[] v)
@@ -176,6 +140,10 @@ namespace Seq2SeqSharp
             return v;
         }
 
+        public void Dispose()
+        {
+        }
+
         public void CleanCash()
         {
             Cash = new float[Cash.Length];
@@ -201,7 +169,37 @@ namespace Seq2SeqSharp
         public void SetGradientByWeight(IWeightMatrix src)
         {
             WeightMatrix m = src as WeightMatrix;
-            Gradient = m.Weight;
+//            Gradient = m.Weight;
+
+            Array.Copy(m.Weight, Gradient, m.Weight.Length);
+        }
+
+        public void Save(Stream stream)
+        {
+            var floatArray1 = ToWeightArray();
+
+            // create a byte array and copy the floats into it...
+            var byteArray = new byte[floatArray1.Length * 4];
+            Buffer.BlockCopy(floatArray1, 0, byteArray, 0, byteArray.Length);
+
+            stream.Write(byteArray, 0, byteArray.Length);
+        }
+
+        public void Load(Stream stream)
+        {
+            int size = Rows * Columns;
+            var byteArray = new byte[size * 4];
+            stream.Read(byteArray, 0, byteArray.Length);
+
+            var floatArray2 = new float[byteArray.Length / 4];
+            Buffer.BlockCopy(byteArray, 0, floatArray2, 0, byteArray.Length);
+
+            SetWeightArray(floatArray2);
+        }
+
+        public void ReleaseWeight()
+        {
+
         }
     }
 }

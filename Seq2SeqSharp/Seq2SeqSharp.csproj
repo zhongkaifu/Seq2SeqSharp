@@ -18,9 +18,10 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;CUDA</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -52,6 +53,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ArchEnums.cs" />
     <Compile Include="AttentionUnit.cs" />
     <Compile Include="AttentionDecoder.cs" />
     <Compile Include="AttentionSeq2Seq.cs" />
@@ -67,13 +69,16 @@
     <Compile Include="Tools\ComputeGraphTensor.cs" />
     <Compile Include="Tools\Corpus.cs" />
     <Compile Include="Tools\IComputeGraph.cs" />
+    <Compile Include="Tools\IWeightFactory.cs" />
     <Compile Include="Tools\IWeightMatrix.cs" />
     <Compile Include="Tools\RandomGenerator.cs" />
-    <Compile Include="Tools\SparseWeightMatrix.cs" />
     <Compile Include="Tools\WeightMatrix.cs" />
+    <Compile Include="Tools\WeightMatrixFactory.cs" />
     <Compile Include="Tools\WeightTensor.cs" />
+    <Compile Include="Tools\WeightTensorFactory.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

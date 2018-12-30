@@ -40,7 +40,7 @@ namespace TensorSharp.CUDA.RuntimeCompiler
 
             try
             {
-                rtc.Compile(new string[0]);
+                rtc.Compile(new string[] {"--use_fast_math" });
             }
             catch
             {

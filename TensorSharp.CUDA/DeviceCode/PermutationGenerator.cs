@@ -141,6 +141,33 @@ namespace TensorSharp.CUDA.DeviceCode
             }
         }
 
+        public void AddApplyTTTSS(string kernelBaseName, string operatorCode)
+        {
+            foreach (var spec in ApplySpecialization.AllSpecializations(3))
+            {
+                var kernelName = GetMangledName(kernelBaseName, spec);
+                var indexType = spec.Use32BitIndices ? ApplySpecialization.IndexType32 : ApplySpecialization.IndexType64;
+                var dimsA = spec.TensorDims[0].ToString();
+                var dimsB = spec.TensorDims[1].ToString();
+                var dimsC = spec.TensorDims[2].ToString();
+                sb.AppendFormat("APPLY_TTTSS({0}, {1}, {2}, {3}, {4}, {5})\n", indexType, dimsA, dimsB, dimsC, kernelName, operatorCode);
+            }
+        }
+
+        public void AddApplyTTTTSS(string kernelBaseName, string operatorCode)
+        {
+            foreach (var spec in ApplySpecialization.AllSpecializations(4))
+            {
+                var kernelName = GetMangledName(kernelBaseName, spec);
+                var indexType = spec.Use32BitIndices ? ApplySpecialization.IndexType32 : ApplySpecialization.IndexType64;
+                var dimsA = spec.TensorDims[0].ToString();
+                var dimsB = spec.TensorDims[1].ToString();
+                var dimsC = spec.TensorDims[2].ToString();
+                var dimsD = spec.TensorDims[3].ToString();
+                sb.AppendFormat("APPLY_TTTTS({0}, {1}, {2}, {3}, {4}, {5}, {6})\n", indexType, dimsA, dimsB, dimsC, dimsD, kernelName, operatorCode);
+            }
+        }
+
         public void AddApplyTTTTS(string kernelBaseName, string operatorCode)
         {
             foreach (var spec in ApplySpecialization.AllSpecializations(4))

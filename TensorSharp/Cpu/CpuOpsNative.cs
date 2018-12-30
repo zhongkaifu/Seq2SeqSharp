@@ -67,8 +67,6 @@ namespace TensorSharp.Cpu
 
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Sigmoid(IntPtr result, IntPtr src);
 
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_SigmoidD(IntPtr result, IntPtr resW, IntPtr resG);
-
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_TanhD(IntPtr result, IntPtr resW, IntPtr resG);
 
 

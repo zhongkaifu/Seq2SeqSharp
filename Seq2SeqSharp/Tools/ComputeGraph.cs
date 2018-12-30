@@ -42,16 +42,17 @@ namespace Seq2SeqSharp
 
     public class ComputeGraph : IComputeGraph
     {
-        internal static WeightMatrixFactory weightMatrixFactory = new WeightMatrixFactory();
+        internal static WeightMatrixFactory weightMatrixFactory;
 
 
         public ConcurrentList<Action> backprop = new ConcurrentList<Action>();
         public bool needs_backprop { get; set; }
-        public ComputeGraph(bool needBack = true)
+        public ComputeGraph(IWeightFactory weightFactory, bool needBack = true)
         {
-            this.needs_backprop = needBack;
-
+            weightMatrixFactory = weightFactory as WeightMatrixFactory;
             weightMatrixFactory.Clean();
+
+            this.needs_backprop = needBack;
         }
 
 
@@ -360,8 +361,14 @@ namespace Seq2SeqSharp
                         i++;
                     }
 
-                    m.RowToBeUpdated.Add(ix);
-
+                    if (m.RowToBeUpdated.ContainsKey(ix) == false)
+                    {
+                        m.RowToBeUpdated.Add(ix, 1);
+                    }
+                    else
+                    {
+                        m.RowToBeUpdated[ix]++;
+                    }
                 };
                 this.backprop.Add(backward);
             }
@@ -420,16 +427,16 @@ namespace Seq2SeqSharp
             return res;
         }
 
-        public virtual void DropoutPredict(IWeightMatrix V, float drop_prob)
-        {
-            WeightMatrix m = V as WeightMatrix;
+        //public virtual void DropoutPredict(IWeightMatrix V, float drop_prob)
+        //{
+        //    WeightMatrix m = V as WeightMatrix;
 
-            for (int i = 0; i < m.Weight.Length; i++)
-            {
-                m.Weight[i] *= 0.2f;
-            }
+        //    for (int i = 0; i < m.Weight.Length; i++)
+        //    {
+        //        m.Weight[i] *= 0.2f;
+        //    }
 
-        }
+        //}
 
         public virtual IWeightMatrix Mul(IWeightMatrix w1, IWeightMatrix w2)
         {
@@ -539,116 +546,6 @@ namespace Seq2SeqSharp
             }
             return res;
         }
-
-
-
-
-        public virtual IWeightMatrix Mul(SparseWeightMatrix m1, IWeightMatrix w2)
-        {
-            var m2 = w2 as WeightMatrix;
-
-            var n = m1.Rows;
-            var d = m2.Columns;
-            var res = weightMatrixFactory.CreateWeightMatrix(n, d);
-            var moreItemsD = (d % Vector<float>.Count);
-
-            foreach (KeyValuePair<int, Dictionary<int, float>> pairRow in m1.Weights)
-            {
-                // loop over rows of m1
-
-                var m1BaseIndex = d * pairRow.Key;
-
-                foreach (KeyValuePair<int, float> pairCol in pairRow.Value)
-                { // dot product loop
-
-                    var j = 0;
-                    var m1w = pairCol.Value;
-                    var m2BaseIndex = m2.Columns * pairCol.Key;
-
-                    while (j < d - moreItemsD)
-                    {
-                        int offset = m1BaseIndex + j;
-
-                        var vecM2W = new Vector<float>(m2.Weight, m2BaseIndex + j);
-                        var vecResWeight = new Vector<float>(res.Weight, offset);
-
-                        vecResWeight += m1w * vecM2W;
-
-                        vecResWeight.CopyTo(res.Weight, offset);
-
-                        j += Vector<float>.Count;
-                    }
-
-                    while (j < d)
-                    {
-                        var v = m1w * m2.Weight[m2BaseIndex + j];
-                        res.Weight[m1BaseIndex + j] += v;
-
-                        j++;
-                    }
-
-                }
-
-            }
-
-            if (this.needs_backprop)
-            {
-                Action backward = () =>
-                {
-                    foreach (KeyValuePair<int, Dictionary<int, float>> pairRow in m1.Weights)
-                    {
-
-                        // loop over rows of m1
-
-                        var resBaseIndex = d * pairRow.Key;
-                        var m1BaseIndex = m1.Columns * pairRow.Key;
-
-                        // loop over cols of m2
-                        foreach (KeyValuePair<int, float> pairCol in pairRow.Value)
-                        {
-                            var m1GIndex = m1BaseIndex + pairCol.Key;
-                            var m2GBaseIndex = m2.Columns * pairCol.Key;
-                            var m1G = 0.0f;
-                            var m1W = pairCol.Value;
-
-                            var j = 0;
-                            while (j < d - moreItemsD)
-                            {
-                                int m2Index = m2GBaseIndex + j;
-                                int offset = resBaseIndex + j;
-                                var vecResG = new Vector<float>(res.Gradient, offset);
-                                var vecM2W = new Vector<float>(m2.Weight, m2Index);
-                                var vecM2G = new Vector<float>(m2.Gradient, m2Index);
-
-                                m1G += Vector.Dot(vecM2W, vecResG);
-
-                                vecM2G += m1W * vecResG;
-                                vecM2G.CopyTo(m2.Gradient, m2Index);
-
-
-                                j += Vector<float>.Count;
-                            }
-
-                            while (j < d)
-                            {
-                                int m2Index = m2GBaseIndex + j;
-                                var b = res.Gradient[resBaseIndex + j];
-
-                                m1G += m2.Weight[m2Index] * b;
-                                m2.Gradient[m2Index] += m1W * b;
-                                j++;
-                            }
-
-                            m1.Gradient[pairRow.Key][pairCol.Key] += m1G;
-                        }
-                    }
-                };
-                this.backprop.Add(backward);
-            }
-            return res;
-        }
-
-
 
         public virtual WeightMatrix MulAdd(WeightMatrix m1, WeightMatrix m2, WeightMatrix m3)
         {
@@ -1333,9 +1230,10 @@ namespace Seq2SeqSharp
                     double ss = 0.0;
                     for (int i = 0; i < n; i++)
                     {
-                        m.Gradient[i] += res.Gradient[i] * res.Weight[i];
+                        var v = res.Gradient[i] * res.Weight[i];
+                        m.Gradient[i] += v;
 
-                        ss += res.Gradient[i] * res.Weight[i];
+                        ss += v;
                     }
                     for (int i = 0; i < n; i++)
                     {
@@ -1464,7 +1362,7 @@ namespace Seq2SeqSharp
             return resList;
         }
 
-        public virtual IWeightMatrix ConcatRows(List<IWeightMatrix> wl)
+        public virtual IWeightMatrix ConcatRows(List<IWeightMatrix> wl, bool bp = true)
         {
             List<WeightMatrix> twl = new List<WeightMatrix>();
             int sx = 0;
@@ -1570,9 +1468,37 @@ namespace Seq2SeqSharp
 
         }
 
-        public virtual List<IWeightMatrix> SplitRows(IWeightMatrix w, params int[] sizes)
+        //public virtual List<IWeightMatrix> SplitRows(IWeightMatrix w, params int[] sizes)
+        //{
+        //    throw new NotImplementedException();
+        //}
+
+        public List<IWeightMatrix> UnFolderRow(IWeightMatrix m, int n, bool gradient = true)
         {
-            throw new NotImplementedException();
+            if (n != 1)
+            {
+                throw new InvalidOperationException($"n must be 1 when using CPU arch type.");
+            }
+
+            List<IWeightMatrix> result = new List<IWeightMatrix>();
+            result.Add(m);
+
+            return result;
+        }
+
+        public IWeightMatrix SoftmaxM(IWeightMatrix w, bool bp = true)
+        {
+            if (w.Rows != 1)
+            {
+                throw new InvalidOperationException($"The row size of given matrix must be 1.");
+            }
+
+            return Softmax(w);
+        }
+
+        public IWeightMatrix MulAdd2(IWeightMatrix m1, IWeightMatrix m2, IWeightMatrix m3)
+        {
+            return MulAdd(m1, m2, m3);
         }
     }     
 }
