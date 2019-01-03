@@ -326,22 +326,21 @@ namespace Seq2SeqSharp
             return res;
         }
 
-
-        public virtual IWeightMatrix PeekRow(IWeightMatrix w, int ix)
+        public virtual IWeightMatrix PeekRow(IWeightMatrix w, int ix, int num = 1)
         {
             WeightMatrix m = w as WeightMatrix;
 
             var d = m.Columns;
-            var res = weightMatrixFactory.CreateWeightMatrix(1, d);
+            var res = weightMatrixFactory.CreateWeightMatrix(num, d);
 
-            Array.Copy(m.Weight, d * ix, res.Weight, 0, d);
+            Array.Copy(m.Weight, d * ix, res.Weight, 0, d * num);
 
             if (this.needs_backprop)
             {
                 Action backward = () =>
                 {
                     var offset = d * ix;
-                    var n = d;
+                    var n = d * num;
                     var moreItems = (n % Vector<float>.Count);
                     var i = 0;
                     while (i < n - moreItems)
@@ -361,20 +360,22 @@ namespace Seq2SeqSharp
                         i++;
                     }
 
-                    if (m.RowToBeUpdated.ContainsKey(ix) == false)
+                    for (int j = 0; j < num; j++)
                     {
-                        m.RowToBeUpdated.Add(ix, 1);
-                    }
-                    else
-                    {
-                        m.RowToBeUpdated[ix]++;
+                        if (m.RowToBeUpdated.ContainsKey(ix + j) == false)
+                        {
+                            m.RowToBeUpdated.Add(ix + j, 1);
+                        }
+                        else
+                        {
+                            m.RowToBeUpdated[ix + j]++;
+                        }
                     }
                 };
                 this.backprop.Add(backward);
             }
             return res;
         }
-
 
         private float sig(float x)
         {

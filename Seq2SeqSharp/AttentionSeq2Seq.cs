@@ -551,17 +551,12 @@ namespace Seq2SeqSharp
             List<IWeightMatrix> backwardOutputs = new List<IWeightMatrix>();
 
             int seqLen = inputSentences[0].Count;
+            List<IWeightMatrix> forwardInput = new List<IWeightMatrix>();
             for (int i = 0; i < seqLen; i++)
             {
-                List<IWeightMatrix> forwardInput = new List<IWeightMatrix>();
-                List<IWeightMatrix> backwardInput = new List<IWeightMatrix>();
                 for (int j = 0; j < inputSentences.Count; j++)
                 {
                     var inputSentence = inputSentences[j];
-                    var reversSentence = inputSentence.ToList();
-                    reversSentence.Reverse();
-
-
                     int ix_source = (int)SENTTAGS.UNK;
                     if (m_srcWordToIndex.ContainsKey(inputSentence[i]))
                     {
@@ -569,24 +564,20 @@ namespace Seq2SeqSharp
                     }
                     var x = g.PeekRow(Embedding, ix_source);
                     forwardInput.Add(x);
-
-
-                    int ix_source2 = (int)SENTTAGS.UNK;
-                    if (m_srcWordToIndex.ContainsKey(reversSentence[i]))
-                    {
-                        ix_source2 = m_srcWordToIndex[reversSentence[i]];
-                    }
-                    var x2 = g.PeekRow(Embedding, ix_source2);
-                    backwardInput.Add(x2);
                 }
+            }
 
-                var eOutput = encoder.Encode(g.ConcatRows(forwardInput), g);
+            var forwardInputsM = g.ConcatRows(forwardInput);
+
+            for (int i = 0; i < seqLen; i++)
+            {
+                var eOutput = encoder.Encode(g.PeekRow(forwardInputsM, i * inputSentences.Count, inputSentences.Count), g);
                 forwardOutputs.Add(eOutput);
 
-                var eOutput2 = reversEncoder.Encode(g.ConcatRows(backwardInput), g);
+                var eOutput2 = reversEncoder.Encode(g.PeekRow(forwardInputsM, forwardInputsM.Rows - (i + 1) * inputSentences.Count, inputSentences.Count), g);
                 backwardOutputs.Add(eOutput2);
             }
-           
+
             backwardOutputs.Reverse();
 
             List<IWeightMatrix> encoded = new List<IWeightMatrix>();

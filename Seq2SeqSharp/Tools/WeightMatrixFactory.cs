@@ -27,16 +27,20 @@ namespace Seq2SeqSharp.Tools
             if (mList.index == mList.WeightMatrixs.Count)
             {
                 r = new WeightMatrix(row, column);
-                if (cleanWeights)
-                {
-                    r.ClearWeight();
-                }
+                //if (cleanWeights)
+                //{
+                //    r.ClearWeight();
+                //}
 
                 mList.WeightMatrixs.Add(r);
             }
             else
             {
                 r = mList.WeightMatrixs[mList.index];
+                if (cleanWeights)
+                {
+                    r.ClearWeight();
+                }
                 r.ClearGradient();
             }
 
@@ -56,6 +60,8 @@ namespace Seq2SeqSharp.Tools
                     subKV.Value.index = 0;
                 }
             }
+
+            buffer.Clear();
 
         }
 

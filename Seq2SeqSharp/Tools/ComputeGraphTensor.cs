@@ -421,34 +421,29 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightMatrix PeekRow(IWeightMatrix w, int ix)
+        public IWeightMatrix PeekRow(IWeightMatrix w, int ix, int num = 1)
         {
             WeightTensor m = w as WeightTensor;
-            var d = m.Columns;
-            var tw = m.TWeight.Narrow(0, ix, 1);
-            var tg = m.TGradient != null ? m.TGradient.Narrow(0, ix, 1) : null;
+            var tw = m.TWeight.Narrow(0, ix, num);
+            var tg = m.TGradient != null ? m.TGradient.Narrow(0, ix, num) : null;
 
-            var res = weightTensorFactory.CreateWeightTensor(1, m.Columns, tw, tg);
+            var res = weightTensorFactory.CreateWeightTensor(num, m.Columns, tw, tg);
 
-            if (m.RowToBeUpdated.ContainsKey(ix) == false)
+            for (int i = 0; i < num; i++)
             {
-                m.RowToBeUpdated.Add(ix, 1);
-            }
-            else
-            {
-                m.RowToBeUpdated[ix]++;
+                if (m.RowToBeUpdated.ContainsKey(ix + i) == false)
+                {
+                    m.RowToBeUpdated.Add(ix + i, 1);
+                }
+                else
+                {
+                    m.RowToBeUpdated[ix + i]++;
+                }
             }
 
             return res;
         }
-
-        //public void DropoutPredict(IWeightMatrix V, float drop_prob)
-        //{
-        //    WeightTensor m = V as WeightTensor;
-        //    Ops.Mul(m.TWeight, m.TWeight, 0.2f);
-        //}
-
-
+    
         public IWeightMatrix ConcatColumns(IWeightMatrix w1, IWeightMatrix w2)
         {
             var m1 = w1 as WeightTensor;
@@ -613,26 +608,6 @@ namespace Seq2SeqSharp.Tools
             }
             return res;
         }
-
-        //public List<IWeightMatrix> SplitRows(IWeightMatrix w, params int[] sizes)
-        //{
-        //    var m = w as WeightTensor;
-        //    List<IWeightMatrix> resList = new List<IWeightMatrix>();
-
-        //    int x = 0;
-        //    foreach (int size in sizes)
-        //    {
-        //        Tensor tW = m.TWeight.Narrow(0, x, size);
-        //        Tensor TG = m.TGradient.Narrow(0, x, size);
-
-        //        WeightTensor res = weightTensorFactory.CreateWeightTensor(size, m.Columns, tW, TG);
-        //        resList.Add(res);
-
-        //        x += size;
-        //    }
-
-        //    return resList;
-        //}
 
         public List<IWeightMatrix> SplitColumns(IWeightMatrix w, params int[] sizes)
         {

@@ -56,6 +56,10 @@ namespace Seq2SeqSharp.Tools
             else
             {
                 r = mList.WeightTensors[mList.index];
+                if (cleanWeights)
+                {
+                    r.ClearWeight();
+                }
                 r.ClearGradient();
             }
 

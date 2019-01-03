@@ -27,11 +27,9 @@ namespace Seq2SeqSharp
 
         IWeightMatrix ConcatColumns(IWeightMatrix m1, IWeightMatrix m2);
         void Backward();
-        IWeightMatrix PeekRow(IWeightMatrix w, int ix);
+        IWeightMatrix PeekRow(IWeightMatrix w, int ix, int num = 1);
         IWeightMatrix Dropout(IWeightMatrix V, float drop_prob);
         IWeightMatrix SoftmaxWithCrossEntropy(IWeightMatrix src);
-
-    //    void DropoutPredict(IWeightMatrix V, float drop_prob);
 
         IWeightMatrix Softmax(IWeightMatrix w);
 
