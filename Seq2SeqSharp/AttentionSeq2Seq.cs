@@ -790,7 +790,7 @@ namespace Seq2SeqSharp
             model.Add(m_bd[m_defaultDeviceId]);
 
 
-            for (int i = 1; i < m_deviceIds.Length; i++)
+            Parallel.For(1, m_deviceIds.Length, i =>
             {
                 var model_i = m_encoder[i].getParams();
                 model_i.AddRange(m_decoder[i].getParams());
@@ -807,7 +807,26 @@ namespace Seq2SeqSharp
                     model_i[j].ClearGradient();
                 }
 
-            }
+            });
+
+            //for (int i = 1; i < m_deviceIds.Length; i++)
+            //{
+            //    var model_i = m_encoder[i].getParams();
+            //    model_i.AddRange(m_decoder[i].getParams());
+            //    model_i.AddRange(m_reversEncoder[i].getParams());
+            //    model_i.Add(m_srcEmbedding[i]);
+            //    model_i.Add(m_tgtEmbedding[i]);
+            //    model_i.Add(m_Whd[i]);
+            //    model_i.Add(m_bd[i]);
+
+            //    for (int j = 0; j < model.Count; j++)
+            //    {
+            //        model_i[j].CopyWeights(model[j]);
+
+            //        model_i[j].ClearGradient();
+            //    }
+
+            //}
         }
 
         /// <summary>
@@ -823,8 +842,7 @@ namespace Seq2SeqSharp
             model.Add(m_Whd[m_defaultDeviceId]);
             model.Add(m_bd[m_defaultDeviceId]);
 
-
-            for (int i = 1; i < m_deviceIds.Length; i++)
+            Parallel.For(1, m_deviceIds.Length, i =>
             {
                 var model_i = m_encoder[i].getParams();
                 model_i.AddRange(m_decoder[i].getParams());
@@ -838,8 +856,24 @@ namespace Seq2SeqSharp
                 {
                     model[j].AddGradient(model_i[j]);
                 }
+            });
 
-            }
+            //for (int i = 1; i < m_deviceIds.Length; i++)
+            //{
+            //    var model_i = m_encoder[i].getParams();
+            //    model_i.AddRange(m_decoder[i].getParams());
+            //    model_i.AddRange(m_reversEncoder[i].getParams());
+            //    model_i.Add(m_srcEmbedding[i]);
+            //    model_i.Add(m_tgtEmbedding[i]);
+            //    model_i.Add(m_Whd[i]);
+            //    model_i.Add(m_bd[i]);
+
+            //    for (int j = 0; j < model.Count; j++)
+            //    {
+            //        model[j].AddGradient(model_i[j]);
+            //    }
+
+            //}
         }
 
 

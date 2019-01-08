@@ -189,7 +189,7 @@ namespace Seq2SeqSharp.Tools
             Ops.Copy(TWeight, m.TWeight);
         }
 
-
+        private object locker = new object();
         public void AddGradient(IWeightMatrix src)
         {
             WeightTensor m = src as WeightTensor;
@@ -197,20 +197,23 @@ namespace Seq2SeqSharp.Tools
             Tensor t = new Tensor(TGradient.Allocator, DType.Float32, Rows, Columns);
             Ops.Copy(t, m.TGradient);
 
-            Ops.Add(TGradient, TGradient, t);
-
-            foreach (var kv in m.RowToBeUpdated)
+            lock (locker)
             {
-                if (RowToBeUpdated.ContainsKey(kv.Key) == false)
+                Ops.Add(TGradient, TGradient, t);
+                foreach (var kv in m.RowToBeUpdated)
                 {
-                    RowToBeUpdated.Add(kv.Key, kv.Value);
-                }
-                else
-                {
-                    RowToBeUpdated[kv.Key] += kv.Value;
+                    if (RowToBeUpdated.ContainsKey(kv.Key) == false)
+                    {
+                        RowToBeUpdated.Add(kv.Key, kv.Value);
+                    }
+                    else
+                    {
+                        RowToBeUpdated[kv.Key] += kv.Value;
+                    }
                 }
             }
 
+            t.Dispose();
         }
 
         public float[] ToWeightArray()
