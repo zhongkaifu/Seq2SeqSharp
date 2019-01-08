@@ -21,17 +21,17 @@ namespace Seq2SeqSharp
         public int depth { get; set; }
         public AttentionUnit attentionLayer { get; set; }
 
-        public AttentionDecoder(int batchSize, int hdim, int dim, int depth, ArchTypeEnums archType)
+        public AttentionDecoder(int batchSize, int hdim, int dim, int depth, ArchTypeEnums archType, int deviceId)
         {
-            attentionLayer = new AttentionUnit(batchSize, hdim, archType);
+            attentionLayer = new AttentionUnit(batchSize, hdim, archType, deviceId);
             this.hdim = hdim;
             this.dim = dim;
             this.depth = depth;
 
-            decoders.Add(new LSTMAttentionDecoderCell(batchSize, hdim, dim, archType));
+            decoders.Add(new LSTMAttentionDecoderCell(batchSize, hdim, dim, archType, deviceId));
             for (int i = 1; i < depth; i++)
             {
-                decoders.Add(new LSTMAttentionDecoderCell(batchSize, hdim, hdim, archType));
+                decoders.Add(new LSTMAttentionDecoderCell(batchSize, hdim, hdim, archType, deviceId));
             }
         }
 
@@ -53,17 +53,17 @@ namespace Seq2SeqSharp
 
         }
 
-        public void PreProcess(IWeightMatrix encoderOutput, IComputeGraph g)
+        public AttentionPreProcessResult PreProcess(IWeightMatrix encoderOutput, IComputeGraph g)
         {
-            attentionLayer.PreProcess(encoderOutput, g);
+            return attentionLayer.PreProcess(encoderOutput, g);
         }
 
 
-        public IWeightMatrix Decode(IWeightMatrix input, IComputeGraph g)
+        public IWeightMatrix Decode(IWeightMatrix input, AttentionPreProcessResult attenPreProcessResult, IComputeGraph g)
         {
             var V = input;
             var lastStatus = this.decoders.FirstOrDefault().ct;
-            var context = attentionLayer.Perform(lastStatus, g);
+            var context = attentionLayer.Perform(lastStatus, attenPreProcessResult, g);
 
             foreach (var decoder in decoders)
             {

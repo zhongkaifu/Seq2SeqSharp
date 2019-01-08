@@ -51,7 +51,7 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public void Clean()
+        public void Clear()
         {
             foreach (var kv in buffer)
             {
@@ -65,12 +65,12 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public IWeightMatrix CreateWeights(int row, int column)
+        public IWeightMatrix CreateWeights(int row, int column, int deviceId)
         {
             return CreateWeightMatrix(row, column);
         }
 
-        public IWeightMatrix CreateWeights(int row, int column, bool cleanWeights)
+        public IWeightMatrix CreateWeights(int row, int column, int deviceId, bool cleanWeights)
         {
             return CreateWeightMatrix(row, column, cleanWeights);
         }

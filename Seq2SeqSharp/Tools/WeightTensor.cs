@@ -12,7 +12,7 @@ using TensorSharp;
 namespace Seq2SeqSharp.Tools
 {
     [Serializable]
-    public class WeightTensor : IWeightMatrix, ISerializable, IDisposable
+    public class WeightTensor : IWeightMatrix,  IDisposable
     {
         public Tensor TWeight;
         public Tensor TGradient;
@@ -24,14 +24,14 @@ namespace Seq2SeqSharp.Tools
 
         public Dictionary<int, int> RowToBeUpdated { get; set; } = new Dictionary<int, int>();
 
-        //DEBUG variable
-        public float AvgLearningRate { get; set; }
-        //DEBUG variable
+        public int DeviceId { get; set; }
 
-        public WeightTensor(int rows, int columns, bool normal = false)
+
+        public WeightTensor(int rows, int columns, int deviceId, bool normal = false)
         {
-            this.Rows = rows;
-            this.Columns = columns;
+            DeviceId = deviceId;
+            Rows = rows;
+            Columns = columns;
             var n = rows * columns;
 
             float[] weight = new float[n];
@@ -47,40 +47,48 @@ namespace Seq2SeqSharp.Tools
                 weight[i] = RandomGenerator.NormalRandom(0.0f, scale);
             }
 
-            TGradient = new Tensor(TensorAllocator.Allocator, DType.Float32, Rows, Columns);
+            var allocator = TensorAllocator.Allocator(deviceId);
+
+            TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
             Ops.Fill(TGradient, 0.0f);
 
-            TCash = new Tensor(TensorAllocator.Allocator, DType.Float32, Rows, Columns);
+            TCash = new Tensor(allocator, DType.Float32, Rows, Columns);
             Ops.Fill(TCash, 0.0f);
 
-            TLrW = new Tensor(TensorAllocator.Allocator, DType.Float32, Rows, Columns);
+            TLrW = new Tensor(allocator, DType.Float32, Rows, Columns);
             Ops.Fill(TLrW, 0.0f);
 
-            TWeight = Tensor.FromArray(TensorAllocator.Allocator, weight).View(Rows, Columns);
+            TWeight = Tensor.FromArray(allocator, weight).View(Rows, Columns);
         }
 
-        public WeightTensor(int rows, int columns)
+        public WeightTensor(int rows, int columns, int deviceId)
         {
-            this.Rows = rows;
-            this.Columns = columns;
+            DeviceId = deviceId;
+            Rows = rows;
+            Columns = columns;
 
-            TGradient = new Tensor(TensorAllocator.Allocator, DType.Float32, Rows, Columns);
-            TWeight = new Tensor(TensorAllocator.Allocator, DType.Float32, Rows, Columns);
+            var allocator = TensorAllocator.Allocator(deviceId);
+
+            TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
+            TWeight = new Tensor(allocator, DType.Float32, Rows, Columns);
 
             Ops.Fill(TGradient, 0.0f);
         }
 
 
-        public WeightTensor(int rows, int columns, Tensor weight, bool graident = true)
+        public WeightTensor(int rows, int columns, Tensor weight, int deviceId, bool graident = true)
         {
-            this.Rows = rows;
-            this.Columns = columns;
+            DeviceId = deviceId;
+            Rows = rows;
+            Columns = columns;
 
             TWeight = weight;
 
             if (graident)
             {
-                TGradient = new Tensor(TensorAllocator.Allocator, DType.Float32, Rows, Columns);
+                var allocator = TensorAllocator.Allocator(deviceId);
+
+                TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
                 Ops.Fill(TGradient, 0.0f);
             }
         }
@@ -95,29 +103,28 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public WeightTensor(int rows, int columns, float c)
+        public WeightTensor(int rows, int columns, float c, int deviceId)
         {
-            this.Rows = rows;
-            this.Columns = columns;
+            DeviceId = deviceId;
+            Rows = rows;
+            Columns = columns;
+
             var n = rows * columns;
 
-            TGradient = new Tensor(TensorAllocator.Allocator, DType.Float32, Rows, Columns);
+            var allocator = TensorAllocator.Allocator(deviceId);
+
+            TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
             Ops.Fill(TGradient, 0.0f);
 
-            TCash = new Tensor(TensorAllocator.Allocator, DType.Float32, Rows, Columns);
+            TCash = new Tensor(allocator, DType.Float32, Rows, Columns);
             Ops.Fill(TCash, 0.0f);
 
-            TLrW = new Tensor(TensorAllocator.Allocator, DType.Float32, Rows, Columns);
+            TLrW = new Tensor(allocator, DType.Float32, Rows, Columns);
             Ops.Fill(TLrW, 0.0f);
 
-            TWeight = new Tensor(TensorAllocator.Allocator, DType.Float32, Rows, Columns);
+            TWeight = new Tensor(allocator, DType.Float32, Rows, Columns);
             Ops.Fill(TWeight, c);
         }
-
-        //~WeightTensor()
-        //{
-        //    Dispose();
-        //}
 
 
         public void CleanCash()
@@ -167,12 +174,43 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor m = src as WeightTensor;
 
-            // Ops.Copy(TGradient, m.TWeight);
+            //  Ops.Copy(TGradient, m.TWeight);
 
             TGradient.Dispose();
             TGradient = m.TWeight;
 
             m.TWeight = null;
+        }
+
+        public void CopyWeights(IWeightMatrix src)
+        {
+            WeightTensor m = src as WeightTensor;
+
+            Ops.Copy(TWeight, m.TWeight);
+        }
+
+
+        public void AddGradient(IWeightMatrix src)
+        {
+            WeightTensor m = src as WeightTensor;
+
+            Tensor t = new Tensor(TGradient.Allocator, DType.Float32, Rows, Columns);
+            Ops.Copy(t, m.TGradient);
+
+            Ops.Add(TGradient, TGradient, t);
+
+            foreach (var kv in m.RowToBeUpdated)
+            {
+                if (RowToBeUpdated.ContainsKey(kv.Key) == false)
+                {
+                    RowToBeUpdated.Add(kv.Key, kv.Value);
+                }
+                else
+                {
+                    RowToBeUpdated[kv.Key] += kv.Value;
+                }
+            }
+
         }
 
         public float[] ToWeightArray()
@@ -200,14 +238,6 @@ namespace Seq2SeqSharp.Tools
         public void SetWeightArray(float[] v)
         {
             TWeight.SetElementsAsFloat(v);
-        }
-
-        public void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            info.AddValue("Rows", Rows);
-            info.AddValue("Columns", Columns);            
-            info.AddValue("Weight", ToWeightArray());
-
         }
 
         public void Dispose()
@@ -267,25 +297,6 @@ namespace Seq2SeqSharp.Tools
             Buffer.BlockCopy(byteArray, 0, floatArray2, 0, byteArray.Length);
 
             SetWeightArray(floatArray2);
-        }
-
-        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
-        protected WeightTensor(SerializationInfo info, StreamingContext context)
-        {
-            Rows = info.GetInt32("Rows");
-            Columns = info.GetInt32("Columns");
-
-            TWeight = new Tensor(TensorAllocator.Allocator, DType.Float32, Rows, Columns);
-            TGradient = new Tensor(TensorAllocator.Allocator, DType.Float32, Rows, Columns);
-            TCash = new Tensor(TensorAllocator.Allocator, DType.Float32, Rows, Columns);
-            TLrW = new Tensor(TensorAllocator.Allocator, DType.Float32, Rows, Columns);
-
-            Ops.Fill(TGradient, 0.0f);
-            Ops.Fill(TCash, 0.0f);
-            Ops.Fill(TLrW, 0.0f);
-
-            float[] weights = (float[])info.GetValue("Weight", typeof(float[]));
-            SetWeightArray(weights);            
         }
     }
 }

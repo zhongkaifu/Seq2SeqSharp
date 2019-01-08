@@ -11,7 +11,8 @@ namespace Seq2SeqSharp.Tools
     {
         int Rows { get; set; }
         int Columns { get; set; }
-        float AvgLearningRate { get; set; }
+
+        int DeviceId { get; set; }
 
         Dictionary<int, int> RowToBeUpdated { get; set; }
 
@@ -37,5 +38,8 @@ namespace Seq2SeqSharp.Tools
 
         void Save(Stream stream);
         void Load(Stream stream);
+
+        void CopyWeights(IWeightMatrix src);
+        void AddGradient(IWeightMatrix src);
     }
 }

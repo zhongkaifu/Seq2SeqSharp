@@ -22,46 +22,49 @@ namespace Seq2SeqSharp
         public Vector<float> vecDecayRate = new Vector<float>(decay_rate);
         public Vector<float> vecSmoothEPS = new Vector<float>(smooth_eps);
 
-        public float UpdateWeights(List<IWeightMatrix> model, int batchSize, float step_size, float regc, float clipval)
+        public float UpdateWeights(List<IWeightMatrix> model, int batchSize, float step_size, float regc, float clipval, ArchTypeEnums archType)
         {
             var vecMaxClipval = new Vector<float>(clipval);
             var vecMinClipval = new Vector<float>(-clipval);
 
-            float AvgAllLearningRate = 0.0f;
-            foreach (var m in model)
+            if (archType == ArchTypeEnums.GPU_CUDA)
             {
-                m.AvgLearningRate = 0.0f;
-
-                if (m is WeightTensor)
-                {
-                    if (m.RowToBeUpdated.Count == 0)
-                    {
-                        UpdateWeightsTensor(m as WeightTensor, batchSize, step_size, clipval, regc);
-                    }
-                    else
-                    {
-                        foreach (var kv in m.RowToBeUpdated)
-                        {
-                            int rowId = kv.Key;
-                            int bs = kv.Value;
-                            UpdateWeightsTensor(m as WeightTensor, bs, step_size, clipval, regc, rowId);
-                        }
-
-                        m.RowToBeUpdated.Clear();
-                    }
-                }
-                else
+                UpdateWeightsTensors(model, batchSize, step_size, regc, clipval);
+            }
+            else
+            {
+                foreach (var m in model)
                 {
                     UpdateWeightsCPU(step_size, regc, clipval, vecMaxClipval, vecMinClipval, m as WeightMatrix);
                 }
-
-                AvgAllLearningRate += m.AvgLearningRate;
-
             }
 
-            AvgAllLearningRate /= model.Count;
-
             return step_size;
+        }
+
+        private void UpdateWeightsTensors(List<IWeightMatrix> model, int batchSize, float step_size, float regc, float clipval)
+        {
+            Dictionary<int, List<IWeightMatrix>> id2Models = new Dictionary<int, List<IWeightMatrix>>();
+            foreach (var item in model)
+            {
+                if (id2Models.ContainsKey(item.DeviceId) == false)
+                {
+                    id2Models.Add(item.DeviceId, new List<IWeightMatrix>());
+                }
+                id2Models[item.DeviceId].Add(item);
+            }
+
+
+            Parallel.ForEach(id2Models, kv => 
+            {
+                foreach (var item in kv.Value)
+                {
+                    var m = item as WeightTensor;
+
+                    UpdateWeightsTensor(m, batchSize, step_size, clipval, regc);
+                    m.RowToBeUpdated.Clear();
+                }
+            });
         }
 
         private void UpdateWeightsCPU(float step_size, float regc, float clipval, Vector<float> vecMaxClipval, Vector<float> vecMinClipval, WeightMatrix m)
@@ -69,8 +72,6 @@ namespace Seq2SeqSharp
             if (m.RowToBeUpdated.Count == 0)
             {
                 UpdateWeights(step_size, regc, clipval, m, vecMaxClipval, vecMinClipval, m.Weight.Length, 0);
-
-                m.AvgLearningRate /= m.Weight.Length;
             }
             else
             {
@@ -79,8 +80,6 @@ namespace Seq2SeqSharp
                     int rowId = kv.Key;
                     UpdateWeights(step_size, regc, clipval, m, vecMaxClipval, vecMinClipval, m.Columns, rowId * m.Columns);
                 }
-
-                m.AvgLearningRate /= (m.RowToBeUpdated.Count * m.Columns);
 
                 m.RowToBeUpdated.Clear();
             }
@@ -99,7 +98,7 @@ namespace Seq2SeqSharp
 
             Ops.UpdateWeight2(m.TWeight, m.TWeight, m.TGradient, m.TLrW, -step_size, -regc);
 
-
+             
             Ops.Fill(m.TGradient, 0.0f);
         }
 
@@ -170,9 +169,6 @@ namespace Seq2SeqSharp
                 Vector<float>.Zero.CopyTo(m.Gradient, i);
 
 
-                m.AvgLearningRate += Vector.Dot(vecLR, Vector<float>.One);
-
-
                 i += Vector<float>.Count;
             }
 
@@ -201,9 +197,6 @@ namespace Seq2SeqSharp
                 m.Weight[i] += delta;
 
                 m.Gradient[i] = 0; // reset gradients for next iteration
-
-
-                m.AvgLearningRate += lr;
 
 
                 i++;

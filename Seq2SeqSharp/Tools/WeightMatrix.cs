@@ -22,9 +22,7 @@ namespace Seq2SeqSharp
         public float[] LrW { get; set; }
         public Dictionary<int, int> RowToBeUpdated { get; set; } = new Dictionary<int, int>();
 
-        //DEBUG variable
-        public float AvgLearningRate { get; set; }
-        //DEBUG variable
+        public int DeviceId { get; set; }
 
         public WeightMatrix( )
         {
@@ -200,6 +198,16 @@ namespace Seq2SeqSharp
         public void ReleaseWeight()
         {
 
+        }
+
+        public void CopyWeights(IWeightMatrix src)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void AddGradient(IWeightMatrix src)
+        {
+            throw new NotImplementedException();
         }
     }
 }

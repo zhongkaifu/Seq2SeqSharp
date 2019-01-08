@@ -50,10 +50,11 @@ namespace Seq2SeqSharp
         public ComputeGraph(IWeightFactory weightFactory, bool needBack = true)
         {
             weightMatrixFactory = weightFactory as WeightMatrixFactory;
-            weightMatrixFactory.Clean();
+
 
             this.needs_backprop = needBack;
         }
+
 
 
         const float d1024 = 1.0f / 1024;

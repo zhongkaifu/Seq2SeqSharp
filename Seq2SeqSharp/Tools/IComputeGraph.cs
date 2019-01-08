@@ -26,6 +26,7 @@ namespace Seq2SeqSharp
         IWeightMatrix AddTanh(IWeightMatrix w1, IWeightMatrix w2);
 
         IWeightMatrix ConcatColumns(IWeightMatrix m1, IWeightMatrix m2);
+
         void Backward();
         IWeightMatrix PeekRow(IWeightMatrix w, int ix, int num = 1);
         IWeightMatrix Dropout(IWeightMatrix V, float drop_prob);

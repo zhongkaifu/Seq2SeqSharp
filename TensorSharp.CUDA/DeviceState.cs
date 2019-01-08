@@ -39,13 +39,6 @@ namespace TensorSharp.CUDA
             },
                 blas => blas.Dispose());
 
-            //this.DnnHandles = new ObjectPool<ManagedCuda.CudaDNN.CudaDNNContext>(0, () =>
-            //{
-            //    CudaContext.SetCurrent();
-            //    return new ManagedCuda.CudaDNN.CudaDNNContext();
-            //},
-            //    dnn => dnn.Dispose());
-
             this.MemoryAllocator = new PoolingDeviceAllocator(CudaContext);
             this.ScratchSpace = AllocScratchSpace(CudaContext, DeviceInfo);
         }

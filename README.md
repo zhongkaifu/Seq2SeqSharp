@@ -9,6 +9,7 @@ Graph based neural network
 Automatic differentiation  
 Tensor based operations  
 Running on both CPU (Intel MKL lib) and GPU (CUDA)  
+Support multi-GPUs  
 Mini-batch  
 Dropout  
 Pre-trained model  
@@ -28,17 +29,20 @@ Parameters:
 **-ModelFilePath**: The trained model file path.  
 **-SrcVocab**: The vocabulary file path for source side.  
 **-TgtVocab**: The vocabulary file path for target side.  
-**-SrcEmbedding**: The external embedding model file path for source side.  
-**-TgtEmbedding**: The external embedding model file path for target side.  
+**-SrcEmbedding**: The external embedding model file path for source side. It is built by Txt2Vec project.  
+**-TgtEmbedding**: The external embedding model file path for target side. It is built by Txt2Vec project.  
 **-SrcLang**: Source language name.  
 **-TgtLang**: Target language name.  
 **-TrainCorpusPath**: training corpus folder path  
 **-BatchSize**: Mini-batch size. Default is 1. For CPU runner, it must be 1.  
 **-DropoutRatio**: Dropout ratio. Defaul is 0.1  
 **-ArchType**: Runner type. 0 - GPU (CUDA), 1 - CPU (Intel MKL), 2 - CPU. Default is 0  
-Note that if "-SrcVocab" and "-TgtVocab" are empty, vocabulary will be built from training corpus.  
+**-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
+Note that:  
+  1) if "-SrcVocab" and "-TgtVocab" are empty, vocabulary will be built from training corpus.  
+  2) Txt2Vec for external embedding model building can get downloaded from https://github.com/zhongkaifu/Txt2Vec  
 
-Example: Seq2SeqConsole.exe -TaskName train -WordVectorSize 128 -HiddenSize 128 -LearningRate 0.001 -Depth 1 -TrainCorpusPath .\corpus -ModelFilePath nmt.model -SrcLang enu -TgtLang chs  
+Example: Seq2SeqConsole.exe -TaskName train -WordVectorSize 1024 -HiddenSize 1024 -LearningRate 0.001 -Depth 2 -TrainCorpusPath .\corpus -ModelFilePath nmt.model -SrcLang enu -TgtLang chs -ArchType 0 -DeviceIds 0,1,2,3  
 
 Here is the command line to test models  
 **Seq2SeqConsole.exe -TaskName test [parameters...]**  
@@ -47,6 +51,7 @@ Parameters:
 **-OutputTestFile**: The test result file.  
 **-ModelFilePath**: The trained model file path. 
 **-ArchType**: Runner type. 0 - GPU (CUDA), 1 - CPU (Intel MKL), 2 - CPU. Default is 0  
+**-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
 
 Example: Seq2SeqConsole.exe -TaskName test -ModelFilePath seq2seq_256.model -InputTestFile test.txt -OutputTestFile result.txt -ArchType 2  
 

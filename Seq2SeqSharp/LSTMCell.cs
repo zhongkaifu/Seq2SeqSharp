@@ -24,13 +24,14 @@ namespace Seq2SeqSharp
         public int dim { get; set; }
 
         private int batchSize;
+        private int deviceId;
 
-        public LSTMCell(int batchSize, int hdim, int dim, ArchTypeEnums archType)
+        public LSTMCell(int batchSize, int hdim, int dim, ArchTypeEnums archType, int deviceId)
         {
             if (archType == ArchTypeEnums.GPU_CUDA)
             {
-                Wxh = new WeightTensor(dim + hdim, hdim * 4, true);
-                b = new WeightTensor(1, hdim * 4, 0);
+                Wxh = new WeightTensor(dim + hdim, hdim * 4, deviceId, true);
+                b = new WeightTensor(1, hdim * 4, 0, deviceId);
             }
             else
             {
@@ -41,6 +42,7 @@ namespace Seq2SeqSharp
             this.hdim = hdim;
             this.dim = dim;
             this.batchSize = batchSize;
+            this.deviceId = deviceId;
         }
 
         public IWeightMatrix Step(IWeightMatrix input, IComputeGraph innerGraph)
@@ -94,8 +96,8 @@ namespace Seq2SeqSharp
 
         public void Reset(IWeightFactory weightFactory)
         {
-            ht = weightFactory.CreateWeights(batchSize, hdim, true);
-            ct = weightFactory.CreateWeights(batchSize, hdim, true);
+            ht = weightFactory.CreateWeights(batchSize, hdim, deviceId, true);
+            ct = weightFactory.CreateWeights(batchSize, hdim, deviceId, true);
         }
 
         public void Save(Stream stream)

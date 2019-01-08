@@ -30,6 +30,8 @@ namespace Seq2SeqSharp.Tools
 
         public int CorpusSize = 0;
 
+        public int BatchSize { get { return batchSize; } }
+
         void Shuffle(List<SntPair> sntPairs)
         {
             //Put sentence pair with same source length into the bucket

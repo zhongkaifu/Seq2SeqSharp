@@ -10,6 +10,13 @@ using TensorSharp;
 namespace Seq2SeqSharp
 {
 
+    public class AttentionPreProcessResult
+    {
+        public IWeightMatrix uhs;
+        public List<IWeightMatrix> inputsUnfolder;
+
+    }
+
     [Serializable]
     public class AttentionUnit
     {
@@ -22,17 +29,17 @@ namespace Seq2SeqSharp
 
         int m_batchSize;
 
-        public AttentionUnit(int batchSize, int size, ArchTypeEnums archType)
+        public AttentionUnit(int batchSize, int size, ArchTypeEnums archType, int deviceId)
         {
             m_batchSize = batchSize;
 
             if (archType == ArchTypeEnums.GPU_CUDA)
             {
-                this.Ua = new WeightTensor((size * 2), size, true);
-                this.Wa = new WeightTensor(size, size, true);
-                this.bUa = new WeightTensor(1, size, 0);
-                this.bWa = new WeightTensor(1, size, 0);
-                this.V = new WeightTensor(size, 1, true);
+                this.Ua = new WeightTensor((size * 2), size, deviceId, true);
+                this.Wa = new WeightTensor(size, size, deviceId, true);
+                this.bUa = new WeightTensor(1, size, 0, deviceId);
+                this.bWa = new WeightTensor(1, size, 0, deviceId);
+                this.V = new WeightTensor(size, 1, deviceId, true);
             }
             else
             {
@@ -44,24 +51,26 @@ namespace Seq2SeqSharp
             }
         }
 
-        IWeightMatrix uhs;
-        List<IWeightMatrix> inputsUnfolder;
 
-        public void PreProcess(IWeightMatrix inputs, IComputeGraph g)
+
+        public AttentionPreProcessResult PreProcess(IWeightMatrix inputs, IComputeGraph g)
         {
+            AttentionPreProcessResult r = new AttentionPreProcessResult();
+
             IWeightMatrix bUas = g.RepeatRows(bUa, inputs.Rows);
-            uhs = g.MulAdd(inputs, Ua, bUas);
+            r.uhs = g.MulAdd(inputs, Ua, bUas);
 
-            inputsUnfolder = g.UnFolderRow(inputs, m_batchSize);
+            r.inputsUnfolder = g.UnFolderRow(inputs, m_batchSize);
 
+            return r;
         }
 
-        public IWeightMatrix Perform(IWeightMatrix state, IComputeGraph g)
+        public IWeightMatrix Perform(IWeightMatrix state, AttentionPreProcessResult attenPreProcessResult, IComputeGraph g)
         {
             var bWas = g.RepeatRows(bWa, state.Rows);
             var wc = g.MulAdd(state, Wa, bWas);
-            var wcs = g.RepeatRows(wc, inputsUnfolder[0].Rows);
-            var ggs = g.AddTanh(uhs, wcs);
+            var wcs = g.RepeatRows(wc, attenPreProcessResult.inputsUnfolder[0].Rows);
+            var ggs = g.AddTanh(attenPreProcessResult.uhs, wcs);
             var atten = g.Mul(ggs, V);
 
             List<IWeightMatrix> attens = g.UnFolderRow(atten, m_batchSize);
@@ -71,7 +80,7 @@ namespace Seq2SeqSharp
                 var attenT = g.Transpose2(attens[i]);
                 var attenSoftmax = g.Softmax(attenT);
 
-                IWeightMatrix context = g.Mul(attenSoftmax, inputsUnfolder[i]);
+                IWeightMatrix context = g.Mul(attenSoftmax, attenPreProcessResult.inputsUnfolder[i]);
                 contexts.Add(context);
             }
 

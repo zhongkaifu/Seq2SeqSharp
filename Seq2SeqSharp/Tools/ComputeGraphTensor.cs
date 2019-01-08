@@ -11,17 +11,20 @@ namespace Seq2SeqSharp.Tools
 {
     public class ComputeGraphTensor : IComputeGraph
     {
-        internal static WeightTensorFactory weightTensorFactory;
+        internal WeightTensorFactory weightTensorFactory;
         public ConcurrentList<Action> backprop = new ConcurrentList<Action>();
         public bool needs_backprop { get; set; }
+        private int deviceId;
 
-        public ComputeGraphTensor(IWeightFactory weightFactory, bool needBack = true)
+        public ComputeGraphTensor(IWeightFactory weightFactory, int deviceId, bool needBack = true)
         {
             weightTensorFactory = weightFactory as WeightTensorFactory;
-            weightTensorFactory.Clear();
+          //  weightTensorFactory.Clear();
 
             needs_backprop = needBack;
+            this.deviceId = deviceId;
         }
+
 
         public void Backward()
         {
@@ -35,7 +38,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightMatrix Sigmoid(IWeightMatrix w)
         {
             var m = w as WeightTensor;
-            var res = weightTensorFactory.CreateWeightTensor(m.Rows, m.Columns);
+            var res = weightTensorFactory.CreateWeightTensor(m.Rows, m.Columns, deviceId);
             Ops.Sigmoid(res.TWeight, m.TWeight);
 
             if (this.needs_backprop)
@@ -57,7 +60,7 @@ namespace Seq2SeqSharp.Tools
             var m1 = w1 as WeightTensor;
             var m2 = w2 as WeightTensor;
             var m3 = w3 as WeightTensor;
-            var res = weightTensorFactory.CreateWeightTensor(m1.Rows, m1.Columns);
+            var res = weightTensorFactory.CreateWeightTensor(m1.Rows, m1.Columns, deviceId);
 
             Ops.Add3(res.TWeight, m1.TWeight, m2.TWeight, m3.TWeight);
 
@@ -83,7 +86,7 @@ namespace Seq2SeqSharp.Tools
             var m2 = w2 as WeightTensor;
             var m3 = w3 as WeightTensor;
             var m4 = w4 as WeightTensor;
-            var res = weightTensorFactory.CreateWeightTensor(m1.Rows, m1.Columns);
+            var res = weightTensorFactory.CreateWeightTensor(m1.Rows, m1.Columns, deviceId);
             Ops.Add4(res.TWeight, m1.TWeight, m2.TWeight, m3.TWeight, m4.TWeight);
 
             if (this.needs_backprop)
@@ -107,7 +110,7 @@ namespace Seq2SeqSharp.Tools
         {
             var m1 = w1 as WeightTensor;
             var m2 = w2 as WeightTensor;
-            var res = weightTensorFactory.CreateWeightTensor(m1.Rows, m1.Columns);
+            var res = weightTensorFactory.CreateWeightTensor(m1.Rows, m1.Columns, deviceId);
             Ops.AddTanh(res.TWeight, m1.TWeight, m2.TWeight);
 
             if (this.needs_backprop)
@@ -134,7 +137,7 @@ namespace Seq2SeqSharp.Tools
         {
             var m1 = w1 as WeightTensor;
             var m2 = w2 as WeightTensor;
-            var res = weightTensorFactory.CreateWeightTensor(m1.Rows, m1.Columns);
+            var res = weightTensorFactory.CreateWeightTensor(m1.Rows, m1.Columns, deviceId);
 
             Ops.Mul(res.TWeight, m1.TWeight, m2.TWeight);
 
@@ -156,7 +159,7 @@ namespace Seq2SeqSharp.Tools
         {
             var m1 = w1 as WeightTensor;
             var m2 = w2 as WeightTensor;          
-            var res = weightTensorFactory.CreateWeightTensor(m1.Rows, m1.Columns);
+            var res = weightTensorFactory.CreateWeightTensor(m1.Rows, m1.Columns, deviceId);
 
             Ops.Add(res.TWeight, m1.TWeight, m2.TWeight);
 
@@ -178,7 +181,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightMatrix Tanh(IWeightMatrix w)
         {
             var m = w as WeightTensor;
-            var res = weightTensorFactory.CreateWeightTensor(m.Rows, m.Columns);
+            var res = weightTensorFactory.CreateWeightTensor(m.Rows, m.Columns, deviceId);
             Ops.Tanh(res.TWeight, m.TWeight);
 
             if (this.needs_backprop)
@@ -201,7 +204,7 @@ namespace Seq2SeqSharp.Tools
             var d = t2.Columns;
             WeightTensor res;
 
-            res = weightTensorFactory.CreateWeightTensor(n, d);
+            res = weightTensorFactory.CreateWeightTensor(n, d, deviceId);
             Ops.Addmm(res.TWeight, 0.0f, res.TWeight, 1.0f, t1.TWeight, t2.TWeight);
 
             if (this.needs_backprop)
@@ -241,7 +244,7 @@ namespace Seq2SeqSharp.Tools
             var n = t1.Rows;
             var d = t2.Columns;
 
-            WeightTensor res = weightTensorFactory.CreateWeightTensor(n, d);
+            WeightTensor res = weightTensorFactory.CreateWeightTensor(n, d, deviceId);
             Ops.Addmm(res.TWeight, 1.0f, t3.TWeight, 1.0f, t1.TWeight, t2.TWeight);
 
             if (this.needs_backprop)
@@ -283,7 +286,7 @@ namespace Seq2SeqSharp.Tools
             var n = t1.Rows;
             var d = t2.Columns;
 
-            WeightTensor res = weightTensorFactory.CreateWeightTensor(n, d);
+            WeightTensor res = weightTensorFactory.CreateWeightTensor(n, d, deviceId);
             Ops.Addmm(res.TWeight, 1.0f, t3.TWeight, 1.0f, t1.TWeight, t2.TWeight);
 
             if (this.needs_backprop)
@@ -312,7 +315,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightMatrix SoftmaxWithCrossEntropy(IWeightMatrix src)
         {
             WeightTensor m = src as WeightTensor;
-            var res = weightTensorFactory.CreateWeightTensor(m.Rows, m.Columns);
+            var res = weightTensorFactory.CreateWeightTensor(m.Rows, m.Columns, deviceId);
 
             var maxval = Ops.MaxAll(m.TWeight);
             Ops.ExpSub(res.TWeight, m.TWeight, maxval);
@@ -333,12 +336,7 @@ namespace Seq2SeqSharp.Tools
             var wT = m.TWeight.Transpose();
             var gT = m.TGradient.Transpose();
 
-          //  var res = new WeightTensor(m.Columns, m.Rows, wT, gT);
-
             var res = weightTensorFactory.CreateWeightTensor(m.Columns, m.Rows, wT, gT);
-
-            //wT.Dispose();
-            //gT.Dispose();
 
             return res;
         }
@@ -346,7 +344,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightMatrix Softmax(IWeightMatrix w)
         {
             WeightTensor m = w as WeightTensor;
-            var res = weightTensorFactory.CreateWeightTensor(m.Rows, m.Columns);
+            var res = weightTensorFactory.CreateWeightTensor(m.Rows, m.Columns, deviceId);
 
             var maxval = Ops.MaxAll(m.TWeight);
             Ops.ExpSub(res.TWeight, m.TWeight, maxval);
@@ -374,9 +372,9 @@ namespace Seq2SeqSharp.Tools
         public IWeightMatrix SoftmaxM(IWeightMatrix w, bool bp = true)
         {
             WeightTensor m = w as WeightTensor;
-            var res = weightTensorFactory.CreateWeightTensor(m.Rows, m.Columns, new Tensor(TensorAllocator.Allocator, DType.Float32, m.Rows, m.Columns), bp);
+            var res = weightTensorFactory.CreateWeightTensor(m.Rows, m.Columns, deviceId, new Tensor(TensorAllocator.Allocator(deviceId), DType.Float32, m.Rows, m.Columns), bp);
 
-            Tensor tTmp = new Tensor(TensorAllocator.Allocator, DType.Float32, m.Rows, m.Columns);
+            Tensor tTmp = new Tensor(TensorAllocator.Allocator(deviceId), DType.Float32, m.Rows, m.Columns);
 
             var maxval = Ops.Max(null, m.TWeight, 1);
             var maxvalM = maxval.Expand(m.Rows, m.Columns);
@@ -421,6 +419,8 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+        private static object locker = new object();
+
         public IWeightMatrix PeekRow(IWeightMatrix w, int ix, int num = 1)
         {
             WeightTensor m = w as WeightTensor;
@@ -429,15 +429,18 @@ namespace Seq2SeqSharp.Tools
 
             var res = weightTensorFactory.CreateWeightTensor(num, m.Columns, tw, tg);
 
-            for (int i = 0; i < num; i++)
+            lock (locker)
             {
-                if (m.RowToBeUpdated.ContainsKey(ix + i) == false)
+                for (int i = 0; i < num; i++)
                 {
-                    m.RowToBeUpdated.Add(ix + i, 1);
-                }
-                else
-                {
-                    m.RowToBeUpdated[ix + i]++;
+                    if (m.RowToBeUpdated.ContainsKey(ix + i) == false)
+                    {
+                        m.RowToBeUpdated.Add(ix + i, 1);
+                    }
+                    else
+                    {
+                        m.RowToBeUpdated[ix + i]++;
+                    }
                 }
             }
 
@@ -452,7 +455,7 @@ namespace Seq2SeqSharp.Tools
             int sx = m1.Rows;
             int sy = m1.Columns + m2.Columns;
 
-            var res = weightTensorFactory.CreateWeightTensor(sx, sy);
+            var res = weightTensorFactory.CreateWeightTensor(sx, sy, deviceId);
 
             Ops.Concat(res.TWeight, 1, m1.TWeight, m2.TWeight);
 
@@ -493,24 +496,6 @@ namespace Seq2SeqSharp.Tools
 
                 return ConcatRows(ws);
             }
-
-            //var m = w as WeightTensor;
-            //var res = weightTensorFactory.CreateWeightTensor(m.Rows * n, m.Columns, m.TWeight.RepeatTensor(n, 1));
-
-            //if (this.needs_backprop)
-            //{
-            //    Action backward = () =>
-            //    {
-            //        Tensor t = Ops.Sum(null, res.TGradient, 0);
-            //        Ops.Add(m.TGradient, m.TGradient, t);
-
-            //        t.Dispose();
-            //    };
-
-            //    this.backprop.Add(backward);
-            //}
-
-            //return res;
         }
 
 
@@ -535,7 +520,7 @@ namespace Seq2SeqSharp.Tools
             }
 
 
-            var res = weightTensorFactory.CreateWeightTensor(sx, sy);
+            var res = weightTensorFactory.CreateWeightTensor(sx, sy, deviceId);
             Ops.Concat(res.TWeight, 0, twl.ToArray());
 
             if (this.needs_backprop && bp)
@@ -583,7 +568,7 @@ namespace Seq2SeqSharp.Tools
             }
 
 
-            var res = weightTensorFactory.CreateWeightTensor(sx, sy);
+            var res = weightTensorFactory.CreateWeightTensor(sx, sy, deviceId);
             Ops.Concat(res.TWeight, 1, twl.ToArray());
 
 
@@ -658,7 +643,7 @@ namespace Seq2SeqSharp.Tools
                 Tensor tw = t.TWeight.Unfold(0, n, n);
                 for (int i = 0; i < n; i++)
                 {
-                    WeightTensor res = weightTensorFactory.CreateWeightTensor(m.Rows / n, m.Columns, tw.Select(2, i), gradient);
+                    WeightTensor res = weightTensorFactory.CreateWeightTensor(m.Rows / n, m.Columns, deviceId, tw.Select(2, i), gradient);
 
                     if (res.Rows != res.TWeight.Sizes[0])
                     {
@@ -687,7 +672,7 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
-            Tensor noise = new Tensor(TensorAllocator.Allocator, DType.Float32, rows, columns);
+            Tensor noise = new Tensor(TensorAllocator.Allocator(deviceId), DType.Float32, rows, columns);
             noise.SetElementsAsFloat(weights);
 
             return noise;
@@ -697,7 +682,7 @@ namespace Seq2SeqSharp.Tools
         {
             float p = 1.0f - drop_prob;
             var w = V as WeightTensor;
-            var res = weightTensorFactory.CreateWeightTensor(V.Rows, V.Columns);
+            var res = weightTensorFactory.CreateWeightTensor(V.Rows, V.Columns, deviceId);
 
             Tensor noise = BuildRandomTensor(V.Rows, V.Columns, p);
             Ops.Mul(res.TWeight, w.TWeight, noise);

@@ -77,6 +77,7 @@ namespace TensorSharp.CUDA.ContextState
                 {
 
                     // If control flow gets to this point, sizedPool exists in the dictionary and is empty.
+                    context.SetCurrent();
                     buffer = context.AllocateMemory(size);
                     //    missingCacheSize += size;
                 }

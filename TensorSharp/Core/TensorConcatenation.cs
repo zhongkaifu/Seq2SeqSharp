@@ -12,6 +12,15 @@ namespace TensorSharp.Core
         {
             if (inputs.Length < 2) throw new ArgumentException("Concat: at least two tensors required", "inputs");
 
+            for (int i = 0; i < inputs.Length; i++)
+            {
+                if (inputs[i] == null)
+                {
+                    throw new ArgumentException($"Concat: input[{i}] is null.");
+                }
+            }
+
+
             var ndim = Math.Max(dimension, inputs.Max(x => x.DimensionCount));
             var size = ConcatTensorSize(ndim, dimension, inputs);
 

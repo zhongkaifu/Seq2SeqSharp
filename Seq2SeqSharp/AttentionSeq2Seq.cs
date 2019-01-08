@@ -36,7 +36,7 @@ namespace Seq2SeqSharp
         private const string m_UNK = "<UNK>";
         private const string m_END = "<END>";
         private const string m_START = "<START>";
-        private IWeightFactory m_weightFactory;
+        private IWeightFactory[] m_weightFactory;
         private int m_maxWord = 100;
         private ConcurrentDictionary<string, int> m_srcWordToIndex;
         private ConcurrentDictionary<int, string> m_srcIndexToWord;
@@ -45,29 +45,38 @@ namespace Seq2SeqSharp
         private ConcurrentDictionary<int, string> m_tgtIndexToWord;
         private List<string> m_tgtVocab = new List<string>();
         private Optimizer m_solver;
-        private IWeightMatrix m_srcEmbedding;
-        private IWeightMatrix m_tgtEmbedding;
-        private Encoder m_encoder;
-        private Encoder m_reversEncoder;
-        private AttentionDecoder m_decoder;
-        private int m_batchSize = 1;
-        private float m_dropoutRatio = 0.1f;
-        private string m_modelFilePath;
-        private ArchTypeEnums m_archType = ArchTypeEnums.GPU_CUDA;
 
+        private IWeightMatrix[] m_srcEmbedding;
+        private IWeightMatrix[] m_tgtEmbedding;
+        private Encoder[] m_encoder;
+        private Encoder[] m_reversEncoder;
+        private AttentionDecoder[] m_decoder;
         //Output Layer Weights
-        private IWeightMatrix m_Whd;
-        private IWeightMatrix m_bd;
+        private IWeightMatrix[] m_Whd;
+        private IWeightMatrix[] m_bd;
 
         // optimization  hyperparameters
         private float m_regc = 0.000001f; // L2 regularization strength
         private float m_startLearningRate = 0.001f;
         private float m_clipvalue = 5.0f; // clip gradients at this value
+        private int m_batchSize = 1;
+        private float m_dropoutRatio = 0.1f;
+        private string m_modelFilePath;
+        private ArchTypeEnums m_archType = ArchTypeEnums.GPU_CUDA;
+        private int[] m_deviceIds;
+        private int m_defaultDeviceId = 0;
 
-
-        public AttentionSeq2Seq(string modelFilePath, int batchSize, ArchTypeEnums archType)
+        public AttentionSeq2Seq(string modelFilePath, int batchSize, ArchTypeEnums archType, int[] deviceIds)
         {
+            CheckParameters(batchSize, archType, deviceIds);
+
+            if (archType == ArchTypeEnums.GPU_CUDA)
+            {
+                TensorAllocator.InitDevices(deviceIds);
+            }
+
             m_archType = archType;
+            m_deviceIds = deviceIds;
 
             Load(modelFilePath);
             InitWeightsFactory();
@@ -76,12 +85,19 @@ namespace Seq2SeqSharp
         }
 
         public AttentionSeq2Seq(int inputSize, int hiddenSize, int depth, Corpus trainCorpus, string srcVocabFilePath, string tgtVocabFilePath, string srcEmbeddingFilePath, string tgtEmbeddingFilePath,
-            bool useDropout, string modelFilePath, int batchSize, float dropoutRatio, ArchTypeEnums archType)
+            bool useDropout, string modelFilePath, int batchSize, float dropoutRatio, ArchTypeEnums archType, int[] deviceIds)
         {
+            CheckParameters(batchSize, archType, deviceIds);
+            if (archType == ArchTypeEnums.GPU_CUDA)
+            {
+                TensorAllocator.InitDevices(deviceIds);
+            }
+
             m_dropoutRatio = dropoutRatio;
             m_batchSize = batchSize;
             m_archType = archType;
             m_modelFilePath = modelFilePath;
+            m_deviceIds = deviceIds;
 
             TrainCorpus = trainCorpus;
             Depth = depth;
@@ -103,48 +119,73 @@ namespace Seq2SeqSharp
             //Initializng weights in encoders and decoders
             InitWeights();
 
-            //If pre-trained embedding weights are speicifed, loading them from files
-            if (String.IsNullOrEmpty(srcEmbeddingFilePath) == false)
+            for (int i = 0; i < m_deviceIds.Length; i++)
             {
-                Logger.WriteLine($"Loading ExtEmbedding model from '{srcEmbeddingFilePath}' for source side.");
-                LoadWordEmbedding(srcEmbeddingFilePath, m_srcEmbedding, m_srcWordToIndex);
-            }
+                //If pre-trained embedding weights are speicifed, loading them from files
+                if (String.IsNullOrEmpty(srcEmbeddingFilePath) == false)
+                {
+                    Logger.WriteLine($"Loading ExtEmbedding model from '{srcEmbeddingFilePath}' for source side.");
+                    LoadWordEmbedding(srcEmbeddingFilePath, m_srcEmbedding[i], m_srcWordToIndex);
+                }
 
-            if (String.IsNullOrEmpty(tgtEmbeddingFilePath) == false)
+                if (String.IsNullOrEmpty(tgtEmbeddingFilePath) == false)
+                {
+                    Logger.WriteLine($"Loading ExtEmbedding model from '{tgtEmbeddingFilePath}' for target side.");
+                    LoadWordEmbedding(tgtEmbeddingFilePath, m_tgtEmbedding[i], m_tgtWordToIndex);
+                }
+            }
+        }
+
+        private static void CheckParameters(int batchSize, ArchTypeEnums archType, int[] deviceIds)
+        {
+            if (archType != ArchTypeEnums.GPU_CUDA)
             {
-                Logger.WriteLine($"Loading ExtEmbedding model from '{tgtEmbeddingFilePath}' for target side.");
-                LoadWordEmbedding(tgtEmbeddingFilePath, m_tgtEmbedding, m_tgtWordToIndex);
+                if (batchSize != 1 || deviceIds.Length != 1)
+                {
+                    throw new ArgumentException($"Batch size and device Ids length must be 1 if arch type is not GPU");
+                }
             }
         }
 
         private void SetBatchSize(int batchSize)
         {
             m_batchSize = batchSize;
-            if (m_encoder != null)
-            {
-                m_encoder.SetBatchSize(m_weightFactory, batchSize);
-            }
 
-            if (m_reversEncoder != null)
+            for (int i = 0; i < m_deviceIds.Length; i++)
             {
-                m_reversEncoder.SetBatchSize(m_weightFactory, batchSize);
-            }
+                if (m_encoder[i] != null)
+                {
+                    m_encoder[i].SetBatchSize(m_weightFactory[i], batchSize);
+                }
 
-            if (m_decoder != null)
-            {
-                m_decoder.SetBatchSize(m_weightFactory, batchSize);
+                if (m_reversEncoder[i] != null)
+                {
+                    m_reversEncoder[i].SetBatchSize(m_weightFactory[i], batchSize);
+                }
+
+                if (m_decoder[i] != null)
+                {
+                    m_decoder[i].SetBatchSize(m_weightFactory[i], batchSize);
+                }
             }
         }
 
         private void InitWeightsFactory()
         {
+            m_weightFactory = new IWeightFactory[m_deviceIds.Length];
             if (m_archType == ArchTypeEnums.GPU_CUDA)
             {
-                m_weightFactory = new WeightTensorFactory();
+                for (int i = 0; i < m_deviceIds.Length; i++)
+                {
+                    m_weightFactory[i] = new WeightTensorFactory();
+                }
             }
             else
             {
-                m_weightFactory = new WeightMatrixFactory();
+                for (int i = 0; i < m_deviceIds.Length; i++)
+                {
+                    m_weightFactory[i] = new WeightMatrixFactory();
+                }
             }
 
         }
@@ -153,44 +194,45 @@ namespace Seq2SeqSharp
         {
             Logger.WriteLine($"Initializing weights...");
 
-            if (m_archType == ArchTypeEnums.GPU_CUDA)
+            m_Whd = new IWeightMatrix[m_deviceIds.Length];
+            m_bd = new IWeightMatrix[m_deviceIds.Length];
+            m_srcEmbedding = new IWeightMatrix[m_deviceIds.Length];
+            m_tgtEmbedding = new IWeightMatrix[m_deviceIds.Length];
+
+            m_encoder = new Encoder[m_deviceIds.Length];
+            m_reversEncoder = new Encoder[m_deviceIds.Length];
+            m_decoder = new AttentionDecoder[m_deviceIds.Length];
+
+            for (int i = 0; i < m_deviceIds.Length; i++)
             {
-                m_Whd = new WeightTensor(HiddenSize, m_tgtIndexToWord.Count + 3, true);
-                m_bd = new WeightTensor(1, m_tgtIndexToWord.Count + 3, 0);
+                Logger.WriteLine($"Initializing weights for device '{m_deviceIds[i]}'");
+                if (m_archType == ArchTypeEnums.GPU_CUDA)
+                {
+                    m_Whd[i] = new WeightTensor(HiddenSize, m_tgtIndexToWord.Count + 3, m_deviceIds[i], true);
+                    m_bd[i] = new WeightTensor(1, m_tgtIndexToWord.Count + 3, 0, m_deviceIds[i]);
 
-                m_srcEmbedding = new WeightTensor(m_srcIndexToWord.Count, WordVectorSize, true);
-                m_tgtEmbedding = new WeightTensor(m_tgtIndexToWord.Count + 3, WordVectorSize, true);
+                    m_srcEmbedding[i] = new WeightTensor(m_srcIndexToWord.Count, WordVectorSize, m_deviceIds[i], true);
+                    m_tgtEmbedding[i] = new WeightTensor(m_tgtIndexToWord.Count + 3, WordVectorSize, m_deviceIds[i], true);
+                }
+                else
+                {
+                    m_Whd[i] = new WeightMatrix(HiddenSize, m_tgtIndexToWord.Count + 3, true);
+                    m_bd[i] = new WeightMatrix(1, m_tgtIndexToWord.Count + 3, 0);
+
+                    m_srcEmbedding[i] = new WeightMatrix(m_srcIndexToWord.Count, WordVectorSize, true);
+                    m_tgtEmbedding[i] = new WeightMatrix(m_tgtIndexToWord.Count + 3, WordVectorSize, true);
+                }
+
+                Logger.WriteLine($"Initializing encoders and decoders for device '{m_deviceIds[i]}'...");
+
+                m_encoder[i] = new Encoder(m_batchSize, HiddenSize, WordVectorSize, Depth, m_archType, m_deviceIds[i]);
+                m_reversEncoder[i] = new Encoder(m_batchSize, HiddenSize, WordVectorSize, Depth, m_archType, m_deviceIds[i]);
+                m_decoder[i] = new AttentionDecoder(m_batchSize, HiddenSize, WordVectorSize, Depth, m_archType, m_deviceIds[i]);
             }
-            else
-            {
-                m_Whd = new WeightMatrix(HiddenSize, m_tgtIndexToWord.Count + 3, true);
-                m_bd = new WeightMatrix(1, m_tgtIndexToWord.Count + 3, 0);
-
-                m_srcEmbedding = new WeightMatrix(m_srcIndexToWord.Count, WordVectorSize, true);
-                m_tgtEmbedding = new WeightMatrix(m_tgtIndexToWord.Count + 3, WordVectorSize, true);
-            }
-
-            Logger.WriteLine($"Initializing encoders and decoders...");
-
-            m_encoder = new Encoder(m_batchSize, HiddenSize, WordVectorSize, Depth, m_archType);
-            m_reversEncoder = new Encoder(m_batchSize, HiddenSize, WordVectorSize, Depth, m_archType);
-            m_decoder = new AttentionDecoder(m_batchSize, HiddenSize, WordVectorSize, Depth, m_archType);
 
             InitWeightsFactory();
         }
 
-        private void InitWeightsFactory(bool isGPU)
-        {
-            if (isGPU)
-            {
-                m_weightFactory = new WeightTensorFactory();
-            }
-            else
-            {
-                m_weightFactory = new WeightMatrixFactory();
-            }
-
-        }
 
         private void LoadWordEmbedding(string extEmbeddingFilePath, IWeightMatrix embeddingMatrix, ConcurrentDictionary<string, int> wordToIndex)
         {
@@ -214,6 +256,11 @@ namespace Seq2SeqSharp
             }
         }
 
+        /// <summary>
+        /// Load vocabulary from given files
+        /// </summary>
+        /// <param name="srcVocabFilePath"></param>
+        /// <param name="tgtVocabFilePath"></param>
         private void LoadVocab(string srcVocabFilePath, string tgtVocabFilePath)
         {
             Logger.WriteLine("Loading vocabulary files...");
@@ -254,6 +301,7 @@ namespace Seq2SeqSharp
             m_tgtIndexToWord[(int)SENTTAGS.START] = m_START;
             m_tgtIndexToWord[(int)SENTTAGS.UNK] = m_UNK;
 
+            //Build word index for both source and target sides
             int q = 3;
             foreach (string line in srcVocab)
             {
@@ -280,7 +328,11 @@ namespace Seq2SeqSharp
 
         }
 
-
+        /// <summary>
+        /// Build vocabulary from training corpus
+        /// </summary>
+        /// <param name="trainCorpus"></param>
+        /// <param name="minFreq"></param>
         private void BuildVocab(Corpus trainCorpus, int minFreq = 1)
         {
             // count up all words
@@ -325,7 +377,6 @@ namespace Seq2SeqSharp
             m_srcIndexToWord[(int)SENTTAGS.END] = m_END;
             m_srcIndexToWord[(int)SENTTAGS.START] = m_START;
             m_srcIndexToWord[(int)SENTTAGS.UNK] = m_UNK;
-
 
 
             m_tgtVocab.Add(m_END);
@@ -393,64 +444,96 @@ namespace Seq2SeqSharp
             }
         }
 
+        private object locker = new object();
+
         private void TrainEp(int ep, float learningRate)
         {
             int processedLine = 0;
             DateTime startDateTime = DateTime.Now;
 
             double costInTotal = 0.0;
+            long srcWordCnts = 0;
             long tgtWordCnts = 0;
             double avgCostPerWordInTotal = 0.0;
             double lastAvgCostPerWordInTotal = 100000.0;
             List<SntPair> sntPairs = new List<SntPair>();
 
-            TensorAllocator.FreeMemory();
+            TensorAllocator.FreeMemoryAllDevices();
 
             Logger.WriteLine($"Base learning rate is '{learningRate}' at epoch '{ep}'");
-            CleanWeightsCash(m_encoder, m_reversEncoder, m_decoder, m_Whd, m_bd, m_srcEmbedding, m_tgtEmbedding);
+
+            //Clean caches of parameter optmization
+            Logger.WriteLine($"Cleaning cache of weights optmiazation.'");
+            CleanWeightsCash(m_encoder[m_defaultDeviceId], m_reversEncoder[m_defaultDeviceId], m_decoder[m_defaultDeviceId], 
+                m_Whd[m_defaultDeviceId], m_bd[m_defaultDeviceId], m_srcEmbedding[m_defaultDeviceId], m_tgtEmbedding[m_defaultDeviceId]);
+
+            Logger.WriteLine($"Start to process training corpus.");
             foreach (var sntPair in TrainCorpus)
             {
                 sntPairs.Add(sntPair);
 
-                if (sntPairs.Count == m_batchSize)
-                {
-                    IComputeGraph g = CreateComputGraph();
-
-                    Reset(m_weightFactory, m_encoder, m_reversEncoder, m_decoder);
-
+                if (sntPairs.Count == TrainCorpus.BatchSize)
+                {                  
                     List<IWeightMatrix> encoded = new List<IWeightMatrix>();
                     List<List<string>> srcSnts = new List<List<string>>();
                     List<List<string>> tgtSnts = new List<List<string>>();
 
+                    var slen = 0;
                     var tlen = 0;
-                    for (int j = 0; j < m_batchSize; j++)
+                    for (int j = 0; j < TrainCorpus.BatchSize; j++)
                     {
                         List<string> srcSnt = new List<string>();
+
+                        //Add BOS and EOS tags to source sentences
                         srcSnt.Add(m_START);
                         srcSnt.AddRange(sntPairs[j].SrcSnt);
                         srcSnt.Add(m_END);
 
                         srcSnts.Add(srcSnt);
-
                         tgtSnts.Add(sntPairs[j].TgtSnt.ToList());
 
+                        slen += srcSnt.Count;
                         tlen += sntPairs[j].TgtSnt.Length;
                     }
+                    srcWordCnts += slen;
                     tgtWordCnts += tlen;
 
-                    //Bi-directional encoding input source sentences
-                    IWeightMatrix encodedWeightMatrix = Encode(g, srcSnts, m_encoder, m_reversEncoder, m_srcEmbedding);
+                    for (int i = 0; i < m_deviceIds.Length; i++)
+                    {
+                        m_weightFactory[i].Clear();
+                        Reset(m_weightFactory[i], m_encoder[i], m_reversEncoder[i], m_decoder[i]);
+                    }
 
-                    //Generate output decoder sentences
-                    List<List<string>> predictSentence;
-                    float cost = DecodeOutput(tgtSnts, g, encodedWeightMatrix, m_decoder, m_Whd, m_bd, m_tgtEmbedding, out predictSentence);
+                    //Copy weights from weights kept in default device to all other devices
+                    SyncWeights();
 
-                    //Calculate gradients
-                    g.Backward();
+                    float cost = 0.0f;
+                    Parallel.For(0, m_deviceIds.Length, i =>
+                    {
+                        IComputeGraph computeGraph = CreateComputGraph(i);
+
+                        //Bi-directional encoding input source sentences
+                        IWeightMatrix encodedWeightMatrix = Encode(computeGraph, srcSnts.GetRange(i * m_batchSize, m_batchSize), m_encoder[i], m_reversEncoder[i], m_srcEmbedding[i]);
+
+                        //Generate output decoder sentences
+                        List<List<string>> predictSentence;
+                        float lcost = DecodeOutput(tgtSnts.GetRange(i * m_batchSize, m_batchSize), computeGraph, encodedWeightMatrix, m_decoder[i], m_Whd[i], m_bd[i], m_tgtEmbedding[i], out predictSentence);
+
+                        lock (locker)
+                        {
+                            cost += lcost;
+                        }
+                            //Calculate gradients
+                            computeGraph.Backward();
+                    });
+
+                    //Sum up gradients in all devices, and kept it in default device for parameters optmization
+                    SyncGradient();
+                   
 
                     if (float.IsInfinity(cost) == false && float.IsNaN(cost) == false)
                     {
-                        processedLine += m_batchSize;
+                        processedLine += TrainCorpus.BatchSize;
                         double costPerWord = (cost / tlen);
                         costInTotal += cost;
                         avgCostPerWordInTotal = costInTotal / tgtWordCnts;
@@ -459,22 +542,22 @@ namespace Seq2SeqSharp
                     else
                     {
                         Logger.WriteLine($"Invalid cost value.");
-
                     }
 
-
-                    float avgAllLR = UpdateParameters(learningRate, m_encoder, m_reversEncoder, m_decoder, m_Whd, m_bd, m_srcEmbedding, m_tgtEmbedding);
+                    //Optmize parameters
+                    float avgAllLR = UpdateParameters(learningRate, m_encoder[m_defaultDeviceId], m_reversEncoder[m_defaultDeviceId], m_decoder[m_defaultDeviceId], m_Whd[m_defaultDeviceId], 
+                        m_bd[m_defaultDeviceId], m_srcEmbedding[m_defaultDeviceId], m_tgtEmbedding[m_defaultDeviceId], TrainCorpus.BatchSize);
 
                     if (IterationDone != null && processedLine % 100 == 0)
                     {
-
                         IterationDone(this, new CostEventArg()
                         {
                             AvgLearningRate = avgAllLR,
                             CostPerWord = cost / tlen,
                             avgCostInTotal = avgCostPerWordInTotal,
                             Epoch = ep,
-                            ProcessedInTotal = processedLine,
+                            ProcessedSentencesInTotal = processedLine,
+                            ProcessedWordsInTotal = srcWordCnts * 2 + tgtWordCnts,
                             StartDateTime = startDateTime
                         });
                     }
@@ -484,7 +567,7 @@ namespace Seq2SeqSharp
                     if (processedLine % (m_batchSize * 1000) == 0)
                     {
                         Save();
-                        TensorAllocator.FreeMemory();
+                        TensorAllocator.FreeMemoryAllDevices();
                     }
 
                     sntPairs.Clear();
@@ -496,20 +579,20 @@ namespace Seq2SeqSharp
             Save();
         }
 
-        private IComputeGraph CreateComputGraph(bool needBack = true)
+        private IComputeGraph CreateComputGraph(int deviceIdIdx, bool needBack = true)
         {
             IComputeGraph g;
             if (m_archType == ArchTypeEnums.CPU_MKL)
             {
-                g = new ComputeGraphMKL(m_weightFactory, needBack);
+                g = new ComputeGraphMKL(m_weightFactory[deviceIdIdx], needBack);
             }
             else if (m_archType == ArchTypeEnums.GPU_CUDA)
             {
-                g = new ComputeGraphTensor(m_weightFactory, needBack);
+                g = new ComputeGraphTensor(m_weightFactory[deviceIdIdx], m_deviceIds[deviceIdIdx], needBack);
             }
             else
             {
-                g = new ComputeGraph(m_weightFactory, needBack);
+                g = new ComputeGraph(m_weightFactory[deviceIdIdx], needBack);
             }
 
             return g;
@@ -543,7 +626,15 @@ namespace Seq2SeqSharp
             return originalLengths;
         }
 
-
+        /// <summary>
+        /// Encode source sentences and output encoded weights
+        /// </summary>
+        /// <param name="g"></param>
+        /// <param name="inputSentences"></param>
+        /// <param name="encoder"></param>
+        /// <param name="reversEncoder"></param>
+        /// <param name="Embedding"></param>
+        /// <returns></returns>
         private IWeightMatrix Encode(IComputeGraph g, List<List<string>> inputSentences, Encoder encoder, Encoder reversEncoder, IWeightMatrix Embedding)
         {
             PadSentences(inputSentences);
@@ -598,7 +689,7 @@ namespace Seq2SeqSharp
 
             float cost = 0.0f;
 
-            decoder.PreProcess(encodedOutputs, g);
+            var attPreProcessResult = decoder.PreProcess(encodedOutputs, g);
 
             var originalOutputLengths = PadSentences(OutputSentences);
             int seqLen = OutputSentences[0].Count;
@@ -637,7 +728,7 @@ namespace Seq2SeqSharp
                     inputs.Add(x);
                 }
 
-                var eOutput = decoder.Decode(g.ConcatRows(inputs), g);
+                var eOutput = decoder.Decode(g.ConcatRows(inputs), attPreProcessResult, g);
                 if (m_dropoutRatio > 0.0f)
                 {
                     eOutput = g.Dropout(eOutput, m_dropoutRatio);
@@ -673,7 +764,7 @@ namespace Seq2SeqSharp
         }
 
         private float UpdateParameters(float learningRate, Encoder encoder, Encoder ReversEncoder, AttentionDecoder decoder, 
-            IWeightMatrix Whd, IWeightMatrix bd, IWeightMatrix s_Embedding, IWeightMatrix t_Embedding)
+            IWeightMatrix Whd, IWeightMatrix bd, IWeightMatrix s_Embedding, IWeightMatrix t_Embedding, int batchSize)
         {
             var model = encoder.getParams();
             model.AddRange(decoder.getParams());
@@ -682,14 +773,81 @@ namespace Seq2SeqSharp
             model.Add(t_Embedding);
             model.Add(Whd);
             model.Add(bd);
-            return m_solver.UpdateWeights(model, m_batchSize, learningRate, m_regc, m_clipvalue);
+            return m_solver.UpdateWeights(model, batchSize, learningRate, m_regc, m_clipvalue, m_archType);
         }
 
-        private void CleanWeightsCash(Encoder encoder, Encoder ReversEncoder, AttentionDecoder decoder, IWeightMatrix Whd, IWeightMatrix bd, IWeightMatrix s_Embedding, IWeightMatrix t_Embedding)
+        /// <summary>
+        /// Copy weights in default device to all other devices
+        /// </summary>
+        private void SyncWeights()
+        {
+            var model = m_encoder[m_defaultDeviceId].getParams();
+            model.AddRange(m_decoder[m_defaultDeviceId].getParams());
+            model.AddRange(m_reversEncoder[m_defaultDeviceId].getParams());
+            model.Add(m_srcEmbedding[m_defaultDeviceId]);
+            model.Add(m_tgtEmbedding[m_defaultDeviceId]);
+            model.Add(m_Whd[m_defaultDeviceId]);
+            model.Add(m_bd[m_defaultDeviceId]);
+
+
+            for (int i = 1; i < m_deviceIds.Length; i++)
+            {
+                var model_i = m_encoder[i].getParams();
+                model_i.AddRange(m_decoder[i].getParams());
+                model_i.AddRange(m_reversEncoder[i].getParams());
+                model_i.Add(m_srcEmbedding[i]);
+                model_i.Add(m_tgtEmbedding[i]);
+                model_i.Add(m_Whd[i]);
+                model_i.Add(m_bd[i]);
+
+                for (int j = 0; j < model.Count; j++)
+                {
+                    model_i[j].CopyWeights(model[j]);
+
+                    model_i[j].ClearGradient();
+                }
+
+            }
+        }
+
+        /// <summary>
+        /// Sum up gradients in all devices and keep them in the default device
+        /// </summary>
+        private void SyncGradient()
+        {
+            var model = m_encoder[m_defaultDeviceId].getParams();
+            model.AddRange(m_decoder[m_defaultDeviceId].getParams());
+            model.AddRange(m_reversEncoder[m_defaultDeviceId].getParams());
+            model.Add(m_srcEmbedding[m_defaultDeviceId]);
+            model.Add(m_tgtEmbedding[m_defaultDeviceId]);
+            model.Add(m_Whd[m_defaultDeviceId]);
+            model.Add(m_bd[m_defaultDeviceId]);
+
+
+            for (int i = 1; i < m_deviceIds.Length; i++)
+            {
+                var model_i = m_encoder[i].getParams();
+                model_i.AddRange(m_decoder[i].getParams());
+                model_i.AddRange(m_reversEncoder[i].getParams());
+                model_i.Add(m_srcEmbedding[i]);
+                model_i.Add(m_tgtEmbedding[i]);
+                model_i.Add(m_Whd[i]);
+                model_i.Add(m_bd[i]);
+
+                for (int j = 0; j < model.Count; j++)
+                {
+                    model[j].AddGradient(model_i[j]);
+                }
+
+            }
+        }
+
+
+        private void CleanWeightsCash(Encoder encoder, Encoder reversEncoder, AttentionDecoder decoder, IWeightMatrix Whd, IWeightMatrix bd, IWeightMatrix s_Embedding, IWeightMatrix t_Embedding)
         {
             var model = encoder.getParams();
             model.AddRange(decoder.getParams());
-            model.AddRange(ReversEncoder.getParams());
+            model.AddRange(reversEncoder.getParams());
             model.Add(s_Embedding);
             model.Add(t_Embedding);
             model.Add(Whd);
@@ -709,9 +867,9 @@ namespace Seq2SeqSharp
         {
             List<string> result = new List<string>();
 
-            var G2 = CreateComputGraph(false);
+            var G2 = CreateComputGraph(m_defaultDeviceId, false);
 
-            Reset(m_weightFactory, m_encoder, m_reversEncoder, m_decoder);
+            Reset(m_weightFactory[m_defaultDeviceId], m_encoder[m_defaultDeviceId], m_reversEncoder[m_defaultDeviceId], m_decoder[m_defaultDeviceId]);
 
             List<string> inputSeq = new List<string>();
             inputSeq.Add(m_START);
@@ -737,8 +895,8 @@ namespace Seq2SeqSharp
                     ix = m_srcWordToIndex[inputSeq[i]];
                 }
 
-                var x2 = G2.PeekRow(m_srcEmbedding, ix);
-                var o = m_encoder.Encode(x2, G2);
+                var x2 = G2.PeekRow(m_srcEmbedding[m_defaultDeviceId], ix);
+                var o = m_encoder[m_defaultDeviceId].Encode(x2, G2);
                 forwardEncoded.Add(o);
             }
 
@@ -754,8 +912,8 @@ namespace Seq2SeqSharp
                     ix = m_srcWordToIndex[revseq[i]];
                 }
 
-                var x2 = G2.PeekRow(m_srcEmbedding, ix);
-                var o = m_reversEncoder.Encode(x2, G2);
+                var x2 = G2.PeekRow(m_srcEmbedding[m_defaultDeviceId], ix);
+                var o = m_reversEncoder[m_defaultDeviceId].Encode(x2, G2);
                 backwardEncoded.Add(o);
 
             }
@@ -768,14 +926,14 @@ namespace Seq2SeqSharp
 
             IWeightMatrix encodedWeightMatrix = G2.ConcatRows(encoded);
 
-            m_decoder.PreProcess(encodedWeightMatrix, G2);
+            var attPreProcessResult = m_decoder[m_defaultDeviceId].PreProcess(encodedWeightMatrix, G2);
 
             var ix_input = (int)SENTTAGS.START;
             while (true)
             {
-                var x = G2.PeekRow(m_tgtEmbedding, ix_input);
-                var eOutput = m_decoder.Decode(x, G2);
-                var o = G2.MulAdd2(eOutput, this.m_Whd, this.m_bd);
+                var x = G2.PeekRow(m_tgtEmbedding[m_defaultDeviceId], ix_input);
+                var eOutput = m_decoder[m_defaultDeviceId].Decode(x, attPreProcessResult, G2);
+                var o = G2.MulAdd2(eOutput, m_Whd[m_defaultDeviceId], m_bd[m_defaultDeviceId]);
 
                 var probs = G2.SoftmaxWithCrossEntropy(o);
 
@@ -825,13 +983,13 @@ namespace Seq2SeqSharp
                 FileStream fs = new FileStream(m_modelFilePath, FileMode.Create, FileAccess.Write);
                 bf.Serialize(fs, tosave);
 
-                m_bd.Save(fs);
-                m_decoder.Save(fs);
-                m_encoder.Save(fs);
-                m_reversEncoder.Save(fs);
-                m_Whd.Save(fs);
-                m_srcEmbedding.Save(fs);
-                m_tgtEmbedding.Save(fs);
+                m_bd[m_defaultDeviceId].Save(fs);
+                m_decoder[m_defaultDeviceId].Save(fs);
+                m_encoder[m_defaultDeviceId].Save(fs);
+                m_reversEncoder[m_defaultDeviceId].Save(fs);
+                m_Whd[m_defaultDeviceId].Save(fs);
+                m_srcEmbedding[m_defaultDeviceId].Save(fs);
+                m_tgtEmbedding[m_defaultDeviceId].Save(fs);
 
                 fs.Close();
                 fs.Dispose();
@@ -867,14 +1025,13 @@ namespace Seq2SeqSharp
 
             InitWeights();
 
-
-            m_bd.Load(fs);
-            m_decoder.Load(fs);
-            m_encoder.Load(fs);
-            m_reversEncoder.Load(fs);
-            m_Whd.Load(fs);
-            m_srcEmbedding.Load(fs);
-            m_tgtEmbedding.Load(fs);
+            m_bd[m_defaultDeviceId].Load(fs);
+            m_decoder[m_defaultDeviceId].Load(fs);
+            m_encoder[m_defaultDeviceId].Load(fs);
+            m_reversEncoder[m_defaultDeviceId].Load(fs);
+            m_Whd[m_defaultDeviceId].Load(fs);
+            m_srcEmbedding[m_defaultDeviceId].Load(fs);
+            m_tgtEmbedding[m_defaultDeviceId].Load(fs);
 
 
             fs.Close();

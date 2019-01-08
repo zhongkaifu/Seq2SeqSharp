@@ -13,7 +13,9 @@ namespace Seq2SeqSharp
 
         public int Epoch { get; set; }
 
-        public int ProcessedInTotal { get; set; }
+        public int ProcessedSentencesInTotal { get; set; }
+
+        public long ProcessedWordsInTotal { get; set; }
 
         public DateTime StartDateTime { get; set; }
 

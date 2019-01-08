@@ -15,29 +15,39 @@ namespace TensorSharp.CUDA.ContextState
         {
         }
 
+        private object locker = new object();
+
         public void Dispose()
         {
-            foreach (var kvp in activeKernels)
+            lock (locker)
             {
-                var ctx = kvp.Key.Item1;
-                var kernel = kvp.Value;
+                foreach (var kvp in activeKernels)
+                {
+                    var ctx = kvp.Key.Item1;
+                    var kernel = kvp.Value;
 
-                ctx.UnloadKernel(kernel);
+                    ctx.UnloadKernel(kernel);
+                }
             }
         }
 
+      
+
         public CudaKernel Get(CudaContext context, byte[] ptx, string kernelName)
         {
-            CudaKernel value;
-            if (activeKernels.TryGetValue(Tuple.Create(context, ptx, kernelName), out value))
+            lock (locker)
             {
-                return value;
-            }
-            else
-            {
-                value = context.LoadKernelPTX(ptx, kernelName);
-                activeKernels.Add(Tuple.Create(context, ptx, kernelName), value);
-                return value;
+                CudaKernel value;
+                if (activeKernels.TryGetValue(Tuple.Create(context, ptx, kernelName), out value))
+                {
+                    return value;
+                }
+                else
+                {
+                    value = context.LoadKernelPTX(ptx, kernelName);
+                    activeKernels.Add(Tuple.Create(context, ptx, kernelName), value);
+                    return value;
+                }
             }
         }
     }

@@ -69,5 +69,8 @@ namespace Seq2SeqConsole
 
         [Arg("Arch type: 0 - GPU, 1 - CPU, 2 - CPU MKL", "ArchType")]
         public int ArchType = 0;
+
+        [Arg("Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2", "DeviceIds")]
+        public string DeviceIds = "0";
     }
 }

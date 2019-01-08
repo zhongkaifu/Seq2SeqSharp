@@ -25,9 +25,10 @@ namespace TensorSharp.CUDA
         private const string CacheDir = @"cuda_cache\general";
 
 
-        private readonly int deviceCount;
+      //  private readonly int deviceCount;
         private readonly DeviceState[] devices;
         private readonly bool[,] p2pAccess;
+        private readonly int[] deviceIds;
 
         private readonly RuntimeCompiler.KernelDiskCache diskCache;
 
@@ -35,30 +36,35 @@ namespace TensorSharp.CUDA
         private readonly CudaKernelCache kernelCache = new CudaKernelCache();
         
 
-        public TSCudaContext()
+        public TSCudaContext(int[] deviceIds)
         {
-            try
+            //try
+            //{
+            //    this.deviceCount = CudaContext.GetDeviceCount();
+            //}
+            //catch
+            //{
+            //    // CudaContext.GetDeviceCount() throws if CUDA drivers are not installed
+            //    this.deviceCount = 0;
+            //}
+
+            this.deviceIds = deviceIds;
+
+            devices = new DeviceState[deviceIds.Length];
+            for (int i = 0; i < deviceIds.Length; i++)
             {
-                this.deviceCount = CudaContext.GetDeviceCount();
-            }
-            catch
-            {
-                // CudaContext.GetDeviceCount() throws if CUDA drivers are not installed
-                this.deviceCount = 0;
+                devices[i] = new DeviceState(deviceIds[i]);
             }
 
-            this.devices = Enumerable.Repeat(0, deviceCount)
-                .Select(x => new DeviceState(x))
-                .ToArray();
 
-            if (deviceCount > 0)
-            {
+       //     if (deviceCount > 0)
+         //   {
                 p2pAccess = EnablePeerAccess(devices.Select(x => x.CudaContext).ToArray(), devices[0].CudaContext);
-            }
-            else
-            {
-                p2pAccess = new bool[0, 0];
-            }
+            //}
+            //else
+            //{
+            //    p2pAccess = new bool[0, 0];
+            //}
 
             this.diskCache = new RuntimeCompiler.KernelDiskCache(Path.Combine(Environment.CurrentDirectory, CacheDir));
             this.compiler = new RuntimeCompiler.CudaCompiler(diskCache);
@@ -66,11 +72,26 @@ namespace TensorSharp.CUDA
             OpRegistry.RegisterAssembly(Assembly.GetExecutingAssembly());
         }
 
+        private int GetDeviceIdIndex(int id)
+        {
+            for (int i = 0; i < deviceIds.Length; i++)
+            {
+                if (deviceIds[i] == id)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+
         public RuntimeCompiler.CudaCompiler Compiler { get { return compiler; } }
         public CudaKernelCache KernelCache { get { return kernelCache; } }
+      //  public int DeviceCount { get { return deviceCount; } }
 
 
-        public void FreeMemory()
+        public void FreeMemoryAllDevices()
         {
             foreach (var device in devices)
             {
@@ -90,7 +111,8 @@ namespace TensorSharp.CUDA
 
         public void Synchronize(int deviceId)
         {
-            devices[deviceId].CudaContext.Synchronize();
+            int idx = GetDeviceIdIndex(deviceId);
+            devices[idx].CudaContext.Synchronize();
         }
 
         public void SynchronizeAll()
@@ -103,12 +125,14 @@ namespace TensorSharp.CUDA
 
         public CudaContext CudaContextForDevice(int deviceId)
         {
-            return devices[deviceId].CudaContext;
+            int idx = GetDeviceIdIndex(deviceId);
+            return devices[idx].CudaContext;
         }
 
         public IDeviceAllocator AllocatorForDevice(int deviceId)
         {
-            return devices[deviceId].MemoryAllocator;
+            int idx = GetDeviceIdIndex(deviceId);
+            return devices[idx].MemoryAllocator;
         }
 
         public CudaContext CudaContextForTensor(Tensor tensor)
@@ -118,12 +142,14 @@ namespace TensorSharp.CUDA
 
         public ScratchSpace ScratchSpaceForDevice(int deviceId)
         {
-            return devices[deviceId].ScratchSpace;
+            int idx = GetDeviceIdIndex(deviceId);
+            return devices[idx].ScratchSpace;
         }
 
         public PooledObject<CudaBlas> BlasForDevice(int deviceId)
         {
-            return devices[deviceId].BlasHandles.Get();
+            int idx = GetDeviceIdIndex(deviceId);
+            return devices[idx].BlasHandles.Get();
         }
 
         public PooledObject<CudaBlas> BlasForTensor(Tensor tensor)
@@ -133,12 +159,15 @@ namespace TensorSharp.CUDA
 
         public bool CanAccessPeer(int srcDevice, int peerDevice)
         {
-            return p2pAccess[srcDevice, peerDevice];
+            int srcDeviceIdx = GetDeviceIdIndex(srcDevice);
+            int peerDeviceIdx = GetDeviceIdIndex(peerDevice);
+            return p2pAccess[srcDeviceIdx, peerDeviceIdx];
         }
 
         public CudaDeviceProperties DeviceInfoForContext(CudaContext cudaContext)
         {
-            return devices[cudaContext.DeviceId].DeviceInfo;
+            int idx = GetDeviceIdIndex(cudaContext.DeviceId);
+            return devices[idx].DeviceInfo;
         }
 
         

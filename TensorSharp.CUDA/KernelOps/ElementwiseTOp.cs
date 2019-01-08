@@ -16,6 +16,8 @@ namespace TensorSharp.CUDA.KernelOps
         {
             ThrowIfAnyTensorInvalid(args);
 
+            cudaContext.SetCurrent();
+
             var deviceInfo = context.DeviceInfoForContext(cudaContext);
 
             var allTensors = args.OfType<Tensor>();
@@ -64,6 +66,8 @@ namespace TensorSharp.CUDA.KernelOps
             var context = CudaHelpers.TSContextForTensor(src);
             var cudaContext = context.CudaContextForTensor(src);
 
+            cudaContext.SetCurrent();
+
             var writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
             var elementCount = writeTarget.ElementCount();
 
@@ -84,6 +88,8 @@ namespace TensorSharp.CUDA.KernelOps
         {
             var context = CudaHelpers.TSContextForTensor(src);
             var cudaContext = context.CudaContextForTensor(src);
+
+            cudaContext.SetCurrent();
 
             var writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
             var elementCount = writeTarget.ElementCount();
@@ -106,6 +112,8 @@ namespace TensorSharp.CUDA.KernelOps
             var context = CudaHelpers.TSContextForTensor(src);
             var cudaContext = context.CudaContextForTensor(src);
 
+            cudaContext.SetCurrent();
+
             var writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
             var elementCount = writeTarget.ElementCount();
 
@@ -126,6 +134,8 @@ namespace TensorSharp.CUDA.KernelOps
         {
             var context = CudaHelpers.TSContextForTensor(src);
             var cudaContext = context.CudaContextForTensor(src);
+
+            cudaContext.SetCurrent();
 
             var writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
             var elementCount = writeTarget.ElementCount();
@@ -148,6 +158,8 @@ namespace TensorSharp.CUDA.KernelOps
             var context = CudaHelpers.TSContextForTensor(src);
             var cudaContext = context.CudaContextForTensor(src);
 
+            cudaContext.SetCurrent();
+
             var writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
             var elementCount = writeTarget.ElementCount();
 
@@ -168,6 +180,8 @@ namespace TensorSharp.CUDA.KernelOps
         {
             var context = CudaHelpers.TSContextForTensor(lhs);
             var cudaContext = context.CudaContextForTensor(lhs);
+
+            cudaContext.SetCurrent();
 
             var writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, lhs.Sizes);
             var elementCount = writeTarget.ElementCount();
@@ -190,6 +204,8 @@ namespace TensorSharp.CUDA.KernelOps
             var context = CudaHelpers.TSContextForTensor(lhs);
             var cudaContext = context.CudaContextForTensor(lhs);
 
+            cudaContext.SetCurrent();
+
             var writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, lhs.Sizes);
             var elementCount = writeTarget.ElementCount();
 
@@ -210,6 +226,8 @@ namespace TensorSharp.CUDA.KernelOps
         {
             var context = CudaHelpers.TSContextForTensor(lhs);
             var cudaContext = context.CudaContextForTensor(lhs);
+
+            cudaContext.SetCurrent();
 
             var writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, lhs.Sizes);
             var elementCount = writeTarget.ElementCount();
@@ -233,6 +251,8 @@ namespace TensorSharp.CUDA.KernelOps
             var context = CudaHelpers.TSContextForTensor(src);
             var cudaContext = context.CudaContextForTensor(src);
 
+            cudaContext.SetCurrent();
+
             var writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
             var elementCount = writeTarget.ElementCount();
 
@@ -254,6 +274,8 @@ namespace TensorSharp.CUDA.KernelOps
             var context = CudaHelpers.TSContextForTensor(srcY);
             var cudaContext = context.CudaContextForTensor(srcY);
 
+            cudaContext.SetCurrent();
+
             var writeTarget = TensorResultBuilder.GetWriteTarget(result, srcY, false, srcY.Sizes);
             var elementCount = writeTarget.ElementCount();
 
@@ -271,6 +293,8 @@ namespace TensorSharp.CUDA.KernelOps
             var context = CudaHelpers.TSContextForTensor(srcA);
             var cudaContext = context.CudaContextForTensor(srcA);
 
+            cudaContext.SetCurrent();
+
             var writeTarget = TensorResultBuilder.GetWriteTarget(result, srcA, false, srcA.Sizes);
             var elementCount = writeTarget.ElementCount();
 
@@ -285,6 +309,8 @@ namespace TensorSharp.CUDA.KernelOps
     {
         public static void Invoke(FillCopyKernels kernels, TSCudaContext context, CudaContext cudaContext, Tensor result, Tensor src)
         {
+        //    cudaContext.SetCurrent();
+
             var ptx = kernels.GetPtx(context.Compiler);
             var elementCount = result.ElementCount();
             ApplyOpInvoke.Invoke(context, cudaContext, ptx, "copy", result, src, elementCount);
@@ -297,6 +323,9 @@ namespace TensorSharp.CUDA.KernelOps
         {
             var context = CudaHelpers.TSContextForTensor(result);
             var cudaContext = context.CudaContextForTensor(result);
+
+            cudaContext.SetCurrent();
+
             var ptx = kernels.GetPtx(context.Compiler);
             var elementCount = result.ElementCount();
             ApplyOpInvoke.Invoke(context, cudaContext, ptx, "fill", result, value, elementCount);
