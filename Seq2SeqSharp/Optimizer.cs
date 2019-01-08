@@ -99,7 +99,7 @@ namespace Seq2SeqSharp
             Ops.UpdateWeight2(m.TWeight, m.TWeight, m.TGradient, m.TLrW, -step_size, -regc);
 
              
-            Ops.Fill(m.TGradient, 0.0f);
+         //   Ops.Fill(m.TGradient, 0.0f);
         }
 
 
@@ -126,7 +126,7 @@ namespace Seq2SeqSharp
 
             Ops.UpdateWeight2(TWeight, TWeight, TGradient, TLrW, -step_size, -regc);
 
-            Ops.Fill(TGradient, 0.0f);
+          //  Ops.Fill(TGradient, 0.0f);
 
 
             TWeight.Dispose();
@@ -166,7 +166,7 @@ namespace Seq2SeqSharp
                 vecMW += vecDelta;
                 vecMW.CopyTo(m.Weight, i);
 
-                Vector<float>.Zero.CopyTo(m.Gradient, i);
+            //    Vector<float>.Zero.CopyTo(m.Gradient, i);
 
 
                 i += Vector<float>.Count;
@@ -196,7 +196,7 @@ namespace Seq2SeqSharp
                 // update (and regularize)
                 m.Weight[i] += delta;
 
-                m.Gradient[i] = 0; // reset gradients for next iteration
+           //     m.Gradient[i] = 0; // reset gradients for next iteration
 
 
                 i++;
