@@ -49,33 +49,25 @@ namespace Seq2SeqSharp
         {
             var hidden_prev = ht;
             var cell_prev = ct;
-            var cell = this;
-            IWeightMatrix input_gate = null, forget_gate = null, output_gate = null, cell_write = null;
-
-            var bs = innerGraph.RepeatRows(b, input.Rows);
+        
             var inputs = innerGraph.ConcatColumns(input, hidden_prev);
+            var bs = innerGraph.RepeatRows(b, input.Rows);
             var hhSum = innerGraph.MulAdd(inputs, Wxh, bs);
-            var paramList = innerGraph.SplitColumns(hhSum, hdim * 3, hdim);
+            (var gates_raw, var cell_write_raw) = innerGraph.SplitColumns(hhSum, hdim * 3, hdim);
 
-            var gates = innerGraph.Sigmoid(paramList[0]);
-            cell_write = innerGraph.Tanh(paramList[1]);
+            var gates = innerGraph.Sigmoid(gates_raw);
+            var cell_write = innerGraph.Tanh(cell_write_raw);
 
-            var gateList = innerGraph.SplitColumns(gates, hdim, hdim, hdim);
-            input_gate = gateList[0];
-            forget_gate = gateList[1];
-            output_gate = gateList[2];
-
+            (var input_gate, var forget_gate, var output_gate) = innerGraph.SplitColumns(gates, hdim, hdim, hdim);
 
             // compute new cell activation
             var retain_cell = innerGraph.EltMul(forget_gate, cell_prev); // what do we keep from cell
             var write_cell = innerGraph.EltMul(input_gate, cell_write); // what do we write to cell
-            var cell_d = innerGraph.Add(retain_cell, write_cell); // new cell contents
+            ct = innerGraph.Add(retain_cell, write_cell); // new cell contents
 
             // compute hidden state as gated, saturated cell activations
-            var hidden_d = innerGraph.EltMul(output_gate, innerGraph.Tanh(cell_d));
+            ht = innerGraph.EltMul(output_gate, innerGraph.Tanh(ct));
 
-            this.ht = hidden_d;
-            this.ct = cell_d;
             return ht;
         }
 

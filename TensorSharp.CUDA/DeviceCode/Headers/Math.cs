@@ -53,6 +53,9 @@ template<typename T> INLINE_FUNC T UpdateWeight2(T weight, T delta, T lrw, T ste
 	return weight + weight * regc + delta * (step / (sqrtf(lrw) + T(1)));
 }
 
+template<typename T> INLINE_FUNC T UpdateWeight3(T weight, T delta, T step, T regc) {
+	return weight + weight * regc + delta * step;
+}
 
 template<typename T> INLINE_FUNC T ExpSub(T x, T y) {
 	return __expf(x - y);

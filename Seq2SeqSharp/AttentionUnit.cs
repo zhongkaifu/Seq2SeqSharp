@@ -65,6 +65,8 @@ namespace Seq2SeqSharp
             return r;
         }
 
+      
+
         public IWeightMatrix Perform(IWeightMatrix state, AttentionPreProcessResult attenPreProcessResult, IComputeGraph g)
         {
             var bWas = g.RepeatRows(bWa, state.Rows);
@@ -75,18 +77,26 @@ namespace Seq2SeqSharp
 
             List<IWeightMatrix> attens = g.UnFolderRow(atten, m_batchSize);
             List<IWeightMatrix> contexts = new List<IWeightMatrix>();
+
+            List<IWeightMatrix> attensT = new List<IWeightMatrix>();
             for (int i = 0; i < m_batchSize; i++)
             {
-                var attenT = g.Transpose2(attens[i]);
-                var attenSoftmax = g.Softmax(attenT);
+                attensT.Add(g.Transpose2(attens[i]));
+            }
 
-                IWeightMatrix context = g.Mul(attenSoftmax, attenPreProcessResult.inputsUnfolder[i]);
+            var attenT = g.ConcatRows(attensT);
+            var attenSoftmax = g.SoftmaxM(attenT);
+
+            for (int i = 0; i < m_batchSize; i++)
+            {
+                IWeightMatrix context = g.Mul(g.PeekRow(attenSoftmax, i), attenPreProcessResult.inputsUnfolder[i]);
                 contexts.Add(context);
             }
 
             return g.ConcatRows(contexts);
         }
 
+      
 
         public virtual List<IWeightMatrix> getParams()
         {

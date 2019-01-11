@@ -131,6 +131,8 @@ namespace TensorSharp
    
         public static Tensor UpdateWeight2(Tensor result, Tensor weight, Tensor delta, Tensor lr, float step_size, float regc) { return (Tensor)OpRegistry.Invoke("updateweight2", result, weight, delta, lr, step_size, regc); }
 
+        public static Tensor UpdateWeight3(Tensor result, Tensor weight, Tensor delta, float step_size, float regc) { return (Tensor)OpRegistry.Invoke("updateweight3", result, weight, delta, step_size, regc); }
+
 
         public static Tensor Atan2(Tensor result, Tensor srcY, Tensor srcX) { return (Tensor)OpRegistry.Invoke("atan2", result, srcY, srcX); }
         public static Tensor Pow(Tensor result, Tensor src, float value) { return (Tensor)OpRegistry.Invoke("pow", result, src, value); }

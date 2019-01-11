@@ -64,6 +64,7 @@ namespace TensorSharp.CUDA.DeviceCode
             AppendTTTFunc(result, "expsub2", "ExpSub2");
 
             AppendTTTTSSFunc(result, "updateweight2", "UpdateWeight2");
+            AppendTTTSSFunc(result, "updateweight3", "UpdateWeight3");
 
             result.AddApplyTTT("atan2", "*a = atan2f(*b, *c);");
 
@@ -137,6 +138,12 @@ namespace TensorSharp.CUDA.DeviceCode
         {
             pg.AddApplyTTTSS("t1_" + kernelBaseName, string.Format("*a = {0}(*a, *b, *c, d, e);", func));
             pg.AddApplyTTTTSS("t2_" + kernelBaseName, string.Format("*a = {0}(*b, *c, *d, e, f);", func));
+        }
+
+        private static void AppendTTTSSFunc(PermutationGenerator pg, string kernelBaseName, string func)
+        {
+            pg.AddApplyTTSS("t1_" + kernelBaseName, string.Format("*a = {0}(*a, *b, c, d);", func));
+            pg.AddApplyTTTSS("t2_" + kernelBaseName, string.Format("*a = {0}(*b, *c, d, e);", func));
         }
 
         private static void AppendTTTFunc(PermutationGenerator pg, string kernelBaseName, string func)

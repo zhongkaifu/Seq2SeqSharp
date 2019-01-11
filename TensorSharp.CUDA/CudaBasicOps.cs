@@ -269,6 +269,9 @@ namespace TensorSharp.CUDA
         [RegisterOpStorageType("updateweight2", typeof(CudaStorage))]
         public Tensor UpdateWeight2(Tensor result, Tensor weight, Tensor delta, Tensor lr, float step_size, float regc) { return ElementwiseTTTTSSOp.Invoke(elementwiseKernels, "updateweight2", result, weight, delta, lr, step_size, regc); }
 
+        [RegisterOpStorageType("updateweight3", typeof(CudaStorage))]
+        public Tensor UpdateWeight3(Tensor result, Tensor weight, Tensor delta, float step_size, float regc) { return ElementwiseTTTSSOp.Invoke(elementwiseKernels, "updateweight3", result, weight, delta, step_size, regc); }
+
 
         [RegisterOpStorageType("atan2", typeof(CudaStorage))]
         public Tensor Atan2(Tensor result, Tensor srcY, Tensor srcX) { return Atan2Op.Invoke(elementwiseKernels, result, srcY, srcX); }

@@ -12,6 +12,7 @@ Running on both CPU (Intel MKL lib) and GPU (CUDA)
 Support multi-GPUs  
 Mini-batch  
 Dropout  
+RMSProp optmization  
 Pre-trained model  
 Auto data shuffling  
 Auto vocabulary building  
@@ -44,6 +45,9 @@ Note that:
 
 Example: Seq2SeqConsole.exe -TaskName train -WordVectorSize 1024 -HiddenSize 1024 -LearningRate 0.001 -Depth 2 -TrainCorpusPath .\corpus -ModelFilePath nmt.model -SrcLang enu -TgtLang chs -ArchType 0 -DeviceIds 0,1,2,3  
 
+Here is a snapshot while Seq2SeqSharp is encoding a new model.  
+[[https://github.com/zhongkaifu/Seq2SeqSharp/blob/master/Seq2SeqSharp_Snapshot.JPG|alt=octocat]]
+
 Here is the command line to test models  
 **Seq2SeqConsole.exe -TaskName test [parameters...]**  
 Parameters:  
@@ -64,3 +68,40 @@ the car business is constantly changing .
 So, train01.chs.snt has the corresponding translated sentences:  
 孩子 们 挤 成 一 团 以 取暖 .  
 汽车 业 也 在 不断 地 变化 .  
+
+# Build Your Neural Networks  
+Benefit from automatic differentiation, tensor based compute graph and other features, you can easily build your neural network by a few of code. The only thing you need to implment is forward part, and the framework will automatically build the corresponding backward part for you, and make the network could run on multi-GPUs or CPUs.  
+Here is an example for attentioned based LSTM.  
+```c#
+        /// <summary>
+        /// Update LSTM-Attention cells according to given weights
+        /// </summary>
+        /// <param name="context">The context weights for attention</param>
+        /// <param name="input">The input weights</param>
+        /// <param name="computeGraph">The compute graph to build workflow</param>
+        /// <returns>Update hidden weights</returns>
+        public IWeightMatrix Step(IWeightMatrix context, IWeightMatrix input, IComputeGraph computeGraph)
+        {
+            var cell_prev = ct;
+            var hidden_prev = ht;
+
+            var hxhc = computeGraph.ConcatColumns(input, hidden_prev, context);
+            var bs = computeGraph.RepeatRows(b, input.Rows);
+            var hhSum = computeGraph.MulAdd(hxhc, Wxhc, bs);
+
+            (var gates_raw, var cell_write_raw) = computeGraph.SplitColumns(hhSum, hdim * 3, hdim);
+            var gates = computeGraph.Sigmoid(gates_raw);
+            var cell_write = computeGraph.Tanh(cell_write_raw);
+
+            (var input_gate, var forget_gate, var output_gate) = computeGraph.SplitColumns(gates, hdim, hdim, hdim);
+
+            // compute new cell activation
+            var retain_cell = computeGraph.EltMul(forget_gate, cell_prev);
+            var write_cell = computeGraph.EltMul(input_gate, cell_write);
+
+            ct = computeGraph.Add(retain_cell, write_cell);
+            ht = computeGraph.EltMul(output_gate, computeGraph.Tanh(ct));
+
+            return ht;
+        }
+```

@@ -36,17 +36,16 @@ namespace Seq2SeqSharp
 
         IWeightMatrix SoftmaxM(IWeightMatrix w, bool bp = true);
 
-        IWeightMatrix ConcatColumns(IWeightMatrix[] wl);        
+        IWeightMatrix ConcatColumns(params IWeightMatrix[] wl);        
 
-        List<IWeightMatrix> SplitColumns(IWeightMatrix w, params int[] sizes);
+        List<IWeightMatrix> SplitColumns2(IWeightMatrix w, params int[] sizes);
+        (IWeightMatrix r1, IWeightMatrix r2) SplitColumns(IWeightMatrix w, int size1, int size2);
+        (IWeightMatrix r1, IWeightMatrix r2, IWeightMatrix r3) SplitColumns(IWeightMatrix w, int size1, int size2, int size3);
 
         IWeightMatrix ConcatRows(List<IWeightMatrix> wl, bool bp = true);
 
         IWeightMatrix RepeatRows(IWeightMatrix w, int n);
 
         IWeightMatrix Transpose2(IWeightMatrix w);
-
-    //    List<IWeightMatrix> SplitRows(IWeightMatrix w, params int[] sizes);
-
     }
 }

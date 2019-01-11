@@ -582,7 +582,7 @@ namespace Seq2SeqSharp
                     //Clear gradient over all devices
                     ClearGradient();
 
-                    if (IterationDone != null && processedLine % 100 == 0)
+                    if (IterationDone != null && processedLine % (100 * TrainCorpus.BatchSize) == 0)
                     {
                         IterationDone(this, new CostEventArg()
                         {
@@ -598,7 +598,7 @@ namespace Seq2SeqSharp
 
 
                     //Save model for each 10000 steps
-                    if (processedLine % (m_batchSize * 1000) == 0)
+                    if (processedLine % (TrainCorpus.BatchSize * 1000) == 0)
                     {
                         Save();
                         TensorAllocator.FreeMemoryAllDevices();

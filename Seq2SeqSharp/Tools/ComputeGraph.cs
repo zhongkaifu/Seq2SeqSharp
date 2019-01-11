@@ -1249,7 +1249,7 @@ namespace Seq2SeqSharp
             return res;
         }
 
-        public virtual IWeightMatrix ConcatColumns(IWeightMatrix[] wl)
+        public virtual IWeightMatrix ConcatColumns(params IWeightMatrix[] wl)
         {
             List<WeightMatrix> twl = new List<WeightMatrix>();
             int sx = 0;
@@ -1314,12 +1314,9 @@ namespace Seq2SeqSharp
                 this.backprop.Add(backward);
             }
             return res;
-        }
+        }      
 
-       
-      
-
-        public virtual List<IWeightMatrix> SplitColumns(IWeightMatrix w, params int[] sizes)
+        public virtual List<IWeightMatrix> SplitColumns2(IWeightMatrix w, params int[] sizes)
         {
             var m = w as WeightMatrix;
             List<IWeightMatrix> resList = new List<IWeightMatrix>();
@@ -1362,6 +1359,20 @@ namespace Seq2SeqSharp
 
 
             return resList;
+        }
+
+        public (IWeightMatrix r1, IWeightMatrix r2) SplitColumns(IWeightMatrix w, int size1, int size2)
+        {
+            var res = SplitColumns2(w, size1, size2);
+
+            return (res[0], res[1]);
+        }
+
+        public (IWeightMatrix r1, IWeightMatrix r2, IWeightMatrix r3) SplitColumns(IWeightMatrix w, int size1, int size2, int size3)
+        {
+            var res = SplitColumns2(w, size1, size2);
+
+            return (res[0], res[1], res[2]);
         }
 
         public virtual IWeightMatrix ConcatRows(List<IWeightMatrix> wl, bool bp = true)

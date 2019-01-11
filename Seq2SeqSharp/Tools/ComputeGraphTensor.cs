@@ -547,7 +547,7 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public IWeightMatrix ConcatColumns(IWeightMatrix[] wl)
+        public IWeightMatrix ConcatColumns(params IWeightMatrix[] wl)
         {
             if (wl.Length == 1)
             {
@@ -594,7 +594,7 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public List<IWeightMatrix> SplitColumns(IWeightMatrix w, params int[] sizes)
+        public List<IWeightMatrix> SplitColumns2(IWeightMatrix w, params int[] sizes)
         {
             var m = w as WeightTensor;
             List<IWeightMatrix> resList = new List<IWeightMatrix>();
@@ -610,6 +610,20 @@ namespace Seq2SeqSharp.Tools
             }
 
             return resList;
+        }
+
+        public (IWeightMatrix r1, IWeightMatrix r2) SplitColumns(IWeightMatrix w, int size1, int size2)
+        {
+            var res = SplitColumns2(w, size1, size2);
+
+            return (res[0], res[1]);
+        }
+
+        public (IWeightMatrix r1, IWeightMatrix r2, IWeightMatrix r3) SplitColumns(IWeightMatrix w, int size1, int size2, int size3)
+        {
+            var res = SplitColumns2(w, size1, size2, size3);
+
+            return (res[0], res[1], res[2]);
         }
 
         public List<IWeightMatrix> UnFolderRow(IWeightMatrix m, int n, bool gradient = true)
