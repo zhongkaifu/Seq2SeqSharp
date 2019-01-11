@@ -1370,7 +1370,7 @@ namespace Seq2SeqSharp
 
         public (IWeightMatrix r1, IWeightMatrix r2, IWeightMatrix r3) SplitColumns(IWeightMatrix w, int size1, int size2, int size3)
         {
-            var res = SplitColumns2(w, size1, size2);
+            var res = SplitColumns2(w, size1, size2, size3);
 
             return (res[0], res[1], res[2]);
         }
