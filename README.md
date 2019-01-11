@@ -46,7 +46,7 @@ Note that:
 Example: Seq2SeqConsole.exe -TaskName train -WordVectorSize 1024 -HiddenSize 1024 -LearningRate 0.001 -Depth 2 -TrainCorpusPath .\corpus -ModelFilePath nmt.model -SrcLang enu -TgtLang chs -ArchType 0 -DeviceIds 0,1,2,3  
 
 Here is a snapshot while Seq2SeqSharp is encoding a new model.  
-[[https://github.com/zhongkaifu/Seq2SeqSharp/blob/master/Seq2SeqSharp_Snapshot.JPG|alt=octocat]]
+![](https://github.com/zhongkaifu/Seq2SeqSharp/blob/master/Seq2SeqSharp_Snapshot.JPG)
 
 Here is the command line to test models  
 **Seq2SeqConsole.exe -TaskName test [parameters...]**  
