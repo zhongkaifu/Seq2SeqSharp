@@ -105,3 +105,9 @@ Here is an example for attentioned based LSTM.
             return ht;
         }
 ```
+# Todo List  
+If you are interested in below items, please let me know. Becuase African proverb says "If you want to go fast, go alone. If you want to go far, go together" :)  
+Transformer Components  
+Support Tensor Cores in CUDA  
+Support Half-Float Type (FP16)  
+And More...  
