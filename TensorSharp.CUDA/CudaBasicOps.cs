@@ -24,6 +24,7 @@ namespace TensorSharp.CUDA
         private readonly VarStdKernels varStdKernels = new VarStdKernels();
         private readonly ReduceDimIndexKernels reduceDimIndexKernels = new ReduceDimIndexKernels();
 
+        private readonly SoftmaxKernels softmaxKernels = new SoftmaxKernels();
 
         public CudaBasicOps()
         {
@@ -169,6 +170,37 @@ namespace TensorSharp.CUDA
         }
 
 
+
+        [RegisterOpStorageType("addmmbatch", typeof(CudaStorage))]
+        public Tensor AddmmBatch(Tensor result, float beta, Tensor src, float alpha, Tensor m1, Tensor m2)
+        {
+            var context = CudaHelpers.TSContextForTensor(src);
+            if (src.ElementType != m1.ElementType || src.ElementType != m2.ElementType || (result != null && result.ElementType != src.ElementType))
+                throw new InvalidOperationException("All tensors must have the same element type");
+            if (result != null && !(result.Storage is CudaStorage)) throw new ArgumentException("result must be a CUDA tensor", "result");
+            if (!(m1.Storage is CudaStorage)) throw new ArgumentException("m1 must be a CUDA tensor", "m1");
+            if (!(m2.Storage is CudaStorage)) throw new ArgumentException("m2 must be a CUDA tensor", "m2");
+
+            if (src.DimensionCount != 3) throw new ArgumentException("src must be a matrix", "src");
+            if (m1.DimensionCount != 3) throw new ArgumentException("m1 must be a matrix", "m1");
+            if (m2.DimensionCount != 3) throw new ArgumentException("m2 must be a matrix", "m2");
+
+            if (src.Sizes[1] != m1.Sizes[1] || src.Sizes[2] != m2.Sizes[2] || m1.Sizes[2] != m2.Sizes[1])
+                throw new InvalidOperationException($"Size mismatch, srcSize0 = {src.Sizes[0]}, m1Size0 = {m1.Sizes[0]}, srcSize1 = {src.Sizes[1]}, m2Size1 = {m2.Sizes[1]}, m1Size1 = '{m1.Sizes[1]}', m2Size0 = '{m2.Sizes[0]}'");
+
+            var writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
+
+            if (writeTarget != src)
+            {
+                Ops.Copy(writeTarget, src);
+            }
+
+            CudaMatrixMulMM.GemmBatch(context, alpha, m1, m2, beta, writeTarget);
+
+
+            return writeTarget;
+        }
+
         [RegisterOpStorageType("abs", typeof(CudaStorage))]
         public Tensor Abs(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseKernels, "abs", result, src); }
         [RegisterOpStorageType("neg", typeof(CudaStorage))]
@@ -244,6 +276,12 @@ namespace TensorSharp.CUDA
 
         [RegisterOpStorageType("add4", typeof(CudaStorage))]
         public Tensor Add4(Tensor result, Tensor x, Tensor y, Tensor z, Tensor w) { return ElementwiseTTTTTOp.Invoke(elementwiseKernels, "add4", result, x, y, z, w); }
+
+
+
+        [RegisterOpStorageType("mulmuladd", typeof(CudaStorage))]
+        public Tensor MulMulAdd(Tensor result, Tensor x, Tensor y, Tensor z, Tensor w) { return ElementwiseTTTTTOp.Invoke(elementwiseKernels, "mulmuladd", result, x, y, z, w); }
+
 
         [RegisterOpStorageType("addmul", typeof(CudaStorage))]
         public Tensor AddMul(Tensor result, Tensor x, Tensor y, Tensor z) { return ElementwiseTTTTOp.Invoke(elementwiseKernels, "addmul", result, x, y, z); }
@@ -397,7 +435,12 @@ namespace TensorSharp.CUDA
         public Tensor Var(Tensor result, Tensor src, int dimension, bool normByN) { return varStdKernels.Var(result, src, dimension, normByN); }
 
 
+        [RegisterOpStorageType("softmax", typeof(CudaStorage))]
+        public Tensor Softmax(Tensor result, Tensor src) { return softmaxKernels.Softmax(result, src); }
 
+
+        [RegisterOpStorageType("softmaxgrad", typeof(CudaStorage))]
+        public Tensor SoftmaxGrad(Tensor grad, Tensor adj, Tensor val) { return softmaxKernels.SoftmaxGrad(grad, adj, val); }
 
         [RegisterOpStorageType("sumall", typeof(CudaStorage))]
         public Tensor SumAll(Tensor result, Tensor src)

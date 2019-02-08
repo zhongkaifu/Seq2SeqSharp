@@ -16,7 +16,7 @@ namespace Seq2SeqSharp.Tools
 
         Dictionary<int, int> RowToBeUpdated { get; set; }
 
-        void CleanCash();
+        void CleanCache();
 
         float GetWeightAt(int offset);
         void SetWeightAt(float val, int offset);

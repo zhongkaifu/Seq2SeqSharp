@@ -23,10 +23,15 @@ namespace TensorSharp.CUDA.ContextState
             this.context = context;
         }
 
-        public void FreeMemory()
+        public void FreeMemory(bool callGC = false)
         {
             lock (locker)
             {
+                if (callGC)
+                {
+                    GC.Collect();
+                }
+
                 foreach (var kv in pools)
                 {
                     while (kv.Value.Count > 0)
@@ -38,8 +43,6 @@ namespace TensorSharp.CUDA.ContextState
                         }
                     }
                 }
-
-           //     pools.Clear();
             }
         }
       
@@ -75,15 +78,22 @@ namespace TensorSharp.CUDA.ContextState
                 CUdeviceptr buffer;
                 try
                 {
+                    try
+                    {
 
-                    // If control flow gets to this point, sizedPool exists in the dictionary and is empty.
-                    context.SetCurrent();
-                    buffer = context.AllocateMemory(size);
-                    //    missingCacheSize += size;
+                        // If control flow gets to this point, sizedPool exists in the dictionary and is empty.
+                        context.SetCurrent();
+                        buffer = context.AllocateMemory(size);
+                    }
+                    catch (ManagedCuda.CudaException err)
+                    {
+                        FreeMemory(false);
+                        buffer = context.AllocateMemory(size);
+                    }
                 }
                 catch (ManagedCuda.CudaException err)
                 {
-                    FreeMemory();
+                    FreeMemory(true);
                     buffer = context.AllocateMemory(size);
                 }
 
@@ -92,7 +102,6 @@ namespace TensorSharp.CUDA.ContextState
                 {
                     lock (locker)
                     {
-  //                      context.FreeMemory(devMemory.Pointer);
                         sizedPool.Enqueue(devMemory);
                     }
                 });

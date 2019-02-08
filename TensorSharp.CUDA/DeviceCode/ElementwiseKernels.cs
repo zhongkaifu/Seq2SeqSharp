@@ -53,6 +53,8 @@ namespace TensorSharp.CUDA.DeviceCode
 
             AppendTTTTTFunc(result, "add4", "Add4");
 
+            AppendTTTTTFunc(result, "mulmuladd", "MulMulAdd");
+
             AppendTTTTFunc(result, "addmul", "AddMul");
 
             AppendTTTSFunc(result, "addmulv", "AddMulV");

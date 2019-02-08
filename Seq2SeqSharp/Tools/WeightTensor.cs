@@ -17,7 +17,7 @@ namespace Seq2SeqSharp.Tools
         public Tensor TWeight;
         public Tensor TGradient;
         public Tensor TLrW;
-        public Tensor TCash;
+        public Tensor TCache;
 
         public int Rows { get; set; }
         public int Columns { get; set; }
@@ -27,7 +27,7 @@ namespace Seq2SeqSharp.Tools
         public int DeviceId { get; set; }
 
 
-        public WeightTensor(int rows, int columns, int deviceId, bool normal = false)
+        public WeightTensor(int rows, int columns, int deviceId, bool keepCache = true, bool normal = false)
         {
             DeviceId = deviceId;
             Rows = rows;
@@ -52,11 +52,14 @@ namespace Seq2SeqSharp.Tools
             TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
             Ops.Fill(TGradient, 0.0f);
 
-            TCash = new Tensor(allocator, DType.Float32, Rows, Columns);
-            Ops.Fill(TCash, 0.0f);
+            if (keepCache)
+            {
+                TCache = new Tensor(allocator, DType.Float32, Rows, Columns);
+                Ops.Fill(TCache, 0.0f);
 
-            TLrW = new Tensor(allocator, DType.Float32, Rows, Columns);
-            Ops.Fill(TLrW, 0.0f);
+                TLrW = new Tensor(allocator, DType.Float32, Rows, Columns);
+                Ops.Fill(TLrW, 0.0f);
+            }
 
             TWeight = Tensor.FromArray(allocator, weight).View(Rows, Columns);
         }
@@ -70,9 +73,9 @@ namespace Seq2SeqSharp.Tools
             var allocator = TensorAllocator.Allocator(deviceId);
 
             TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
-            TWeight = new Tensor(allocator, DType.Float32, Rows, Columns);
-
             Ops.Fill(TGradient, 0.0f);
+
+            TWeight = new Tensor(allocator, DType.Float32, Rows, Columns);
         }
 
 
@@ -103,7 +106,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public WeightTensor(int rows, int columns, float c, int deviceId)
+        public WeightTensor(int rows, int columns, float c, int deviceId, bool keepCache = true)
         {
             DeviceId = deviceId;
             Rows = rows;
@@ -116,20 +119,23 @@ namespace Seq2SeqSharp.Tools
             TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
             Ops.Fill(TGradient, 0.0f);
 
-            TCash = new Tensor(allocator, DType.Float32, Rows, Columns);
-            Ops.Fill(TCash, 0.0f);
+            if (keepCache)
+            {
+                TCache = new Tensor(allocator, DType.Float32, Rows, Columns);
+                Ops.Fill(TCache, 0.0f);
 
-            TLrW = new Tensor(allocator, DType.Float32, Rows, Columns);
-            Ops.Fill(TLrW, 0.0f);
+                TLrW = new Tensor(allocator, DType.Float32, Rows, Columns);
+                Ops.Fill(TLrW, 0.0f);
+            }
 
             TWeight = new Tensor(allocator, DType.Float32, Rows, Columns);
             Ops.Fill(TWeight, c);
         }
 
 
-        public void CleanCash()
+        public void CleanCache()
         {
-            Ops.Fill(TCash, 0.0f);
+            Ops.Fill(TCache, 0.0f);
             Ops.Fill(TLrW, 0.0f);
         }
 
@@ -194,11 +200,11 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor m = src as WeightTensor;
 
-            Tensor t = new Tensor(TGradient.Allocator, DType.Float32, Rows, Columns);
-            Ops.Copy(t, m.TGradient);
-
             lock (locker)
             {
+                Tensor t = new Tensor(TGradient.Allocator, DType.Float32, Rows, Columns);
+                Ops.Copy(t, m.TGradient);
+
                 Ops.Add(TGradient, TGradient, t);
                 foreach (var kv in m.RowToBeUpdated)
                 {
@@ -211,9 +217,9 @@ namespace Seq2SeqSharp.Tools
                         RowToBeUpdated[kv.Key] += kv.Value;
                     }
                 }
-            }
 
-            t.Dispose();
+                t.Dispose();
+            }           
         }
 
         public float[] ToWeightArray()
@@ -257,10 +263,10 @@ namespace Seq2SeqSharp.Tools
                 TGradient = null;
             }
 
-            if (TCash != null)
+            if (TCache != null)
             {
-                TCash.Dispose();
-                TCash = null;
+                TCache.Dispose();
+                TCache = null;
             }
 
             if (TLrW != null)

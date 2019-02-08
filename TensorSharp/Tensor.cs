@@ -240,9 +240,14 @@ namespace TensorSharp
 
         public Tensor Narrow(int dimension, long startIndex, long size)
         {
-            if (dimension < 0 || dimension >= DimensionCount) throw new ArgumentOutOfRangeException("dimension");
-            if (startIndex < 0 || startIndex >= sizes[dimension]) throw new ArgumentOutOfRangeException("startIndex");
-            if (size <= 0 || startIndex + size > sizes[dimension]) throw new ArgumentOutOfRangeException("size");
+            if (dimension < 0 || dimension >= DimensionCount)
+                throw new ArgumentOutOfRangeException("dimension");
+
+            if (startIndex < 0 || startIndex >= sizes[dimension])
+                throw new ArgumentOutOfRangeException("startIndex", $"startIndex = '{startIndex}', sizes[dimension] = '{sizes[dimension]}', dimension = '{dimension}', size = '{size}'");
+
+            if (size <= 0 || startIndex + size > sizes[dimension])
+                throw new ArgumentOutOfRangeException("size");
 
             var newOffset = storageOffset + startIndex * strides[dimension];
             var newSizes = (long[])sizes.Clone();
@@ -446,9 +451,15 @@ namespace TensorSharp
                 oldUrTensor.Dispose();
             }
 
-            paddedSrc = paddedSrc.PadToDimCount(urTensor.DimensionCount);
-            var expandedSrc = paddedSrc.Expand(urTensor.Sizes);
+            var paddedSrc2 = paddedSrc.PadToDimCount(urTensor.DimensionCount);
+            var expandedSrc = paddedSrc2.Expand(urTensor.Sizes);
             Ops.Copy(urTensor, expandedSrc);
+
+            paddedSrc.Dispose();
+            paddedSrc2.Dispose();
+            urTensor.Dispose();
+            expandedSrc.Dispose();
+
             /*
             var sizesWritten = (long[])this.sizes.Clone();
             using (var subResult = result.GetRegion(Enumerable.Repeat((long)0, DimensionCount).ToArray(), sizesWritten))

@@ -90,20 +90,13 @@ namespace Seq2SeqSharp
         {
             Ops.Mul(m.TGradient, m.TGradient, 1.0f / batchSize);
             Ops.Clamp(m.TGradient, m.TGradient, -clipval, clipval);
-            Ops.UpdateCash(m.TCash, m.TCash, m.TGradient, decay_rate);
+            Ops.UpdateCash(m.TCache, m.TCache, m.TGradient, decay_rate);
 
-            Ops.UpdateDelta(m.TGradient, m.TGradient, m.TCash, smooth_eps);
+            Ops.UpdateDelta(m.TGradient, m.TGradient, m.TCache, smooth_eps);
 
             Ops.UpdateCash(m.TLrW, m.TLrW, m.TGradient, lr_decay_rate);
 
-            //   Ops.AddMul(m.TLrW, m.TLrW, m.TGradient, m.TGradient);
-
-
             Ops.UpdateWeight2(m.TWeight, m.TWeight, m.TGradient, m.TLrW, -step_size, -regc);
-
-         //   Ops.UpdateWeight3(m.TWeight, m.TWeight, m.TGradient, -step_size, -regc);
-
-            //   Ops.Fill(m.TGradient, 0.0f);
         }
 
 
@@ -112,7 +105,7 @@ namespace Seq2SeqSharp
         {
             Tensor TWeight = m.TWeight.Narrow(0, rowId, 1);
             Tensor TGradient = m.TGradient.Narrow(0, rowId, 1);
-            Tensor TCash = m.TCash.Narrow(0, rowId, 1);
+            Tensor TCash = m.TCache.Narrow(0, rowId, 1);
             Tensor TLrW = m.TLrW.Narrow(0, rowId, 1);
 
             if (batchSize != 1)
@@ -125,14 +118,9 @@ namespace Seq2SeqSharp
 
             Ops.UpdateDelta(TGradient, TGradient, TCash, smooth_eps);
 
-               Ops.UpdateCash(TLrW, TLrW, TGradient, lr_decay_rate);
-
-
-        //    Ops.AddMul(TLrW, TLrW, TGradient, TGradient);
+            Ops.UpdateCash(TLrW, TLrW, TGradient, lr_decay_rate);
 
             Ops.UpdateWeight2(TWeight, TWeight, TGradient, TLrW, -step_size, -regc);
-
-      //      Ops.UpdateWeight3(TWeight, TWeight, TGradient, -step_size, -regc);
 
 
             TWeight.Dispose();
@@ -223,11 +211,11 @@ namespace Seq2SeqSharp
 
         }
 
-        public void CleanCash(List<IWeightMatrix> model)
+        public void CleanCache(List<IWeightMatrix> model)
         {
             foreach (var k in model)
             {
-                k.CleanCash();
+                k.CleanCache();
             }
         }
     }

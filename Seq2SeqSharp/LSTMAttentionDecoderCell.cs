@@ -25,7 +25,7 @@ namespace Seq2SeqSharp
         public int m_batchSize;
         private int m_deviceId;
 
-        public LSTMAttentionDecoderCell(int batchSize, int hdim, int dim, ArchTypeEnums archType, int deviceId)
+        public LSTMAttentionDecoderCell(int batchSize, int hdim, int dim, ArchTypeEnums archType, int deviceId, bool isDefaultDevice)
         {
             int contextSize = hdim * 2;
             this.hdim = hdim;
@@ -36,11 +36,11 @@ namespace Seq2SeqSharp
 
             if (archType == ArchTypeEnums.GPU_CUDA)
             {
-                Wxhc = new WeightTensor(dim + hdim + contextSize, hdim * 4, deviceId, true);
-                b = new WeightTensor(1, hdim * 4, 0, deviceId);
+                Wxhc = new WeightTensor(dim + hdim + contextSize, hdim * 4, deviceId, isDefaultDevice, true);
+                b = new WeightTensor(1, hdim * 4, 0, deviceId, isDefaultDevice);
 
-                this.ht = new WeightTensor(batchSize, hdim, 0, deviceId);
-                this.ct = new WeightTensor(batchSize, hdim, 0, deviceId);
+                this.ht = new WeightTensor(batchSize, hdim, 0, deviceId, isDefaultDevice);
+                this.ct = new WeightTensor(batchSize, hdim, 0, deviceId, isDefaultDevice);
             }
             else
             {
@@ -75,10 +75,14 @@ namespace Seq2SeqSharp
             (var input_gate, var forget_gate, var output_gate) = computeGraph.SplitColumns(gates, hdim, hdim, hdim);
 
             // compute new cell activation
-            var retain_cell = computeGraph.EltMul(forget_gate, cell_prev);
-            var write_cell = computeGraph.EltMul(input_gate, cell_write);
+            //var retain_cell = computeGraph.EltMul(forget_gate, cell_prev);
+            //var write_cell = computeGraph.EltMul(input_gate, cell_write);
 
-            ct = computeGraph.Add(retain_cell, write_cell);
+            //ct = computeGraph.Add(retain_cell, write_cell);
+
+
+            ct = computeGraph.EltMulMulAdd(forget_gate, cell_prev, input_gate, cell_write);
+
             ht = computeGraph.EltMul(output_gate, computeGraph.Tanh(ct));
 
             return ht;

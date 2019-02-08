@@ -31,7 +31,7 @@ namespace TensorSharp.CUDA.ContextState
             return new BasicDeviceMemory(buffer, () => context.FreeMemory(buffer));
         }
 
-        public void FreeMemory()
+        public void FreeMemory(bool callGC = false)
         {
 
         }

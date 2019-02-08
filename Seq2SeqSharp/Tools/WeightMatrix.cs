@@ -142,7 +142,7 @@ namespace Seq2SeqSharp
         {
         }
 
-        public void CleanCash()
+        public void CleanCache()
         {
             Cash = new float[Cash.Length];
             LrW = new float[LrW.Length];

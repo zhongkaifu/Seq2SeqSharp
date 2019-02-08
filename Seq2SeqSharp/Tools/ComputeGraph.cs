@@ -819,167 +819,9 @@ namespace Seq2SeqSharp
                 this.backprop.Add(backward);
             }
             return res;
-
-        }
-
-        public virtual IWeightMatrix Add(IWeightMatrix w1, IWeightMatrix w2, IWeightMatrix w3)
-        {
-            var m1 = w1 as WeightMatrix;
-            var m2 = w2 as WeightMatrix;
-            var m3 = w3 as WeightMatrix;
-
-            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
-
-            var n = m1.Weight.Length;
-            var moreItems = (n % Vector<float>.Count);
-            var i = 0;
-            while (i < n - moreItems)
-            {
-                var vecM1W = new Vector<float>(m1.Weight, i);
-                var vecM2W = new Vector<float>(m2.Weight, i);
-                var vecM3W = new Vector<float>(m3.Weight, i);
-                var vecRW = new Vector<float>(res.Weight, i);
-
-                vecRW = vecM1W + vecM2W + vecM3W;
-                vecRW.CopyTo(res.Weight, i);
-
-                i += Vector<float>.Count;
-            }
-
-            while (i < n)
-            {
-                res.Weight[i] = m1.Weight[i] + m2.Weight[i] + m3.Weight[i];
-                i++;
-            }
-
-
-            if (this.needs_backprop)
-            {
-
-                Action backward = () =>
-                {
-                    i = 0;
-                    while (i < n - moreItems)
-                    {
-                        var vecRG = new Vector<float>(res.Gradient, i);
-                        var vecM1G = new Vector<float>(m1.Gradient, i);
-                        var vecM2G = new Vector<float>(m2.Gradient, i);
-                        var vecM3G = new Vector<float>(m3.Gradient, i);
-
-                        vecM1G += vecRG;
-                        vecM2G += vecRG;
-                        vecM3G += vecRG;
-
-                        vecM1G.CopyTo(m1.Gradient, i);
-                        vecM2G.CopyTo(m2.Gradient, i);
-                        vecM3G.CopyTo(m3.Gradient, i);
-
-
-                        i += Vector<float>.Count;
-                    }
-
-                    while (i < n)
-                    {
-                        var g = res.Gradient[i];
-
-                        m1.Gradient[i] += g;
-                        m2.Gradient[i] += g;
-                        m3.Gradient[i] += g;
-
-                        i++;
-                    }
-
-                };
-                this.backprop.Add(backward);
-            }
-            return res;
-
-        }
-
-
-        public virtual IWeightMatrix Add(IWeightMatrix w1, IWeightMatrix w2, IWeightMatrix w3, IWeightMatrix w4)
-        {
-            var m1 = w1 as WeightMatrix;
-            var m2 = w2 as WeightMatrix;
-            var m3 = w3 as WeightMatrix;
-            var m4 = w4 as WeightMatrix;
-
-            var res = weightMatrixFactory.CreateWeightMatrix(m1.Rows, m1.Columns);
-
-            var n = m1.Weight.Length;
-            var moreItems = (n % Vector<float>.Count);
-            var i = 0;
-            while (i < n - moreItems)
-            {
-                var vecM1W = new Vector<float>(m1.Weight, i);
-                var vecM2W = new Vector<float>(m2.Weight, i);
-                var vecM3W = new Vector<float>(m3.Weight, i);
-                var vecM4W = new Vector<float>(m4.Weight, i);
-                var vecRW = new Vector<float>(res.Weight, i);
-
-                vecRW = vecM1W + vecM2W + vecM3W + vecM4W;
-                vecRW.CopyTo(res.Weight, i);
-
-                i += Vector<float>.Count;
-            }
-
-            while (i < n)
-            {
-                res.Weight[i] = m1.Weight[i] + m2.Weight[i] + m3.Weight[i] + m4.Weight[i];
-                i++;
-            }
-
-
-            if (this.needs_backprop)
-            {
-
-                Action backward = () =>
-                {
-                    i = 0;
-                    while (i < n - moreItems)
-                    {
-                        var vecRG = new Vector<float>(res.Gradient, i);
-
-                        var vecM1G = new Vector<float>(m1.Gradient, i);
-                        var vecM2G = new Vector<float>(m2.Gradient, i);
-                        var vecM3G = new Vector<float>(m3.Gradient, i);
-                        var vecM4G = new Vector<float>(m4.Gradient, i);
-
-                        vecM1G += vecRG;
-                        vecM2G += vecRG;
-                        vecM3G += vecRG;
-                        vecM4G += vecRG;
-
-                        vecM1G.CopyTo(m1.Gradient, i);
-                        vecM2G.CopyTo(m2.Gradient, i);
-                        vecM3G.CopyTo(m3.Gradient, i);
-                        vecM4G.CopyTo(m4.Gradient, i);
-
-                        i += Vector<float>.Count;
-                    }
-
-                    while (i < n)
-                    {
-                        var g = res.Gradient[i];
-
-                        m1.Gradient[i] += (float)g;
-                        m2.Gradient[i] += (float)g;
-                        m3.Gradient[i] += (float)g;
-                        m4.Gradient[i] += (float)g;
-                        i++;
-                    }
-
-                };
-                this.backprop.Add(backward);
-            }
-            return res;
-
         }
 
        
-        
-
-
         public virtual IWeightMatrix EltMul(IWeightMatrix w1, IWeightMatrix w2)
         {
             var m1 = w1 as WeightMatrix;
@@ -1375,7 +1217,7 @@ namespace Seq2SeqSharp
             return (res[0], res[1], res[2]);
         }
 
-        public virtual IWeightMatrix ConcatRows(List<IWeightMatrix> wl, bool bp = true)
+        public virtual IWeightMatrix ConcatRows(List<IWeightMatrix> wl)
         {
             List<WeightMatrix> twl = new List<WeightMatrix>();
             int sx = 0;
@@ -1478,13 +1320,7 @@ namespace Seq2SeqSharp
             }
 
             return res;
-
         }
-
-        //public virtual List<IWeightMatrix> SplitRows(IWeightMatrix w, params int[] sizes)
-        //{
-        //    throw new NotImplementedException();
-        //}
 
         public List<IWeightMatrix> UnFolderRow(IWeightMatrix m, int n, bool gradient = true)
         {
@@ -1509,9 +1345,28 @@ namespace Seq2SeqSharp
             return Softmax(w);
         }
 
-        public IWeightMatrix MulAdd2(IWeightMatrix m1, IWeightMatrix m2, IWeightMatrix m3)
+       
+        public IWeightMatrix MulBatch(IWeightMatrix m1, IWeightMatrix m2, int batchSize)
         {
-            return MulAdd(m1, m2, m3);
+            if (batchSize != 1)
+            {
+                throw new ArgumentException($"For CPU operations, its batch size must be 1.");
+            }
+
+            return Mul(m1, m2);
+        }
+
+        public IWeightMatrix ConcatRowColumn(List<IWeightMatrix> wl1, List<IWeightMatrix> wl2)
+        {
+            var r1 = ConcatRows(wl1);
+            var r2 = ConcatRows(wl2);
+
+            return ConcatColumns(r1, r2);
+        }
+
+        public IWeightMatrix EltMulMulAdd(IWeightMatrix w1, IWeightMatrix w2, IWeightMatrix w3, IWeightMatrix w4)
+        {
+            return Add(EltMul(w1, w2), EltMul(w3, w4));
         }
     }     
 }

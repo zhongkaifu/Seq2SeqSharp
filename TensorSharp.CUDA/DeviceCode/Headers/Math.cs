@@ -83,6 +83,10 @@ template<typename T> INLINE_FUNC T Add4(T x, T y, T z, T w) {
 	return x + y + z + w;
 }
 
+template<typename T> INLINE_FUNC T MulMulAdd(T x, T y, T z, T w) {
+	return x * y + z * w;
+}
+
 template<typename T> INLINE_FUNC T Frac(T x) {
 	return x - trunc(x);
 }

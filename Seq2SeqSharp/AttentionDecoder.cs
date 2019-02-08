@@ -21,17 +21,17 @@ namespace Seq2SeqSharp
         public int depth { get; set; }
         public AttentionUnit attentionLayer { get; set; }
 
-        public AttentionDecoder(int batchSize, int hdim, int dim, int depth, ArchTypeEnums archType, int deviceId)
+        public AttentionDecoder(int batchSize, int hdim, int dim, int context, int depth, ArchTypeEnums archType, int deviceId, bool isDefaultDevice)
         {
-            attentionLayer = new AttentionUnit(batchSize, hdim, archType, deviceId);
+            attentionLayer = new AttentionUnit(batchSize, hdim, context, archType, deviceId, isDefaultDevice);
             this.hdim = hdim;
             this.dim = dim;
             this.depth = depth;
 
-            decoders.Add(new LSTMAttentionDecoderCell(batchSize, hdim, dim, archType, deviceId));
+            decoders.Add(new LSTMAttentionDecoderCell(batchSize, hdim, dim, archType, deviceId, isDefaultDevice));
             for (int i = 1; i < depth; i++)
             {
-                decoders.Add(new LSTMAttentionDecoderCell(batchSize, hdim, hdim, archType, deviceId));
+                decoders.Add(new LSTMAttentionDecoderCell(batchSize, hdim, hdim, archType, deviceId, isDefaultDevice));
             }
         }
 

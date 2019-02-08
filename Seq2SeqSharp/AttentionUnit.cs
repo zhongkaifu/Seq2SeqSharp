@@ -13,7 +13,7 @@ namespace Seq2SeqSharp
     public class AttentionPreProcessResult
     {
         public IWeightMatrix uhs;
-        public List<IWeightMatrix> inputsUnfolder;
+        public IWeightMatrix inputs;
 
     }
 
@@ -29,17 +29,17 @@ namespace Seq2SeqSharp
 
         int m_batchSize;
 
-        public AttentionUnit(int batchSize, int size, ArchTypeEnums archType, int deviceId)
+        public AttentionUnit(int batchSize, int size, int context, ArchTypeEnums archType, int deviceId, bool isDefaultDevice)
         {
             m_batchSize = batchSize;
 
             if (archType == ArchTypeEnums.GPU_CUDA)
             {
-                this.Ua = new WeightTensor((size * 2), size, deviceId, true);
-                this.Wa = new WeightTensor(size, size, deviceId, true);
-                this.bUa = new WeightTensor(1, size, 0, deviceId);
-                this.bWa = new WeightTensor(1, size, 0, deviceId);
-                this.V = new WeightTensor(size, 1, deviceId, true);
+                this.Ua = new WeightTensor(context, size, deviceId, isDefaultDevice, true);
+                this.Wa = new WeightTensor(size, size, deviceId, isDefaultDevice, true);
+                this.bUa = new WeightTensor(1, size, 0, deviceId, isDefaultDevice);
+                this.bWa = new WeightTensor(1, size, 0, deviceId, isDefaultDevice);
+                this.V = new WeightTensor(size, 1, deviceId, isDefaultDevice, true);
             }
             else
             {
@@ -59,8 +59,7 @@ namespace Seq2SeqSharp
 
             IWeightMatrix bUas = g.RepeatRows(bUa, inputs.Rows);
             r.uhs = g.MulAdd(inputs, Ua, bUas);
-
-            r.inputsUnfolder = g.UnFolderRow(inputs, m_batchSize);
+            r.inputs = g.ConcatRows(g.UnFolderRow(inputs, m_batchSize));
 
             return r;
         }
@@ -71,13 +70,11 @@ namespace Seq2SeqSharp
         {
             var bWas = g.RepeatRows(bWa, state.Rows);
             var wc = g.MulAdd(state, Wa, bWas);
-            var wcs = g.RepeatRows(wc, attenPreProcessResult.inputsUnfolder[0].Rows);
+            var wcs = g.RepeatRows(wc, attenPreProcessResult.inputs.Rows / m_batchSize);
             var ggs = g.AddTanh(attenPreProcessResult.uhs, wcs);
             var atten = g.Mul(ggs, V);
 
             List<IWeightMatrix> attens = g.UnFolderRow(atten, m_batchSize);
-            List<IWeightMatrix> contexts = new List<IWeightMatrix>();
-
             List<IWeightMatrix> attensT = new List<IWeightMatrix>();
             for (int i = 0; i < m_batchSize; i++)
             {
@@ -87,13 +84,10 @@ namespace Seq2SeqSharp
             var attenT = g.ConcatRows(attensT);
             var attenSoftmax = g.SoftmaxM(attenT);
 
-            for (int i = 0; i < m_batchSize; i++)
-            {
-                IWeightMatrix context = g.Mul(g.PeekRow(attenSoftmax, i), attenPreProcessResult.inputsUnfolder[i]);
-                contexts.Add(context);
-            }
+            IWeightMatrix contexts = g.MulBatch(attenSoftmax, attenPreProcessResult.inputs, m_batchSize);
 
-            return g.ConcatRows(contexts);
+
+            return contexts;
         }
 
       

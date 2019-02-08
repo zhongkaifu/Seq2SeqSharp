@@ -19,13 +19,13 @@ namespace Seq2SeqSharp
         public int dim { get; set; }
         public int depth { get; set; }
 
-        public Encoder(int batchSize, int hdim, int dim, int depth, ArchTypeEnums archType, int deviceId)
+        public Encoder(int batchSize, int hdim, int dim, int depth, ArchTypeEnums archType, int deviceId, bool isDefaultDevice)
         {
-            encoders.Add(new LSTMCell(batchSize, hdim, dim, archType, deviceId));
+            encoders.Add(new LSTMCell(batchSize, hdim, dim, archType, deviceId, isDefaultDevice));
 
             for (int i = 1; i < depth; i++)
             {
-                encoders.Add(new LSTMCell(batchSize, hdim, hdim, archType, deviceId));
+                encoders.Add(new LSTMCell(batchSize, hdim, hdim, archType, deviceId, isDefaultDevice));
 
             }
             this.hdim = hdim;

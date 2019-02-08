@@ -9,17 +9,17 @@ namespace Seq2SeqSharp
 {
     public interface IComputeGraph
     {
+        IWeightMatrix MulBatch(IWeightMatrix m1, IWeightMatrix m2, int batchSize);
+
         IWeightMatrix Mul(IWeightMatrix w1, IWeightMatrix w2);
         IWeightMatrix EltMul(IWeightMatrix w1, IWeightMatrix w2);
         IWeightMatrix Add(IWeightMatrix w1, IWeightMatrix w2);
-        IWeightMatrix Add(IWeightMatrix w1, IWeightMatrix w2, IWeightMatrix w3);
-        IWeightMatrix Add(IWeightMatrix w1, IWeightMatrix w2, IWeightMatrix w3, IWeightMatrix w4);
         IWeightMatrix Tanh(IWeightMatrix w);
         IWeightMatrix Sigmoid(IWeightMatrix w);
 
         IWeightMatrix MulAdd(IWeightMatrix m1, IWeightMatrix m2, IWeightMatrix m3);
 
-        IWeightMatrix MulAdd2(IWeightMatrix m1, IWeightMatrix m2, IWeightMatrix m3);
+        IWeightMatrix EltMulMulAdd(IWeightMatrix w1, IWeightMatrix w2, IWeightMatrix w3, IWeightMatrix w4);
 
         List<IWeightMatrix> UnFolderRow(IWeightMatrix m, int n, bool gradient = true);
 
@@ -42,10 +42,12 @@ namespace Seq2SeqSharp
         (IWeightMatrix r1, IWeightMatrix r2) SplitColumns(IWeightMatrix w, int size1, int size2);
         (IWeightMatrix r1, IWeightMatrix r2, IWeightMatrix r3) SplitColumns(IWeightMatrix w, int size1, int size2, int size3);
 
-        IWeightMatrix ConcatRows(List<IWeightMatrix> wl, bool bp = true);
+        IWeightMatrix ConcatRows(List<IWeightMatrix> wl);
 
         IWeightMatrix RepeatRows(IWeightMatrix w, int n);
 
         IWeightMatrix Transpose2(IWeightMatrix w);
+
+        IWeightMatrix ConcatRowColumn(List<IWeightMatrix> wl1, List<IWeightMatrix> wl2);
     }
 }

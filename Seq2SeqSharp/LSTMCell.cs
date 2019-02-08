@@ -26,12 +26,12 @@ namespace Seq2SeqSharp
         private int batchSize;
         private int deviceId;
 
-        public LSTMCell(int batchSize, int hdim, int dim, ArchTypeEnums archType, int deviceId)
+        public LSTMCell(int batchSize, int hdim, int dim, ArchTypeEnums archType, int deviceId, bool isDefaultDevice)
         {
             if (archType == ArchTypeEnums.GPU_CUDA)
             {
-                Wxh = new WeightTensor(dim + hdim, hdim * 4, deviceId, true);
-                b = new WeightTensor(1, hdim * 4, 0, deviceId);
+                Wxh = new WeightTensor(dim + hdim, hdim * 4, deviceId, isDefaultDevice, true);
+                b = new WeightTensor(1, hdim * 4, 0, deviceId, isDefaultDevice);
             }
             else
             {
@@ -61,9 +61,13 @@ namespace Seq2SeqSharp
             (var input_gate, var forget_gate, var output_gate) = innerGraph.SplitColumns(gates, hdim, hdim, hdim);
 
             // compute new cell activation
-            var retain_cell = innerGraph.EltMul(forget_gate, cell_prev); // what do we keep from cell
-            var write_cell = innerGraph.EltMul(input_gate, cell_write); // what do we write to cell
-            ct = innerGraph.Add(retain_cell, write_cell); // new cell contents
+            //var retain_cell = innerGraph.EltMul(forget_gate, cell_prev); // what do we keep from cell
+            //var write_cell = innerGraph.EltMul(input_gate, cell_write); // what do we write to cell
+            //ct = innerGraph.Add(retain_cell, write_cell); // new cell contents
+
+
+
+            ct = innerGraph.EltMulMulAdd(forget_gate, cell_prev, input_gate, cell_write);
 
             // compute hidden state as gated, saturated cell activations
             ht = innerGraph.EltMul(output_gate, innerGraph.Tanh(ct));

@@ -17,6 +17,6 @@ namespace TensorSharp.CUDA.ContextState
     public interface IDeviceAllocator : IDisposable
     {
         IDeviceMemory Allocate(long byteCount);
-        void FreeMemory();
+        void FreeMemory(bool callGC = false);
     }
 }

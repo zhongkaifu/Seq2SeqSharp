@@ -72,6 +72,9 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AdvUtils">
+      <HintPath>..\dll\AdvUtils.dll</HintPath>
+    </Reference>
     <Reference Include="CudaBlas, Version=8.0.22.0, Culture=neutral, PublicKeyToken=539d54d12e99fedb, processorArchitecture=AMD64">
       <HintPath>..\packages\ManagedCuda-CUBLAS.8.0.22\lib\net40\CudaBlas.dll</HintPath>
     </Reference>
@@ -116,6 +119,7 @@
     <Compile Include="DeviceCode\Headers\ReduceIndex.cs" />
     <Compile Include="DeviceCode\Headers\ReduceMacros.cs" />
     <Compile Include="DeviceCode\PermutationGenerator.cs" />
+    <Compile Include="DeviceCode\SoftmaxKernels.cs" />
     <Compile Include="DeviceCode\SpatialMaxPoolKernels.cs" />
     <Compile Include="DeviceCode\VarStdKernels.cs" />
     <Compile Include="DeviceState.cs" />
