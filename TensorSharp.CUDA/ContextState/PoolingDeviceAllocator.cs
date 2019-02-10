@@ -80,18 +80,17 @@ namespace TensorSharp.CUDA.ContextState
                 {
                     try
                     {
-
                         // If control flow gets to this point, sizedPool exists in the dictionary and is empty.
                         context.SetCurrent();
                         buffer = context.AllocateMemory(size);
                     }
-                    catch (ManagedCuda.CudaException err)
+                    catch (ManagedCuda.CudaException)
                     {
                         FreeMemory(false);
                         buffer = context.AllocateMemory(size);
                     }
                 }
-                catch (ManagedCuda.CudaException err)
+                catch (ManagedCuda.CudaException)
                 {
                     FreeMemory(true);
                     buffer = context.AllocateMemory(size);

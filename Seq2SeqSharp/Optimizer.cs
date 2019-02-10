@@ -88,45 +88,7 @@ namespace Seq2SeqSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void UpdateWeightsTensor(WeightTensor m, int batchSize, float step_size, float clipval, float regc)
         {
-            Ops.Mul(m.TGradient, m.TGradient, 1.0f / batchSize);
-            Ops.Clamp(m.TGradient, m.TGradient, -clipval, clipval);
-            Ops.UpdateCash(m.TCache, m.TCache, m.TGradient, decay_rate);
-
-            Ops.UpdateDelta(m.TGradient, m.TGradient, m.TCache, smooth_eps);
-
-            Ops.UpdateCash(m.TLrW, m.TLrW, m.TGradient, lr_decay_rate);
-
-            Ops.UpdateWeight2(m.TWeight, m.TWeight, m.TGradient, m.TLrW, -step_size, -regc);
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void UpdateWeightsTensor(WeightTensor m, int batchSize, float step_size, float clipval, float regc, int rowId)
-        {
-            Tensor TWeight = m.TWeight.Narrow(0, rowId, 1);
-            Tensor TGradient = m.TGradient.Narrow(0, rowId, 1);
-            Tensor TCash = m.TCache.Narrow(0, rowId, 1);
-            Tensor TLrW = m.TLrW.Narrow(0, rowId, 1);
-
-            if (batchSize != 1)
-            {
-                Ops.Mul(TGradient, TGradient, 1.0f / batchSize);
-            }
-
-            Ops.Clamp(TGradient, TGradient, -clipval, clipval);
-            Ops.UpdateCash(TCash, TCash, TGradient, decay_rate);
-
-            Ops.UpdateDelta(TGradient, TGradient, TCash, smooth_eps);
-
-            Ops.UpdateCash(TLrW, TLrW, TGradient, lr_decay_rate);
-
-            Ops.UpdateWeight2(TWeight, TWeight, TGradient, TLrW, -step_size, -regc);
-
-
-            TWeight.Dispose();
-            TGradient.Dispose();
-            TCash.Dispose();
-            TLrW.Dispose();
+            Ops.SGD(m.TWeight, m.TGradient, m.TCache, m.TLrW, batchSize, step_size, clipval, regc, decay_rate, smooth_eps);
         }
 
 

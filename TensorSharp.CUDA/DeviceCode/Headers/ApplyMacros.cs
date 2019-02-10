@@ -122,6 +122,7 @@ extern ""C"" {\
     }\
 }
 
+/*
 #define APPLY_TTTSS(INDEX_TYPE, DIMSA, DIMSB, DIMSC, KERNEL_NAME, OP_CODE)\
 struct ConcreteOp##KERNEL_NAME {\
     float d;\
@@ -159,6 +160,7 @@ extern ""C"" {\
         pointwiseApply4<ConcreteOp##KERNEL_NAME, INDEX_TYPE, DIMSA, DIMSB, DIMSC, DIMSD>(a, b, c, d, (INDEX_TYPE)totalElements, ConcreteOp##KERNEL_NAME(e, f));\
     }\
 }
+*/
 
 ";
     }

@@ -63,7 +63,7 @@ namespace TensorSharp.Expression
         public SVar Pow(SVar y) { return new SVar(new BinaryScalarExpression(this.expression, y.expression, (xVal, yVal) => (float)Math.Pow(xVal, yVal))); }
         public SVar Clamp(SVar min, SVar max) { return new SVar(new DelegateScalarExpression(() => ClampFloat(this.expression.Evaluate(), min.expression.Evaluate(), max.expression.Evaluate()))); }
 
-        public TVar Pow(TVar y) { return new TVar(new BinaryScalarTensorExpression(this.Expression, y.Expression, Ops.Tpow)); }
+       // public TVar Pow(TVar y) { return new TVar(new BinaryScalarTensorExpression(this.Expression, y.Expression, Ops.Tpow)); }
 
 
         public static SVar Atan2(SVar y, SVar x) { return new SVar(new DelegateScalarExpression(() => (float)Math.Atan2(y.Evaluate(), x.Evaluate()))); }

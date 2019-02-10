@@ -262,21 +262,11 @@ namespace TensorSharp.CUDA
         public Tensor AddSigmoidD(Tensor result, Tensor t, Tensor resW, Tensor resG) { return ElementwiseTTTTOp.Invoke(elementwiseKernels, "addsigmoidD", result, t, resW, resG); }
 
 
-        [RegisterOpStorageType("tanhD", typeof(CudaStorage))]
-        public Tensor TanhD(Tensor result, Tensor resW, Tensor resG) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "tanhD", result, resW, resG); }
-
         [RegisterOpStorageType("addtanhD", typeof(CudaStorage))]
         public Tensor AddTanhD(Tensor result, Tensor t, Tensor resW, Tensor resG) { return ElementwiseTTTTOp.Invoke(elementwiseKernels, "addtanhD", result, t, resW, resG); }
 
         [RegisterOpStorageType("addtanh", typeof(CudaStorage))]
         public Tensor AddTanh(Tensor result, Tensor x, Tensor y) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "addtanh", result, x, y); }
-
-        [RegisterOpStorageType("add3", typeof(CudaStorage))]
-        public Tensor Add3(Tensor result, Tensor x, Tensor y, Tensor z) { return ElementwiseTTTTOp.Invoke(elementwiseKernels, "add3", result, x, y, z); }
-
-        [RegisterOpStorageType("add4", typeof(CudaStorage))]
-        public Tensor Add4(Tensor result, Tensor x, Tensor y, Tensor z, Tensor w) { return ElementwiseTTTTTOp.Invoke(elementwiseKernels, "add4", result, x, y, z, w); }
-
 
 
         [RegisterOpStorageType("mulmuladd", typeof(CudaStorage))]
@@ -285,30 +275,6 @@ namespace TensorSharp.CUDA
 
         [RegisterOpStorageType("addmul", typeof(CudaStorage))]
         public Tensor AddMul(Tensor result, Tensor x, Tensor y, Tensor z) { return ElementwiseTTTTOp.Invoke(elementwiseKernels, "addmul", result, x, y, z); }
-
-
-        [RegisterOpStorageType("addmulv", typeof(CudaStorage))]
-        public Tensor AddMulV(Tensor result, Tensor x, Tensor y, float z) { return ElementwiseTTTSOp.Invoke(elementwiseKernels, "addmulv", result, x, y, z); }
-
-
-        [RegisterOpStorageType("updatecash", typeof(CudaStorage))]
-        public Tensor UpdateCash(Tensor result, Tensor s, Tensor g, float d) { return ElementwiseTTTSOp.Invoke(elementwiseKernels, "updatecash", result, s, g, d); }
-
-        [RegisterOpStorageType("updatedelta", typeof(CudaStorage))]
-        public Tensor UpdateDelta(Tensor result, Tensor g, Tensor s, float eps) { return ElementwiseTTTSOp.Invoke(elementwiseKernels, "updatedelta", result, g, s, eps); }
-
-
-        [RegisterOpStorageType("expsub", typeof(CudaStorage))]
-        public Tensor ExpSub(Tensor result, Tensor x, float y) { return ElementwiseTTSOp.Invoke(elementwiseKernels, "expsub", result, x, y); }
-
-        [RegisterOpStorageType("expsub2", typeof(CudaStorage))]
-        public Tensor ExpSub2(Tensor result, Tensor x, Tensor y) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "expsub2", result, x, y); }
-
-        [RegisterOpStorageType("updateweight2", typeof(CudaStorage))]
-        public Tensor UpdateWeight2(Tensor result, Tensor weight, Tensor delta, Tensor lr, float step_size, float regc) { return ElementwiseTTTTSSOp.Invoke(elementwiseKernels, "updateweight2", result, weight, delta, lr, step_size, regc); }
-
-        [RegisterOpStorageType("updateweight3", typeof(CudaStorage))]
-        public Tensor UpdateWeight3(Tensor result, Tensor weight, Tensor delta, float step_size, float regc) { return ElementwiseTTTSSOp.Invoke(elementwiseKernels, "updateweight3", result, weight, delta, step_size, regc); }
 
 
         [RegisterOpStorageType("atan2", typeof(CudaStorage))]
@@ -441,6 +407,13 @@ namespace TensorSharp.CUDA
 
         [RegisterOpStorageType("softmaxgrad", typeof(CudaStorage))]
         public Tensor SoftmaxGrad(Tensor grad, Tensor adj, Tensor val) { return softmaxKernels.SoftmaxGrad(grad, adj, val); }
+
+        [RegisterOpStorageType("sgd", typeof(CudaStorage))]
+        public Tensor SGD(Tensor weight, Tensor gradient, Tensor cache, Tensor lrw, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
+        {
+            return softmaxKernels.SGD(weight, gradient, cache, lrw, batchSize, step_size, clipval, regc, decay_rate, eps);
+        }
+
 
         [RegisterOpStorageType("sumall", typeof(CudaStorage))]
         public Tensor SumAll(Tensor result, Tensor src)

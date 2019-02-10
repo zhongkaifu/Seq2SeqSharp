@@ -886,100 +886,7 @@ namespace Seq2SeqSharp
             }
             return res;
         }
-
-      
-
-      
-
-        public virtual IWeightMatrix SoftmaxWithCrossEntropy(IWeightMatrix src)
-        {
-            WeightMatrix m = src as WeightMatrix;
-
-            var res = weightMatrixFactory.CreateWeightMatrix(m.Rows, m.Columns); // probability volume
-
-            var maxval = -999999.0f;
-            var n = m.Weight.Length;
-            var moreItem = (n % Vector<float>.Count);
-
-            var k = 0;
-            var vecMaxVal = new Vector<float>(maxval);
-            while (k < n - moreItem)
-            {
-                var vecMW = new Vector<float>(m.Weight, k);
-                vecMaxVal = Vector.Max(vecMW, vecMaxVal);
-
-                k += Vector<float>.Count;
-            }
-
-            for (int i = 0; i < Vector<float>.Count; i++)
-            {
-                if (vecMaxVal[i] > maxval)
-                {
-                    maxval = vecMaxVal[i];
-                }
-            }
-
-
-            while (k < n)
-            {
-                if (m.Weight[k] > maxval) maxval = m.Weight[k];
-
-                k++;
-            }
-
-
-            double s = 0.0;
-            k = 0;
-            vecMaxVal = new Vector<float>(maxval);
-            while (k < n - moreItem)
-            {
-                var vecMW = new Vector<float>(m.Weight, k);
-                var vecV = FastExp(vecMW - vecMaxVal);
-                vecV.CopyTo(res.Weight, k);
-
-                s += Vector.Dot(vecV, Vector<float>.One);
-
-                k += Vector<float>.Count;
-            }
-
-            k = n - moreItem;
-            while (k < n)
-            {
-                float v = FastExp(m.Weight[k] - maxval);
-                res.Weight[k] = (float)v;
-                s += v;
-
-                k++;
-            }
-
-
-            k = 0;
-            var vecS = new Vector<float>((float)s);
-            while (k < n - moreItem)
-            {
-                var vecResW = new Vector<float>(res.Weight, k);
-                vecResW = vecResW / vecS;
-                vecResW.CopyTo(res.Weight, k);
-
-                k += Vector<float>.Count;
-            }
-
-            while (k < n)
-            {
-                float v = (float)(res.Weight[k] / s);
-                res.Weight[k] = v;
-                k++;
-            }
-
-
-            // no backward pass here needed
-            // since we will use the computed probabilities outside
-            // to set gradients directly on m
-            return res;
-        }
-       
-
-       
+           
         public void Backward()
         {
             for (var i = this.backprop.Count - 1; i >= 0; i--)
@@ -988,7 +895,7 @@ namespace Seq2SeqSharp
             }
         }
 
-        public virtual IWeightMatrix Softmax(IWeightMatrix src)
+        public virtual IWeightMatrix Softmax(IWeightMatrix src, bool bp = true)
         {
             WeightMatrix m = src as WeightMatrix;
 
@@ -1067,7 +974,7 @@ namespace Seq2SeqSharp
                 k++;
             }
 
-            if (this.needs_backprop)
+            if (this.needs_backprop && bp)
             {
                 Action backward = () =>
                 {
@@ -1334,17 +1241,6 @@ namespace Seq2SeqSharp
 
             return result;
         }
-
-        public IWeightMatrix SoftmaxM(IWeightMatrix w, bool bp = true)
-        {
-            if (w.Rows != 1)
-            {
-                throw new InvalidOperationException($"The row size of given matrix must be 1.");
-            }
-
-            return Softmax(w);
-        }
-
        
         public IWeightMatrix MulBatch(IWeightMatrix m1, IWeightMatrix m2, int batchSize)
         {

@@ -303,22 +303,7 @@ namespace Seq2SeqSharp.Tools
 
             return res;
         }
-     
-        public IWeightMatrix SoftmaxWithCrossEntropy(IWeightMatrix src)
-        {
-            WeightTensor m = src as WeightTensor;
-            var res = weightTensorFactory.CreateWeightTensor(m.Rows, m.Columns, deviceId);
-
-            var maxval = Ops.MaxAll(m.TWeight);
-            Ops.ExpSub(res.TWeight, m.TWeight, maxval);
-            float s = Ops.SumAll(res.TWeight);
-            Ops.Mul(res.TWeight, res.TWeight, 1.0f / s);
-
-            return res;
-
-        }
-
-      
+           
         public IWeightMatrix Transpose2(IWeightMatrix w)
         {
             WeightTensor m = w as WeightTensor;
@@ -340,37 +325,9 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightMatrix Softmax(IWeightMatrix w)
-        {
-            WeightTensor m = w as WeightTensor;
-            var res = weightTensorFactory.CreateWeightTensor(m.Rows, m.Columns, deviceId);
+      
 
-            var maxval = Ops.MaxAll(m.TWeight);
-            Ops.ExpSub(res.TWeight, m.TWeight, maxval);
-            float s = Ops.SumAll(res.TWeight);
-            Ops.Mul(res.TWeight, res.TWeight, 1.0f / s);
-
-            if (this.needs_backprop)
-            {
-                Action backward = () =>
-                {
-                    Tensor tTmp = Ops.Mul(null, res.TGradient, res.TWeight);
-                    Ops.Add(m.TGradient, m.TGradient, tTmp);
-                    float ss = Ops.SumAll(tTmp);
-
-                    Ops.AddMulV(m.TGradient, m.TGradient, res.TWeight, -ss);
-
-                    tTmp.Dispose();
-
-                    res.Dispose();
-                };
-                this.backprop.Add(backward);
-            }
-
-            return res;
-        }
-
-        public IWeightMatrix SoftmaxM(IWeightMatrix w, bool bp = true)
+        public IWeightMatrix Softmax(IWeightMatrix w, bool bp = true)
         {
             WeightTensor m = w as WeightTensor;
             var res = weightTensorFactory.CreateWeightTensor(m.Rows, m.Columns, deviceId, new Tensor(TensorAllocator.Allocator(deviceId), DType.Float32, m.Rows, m.Columns), bp);

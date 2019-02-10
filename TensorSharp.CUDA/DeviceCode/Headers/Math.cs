@@ -39,48 +39,8 @@ template<typename T> INLINE_FUNC T Neg(T x) {
 	return -x;
 }
 
-template<typename T> INLINE_FUNC T UpdateCash(T s, T g, T d) {
-	return s * d + (T(1) - d) * g * g;
-}
-
-
-template<typename T> INLINE_FUNC T UpdateDelta(T g, T s, T eps) {
-	return g * rsqrtf(s + eps);
-}
-
-
-template<typename T> INLINE_FUNC T UpdateWeight2(T weight, T delta, T lrw, T step, T regc) {
-	return weight + weight * regc + delta * (step / (sqrtf(lrw) + T(1)));
-}
-
-template<typename T> INLINE_FUNC T UpdateWeight3(T weight, T delta, T step, T regc) {
-	return weight + weight * regc + delta * step;
-}
-
-template<typename T> INLINE_FUNC T ExpSub(T x, T y) {
-	return __expf(x - y);
-}
-
-template<typename T> INLINE_FUNC T ExpSub2(T x, T y) {
-	return __expf(x - y);
-}
-
 template<typename T> INLINE_FUNC T AddMul(T x, T y, T z) {
 	return x + y * z;
-}
-
-template<typename T> INLINE_FUNC T AddMulV(T x, T y, T z) {
-	return x + y * z;
-}
-
-
-
-template<typename T> INLINE_FUNC T Add3(T x, T y, T z) {
-	return x + y + z;
-}
-
-template<typename T> INLINE_FUNC T Add4(T x, T y, T z, T w) {
-	return x + y + z + w;
 }
 
 template<typename T> INLINE_FUNC T MulMulAdd(T x, T y, T z, T w) {
@@ -103,10 +63,6 @@ template<typename T> INLINE_FUNC T AddSigmoidD(T t, T resW, T resG) {
 	return t + resW * (T(1) - resW) * resG;
 }
 
-
-template<typename T> INLINE_FUNC T TanhD(T resW, T resG) {
-	return (T(1) - resW * resW) * resG;
-}
 
 template<typename T> INLINE_FUNC T AddTanhD(T t, T resW, T resG) {
 	return t + (T(1) - resW * resW) * resG;

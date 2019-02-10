@@ -15,6 +15,51 @@ namespace TensorSharp.CUDA.DeviceCode
         private static readonly string Code = @"
 extern ""C""
 {
+
+__global__ void SGD(float* w, float* g, float* c, float *l, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
+{
+  for(int bid = 0; bid < rows; bid += gridDim.x) 
+  {
+    int j = bid + blockIdx.x;
+    if(j < rows) 
+    {
+      float* sw = w + j * cols;
+      float* sg = g + j * cols;
+      float* sc = c + j * cols;
+      float* sl = l + j * cols;
+      
+      for(int tid = 0; tid < cols; tid += blockDim.x) 
+      {        
+        int i = tid + threadIdx.x;
+        if(i < cols && sg[i] != 0.0) 
+        {
+           float g = sg[i] / batchSize;
+           
+           if (g > clipval)
+           {
+               g = clipval;
+           }
+           if (g < -clipval)
+           {
+               g = -clipval;
+           }
+
+           sc[i] = sc[i] * decay_rate + (1.0 - decay_rate) * g * g;
+
+           g = g * rsqrtf(sc[i] + eps);
+
+           sl[i] = sl[i] * decay_rate + (1.0 - decay_rate) * g * g;
+
+           sw[i] += -g * (step_size / (sqrtf(sl[i]) + 1.0)) - sw[i] * regc;
+
+           sg[i] = 0;
+        }
+      }
+    }
+  }
+}
+
+
   __global__ void gSoftmaxGrad(float* grad, float* adj, float* val, int rows, int cols)
   {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -147,6 +192,8 @@ extern ""C""
         {
             var cudaContext = context.CudaContextForTensor(src);
 
+            cudaContext.SetCurrent();
+
             var rows = src.Sizes[0];
             var cols = src.Sizes[1];
 
@@ -166,11 +213,47 @@ extern ""C""
             Invoke(context, cudaContext, "gSoftmax", grid, threads, (uint)(threads.x * sizeof(float)), CUstream.NullStream, resultPtr, srcPtr, rows, cols);
         }
 
+        //__global__ void SGD(float* w, float* g, float* c, float* l, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
+        private void SGD(TSCudaContext context, Tensor weight, Tensor gradient, Tensor cache, Tensor lrw, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
+        {
+            var cudaContext = context.CudaContextForTensor(weight);
 
+            cudaContext.SetCurrent();
+
+            var rows = weight.Sizes[0];
+            var cols = weight.Sizes[1];
+
+            var ndim = weight.DimensionCount;
+            long num_rows = 1;
+            for (var dim = 0; dim < ndim - 1; dim++)
+            {
+                num_rows *= weight.Sizes[dim];
+            }
+
+            var threads = new dim3((uint)Math.Min(512, num_rows));
+            var grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
+
+            var weightPtr = CudaHelpers.GetBufferStart(weight);
+            var gradientPtr = CudaHelpers.GetBufferStart(gradient);
+            var cachePtr = CudaHelpers.GetBufferStart(cache);
+            var lrwPtr = CudaHelpers.GetBufferStart(lrw);
+
+            Invoke(context, cudaContext, "SGD", grid, threads, (uint)(threads.x * sizeof(float)), CUstream.NullStream, weightPtr, gradientPtr, cachePtr, lrwPtr, rows, cols, batchSize, step_size, clipval, regc, decay_rate, eps);
+        }
+
+        public Tensor SGD(Tensor weight, Tensor gradient, Tensor cache, Tensor lrw, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
+        {
+            var context = CudaHelpers.TSContextForTensor(weight);
+            SGD(context, weight, gradient, cache, lrw, batchSize, step_size, clipval, regc, decay_rate, eps);
+
+            return weight;
+        }
 
         private void SoftmaxGrad(TSCudaContext context, Tensor grad, Tensor adj, Tensor val)
         {
             var cudaContext = context.CudaContextForTensor(grad);
+
+            cudaContext.SetCurrent();
 
             var rows = grad.Sizes[0];
             var cols = grad.Sizes[1];

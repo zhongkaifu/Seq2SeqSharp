@@ -789,7 +789,7 @@ namespace Seq2SeqSharp
 
                 //Softmax for output
                 var o = g.MulAdd(eOutput, Whd, bds);
-                var probs = g.SoftmaxM(o, false);
+                var probs = g.Softmax(o, false);
 
                 o.ReleaseWeight();
 
@@ -943,7 +943,7 @@ namespace Seq2SeqSharp
                 var x = g.PeekRow(m_tgtEmbedding[m_defaultDeviceId], ix_input);
                 var eOutput = m_decoder[m_defaultDeviceId].Decode(x, attPreProcessResult, g);
                 var o = g.MulAdd(eOutput, m_Whd[m_defaultDeviceId], m_bd[m_defaultDeviceId]);
-                var probs = g.SoftmaxWithCrossEntropy(o);
+                var probs = g.Softmax(o, false);
 
                 var pred = probs.GetMaxWeightIdx();
                 if (pred == (int)SENTTAGS.END) break; // END token predicted, break out

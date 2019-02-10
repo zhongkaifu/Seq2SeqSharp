@@ -30,11 +30,8 @@ namespace Seq2SeqSharp
         void Backward();
         IWeightMatrix PeekRow(IWeightMatrix w, int ix, int num = 1);
         IWeightMatrix Dropout(IWeightMatrix V, float drop_prob);
-        IWeightMatrix SoftmaxWithCrossEntropy(IWeightMatrix src);
 
-        IWeightMatrix Softmax(IWeightMatrix w);
-
-        IWeightMatrix SoftmaxM(IWeightMatrix w, bool bp = true);
+        IWeightMatrix Softmax(IWeightMatrix w, bool bp = true);
 
         IWeightMatrix ConcatColumns(params IWeightMatrix[] wl);        
 

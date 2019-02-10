@@ -82,7 +82,7 @@ namespace Seq2SeqSharp
             }
 
             var attenT = g.ConcatRows(attensT);
-            var attenSoftmax = g.SoftmaxM(attenT);
+            var attenSoftmax = g.Softmax(attenT);
 
             IWeightMatrix contexts = g.MulBatch(attenSoftmax, attenPreProcessResult.inputs, m_batchSize);
 
