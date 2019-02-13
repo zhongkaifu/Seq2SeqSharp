@@ -14,7 +14,7 @@ namespace TensorSharp.CUDA
     {
         private readonly CudaContext context;
 
-        private readonly IDeviceMemory bufferHandle;
+        private IDeviceMemory bufferHandle;
         private readonly CUdeviceptr deviceBuffer;
 
 
@@ -32,7 +32,11 @@ namespace TensorSharp.CUDA
 
         protected override void Destroy()
         {
-            bufferHandle.Free();
+            if (bufferHandle != null)
+            {
+                bufferHandle.Free();
+                bufferHandle = null;
+            }
         }
 
         public override string LocationDescription()

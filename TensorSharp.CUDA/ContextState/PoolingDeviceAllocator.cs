@@ -30,6 +30,7 @@ namespace TensorSharp.CUDA.ContextState
                 if (callGC)
                 {
                     GC.Collect();
+                 //   GC.WaitForPendingFinalizers();
                 }
 
                 foreach (var kv in pools)
@@ -49,8 +50,6 @@ namespace TensorSharp.CUDA.ContextState
 
         public IDeviceMemory Allocate(long byteCount)
         {
-           // FreePools();
-
             var size = PadToAlignment(byteCount, MemoryAlignment);          
             Queue<IDeviceMemory> sizedPool;
 

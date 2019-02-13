@@ -705,15 +705,6 @@ namespace Seq2SeqSharp
 
             backwardOutputs.Reverse();
 
-            //List<IWeightMatrix> encoded = new List<IWeightMatrix>();
-            //for (int i = 0; i < seqLen; i++)
-            //{
-            //    encoded.Add(g.ConcatColumns(forwardOutputs[i], backwardOutputs[i]));
-            //}
-
-            //var encodedOutput = g.ConcatRows(encoded);
-
-
             var encodedOutput = g.ConcatRowColumn(forwardOutputs, backwardOutputs);
 
             return encodedOutput;

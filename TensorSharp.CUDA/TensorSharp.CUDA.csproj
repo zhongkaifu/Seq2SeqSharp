@@ -75,14 +75,14 @@
     <Reference Include="AdvUtils">
       <HintPath>..\dll\AdvUtils.dll</HintPath>
     </Reference>
-    <Reference Include="CudaBlas, Version=8.0.22.0, Culture=neutral, PublicKeyToken=539d54d12e99fedb, processorArchitecture=AMD64">
-      <HintPath>..\packages\ManagedCuda-CUBLAS.8.0.22\lib\net40\CudaBlas.dll</HintPath>
+    <Reference Include="CudaBlas, Version=10.0.31.0, Culture=neutral, PublicKeyToken=539d54d12e99fedb, processorArchitecture=AMD64">
+      <HintPath>..\packages\ManagedCuda-CUBLAS.10.0.31\lib\net40\CudaBlas.dll</HintPath>
     </Reference>
-    <Reference Include="ManagedCuda, Version=8.0.22.0, Culture=neutral, PublicKeyToken=242d898828717aa0, processorArchitecture=MSIL">
-      <HintPath>..\packages\ManagedCuda-80.8.0.22\lib\net40\ManagedCuda.dll</HintPath>
+    <Reference Include="ManagedCuda, Version=10.0.31.0, Culture=neutral, PublicKeyToken=242d898828717aa0, processorArchitecture=MSIL">
+      <HintPath>..\packages\ManagedCuda-100.10.0.31\lib\net40\ManagedCuda.dll</HintPath>
     </Reference>
-    <Reference Include="NVRTC, Version=8.0.22.0, Culture=neutral, processorArchitecture=AMD64">
-      <HintPath>..\packages\ManagedCuda-NVRTC.8.0.22\lib\net40\NVRTC.dll</HintPath>
+    <Reference Include="NVRTC, Version=10.0.31.0, Culture=neutral, processorArchitecture=AMD64">
+      <HintPath>..\packages\ManagedCuda-NVRTC.10.0.31\lib\net40\NVRTC.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
