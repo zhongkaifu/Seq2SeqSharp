@@ -44,9 +44,9 @@ namespace TensorSharp.CUDA
         }
 
 
-        public void FreeMemory()
+        public void FreeMemory(bool callGC = false)
         {
-            MemoryAllocator.FreeMemory();
+            MemoryAllocator.FreeMemory(callGC);
         }
 
         public void Dispose()

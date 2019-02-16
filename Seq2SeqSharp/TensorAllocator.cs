@@ -57,12 +57,12 @@ namespace Seq2SeqSharp
             return -1;
         }
 
-        public static void FreeMemoryAllDevices()
+        public static void FreeMemoryAllDevices(bool callGC = false)
         {
             GC.Collect();
             if (cudaContext != null)
             {
-                cudaContext.FreeMemoryAllDevices();
+                cudaContext.FreeMemoryAllDevices(callGC);
             }
         }
     }

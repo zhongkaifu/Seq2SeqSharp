@@ -30,7 +30,7 @@ namespace TensorSharp.CUDA.ContextState
                 if (callGC)
                 {
                     GC.Collect();
-                 //   GC.WaitForPendingFinalizers();
+                    GC.WaitForFullGCComplete();
                 }
 
                 foreach (var kv in pools)

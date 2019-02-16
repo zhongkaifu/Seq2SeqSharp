@@ -67,12 +67,6 @@ namespace Seq2SeqSharp.Tools
             {
                 Action backward = () =>
                 {
-                    //Tensor tTmp = Ops.TanhD(null, res.TWeight, res.TGradient);
-                    //Ops.Add(m1.TGradient, m1.TGradient, tTmp);
-                    //Ops.Add(m2.TGradient, m2.TGradient, tTmp);
-                    //tTmp.Dispose();
-
-
                     Ops.AddTanhD(m1.TGradient, m1.TGradient, res.TWeight, res.TGradient);
                     Ops.AddTanhD(m2.TGradient, m2.TGradient, res.TWeight, res.TGradient);
 
@@ -101,6 +95,8 @@ namespace Seq2SeqSharp.Tools
             {
                 Action backward = () =>
                 {
+                    res.ReleaseWeight();
+
                     Ops.AddMul(m1.TGradient, m1.TGradient, m2.TWeight, res.TGradient);
                     Ops.AddMul(m2.TGradient, m2.TGradient, m1.TWeight, res.TGradient);
 
@@ -127,6 +123,8 @@ namespace Seq2SeqSharp.Tools
             {
                 Action backward = () =>
                 {
+                    res.ReleaseWeight();
+
                     Ops.AddMul(m1.TGradient, m1.TGradient, m2.TWeight, res.TGradient);
                     Ops.AddMul(m2.TGradient, m2.TGradient, m1.TWeight, res.TGradient);
 
@@ -148,9 +146,10 @@ namespace Seq2SeqSharp.Tools
 
             if (this.needs_backprop)
             {
-
                 Action backward = () =>
                 {
+                    res.ReleaseWeight();
+
                     Ops.Add(m1.TGradient, res.TGradient, m1.TGradient);
                     Ops.Add(m2.TGradient, res.TGradient, m2.TGradient);
 
@@ -195,10 +194,14 @@ namespace Seq2SeqSharp.Tools
             Tensor rW = res.TWeight.View(batchSize, n / batchSize, d);
 
             Ops.AddmmBatch(rW, 0.0f, rW, 1.0f, t1W, t2W);
+            rW.Dispose();
+
             if (this.needs_backprop)
             {
                 Action backward = () =>
                 {
+                    res.ReleaseWeight();
+                    
                     Tensor t1G = t1.TGradient.View(batchSize, t1.Rows / batchSize, t1.Columns);
                     Tensor t2G = t2.TGradient.View(batchSize, t2.Rows / batchSize, t2.Columns);
                     Tensor rG = res.TGradient.View(batchSize, n / batchSize, d);
@@ -217,7 +220,6 @@ namespace Seq2SeqSharp.Tools
                     t1G.Dispose();
                     t2G.Dispose();
 
-                    rW.Dispose();
                     rG.Dispose();
 
                     res.Dispose();
@@ -229,7 +231,6 @@ namespace Seq2SeqSharp.Tools
             {
                 t1W.Dispose();
                 t2W.Dispose();
-                rW.Dispose();
             }
 
             return res;
@@ -250,6 +251,8 @@ namespace Seq2SeqSharp.Tools
             {
                 Action backward = () =>
                 {
+                    res.ReleaseWeight();
+
                     var tW2 = t2.TWeight.Transpose();
                     Ops.Addmm(t1.TGradient, 1.0f, t1.TGradient, 1.0f, res.TGradient, tW2);               
 
@@ -284,6 +287,8 @@ namespace Seq2SeqSharp.Tools
             {
                 Action backward = () =>
                 {
+                    res.ReleaseWeight();
+
                     Ops.Add(t3.TGradient, t3.TGradient, res.TGradient);
 
                     var tW2 = t2.TWeight.Transpose();
@@ -330,7 +335,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightMatrix Softmax(IWeightMatrix w, bool bp = true)
         {
             WeightTensor m = w as WeightTensor;
-            var res = weightTensorFactory.CreateWeightTensor(m.Rows, m.Columns, deviceId, new Tensor(TensorAllocator.Allocator(deviceId), DType.Float32, m.Rows, m.Columns), bp);
+            var res = weightTensorFactory.CreateWeightTensor(m.Rows, m.Columns, deviceId);
             Ops.Softmax(res.TWeight, m.TWeight);
 
             if (this.needs_backprop && bp)
@@ -400,6 +405,8 @@ namespace Seq2SeqSharp.Tools
             {
                 Action backward = () =>
                 {
+                    res.ReleaseWeight();
+
                     Tensor tTmp1 = res.TGradient.Narrow(1, 0, m1.Columns);
                     Ops.Add(m1.TGradient, m1.TGradient, tTmp1);
 
@@ -474,6 +481,8 @@ namespace Seq2SeqSharp.Tools
             {
                 Action backward = () =>
                 {
+                    res.ReleaseWeight();
+
                     sx = 0;
                     foreach (IWeightMatrix item in wl)
                     {
@@ -527,6 +536,8 @@ namespace Seq2SeqSharp.Tools
             {
                 Action backward = () =>
                 {
+                    res.ReleaseWeight();
+
                     var res1 = res.TGradient.Narrow(1, 0, wl1[0].Columns);
                     var res2 = res.TGradient.Narrow(1, wl1[0].Columns, wl2[0].Columns);
 
@@ -584,6 +595,8 @@ namespace Seq2SeqSharp.Tools
             {
                 Action backward = () =>
                 {
+                    res.ReleaseWeight();
+
                     sy = 0;
                     foreach (IWeightMatrix item in wl)
                     {
@@ -681,7 +694,7 @@ namespace Seq2SeqSharp.Tools
                 Tensor tw = t.TWeight.Unfold(0, n, n);
                 for (int i = 0; i < n; i++)
                 {
-                    WeightTensor res = weightTensorFactory.CreateWeightTensor(m.Rows / n, m.Columns, deviceId, tw.Select(2, i), gradient);
+                    WeightTensor res = weightTensorFactory.CreateWeightTensor(m.Rows / n, m.Columns, tw.Select(2, i), null);
 
                     if (res.Rows != res.TWeight.Sizes[0])
                     {
@@ -694,7 +707,7 @@ namespace Seq2SeqSharp.Tools
                 tw.Dispose();
             }
 
-            if (this.needs_backprop)
+            if (this.needs_backprop && gradient)
             {
                 Action backward = () =>
                 {
@@ -742,6 +755,8 @@ namespace Seq2SeqSharp.Tools
             {
                 Action backward = () =>
                 {
+                    res.ReleaseWeight();
+
                     Ops.AddMul(w.TGradient, w.TGradient, res.TGradient, noise);
 
                     noise.Dispose();

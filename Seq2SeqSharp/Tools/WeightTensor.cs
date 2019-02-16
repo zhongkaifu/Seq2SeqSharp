@@ -14,17 +14,61 @@ namespace Seq2SeqSharp.Tools
     [Serializable]
     public class WeightTensor : IWeightMatrix,  IDisposable
     {
-        public Tensor TWeight;
-        public Tensor TGradient;
-        public Tensor TLrW;
-        public Tensor TCache;
-
         public int Rows { get; set; }
         public int Columns { get; set; }
 
         public Dictionary<int, int> RowToBeUpdated { get; set; } = new Dictionary<int, int>();
 
         public int DeviceId { get; set; }
+
+
+        private Tensor m_TWeight = null;
+        private Tensor m_TGradient = null;
+
+        public Tensor TWeight
+        {
+            get
+            {
+                if (m_TWeight == null)
+                {
+                    var allocator = TensorAllocator.Allocator(DeviceId);
+
+                    m_TWeight = new Tensor(allocator, DType.Float32, Rows, Columns);
+                }
+
+                return m_TWeight;
+            }
+            set
+            {
+                m_TWeight = value;
+            }
+        }
+
+        public Tensor TGradient
+        {
+            get
+            {
+                if (m_TGradient == null)
+                {
+                    var allocator = TensorAllocator.Allocator(DeviceId);
+
+                    m_TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
+                    Ops.Fill(m_TGradient, 0.0f);
+                }
+
+                return m_TGradient;
+            }
+
+            set
+            {
+                m_TGradient = value;
+            }
+        }
+
+        public Tensor TLrW;
+        public Tensor TCache;
+
+
 
 
         public WeightTensor(int rows, int columns, int deviceId, bool keepCache = true, bool normal = false)
@@ -70,39 +114,39 @@ namespace Seq2SeqSharp.Tools
             Rows = rows;
             Columns = columns;
 
-            var allocator = TensorAllocator.Allocator(deviceId);
+            //var allocator = TensorAllocator.Allocator(deviceId);
 
-            TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
-            Ops.Fill(TGradient, 0.0f);
+            //TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
+            //Ops.Fill(TGradient, 0.0f);
 
-            TWeight = new Tensor(allocator, DType.Float32, Rows, Columns);
+            //TWeight = new Tensor(allocator, DType.Float32, Rows, Columns);
         }
 
 
-        public WeightTensor(int rows, int columns, Tensor weight, int deviceId, bool graident = true)
-        {
-            DeviceId = deviceId;
-            Rows = rows;
-            Columns = columns;
+        //public WeightTensor(int rows, int columns, Tensor weight, int deviceId, bool graident = true)
+        //{
+        //    DeviceId = deviceId;
+        //    Rows = rows;
+        //    Columns = columns;
 
-            TWeight = weight;
+        //    TWeight = weight;
 
-            if (graident)
-            {
-                var allocator = TensorAllocator.Allocator(deviceId);
+        //    //if (graident)
+        //    //{
+        //    //    var allocator = TensorAllocator.Allocator(deviceId);
 
-                TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
-                Ops.Fill(TGradient, 0.0f);
-            }
-        }
+        //    //    TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
+        //    //    Ops.Fill(TGradient, 0.0f);
+        //    //}
+        //}
 
         public WeightTensor(int rows, int columns, Tensor weight, Tensor gradient)
         {
             this.Rows = rows;
             this.Columns = columns;
 
-            TGradient = gradient;
-            TWeight = weight;
+            m_TGradient = gradient;
+            m_TWeight = weight;
         }
 
 
@@ -182,10 +226,13 @@ namespace Seq2SeqSharp.Tools
 
             //  Ops.Copy(TGradient, m.TWeight);
 
-            TGradient.Dispose();
-            TGradient = m.TWeight;
+            if (m_TGradient != null)
+            {
+                m_TGradient.Dispose();
+            }
+            m_TGradient = m.TWeight;
 
-            m.TWeight = null;
+            m.m_TWeight = null;
         }
 
         public void CopyWeights(IWeightMatrix src)
@@ -251,16 +298,16 @@ namespace Seq2SeqSharp.Tools
 
         public void Dispose()
         {
-            if (TWeight != null)
+            if (m_TWeight != null)
             {
-                TWeight.Dispose();
-                TWeight = null;
+                m_TWeight.Dispose();
+                m_TWeight = null;
             }
 
-            if (TGradient != null)
+            if (m_TGradient != null)
             {
-                TGradient.Dispose();
-                TGradient = null;
+                m_TGradient.Dispose();
+                m_TGradient = null;
             }
 
             if (TCache != null)
@@ -278,10 +325,10 @@ namespace Seq2SeqSharp.Tools
 
         public void ReleaseWeight()
         {
-            if (TWeight != null)
+            if (m_TWeight != null)
             {
-                TWeight.Dispose();
-                TWeight = null;
+                m_TWeight.Dispose();
+                m_TWeight = null;
             }
         }
 

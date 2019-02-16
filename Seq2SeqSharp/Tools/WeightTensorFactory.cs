@@ -20,13 +20,13 @@ namespace Seq2SeqSharp.Tools
             return t;
         }
 
-        public WeightTensor CreateWeightTensor(int row, int column, int deviceId, Tensor w, bool gradient = true)
-        {
-            WeightTensor t = new WeightTensor(row, column, w, deviceId, gradient);
-            weights.Add(t);
+        //public WeightTensor CreateWeightTensor(int row, int column, int deviceId, Tensor w, bool gradient = true)
+        //{
+        //    WeightTensor t = new WeightTensor(row, column, w, deviceId, gradient);
+        //    weights.Add(t);
 
-            return t;
-        }
+        //    return t;
+        //}
 
 
         public WeightTensor CreateWeightTensor(int row, int column, int deviceId, bool cleanWeights = false)

@@ -91,11 +91,11 @@ namespace TensorSharp.CUDA
       //  public int DeviceCount { get { return deviceCount; } }
 
 
-        public void FreeMemoryAllDevices()
+        public void FreeMemoryAllDevices(bool callGC = false)
         {
             foreach (var device in devices)
             {
-                device.FreeMemory();
+                device.FreeMemory(callGC);
             }
         }
 
