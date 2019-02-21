@@ -38,6 +38,11 @@ namespace Seq2SeqSharp
             int n = System.Threading.Interlocked.Increment(ref count);
             array[n - 1] = item;
         }
+
+        public void RemoveLastItem()
+        {
+            System.Threading.Interlocked.Decrement(ref count);
+        }
     }
 
     public class ComputeGraph : IComputeGraph
@@ -893,6 +898,14 @@ namespace Seq2SeqSharp
             {
                 this.backprop[i](); // tick!
             }
+        }
+
+        public void RunTopBackward()
+        {
+            backprop[backprop.Count - 1]();
+
+            backprop.RemoveLastItem();
+
         }
 
         public virtual IWeightMatrix Softmax(IWeightMatrix src, bool bp = true)

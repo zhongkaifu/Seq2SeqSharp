@@ -33,6 +33,13 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
+        public void RunTopBackward()
+        {
+            backprop[backprop.Count - 1]();
+
+            backprop.RemoveLastItem();
+
+        }
 
         public IWeightMatrix Sigmoid(IWeightMatrix w)
         {

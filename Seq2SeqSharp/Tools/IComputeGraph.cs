@@ -28,6 +28,8 @@ namespace Seq2SeqSharp
         IWeightMatrix ConcatColumns(IWeightMatrix m1, IWeightMatrix m2);
 
         void Backward();
+        void RunTopBackward();
+
         IWeightMatrix PeekRow(IWeightMatrix w, int ix, int num = 1);
         IWeightMatrix Dropout(IWeightMatrix V, float drop_prob);
 

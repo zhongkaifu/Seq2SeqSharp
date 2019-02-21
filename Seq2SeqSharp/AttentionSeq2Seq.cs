@@ -803,6 +803,13 @@ namespace Seq2SeqSharp
                 }
 
                 o.SetGradientByWeight(probs);
+
+                //Run backward for last forward layer and dropout in order to save memory usage
+                g.RunTopBackward();
+                if (m_dropoutRatio > 0.0f)
+                {
+                    g.RunTopBackward();
+                }
             }
 
             return cost;
