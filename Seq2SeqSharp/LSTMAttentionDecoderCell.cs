@@ -69,8 +69,8 @@ namespace Seq2SeqSharp
             var hhSum = computeGraph.MulAdd(hxhc, Wxhc, bs);
 
             (var gates_raw, var cell_write_raw) = computeGraph.SplitColumns(hhSum, hdim * 3, hdim);
-            var gates = computeGraph.Sigmoid(gates_raw);
-            var cell_write = computeGraph.Tanh(cell_write_raw);
+            var gates = computeGraph.Sigmoid(gates_raw, true);
+            var cell_write = computeGraph.Tanh(cell_write_raw, true);
 
             (var input_gate, var forget_gate, var output_gate) = computeGraph.SplitColumns(gates, hdim, hdim, hdim);
 

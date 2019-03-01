@@ -16,7 +16,7 @@ namespace TensorSharp.CUDA.DeviceCode
 extern ""C""
 {
 
-__global__ void SGD(float* w, float* g, float* c, float *l, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
+__global__ void SGD(float* __restrict__ w, float* __restrict__ g, float* __restrict__ c, float* __restrict__ l, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
 {
   for(int bid = 0; bid < rows; bid += gridDim.x) 
   {
@@ -60,7 +60,7 @@ __global__ void SGD(float* w, float* g, float* c, float *l, unsigned rows, unsig
 }
 
 
-  __global__ void gSoftmaxGrad(float* grad, float* adj, float* val, int rows, int cols)
+  __global__ void gSoftmaxGrad(float* __restrict__ grad, float* __restrict__ adj, float* __restrict__ val, int rows, int cols, int addGrad)
   {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -76,7 +76,15 @@ __global__ void SGD(float* w, float* g, float* c, float *l, unsigned rows, unsig
         int id = tid + threadIdx.x;
         if(id < cols) {
           float v = valRow[id] * adjRow[id];
-          gradRow[id] += v;
+
+          if (addGrad == 0)
+          {
+             gradRow[id] = v;
+          }
+          else
+          {
+             gradRow[id] += v;
+          }
           _sum[threadIdx.x] += v;
         }
       }
@@ -106,7 +114,7 @@ __global__ void SGD(float* w, float* g, float* c, float *l, unsigned rows, unsig
   }
 }
 
-  __global__ void gSoftmax(float* out, float* in, unsigned rows, unsigned cols)
+  __global__ void gSoftmax(float* __restrict__ out, float* __restrict__ in, unsigned rows, unsigned cols)
   {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -249,7 +257,7 @@ __global__ void SGD(float* w, float* g, float* c, float *l, unsigned rows, unsig
             return weight;
         }
 
-        private void SoftmaxGrad(TSCudaContext context, Tensor grad, Tensor adj, Tensor val)
+        private void SoftmaxGrad(TSCudaContext context, Tensor grad, Tensor adj, Tensor val, bool addGrad = true)
         {
             var cudaContext = context.CudaContextForTensor(grad);
 
@@ -257,6 +265,7 @@ __global__ void SGD(float* w, float* g, float* c, float *l, unsigned rows, unsig
 
             var rows = grad.Sizes[0];
             var cols = grad.Sizes[1];
+            var iAddGrad = addGrad ? 1 : 0;
 
             var ndim = grad.DimensionCount;
             long num_rows = 1;
@@ -272,7 +281,7 @@ __global__ void SGD(float* w, float* g, float* c, float *l, unsigned rows, unsig
             var adjPtr = CudaHelpers.GetBufferStart(adj);
             var valPtr = CudaHelpers.GetBufferStart(val);
 
-            Invoke(context, cudaContext, "gSoftmaxGrad", grid, threads, (uint)(threads.x * sizeof(float)), CUstream.NullStream, gradPtr, adjPtr, valPtr, rows, cols);
+            Invoke(context, cudaContext, "gSoftmaxGrad", grid, threads, (uint)(threads.x * sizeof(float)), CUstream.NullStream, gradPtr, adjPtr, valPtr, rows, cols, iAddGrad);
         }
 
 
@@ -286,10 +295,10 @@ __global__ void SGD(float* w, float* g, float* c, float *l, unsigned rows, unsig
         }
 
 
-        public Tensor SoftmaxGrad(Tensor grad, Tensor adj, Tensor val)
+        public Tensor SoftmaxGrad(Tensor grad, Tensor adj, Tensor val, bool addGrad = true)
         {
             var context = CudaHelpers.TSContextForTensor(grad);
-            SoftmaxGrad(context, grad, adj, val);
+            SoftmaxGrad(context, grad, adj, val, addGrad);
 
             return grad;
         }

@@ -109,6 +109,13 @@ namespace TensorSharp
 
         public static Tensor AddTanhD(Tensor result, Tensor t, Tensor resW, Tensor resG) { return (Tensor)OpRegistry.Invoke("addtanhD", result, t, resW, resG); }
 
+
+        public static Tensor SigmoidD(Tensor result, Tensor resW, Tensor resG) { return (Tensor)OpRegistry.Invoke("sigmoidD", result, resW, resG); }
+
+        public static Tensor TanhD(Tensor result, Tensor resW, Tensor resG) { return (Tensor)OpRegistry.Invoke("tanhD", result, resW, resG); }
+
+
+
         public static Tensor AddTanh(Tensor result, Tensor x, Tensor y) { return (Tensor)OpRegistry.Invoke("addtanh", result, x, y); }
 
         public static Tensor MulMulAdd(Tensor result, Tensor x, Tensor y, Tensor z, Tensor w) { return (Tensor)OpRegistry.Invoke("mulmuladd", result, x, y, z, w); }
@@ -166,7 +173,7 @@ namespace TensorSharp
 
         public static Tensor Softmax(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("softmax", result, src); }
 
-        public static Tensor SoftmaxGrad(Tensor grad, Tensor adj, Tensor val) { return (Tensor)OpRegistry.Invoke("softmaxgrad", grad, adj, val); }
+        public static Tensor SoftmaxGrad(Tensor grad, Tensor adj, Tensor val, bool addGrad = true) { return (Tensor)OpRegistry.Invoke("softmaxgrad", grad, adj, val, addGrad); }
 
 
         public static Tensor SGD(Tensor weight, Tensor gradient, Tensor cache, Tensor lrw, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)

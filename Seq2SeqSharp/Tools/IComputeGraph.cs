@@ -14,8 +14,8 @@ namespace Seq2SeqSharp
         IWeightMatrix Mul(IWeightMatrix w1, IWeightMatrix w2);
         IWeightMatrix EltMul(IWeightMatrix w1, IWeightMatrix w2);
         IWeightMatrix Add(IWeightMatrix w1, IWeightMatrix w2);
-        IWeightMatrix Tanh(IWeightMatrix w);
-        IWeightMatrix Sigmoid(IWeightMatrix w);
+        IWeightMatrix Tanh(IWeightMatrix w, bool updateWeightsInPlace = false);
+        IWeightMatrix Sigmoid(IWeightMatrix w, bool updateWeightsInPlace = false);
 
         IWeightMatrix MulAdd(IWeightMatrix m1, IWeightMatrix m2, IWeightMatrix m3);
 

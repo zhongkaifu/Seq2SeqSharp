@@ -44,9 +44,11 @@ namespace TensorSharp.CUDA.DeviceCode
 
             AppendTTFunc(result, "sigmoid", "Sigmoid");
             AppendTTTTFunc(result, "addsigmoidD", "AddSigmoidD");
+            AppendTTTFunc(result, "sigmoidD", "SigmoidD");
 
             AppendTTTFunc(result, "addtanh", "AddTanh");
             AppendTTTTFunc(result, "addtanhD", "AddTanhD");
+            AppendTTTFunc(result, "tanhD", "TanhD");
 
             AppendTTTTTFunc(result, "mulmuladd", "MulMulAdd");
             AppendTTTTFunc(result, "addmul", "AddMul");

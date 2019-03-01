@@ -804,7 +804,7 @@ namespace Seq2SeqSharp
 
                 o.SetGradientByWeight(probs);
 
-                //Run backward for last forward layer and dropout in order to save memory usage
+                //Run backward for last forward layer if we have dropout in order to save memory usage, since it's not time sequence dependency
                 g.RunTopBackward();
                 if (m_dropoutRatio > 0.0f)
                 {

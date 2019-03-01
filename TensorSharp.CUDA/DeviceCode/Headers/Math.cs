@@ -68,6 +68,17 @@ template<typename T> INLINE_FUNC T AddTanhD(T t, T resW, T resG) {
 	return t + (T(1) - resW * resW) * resG;
 }
 
+
+template<typename T> INLINE_FUNC T SigmoidD(T resW, T resG) {
+	return resW * (T(1) - resW) * resG;
+}
+
+
+template<typename T> INLINE_FUNC T TanhD(T resW, T resG) {
+	return (T(1) - resW * resW) * resG;
+}
+
+
 template<typename T> INLINE_FUNC T AddTanh(T x, T y) {
 	return tanhf(x + y);
 }

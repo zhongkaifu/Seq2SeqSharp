@@ -265,6 +265,15 @@ namespace TensorSharp.CUDA
         [RegisterOpStorageType("addtanhD", typeof(CudaStorage))]
         public Tensor AddTanhD(Tensor result, Tensor t, Tensor resW, Tensor resG) { return ElementwiseTTTTOp.Invoke(elementwiseKernels, "addtanhD", result, t, resW, resG); }
 
+
+        [RegisterOpStorageType("sigmoidD", typeof(CudaStorage))]
+        public Tensor SigmoidD(Tensor result, Tensor resW, Tensor resG) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "sigmoidD", result, resW, resG); }
+
+
+        [RegisterOpStorageType("tanhD", typeof(CudaStorage))]
+        public Tensor TanhD(Tensor result, Tensor resW, Tensor resG) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "tanhD", result, resW, resG); }
+
+
         [RegisterOpStorageType("addtanh", typeof(CudaStorage))]
         public Tensor AddTanh(Tensor result, Tensor x, Tensor y) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "addtanh", result, x, y); }
 
@@ -406,7 +415,7 @@ namespace TensorSharp.CUDA
 
 
         [RegisterOpStorageType("softmaxgrad", typeof(CudaStorage))]
-        public Tensor SoftmaxGrad(Tensor grad, Tensor adj, Tensor val) { return softmaxKernels.SoftmaxGrad(grad, adj, val); }
+        public Tensor SoftmaxGrad(Tensor grad, Tensor adj, Tensor val, bool addGrad = true) { return softmaxKernels.SoftmaxGrad(grad, adj, val, addGrad); }
 
         [RegisterOpStorageType("sgd", typeof(CudaStorage))]
         public Tensor SGD(Tensor weight, Tensor gradient, Tensor cache, Tensor lrw, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)

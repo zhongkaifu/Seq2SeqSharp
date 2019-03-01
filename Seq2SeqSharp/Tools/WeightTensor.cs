@@ -20,19 +20,25 @@ namespace Seq2SeqSharp.Tools
         public Dictionary<int, int> RowToBeUpdated { get; set; } = new Dictionary<int, int>();
 
         public int DeviceId { get; set; }
-
+        IAllocator allocator;
 
         private Tensor m_TWeight = null;
         private Tensor m_TGradient = null;
+
+        private bool releasedTWeight = false;
+        private bool releasedTGradient = false;
 
         public Tensor TWeight
         {
             get
             {
-                if (m_TWeight == null)
+                if (releasedTWeight)
                 {
-                    var allocator = TensorAllocator.Allocator(DeviceId);
+                    return null;
+                }
 
+                if (m_TWeight == null)
+                {                    
                     m_TWeight = new Tensor(allocator, DType.Float32, Rows, Columns);
                 }
 
@@ -41,6 +47,7 @@ namespace Seq2SeqSharp.Tools
             set
             {
                 m_TWeight = value;
+                releasedTWeight = false;
             }
         }
 
@@ -48,10 +55,13 @@ namespace Seq2SeqSharp.Tools
         {
             get
             {
+                if (releasedTGradient)
+                {
+                    return null;
+                }
+
                 if (m_TGradient == null)
                 {
-                    var allocator = TensorAllocator.Allocator(DeviceId);
-
                     m_TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
                     Ops.Fill(m_TGradient, 0.0f);
                 }
@@ -62,6 +72,7 @@ namespace Seq2SeqSharp.Tools
             set
             {
                 m_TGradient = value;
+                releasedTGradient = false;
             }
         }
 
@@ -74,6 +85,8 @@ namespace Seq2SeqSharp.Tools
         public WeightTensor(int rows, int columns, int deviceId, bool keepCache = true, bool normal = false)
         {
             DeviceId = deviceId;
+            allocator = TensorAllocator.Allocator(DeviceId);
+
             Rows = rows;
             Columns = columns;
             var n = rows * columns;
@@ -90,8 +103,6 @@ namespace Seq2SeqSharp.Tools
             {
                 weight[i] = RandomGenerator.NormalRandom(0.0f, scale);
             }
-
-            var allocator = TensorAllocator.Allocator(deviceId);
 
             TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
             Ops.Fill(TGradient, 0.0f);
@@ -111,6 +122,8 @@ namespace Seq2SeqSharp.Tools
         public WeightTensor(int rows, int columns, int deviceId)
         {
             DeviceId = deviceId;
+            allocator = TensorAllocator.Allocator(DeviceId);
+
             Rows = rows;
             Columns = columns;
 
@@ -153,12 +166,12 @@ namespace Seq2SeqSharp.Tools
         public WeightTensor(int rows, int columns, float c, int deviceId, bool keepCache = true)
         {
             DeviceId = deviceId;
+            allocator = TensorAllocator.Allocator(DeviceId);
+
             Rows = rows;
             Columns = columns;
 
             var n = rows * columns;
-
-            var allocator = TensorAllocator.Allocator(deviceId);
 
             TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
             Ops.Fill(TGradient, 0.0f);
@@ -274,6 +287,94 @@ namespace Seq2SeqSharp.Tools
             return TWeight.GetElementsAsFloat(Rows * Columns);
         }
 
+        public void AddSoftmaxGradient(WeightTensor src)
+        {
+            if (m_TGradient == null)
+            {
+                allocator = TensorAllocator.Allocator(DeviceId);
+                m_TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
+                Ops.SoftmaxGrad(m_TGradient, src.TGradient, src.TWeight, false);
+            }
+            else
+            {
+                Ops.SoftmaxGrad(m_TGradient, src.TGradient, src.TWeight);
+            }
+        }
+
+
+        public void CopyOrAddGradient(WeightTensor src)
+        {
+            if (m_TGradient == null)
+            {
+                allocator = TensorAllocator.Allocator(DeviceId);
+                m_TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
+                Ops.Copy(m_TGradient, src.TGradient);
+            }
+            else
+            {
+                Ops.Add(m_TGradient, m_TGradient, src.TGradient);
+            }
+        }
+
+        public void CopyOrAddGradient(Tensor src)
+        {
+            if (m_TGradient == null)
+            {
+                allocator = TensorAllocator.Allocator(DeviceId);
+                m_TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
+                Ops.Copy(m_TGradient, src);
+            }
+            else
+            {
+                Ops.Add(m_TGradient, m_TGradient, src);
+            }
+        }
+
+        public void AddMulGradient(Tensor w, Tensor g)
+        {
+            if (m_TGradient == null)
+            {
+                allocator = TensorAllocator.Allocator(DeviceId);
+                m_TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
+                Ops.Mul(m_TGradient, w, g);
+            }
+            else
+            {
+                Ops.AddMul(m_TGradient, m_TGradient, w, g);
+            }
+        }
+
+
+        public void AddSigmoidGradient(WeightTensor src)
+        {
+            if (m_TGradient == null)
+            {
+                allocator = TensorAllocator.Allocator(DeviceId);
+                m_TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
+                Ops.SigmoidD(m_TGradient, src.TWeight, src.TGradient);
+            }
+            else
+            {
+                Ops.AddSigmoidD(m_TGradient, m_TGradient, src.TWeight, src.TGradient);
+            }
+        }
+
+
+        public void AddTanhGradient(WeightTensor src)
+        {
+            if (m_TGradient == null)
+            {
+                allocator = TensorAllocator.Allocator(DeviceId);
+                m_TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
+
+                Ops.TanhD(m_TGradient, src.TWeight, src.TGradient);
+            }
+            else
+            {
+                Ops.AddTanhD(m_TGradient, m_TGradient, src.TWeight, src.TGradient);
+            }
+        }
+
         public int GetMaxWeightIdx()
         {
             float[] weights = ToWeightArray();
@@ -298,16 +399,14 @@ namespace Seq2SeqSharp.Tools
 
         public void Dispose()
         {
-            if (m_TWeight != null)
-            {
-                m_TWeight.Dispose();
-                m_TWeight = null;
-            }
+            ReleaseWeight();
 
             if (m_TGradient != null)
             {
                 m_TGradient.Dispose();
                 m_TGradient = null;
+
+                releasedTGradient = true;
             }
 
             if (TCache != null)
@@ -329,6 +428,7 @@ namespace Seq2SeqSharp.Tools
             {
                 m_TWeight.Dispose();
                 m_TWeight = null;
+                releasedTWeight = true;
             }
         }
 

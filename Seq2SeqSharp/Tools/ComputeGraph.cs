@@ -117,7 +117,7 @@ namespace Seq2SeqSharp
 
         }
 
-        public virtual IWeightMatrix Tanh(IWeightMatrix w)
+        public virtual IWeightMatrix Tanh(IWeightMatrix w, bool updateWeightsInPlace = false)
         {
             var m = w as WeightMatrix;
 
@@ -761,7 +761,7 @@ namespace Seq2SeqSharp
        
 
 
-        public virtual IWeightMatrix Sigmoid(IWeightMatrix w)
+        public virtual IWeightMatrix Sigmoid(IWeightMatrix w, bool updateWeightsInPlace = false)
         {
             var m = w as WeightMatrix;
 

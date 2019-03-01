@@ -55,8 +55,8 @@ namespace Seq2SeqSharp
             var hhSum = innerGraph.MulAdd(inputs, Wxh, bs);
             (var gates_raw, var cell_write_raw) = innerGraph.SplitColumns(hhSum, hdim * 3, hdim);
 
-            var gates = innerGraph.Sigmoid(gates_raw);
-            var cell_write = innerGraph.Tanh(cell_write_raw);
+            var gates = innerGraph.Sigmoid(gates_raw, true);
+            var cell_write = innerGraph.Tanh(cell_write_raw, true);
 
             (var input_gate, var forget_gate, var output_gate) = innerGraph.SplitColumns(gates, hdim, hdim, hdim);
 
