@@ -74,6 +74,44 @@ namespace Seq2SeqSharp
             return V;
         }
 
+        public List<IWeightMatrix> GetCTs()
+        {
+            List<IWeightMatrix> res = new List<IWeightMatrix>();
+            foreach (var decoder in decoders)
+            {
+                res.Add(decoder.ct);
+            }
+
+            return res;
+        }
+
+        public List<IWeightMatrix> GetHTs()
+        {
+            List<IWeightMatrix> res = new List<IWeightMatrix>();
+            foreach (var decoder in decoders)
+            {
+                res.Add(decoder.ht);
+            }
+
+            return res;
+        }
+
+        public void SetCTs(List<IWeightMatrix> l)
+        {
+            for (int i = 0; i < l.Count; i++)
+            {
+                decoders[i].ct = l[i];
+            }
+        }
+
+        public void SetHTs(List<IWeightMatrix> l)
+        {
+            for (int i = 0; i < l.Count; i++)
+            {
+                decoders[i].ht = l[i];
+            }
+        }
+
         public List<IWeightMatrix> getParams()
         {
             List<IWeightMatrix> response = new List<IWeightMatrix>();

@@ -72,5 +72,8 @@ namespace Seq2SeqConsole
 
         [Arg("Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2", "DeviceIds")]
         public string DeviceIds = "0";
+
+        [Arg("Beam search size. Default is 1", "BeamSearch")]
+        public int BeamSearch = 1;
     }
 }

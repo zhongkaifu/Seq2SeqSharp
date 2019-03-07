@@ -284,6 +284,8 @@ namespace TensorSharp.CUDA
 
         [RegisterOpStorageType("addmul", typeof(CudaStorage))]
         public Tensor AddMul(Tensor result, Tensor x, Tensor y, Tensor z) { return ElementwiseTTTTOp.Invoke(elementwiseKernels, "addmul", result, x, y, z); }
+        [RegisterOpStorageType("addmulv", typeof(CudaStorage))]
+        public Tensor AddMulV(Tensor result, Tensor x, Tensor y, float z) { return ElementwiseTTTSOp.Invoke(elementwiseKernels, "addmulv", result, x, y, z); }
 
 
         [RegisterOpStorageType("atan2", typeof(CudaStorage))]

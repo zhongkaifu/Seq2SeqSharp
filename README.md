@@ -16,6 +16,7 @@ RMSProp optmization
 Pre-trained model  
 Auto data shuffling  
 Auto vocabulary building  
+Beam search decoder  
 
 # Usage  
 You could use Seq2SeqConsole tool to train and test models.  

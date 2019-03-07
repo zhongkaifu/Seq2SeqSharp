@@ -48,5 +48,7 @@ namespace Seq2SeqSharp
         IWeightMatrix Transpose2(IWeightMatrix w);
 
         IWeightMatrix ConcatRowColumn(List<IWeightMatrix> wl1, List<IWeightMatrix> wl2);
+		
+		 IWeightMatrix Mul(IWeightMatrix w, float v);
     }
 }

@@ -29,6 +29,8 @@ namespace Seq2SeqSharp.Tools
         float[] ToWeightArray();
         int GetMaxWeightIdx();
 
+        List<int> GetTopNMaxWeightIdx(int topN);
+
         void SetWeightArray(float[] v);
 
         void ReleaseWeight();

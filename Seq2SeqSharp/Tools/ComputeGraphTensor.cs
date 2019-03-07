@@ -96,6 +96,26 @@ namespace Seq2SeqSharp.Tools
             return res;
 
         }
+		
+		 public IWeightMatrix Mul(IWeightMatrix w, float v)
+        {
+            var m = w as WeightTensor;
+            var res = weightTensorFactory.CreateWeightTensor(m.Rows, m.Columns, deviceId);
+
+            Ops.Mul(res.TWeight, m.TWeight, v);
+
+            if (this.needs_backprop)
+            {
+                Action backward = () =>
+                {
+                    Ops.AddMulV(m.TGradient, m.TGradient, res.TGradient, v);
+                };
+                this.backprop.Add(backward);
+            }
+
+            return res;
+        }
+		
 
         public IWeightMatrix EltMulMulAdd(IWeightMatrix w1, IWeightMatrix w2, IWeightMatrix w3, IWeightMatrix w4)
         {

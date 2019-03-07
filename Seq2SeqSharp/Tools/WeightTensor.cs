@@ -392,6 +392,40 @@ namespace Seq2SeqSharp.Tools
             return maxi;
         }
 
+        public List<int> GetTopNMaxWeightIdx(int topN)
+        {
+            float[] weights = ToWeightArray();           
+            SortedDictionary<float, List<int>> w2Idxs = new SortedDictionary<float, List<int>>();
+
+            for (int i = 0; i < weights.Length; i++)
+            {
+                if (w2Idxs.ContainsKey(weights[i]) == false)
+                {
+                    w2Idxs.Add(weights[i], new List<int>());
+                }
+                w2Idxs[weights[i]].Add(i);
+            }
+
+            List<int> res = new List<int>();
+
+            foreach (KeyValuePair<float, List<int>> pair in w2Idxs.Reverse())
+            {
+                foreach (var idx in pair.Value)
+                {
+                    if (topN <= 0)
+                    {
+                        return res;
+                    }
+
+                    res.Add(idx);
+
+                    topN--;
+                }
+            }
+
+            return res;
+        }
+
         public void SetWeightArray(float[] v)
         {
             TWeight.SetElementsAsFloat(v);

@@ -24,6 +24,24 @@ namespace Seq2SeqSharp
         UNK
     }
 
+    public class BeamSearchStatus
+    {
+        public List<int> OutputIds;
+        public float Score;
+
+        public List<IWeightMatrix> HTs;
+        public List<IWeightMatrix> CTs;
+
+        public BeamSearchStatus()
+        {
+            OutputIds = new List<int>();
+            HTs = new List<IWeightMatrix>();
+            CTs = new List<IWeightMatrix>();
+
+            Score = 1.0f;
+        }
+    }
+
     public class AttentionSeq2Seq
     {
         public event EventHandler IterationDone;
@@ -916,9 +934,18 @@ namespace Seq2SeqSharp
             }
         }
 
-        public List<string> Predict(List<string> input)
+        public List<List<string>> Predict(List<string> input, int beamSearchSize = 1)
         {
-            List<string> result = new List<string>();
+            var encoder = m_encoder[m_defaultDeviceId];
+            var reversEncoder = m_reversEncoder[m_defaultDeviceId];
+            var srcEmbedding = m_srcEmbedding[m_defaultDeviceId];
+            var tgtEmbedding = m_tgtEmbedding[m_defaultDeviceId];
+            var decoder = m_decoder[m_defaultDeviceId];
+            var Whd = m_Whd[m_defaultDeviceId];
+            var bd = m_bd[m_defaultDeviceId];
+
+
+            List<BeamSearchStatus> bssList = new List<BeamSearchStatus>();
 
             var g = CreateComputGraph(m_defaultDeviceId, false);
             Reset();
@@ -930,36 +957,125 @@ namespace Seq2SeqSharp
          
             var inputSeqs = new List<List<string>>();
             inputSeqs.Add(inputSeq);
-            IWeightMatrix encodedWeightMatrix = Encode(g, inputSeqs, m_encoder[m_defaultDeviceId], m_reversEncoder[m_defaultDeviceId], m_srcEmbedding[m_defaultDeviceId]);
+            IWeightMatrix encodedWeightMatrix = Encode(g, inputSeqs, encoder, reversEncoder, srcEmbedding);
 
-            var attPreProcessResult = m_decoder[m_defaultDeviceId].PreProcess(encodedWeightMatrix, g);
+            var attPreProcessResult = decoder.PreProcess(encodedWeightMatrix, g);
 
-            var ix_input = (int)SENTTAGS.START;
-            List<IWeightMatrix> hisInputs = new List<IWeightMatrix>();
-            while (true)
+          //  var ix_input = (int)SENTTAGS.START;
+            BeamSearchStatus bss = new BeamSearchStatus();
+            bss.OutputIds.Add((int)SENTTAGS.START);
+            bss.CTs = decoder.GetCTs();
+            bss.HTs = decoder.GetHTs();
+
+            bssList.Add(bss);
+
+            List<BeamSearchStatus> newBSSList = new List<BeamSearchStatus>();
+            bool finished = false;
+            while (finished == false)
             {
-                var x = g.PeekRow(m_tgtEmbedding[m_defaultDeviceId], ix_input);
-                var eOutput = m_decoder[m_defaultDeviceId].Decode(x, attPreProcessResult, g);
-                var o = g.MulAdd(eOutput, m_Whd[m_defaultDeviceId], m_bd[m_defaultDeviceId]);
-                var probs = g.Softmax(o, false);
-
-                var pred = probs.GetMaxWeightIdx();
-                if (pred == (int)SENTTAGS.END) break; // END token predicted, break out
-
-                if (result.Count > m_maxWord) { break; } // something is wrong 
-
-                var letter2 = m_UNK;
-                if (m_tgtIndexToWord.ContainsKey(pred))
+                finished = true;
+                for (int i = 0; i < bssList.Count; i++)
                 {
-                    letter2 = m_tgtIndexToWord[pred];
+                    bss = bssList[i];
+                    if (bss.OutputIds[bss.OutputIds.Count - 1] == (int)SENTTAGS.END || bss.OutputIds.Count > m_maxWord)
+                    {
+                        newBSSList.Add(bss);
+                    }
+                    else
+                    {
+                        finished = false;
+                        var ix_input = bss.OutputIds[bss.OutputIds.Count - 1];
+                        decoder.SetCTs(bss.CTs);
+                        decoder.SetHTs(bss.HTs);
+
+                        var x = g.PeekRow(tgtEmbedding, ix_input);
+                        var eOutput = decoder.Decode(x, attPreProcessResult, g);
+                        var o = g.MulAdd(eOutput, Whd, bd);
+                        var probs = g.Softmax(o, false);
+
+                        var preds = probs.GetTopNMaxWeightIdx(beamSearchSize);
+
+                        for (int j = 0; j < preds.Count; j++)
+                        {
+                            BeamSearchStatus newBSS = new BeamSearchStatus();
+                            newBSS.OutputIds.AddRange(bss.OutputIds);
+                            newBSS.OutputIds.Add(preds[j]);
+
+                            newBSS.CTs = decoder.GetCTs();
+                            newBSS.HTs = decoder.GetHTs();
+
+                            var score = probs.GetWeightAt(preds[j]);
+                            newBSS.Score = bss.Score;
+                            newBSS.Score += (float)(-Math.Log(score));
+
+                            newBSSList.Add(newBSS);
+                        }
+                    }
                 }
 
-                result.Add(letter2);
-                ix_input = pred;
+                bssList = GetTopNBSS(newBSSList, beamSearchSize);
+                newBSSList.Clear();
+            }
+
+            List<List<string>> results = new List<List<string>>();
+            for (int i = 0; i < bssList.Count; i++)
+            {
+                results.Add(PrintString(bssList[i].OutputIds));                
+            }
+
+            return results;
+        }
+
+        private List<string> PrintString(List<int> idxs)
+        {
+            List<string> result = new List<string>();
+            foreach (var idx in idxs)
+            {
+                var letter = m_UNK;
+                if (m_tgtIndexToWord.ContainsKey(idx))
+                {
+                    letter = m_tgtIndexToWord[idx];
+                }
+                result.Add(letter);
             }
 
             return result;
         }
+
+        private List<BeamSearchStatus> GetTopNBSS(List<BeamSearchStatus> bssList, int topN)
+        {
+            SortedDictionary<float, List<BeamSearchStatus>> w2Idxs = new SortedDictionary<float, List<BeamSearchStatus>>();
+
+            for (int i = 0; i < bssList.Count; i++)
+            {
+                if (w2Idxs.ContainsKey(bssList[i].Score) == false)
+                {
+                    w2Idxs.Add(bssList[i].Score, new List<BeamSearchStatus>());
+                }
+                w2Idxs[bssList[i].Score].Add(bssList[i]);
+            }
+
+            List<BeamSearchStatus> res = new List<BeamSearchStatus>();
+
+            foreach (KeyValuePair<float, List<BeamSearchStatus>> pair in w2Idxs)
+            {
+                foreach (var idx in pair.Value)
+                {
+                    if (topN <= 0)
+                    {
+                        return res;
+                    }
+
+                    res.Add(idx);
+
+                    topN--;
+                }
+            }
+
+            return res;
+
+        }
+
 
         public void Save()
         {

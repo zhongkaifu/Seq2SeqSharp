@@ -121,6 +121,7 @@ namespace TensorSharp
         public static Tensor MulMulAdd(Tensor result, Tensor x, Tensor y, Tensor z, Tensor w) { return (Tensor)OpRegistry.Invoke("mulmuladd", result, x, y, z, w); }
 
         public static Tensor AddMul(Tensor result, Tensor x, Tensor y, Tensor z) { return (Tensor)OpRegistry.Invoke("addmul", result, x, y, z); }
+        public static Tensor AddMulV(Tensor result, Tensor x, Tensor y, float z) { return (Tensor)OpRegistry.Invoke("addmulv", result, x, y, z); }
 
         public static Tensor Atan2(Tensor result, Tensor srcY, Tensor srcX) { return (Tensor)OpRegistry.Invoke("atan2", result, srcY, srcX); }
         public static Tensor Pow(Tensor result, Tensor src, float value) { return (Tensor)OpRegistry.Invoke("pow", result, src, value); }

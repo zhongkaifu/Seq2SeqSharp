@@ -1254,6 +1254,64 @@ namespace Seq2SeqSharp
 
             return result;
         }
+		
+		public IWeightMatrix Mul(IWeightMatrix w, float v)
+        {
+            var m = w as WeightMatrix;
+
+            var res = weightMatrixFactory.CreateWeightMatrix(m.Rows, m.Columns);
+            var n = m.Weight.Length;
+            var i = 0;
+            var moreItems = (n % Vector<float>.Count);
+            while (i < n - moreItems)
+            {
+                var vecResW = new Vector<float>(res.Weight, i);
+                var vecM1W = new Vector<float>(m.Weight, i);
+
+                vecResW = vecM1W * v;
+                vecResW.CopyTo(res.Weight, i);
+
+                i += Vector<float>.Count;
+            }
+
+            while (i < n)
+            {
+                res.Weight[i] = m.Weight[i] * v;
+                i++;
+            }
+
+
+            if (this.needs_backprop)
+            {
+
+                Action backward = () =>
+                {
+                    i = 0;
+                    while (i < n - moreItems)
+                    {
+                        var vecResGrad = new Vector<float>(res.Gradient, i);
+                        var vecM1W = new Vector<float>(m.Weight, i);
+
+                        var vecM1Grad = new Vector<float>(m.Gradient, i);
+
+                        vecM1Grad += v * vecResGrad;
+
+                        vecM1Grad.CopyTo(m.Gradient, i);
+
+                        i += Vector<float>.Count;
+                    }
+
+                    while (i < n)
+                    {
+                        m.Gradient[i] += v * res.Gradient[i];
+                        i++;
+                    }
+
+                };
+                this.backprop.Add(backward);
+            }
+            return res;
+        }
        
         public IWeightMatrix MulBatch(IWeightMatrix m1, IWeightMatrix m2, int batchSize)
         {

@@ -91,8 +91,11 @@ namespace Seq2SeqConsole
                 var data_sents_raw1 = File.ReadAllLines(options.InputTestFile);
                 foreach (string line in data_sents_raw1)
                 {
-                    List<string> outputWords = ss.Predict(line.ToLower().Trim().Split(' ').ToList());
-                    outputLines.Add(String.Join(" ", outputWords));
+                    List<List<string>> outputWordsList = ss.Predict(line.ToLower().Trim().Split(' ').ToList(), options.BeamSearch);
+                    foreach (var outputWords in outputWordsList)
+                    {
+                        outputLines.Add(String.Join(" ", outputWords));
+                    }
                 }
 
                 File.WriteAllLines(options.OutputTestFile, outputLines);
