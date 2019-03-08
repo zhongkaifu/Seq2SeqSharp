@@ -47,23 +47,20 @@ namespace Seq2SeqConsole
         {
             Logger.LogFile = $"{nameof(Seq2SeqConsole)}_{GetTimeStamp(DateTime.Now)}.log";
 
+            //Parse command line
             Options options = new Options();
             ArgParser argParser = new ArgParser(args, options);
-            ShowOptions(args, options);
 
             AttentionSeq2Seq ss = null;
             ArchTypeEnums archType = (ArchTypeEnums)options.ArchType;
 
-            //Parse device ids from options
-            string[] deviceIdsStr = options.DeviceIds.Split(',');
-            int[] deviceIds = new int[deviceIdsStr.Length];
-            for (int i = 0; i < deviceIdsStr.Length; i++)
-            {
-                deviceIds[i] = int.Parse(deviceIdsStr[i]);
-            }
+            //Parse device ids from options          
+            int[] deviceIds = options.DeviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
 
             if (String.Equals(options.TaskName, "train", StringComparison.InvariantCultureIgnoreCase))
             {
+                ShowOptions(args, options);
+
                 Corpus trainCorpus = new Corpus(options.TrainCorpusPath, options.SrcLang, options.TgtLang, options.BatchSize * deviceIds.Length, options.ShuffleBlockSize);
                 if (File.Exists(options.ModelFilePath) == false)
                 {
@@ -80,7 +77,7 @@ namespace Seq2SeqConsole
                 }
 
                 ss.IterationDone += ss_IterationDone;
-                ss.Train(100, options.LearningRate, options.GradClip);
+                ss.Train(options.MaxEpochNum, options.LearningRate, options.GradClip);
             }
             else if (String.Equals(options.TaskName, "test", StringComparison.InvariantCultureIgnoreCase))
             {
@@ -92,10 +89,7 @@ namespace Seq2SeqConsole
                 foreach (string line in data_sents_raw1)
                 {
                     List<List<string>> outputWordsList = ss.Predict(line.ToLower().Trim().Split(' ').ToList(), options.BeamSearch);
-                    foreach (var outputWords in outputWordsList)
-                    {
-                        outputLines.Add(String.Join(" ", outputWords));
-                    }
+                    outputLines.AddRange(outputWordsList.Select(x => String.Join(" ", x)));
                 }
 
                 File.WriteAllLines(options.OutputTestFile, outputLines);
@@ -127,6 +121,7 @@ namespace Seq2SeqConsole
             Logger.WriteLine($"Batch Size = '{options.BatchSize}'");
             Logger.WriteLine($"Arch Type = '{archType}'");
             Logger.WriteLine($"Device Ids = '{options.DeviceIds}'");
+            Logger.WriteLine($"Maxmium Epoch Number = '{options.MaxEpochNum}'");
         }
     }
 }

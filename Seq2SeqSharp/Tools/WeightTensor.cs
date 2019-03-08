@@ -8,6 +8,7 @@ using System.Security.Permissions;
 using System.Text;
 using System.Threading.Tasks;
 using TensorSharp;
+using AdvUtils;
 
 namespace Seq2SeqSharp.Tools
 {
@@ -394,37 +395,16 @@ namespace Seq2SeqSharp.Tools
 
         public List<int> GetTopNMaxWeightIdx(int topN)
         {
-            float[] weights = ToWeightArray();           
-            SortedDictionary<float, List<int>> w2Idxs = new SortedDictionary<float, List<int>>();
+            float[] weights = ToWeightArray();
+            FixedSizePriorityQueue<ComparableItem<int>> q = new FixedSizePriorityQueue<ComparableItem<int>>(topN, new ComparableItemComparer<int>(true));
 
             for (int i = 0; i < weights.Length; i++)
             {
-                if (w2Idxs.ContainsKey(weights[i]) == false)
-                {
-                    w2Idxs.Add(weights[i], new List<int>());
-                }
-                w2Idxs[weights[i]].Add(i);
+                q.Enqueue(new ComparableItem<int>(weights[i], i));
             }
 
-            List<int> res = new List<int>();
-
-            foreach (KeyValuePair<float, List<int>> pair in w2Idxs.Reverse())
-            {
-                foreach (var idx in pair.Value)
-                {
-                    if (topN <= 0)
-                    {
-                        return res;
-                    }
-
-                    res.Add(idx);
-
-                    topN--;
-                }
-            }
-
-            return res;
-        }
+            return q.Select(x => x.Value).ToList();
+        }        
 
         public void SetWeightArray(float[] v)
         {

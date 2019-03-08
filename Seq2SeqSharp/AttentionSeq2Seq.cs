@@ -961,7 +961,6 @@ namespace Seq2SeqSharp
 
             var attPreProcessResult = decoder.PreProcess(encodedWeightMatrix, g);
 
-          //  var ix_input = (int)SENTTAGS.START;
             BeamSearchStatus bss = new BeamSearchStatus();
             bss.OutputIds.Add((int)SENTTAGS.START);
             bss.CTs = decoder.GetCTs();
@@ -1008,6 +1007,9 @@ namespace Seq2SeqSharp
                             newBSS.Score = bss.Score;
                             newBSS.Score += (float)(-Math.Log(score));
 
+                            //var lengthPenalty = Math.Pow((5.0f + newBSS.OutputIds.Count) / 6, 0.6);
+                            //newBSS.Score /= (float)lengthPenalty;
+
                             newBSSList.Add(newBSS);
                         }
                     }
@@ -1016,7 +1018,7 @@ namespace Seq2SeqSharp
                 bssList = GetTopNBSS(newBSSList, beamSearchSize);
                 newBSSList.Clear();
             }
-
+           
             List<List<string>> results = new List<List<string>>();
             for (int i = 0; i < bssList.Count; i++)
             {
@@ -1044,36 +1046,14 @@ namespace Seq2SeqSharp
 
         private List<BeamSearchStatus> GetTopNBSS(List<BeamSearchStatus> bssList, int topN)
         {
-            SortedDictionary<float, List<BeamSearchStatus>> w2Idxs = new SortedDictionary<float, List<BeamSearchStatus>>();
+            FixedSizePriorityQueue<ComparableItem<BeamSearchStatus>> q = new FixedSizePriorityQueue<ComparableItem<BeamSearchStatus>>(topN, new ComparableItemComparer<BeamSearchStatus>(false));
 
             for (int i = 0; i < bssList.Count; i++)
             {
-                if (w2Idxs.ContainsKey(bssList[i].Score) == false)
-                {
-                    w2Idxs.Add(bssList[i].Score, new List<BeamSearchStatus>());
-                }
-                w2Idxs[bssList[i].Score].Add(bssList[i]);
+                q.Enqueue(new ComparableItem<BeamSearchStatus>(bssList[i].Score, bssList[i]));
             }
 
-            List<BeamSearchStatus> res = new List<BeamSearchStatus>();
-
-            foreach (KeyValuePair<float, List<BeamSearchStatus>> pair in w2Idxs)
-            {
-                foreach (var idx in pair.Value)
-                {
-                    if (topN <= 0)
-                    {
-                        return res;
-                    }
-
-                    res.Add(idx);
-
-                    topN--;
-                }
-            }
-
-            return res;
-
+            return q.Select(x => x.Value).ToList();         
         }
 
 

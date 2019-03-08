@@ -75,5 +75,8 @@ namespace Seq2SeqConsole
 
         [Arg("Beam search size. Default is 1", "BeamSearch")]
         public int BeamSearch = 1;
+
+        [Arg("Maxmium epoch number during training. Default is 100", "MaxEpochNum")]
+        public int MaxEpochNum = 100;
     }
 }
