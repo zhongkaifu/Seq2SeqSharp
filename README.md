@@ -40,6 +40,7 @@ Parameters:
 **-DropoutRatio**: Dropout ratio. Defaul is 0.1  
 **-ArchType**: Runner type. 0 - GPU (CUDA), 1 - CPU (Intel MKL), 2 - CPU. Default is 0  
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
+**-MaxEpochNum**: Maxmium epoch number during training. Default is 100  
 Note that:  
   1) if "-SrcVocab" and "-TgtVocab" are empty, vocabulary will be built from training corpus.  
   2) Txt2Vec for external embedding model building can get downloaded from https://github.com/zhongkaifu/Txt2Vec  
@@ -55,10 +56,11 @@ Parameters:
 **-InputTestFile**: The input file for test.  
 **-OutputTestFile**: The test result file.  
 **-ModelFilePath**: The trained model file path. 
-**-ArchType**: Runner type. 0 - GPU (CUDA), 1 - CPU (Intel MKL), 2 - CPU. Default is 0  
+**-ArchType**: Runner type. 0 - GPU (CUDA), 1 - CPU, 2 - CPU (Intel MKL). Default is 0  
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
+**-BeamSearch**: Beam search size. Default is 1  
 
-Example: Seq2SeqConsole.exe -TaskName test -ModelFilePath seq2seq_256.model -InputTestFile test.txt -OutputTestFile result.txt -ArchType 2  
+Example: Seq2SeqConsole.exe -TaskName test -ModelFilePath seq2seq_256.model -InputTestFile test.txt -OutputTestFile result.txt -ArchType 1 -BeamSearch 5  
 
 # Data Format  
 The corpus contains each sentence per line. The file name pattern is "mainfilename.{source language name}.snt" and "mainfilename.{target language name}.snt".    
