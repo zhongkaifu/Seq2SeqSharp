@@ -24,7 +24,7 @@ namespace TensorSharp.CUDA
         private readonly VarStdKernels varStdKernels = new VarStdKernels();
         private readonly ReduceDimIndexKernels reduceDimIndexKernels = new ReduceDimIndexKernels();
 
-        private readonly SoftmaxKernels softmaxKernels = new SoftmaxKernels();
+        private readonly AdvFuncKernels advFuncKernels = new AdvFuncKernels();
 
         public CudaBasicOps()
         {
@@ -413,16 +413,25 @@ namespace TensorSharp.CUDA
 
 
         [RegisterOpStorageType("softmax", typeof(CudaStorage))]
-        public Tensor Softmax(Tensor result, Tensor src) { return softmaxKernels.Softmax(result, src); }
+        public Tensor Softmax(Tensor result, Tensor src) { return advFuncKernels.Softmax(result, src); }
 
 
         [RegisterOpStorageType("softmaxgrad", typeof(CudaStorage))]
-        public Tensor SoftmaxGrad(Tensor grad, Tensor adj, Tensor val, bool addGrad = true) { return softmaxKernels.SoftmaxGrad(grad, adj, val, addGrad); }
+        public Tensor SoftmaxGrad(Tensor grad, Tensor adj, Tensor val, bool addGrad = true) { return advFuncKernels.SoftmaxGrad(grad, adj, val, addGrad); }
+
+        [RegisterOpStorageType("layernorm", typeof(CudaStorage))]
+        public Tensor LayerNorm(Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-09f) { return advFuncKernels.LayerNorm(result, src, alpha, beta, eps);  }
+
+
+        [RegisterOpStorageType("layernormgrad", typeof(CudaStorage))]
+        public Tensor LayerNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps=1e-09f) { return advFuncKernels.LayerNormGrad(outGrad, alphaGrad, betaGrad, inGrad, y, x, alpha, beta, eps); }
+
+
 
         [RegisterOpStorageType("sgd", typeof(CudaStorage))]
         public Tensor SGD(Tensor weight, Tensor gradient, Tensor cache, Tensor lrw, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
         {
-            return softmaxKernels.SGD(weight, gradient, cache, lrw, batchSize, step_size, clipval, regc, decay_rate, eps);
+            return advFuncKernels.SGD(weight, gradient, cache, lrw, batchSize, step_size, clipval, regc, decay_rate, eps);
         }
 
 

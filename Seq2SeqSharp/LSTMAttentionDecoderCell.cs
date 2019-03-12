@@ -25,6 +25,9 @@ namespace Seq2SeqSharp
         public int m_batchSize;
         private int m_deviceId;
 
+        private LayerNormalization layerNorm1;
+        private LayerNormalization layerNorm2;
+
         public LSTMAttentionDecoderCell(int batchSize, int hdim, int dim, ArchTypeEnums archType, int deviceId, bool isDefaultDevice)
         {
             int contextSize = hdim * 2;
@@ -50,6 +53,9 @@ namespace Seq2SeqSharp
                 this.ht = new WeightMatrix(batchSize, hdim, 0);
                 this.ct = new WeightMatrix(batchSize, hdim, 0);
             }
+
+            layerNorm1 = new LayerNormalization(batchSize, hdim * 4, archType, deviceId, isDefaultDevice);
+            layerNorm2 = new LayerNormalization(batchSize, hdim, archType, deviceId, isDefaultDevice);
         }
 
         /// <summary>
@@ -67,23 +73,19 @@ namespace Seq2SeqSharp
             var hxhc = computeGraph.ConcatColumns(input, hidden_prev, context);
             var bs = computeGraph.RepeatRows(b, input.Rows);
             var hhSum = computeGraph.MulAdd(hxhc, Wxhc, bs);
+            var hhSum2 = layerNorm1.Process(hhSum, computeGraph);
 
-            (var gates_raw, var cell_write_raw) = computeGraph.SplitColumns(hhSum, hdim * 3, hdim);
-            var gates = computeGraph.Sigmoid(gates_raw, true);
-            var cell_write = computeGraph.Tanh(cell_write_raw, true);
+            (var gates_raw, var cell_write_raw) = computeGraph.SplitColumns(hhSum2, hdim * 3, hdim);
+            var gates = computeGraph.Sigmoid(gates_raw);
+            var cell_write = computeGraph.Tanh(cell_write_raw);
 
             (var input_gate, var forget_gate, var output_gate) = computeGraph.SplitColumns(gates, hdim, hdim, hdim);
 
-            // compute new cell activation
-            //var retain_cell = computeGraph.EltMul(forget_gate, cell_prev);
-            //var write_cell = computeGraph.EltMul(input_gate, cell_write);
-
-            //ct = computeGraph.Add(retain_cell, write_cell);
-
-
+            // compute new cell activation: ct = forget_gate * cell_prev + input_gate * cell_write
             ct = computeGraph.EltMulMulAdd(forget_gate, cell_prev, input_gate, cell_write);
+            var ct2 = layerNorm2.Process(ct, computeGraph);
 
-            ht = computeGraph.EltMul(output_gate, computeGraph.Tanh(ct));
+            ht = computeGraph.EltMul(output_gate, computeGraph.Tanh(ct2));
 
             return ht;
         }
@@ -93,6 +95,9 @@ namespace Seq2SeqSharp
             List<IWeightMatrix> response = new List<IWeightMatrix>();
             response.Add(Wxhc);
             response.Add(b);
+
+            response.AddRange(layerNorm1.getParams());
+            response.AddRange(layerNorm2.getParams());
 
             return response;
         }
@@ -114,6 +119,9 @@ namespace Seq2SeqSharp
         {
             Wxhc.Save(stream);
             b.Save(stream);
+
+            layerNorm1.Save(stream);
+            layerNorm2.Save(stream);
         }
 
 
@@ -121,6 +129,9 @@ namespace Seq2SeqSharp
         {
             Wxhc.Load(stream);
             b.Load(stream);
+
+            layerNorm1.Load(stream);
+            layerNorm2.Load(stream);
         }
     }
 }

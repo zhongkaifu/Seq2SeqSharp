@@ -91,19 +91,19 @@ Here is an example for attentioned based LSTM.
             var hxhc = computeGraph.ConcatColumns(input, hidden_prev, context);
             var bs = computeGraph.RepeatRows(b, input.Rows);
             var hhSum = computeGraph.MulAdd(hxhc, Wxhc, bs);
+            var hhSum2 = layerNorm1.Process(hhSum, computeGraph);
 
-            (var gates_raw, var cell_write_raw) = computeGraph.SplitColumns(hhSum, hdim * 3, hdim);
+            (var gates_raw, var cell_write_raw) = computeGraph.SplitColumns(hhSum2, hdim * 3, hdim);
             var gates = computeGraph.Sigmoid(gates_raw);
             var cell_write = computeGraph.Tanh(cell_write_raw);
 
             (var input_gate, var forget_gate, var output_gate) = computeGraph.SplitColumns(gates, hdim, hdim, hdim);
 
-            // compute new cell activation
-            var retain_cell = computeGraph.EltMul(forget_gate, cell_prev);
-            var write_cell = computeGraph.EltMul(input_gate, cell_write);
+            // compute new cell activation: ct = forget_gate * cell_prev + input_gate * cell_write
+            ct = computeGraph.EltMulMulAdd(forget_gate, cell_prev, input_gate, cell_write);
+            var ct2 = layerNorm2.Process(ct, computeGraph);
 
-            ct = computeGraph.Add(retain_cell, write_cell);
-            ht = computeGraph.EltMul(output_gate, computeGraph.Tanh(ct));
+            ht = computeGraph.EltMul(output_gate, computeGraph.Tanh(ct2));
 
             return ht;
         }

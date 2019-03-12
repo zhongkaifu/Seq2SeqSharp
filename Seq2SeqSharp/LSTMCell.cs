@@ -19,12 +19,14 @@ namespace Seq2SeqSharp
         public IWeightMatrix ht { get; set; }
         public IWeightMatrix ct { get; set; }
 
-
         public int hdim { get; set; }
         public int dim { get; set; }
 
         private int batchSize;
         private int deviceId;
+
+        private LayerNormalization layerNorm1;
+        private LayerNormalization layerNorm2;
 
         public LSTMCell(int batchSize, int hdim, int dim, ArchTypeEnums archType, int deviceId, bool isDefaultDevice)
         {
@@ -43,6 +45,9 @@ namespace Seq2SeqSharp
             this.dim = dim;
             this.batchSize = batchSize;
             this.deviceId = deviceId;
+
+            layerNorm1 = new LayerNormalization(batchSize, hdim * 4, archType, deviceId, isDefaultDevice);
+            layerNorm2 = new LayerNormalization(batchSize, hdim, archType, deviceId, isDefaultDevice);
         }
 
         public IWeightMatrix Step(IWeightMatrix input, IComputeGraph innerGraph)
@@ -53,24 +58,20 @@ namespace Seq2SeqSharp
             var inputs = innerGraph.ConcatColumns(input, hidden_prev);
             var bs = innerGraph.RepeatRows(b, input.Rows);
             var hhSum = innerGraph.MulAdd(inputs, Wxh, bs);
-            (var gates_raw, var cell_write_raw) = innerGraph.SplitColumns(hhSum, hdim * 3, hdim);
+            var hhSum2 = layerNorm1.Process(hhSum, innerGraph);
 
-            var gates = innerGraph.Sigmoid(gates_raw, true);
-            var cell_write = innerGraph.Tanh(cell_write_raw, true);
+            (var gates_raw, var cell_write_raw) = innerGraph.SplitColumns(hhSum2, hdim * 3, hdim);
+            var gates = innerGraph.Sigmoid(gates_raw);
+            var cell_write = innerGraph.Tanh(cell_write_raw);
 
             (var input_gate, var forget_gate, var output_gate) = innerGraph.SplitColumns(gates, hdim, hdim, hdim);
 
-            // compute new cell activation
-            //var retain_cell = innerGraph.EltMul(forget_gate, cell_prev); // what do we keep from cell
-            //var write_cell = innerGraph.EltMul(input_gate, cell_write); // what do we write to cell
-            //ct = innerGraph.Add(retain_cell, write_cell); // new cell contents
-
-
-
+            // compute new cell activation: ct = forget_gate * cell_prev + input_gate * cell_write
             ct = innerGraph.EltMulMulAdd(forget_gate, cell_prev, input_gate, cell_write);
+            var ct2 = layerNorm2.Process(ct, innerGraph);
 
             // compute hidden state as gated, saturated cell activations
-            ht = innerGraph.EltMul(output_gate, innerGraph.Tanh(ct));
+            ht = innerGraph.EltMul(output_gate, innerGraph.Tanh(ct2));
 
             return ht;
         }
@@ -80,6 +81,9 @@ namespace Seq2SeqSharp
             List<IWeightMatrix> response = new List<IWeightMatrix>();
             response.Add(Wxh);
             response.Add(b);
+
+            response.AddRange(layerNorm1.getParams());
+            response.AddRange(layerNorm2.getParams());
 
             return response;
         }
@@ -100,6 +104,10 @@ namespace Seq2SeqSharp
         {
             Wxh.Save(stream);
             b.Save(stream);
+
+            layerNorm1.Save(stream);
+            layerNorm2.Save(stream);
+
         }
 
 
@@ -107,6 +115,9 @@ namespace Seq2SeqSharp
         {
             Wxh.Load(stream);
             b.Load(stream);
+
+            layerNorm1.Load(stream);
+            layerNorm2.Load(stream);
         }
     }
      

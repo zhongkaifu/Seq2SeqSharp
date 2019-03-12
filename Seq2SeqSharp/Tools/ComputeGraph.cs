@@ -908,6 +908,124 @@ namespace Seq2SeqSharp
 
         }
 
+        public IWeightMatrix CreatePositionMatrix(int dimWords, int dimEmb)
+        {
+            double numTimescales = (float)dimEmb / 2;
+            double logTimescaleIncrement = Math.Log(10000.0f) / (numTimescales - 1.0f);
+
+            var res = weightMatrixFactory.CreateWeightMatrix(dimWords, dimEmb);
+
+            for (int p = 0; p < dimWords; ++p)
+            {
+                for (int i = 0; i < numTimescales; ++i)
+                {
+                    float v = (float)(p * Math.Exp(i * -logTimescaleIncrement));
+
+                    res.Weight[p * dimEmb + i] = (float)Math.Sin(v);
+                    res.Weight[p * dimEmb + (int)numTimescales + i] = (float)Math.Cos(v);
+                }
+            }
+
+
+            return res;
+        }
+
+        public IWeightMatrix LayerNorm(IWeightMatrix src, IWeightMatrix alpha, IWeightMatrix beta, float eps = 1e-09f)
+        {
+            WeightMatrix srcM = src as WeightMatrix;
+            WeightMatrix alphaM = alpha as WeightMatrix;
+            WeightMatrix betaM = beta as WeightMatrix;
+
+            int rows = srcM.Rows;
+            int cols = srcM.Columns;
+
+            var res = weightMatrixFactory.CreateWeightMatrix(rows, cols);
+
+            for (int j = 0; j < rows; j++)
+            {
+                int baseIdx = j * cols;
+
+                var sum = 0.0f;
+                for (int i = 0; i < cols; i++)
+                {
+                    sum += srcM.Weight[baseIdx + i];
+                }
+
+                float mean = sum / cols;
+                float sqSum = 0.0f;
+
+                for (int i = 0; i < cols; i++)
+                {
+                    float ex = srcM.Weight[baseIdx + i] - mean;
+                    sqSum += ex * ex;
+                }
+
+                float sigma = (float)Math.Sqrt(eps + sqSum / cols);
+
+                for (int i = 0; i < cols; i++)
+                {
+                    float t = alphaM.Weight[baseIdx + i] * ((srcM.Weight[baseIdx + i] - mean) / sigma);
+                    t += betaM.Weight[baseIdx + i];
+
+                    res.Weight[baseIdx + i] = t;
+                }
+            }
+
+
+            if (this.needs_backprop)
+            {
+                Action backward = () =>
+                {
+                    for (int j = 0; j < rows; j++)
+                    {
+                        float sum_x = 0.0f;
+                        float sum_adj = 0.0f;
+                        float sum_adj_x = 0.0f;
+                        float sum_sqr = 0.0f;
+                        int baseIdx = j * cols;
+
+                        for (int i = 0; i < cols; i++)
+                        {
+                            sum_x += srcM.Weight[baseIdx + i];
+                            sum_adj_x += res.Gradient[baseIdx + i] * (res.Weight[baseIdx + i] - betaM.Weight[baseIdx + i]);
+                            sum_adj += res.Gradient[baseIdx + i];
+                        }
+
+                        float mean = sum_x / cols;
+
+                        for (int i = 0; i < cols; i++)
+                        {
+                            float ex = srcM.Weight[baseIdx + i] - mean;
+                            sum_sqr += ex * ex;
+                        }
+
+                        float sigma = (float)Math.Sqrt(eps + sum_sqr / cols);
+
+                        for (int i = 0; i < cols; i++)
+                        {
+                            float grad_x = 0.0f;
+
+                            float x_hat = (res.Weight[baseIdx + i] - betaM.Weight[baseIdx + i]) / alphaM.Weight[baseIdx + i];
+
+                            grad_x += cols * res.Gradient[baseIdx + i];
+                            grad_x -= sum_adj;
+                            grad_x -= sum_adj_x * x_hat;
+                            grad_x /= cols * sigma;
+
+                            srcM.Gradient[baseIdx + i] += alphaM.Weight[baseIdx + i] * grad_x;
+                            alphaM.Gradient[baseIdx + i] += res.Gradient[baseIdx + i] * x_hat;
+                            betaM.Gradient[baseIdx + i] += res.Gradient[baseIdx + i];
+                        }
+                    }
+                };
+                this.backprop.Add(backward);
+            }
+
+
+            return res;
+        }
+
+
         public virtual IWeightMatrix Softmax(IWeightMatrix src, bool bp = true)
         {
             WeightMatrix m = src as WeightMatrix;
@@ -1010,6 +1128,9 @@ namespace Seq2SeqSharp
 
             return res;
         }
+
+
+
 
         public virtual IWeightMatrix ConcatColumns(params IWeightMatrix[] wl)
         {

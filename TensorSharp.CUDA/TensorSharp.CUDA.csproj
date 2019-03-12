@@ -119,7 +119,7 @@
     <Compile Include="DeviceCode\Headers\ReduceIndex.cs" />
     <Compile Include="DeviceCode\Headers\ReduceMacros.cs" />
     <Compile Include="DeviceCode\PermutationGenerator.cs" />
-    <Compile Include="DeviceCode\SoftmaxKernels.cs" />
+    <Compile Include="DeviceCode\AdvFuncKernels.cs" />
     <Compile Include="DeviceCode\SpatialMaxPoolKernels.cs" />
     <Compile Include="DeviceCode\VarStdKernels.cs" />
     <Compile Include="DeviceState.cs" />

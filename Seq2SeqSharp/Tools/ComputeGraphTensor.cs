@@ -96,8 +96,10 @@ namespace Seq2SeqSharp.Tools
             return res;
 
         }
-		
-		 public IWeightMatrix Mul(IWeightMatrix w, float v)
+
+
+
+        public IWeightMatrix Mul(IWeightMatrix w, float v)
         {
             var m = w as WeightTensor;
             var res = weightTensorFactory.CreateWeightTensor(m.Rows, m.Columns, deviceId);
@@ -824,6 +826,54 @@ namespace Seq2SeqSharp.Tools
             noise.SetElementsAsFloat(weights);
 
             return noise;
+        }
+
+
+        public IWeightMatrix CreatePositionMatrix(int dimWords, int dimEmb)
+        {
+            double numTimescales = (float)dimEmb / 2;
+            double logTimescaleIncrement = Math.Log(10000.0f) / (numTimescales - 1.0f);
+            float[] weights = new float[dimWords * dimEmb];
+
+            var res = weightTensorFactory.CreateWeightTensor(dimWords, dimEmb, deviceId);
+
+            for (int p = 0; p < dimWords; ++p)
+            {
+                for (int i = 0; i < numTimescales; ++i)
+                {
+                    float v = (float)(p * Math.Exp(i * -logTimescaleIncrement));
+
+                    weights[p * dimEmb + i] = (float)Math.Sin(v);
+                    weights[p * dimEmb + (int)numTimescales + i] = (float)Math.Cos(v);
+                }
+            }
+
+            res.TWeight.CopyFrom(weights);
+
+            return res;
+        }
+
+        public IWeightMatrix LayerNorm(IWeightMatrix src, IWeightMatrix alpha, IWeightMatrix beta, float eps = 1e-09f)
+        {
+            var srcT = src as WeightTensor;
+            var alphaT = alpha as WeightTensor;
+            var betaT = beta as WeightTensor;
+
+            var res = weightTensorFactory.CreateWeightTensor(src.Rows, src.Columns, deviceId);
+
+            Ops.LayerNorm(res.TWeight, srcT.TWeight, alphaT.TWeight, betaT.TWeight, eps);
+
+
+            if (this.needs_backprop)
+            {
+                Action backward = () =>
+                {
+                    Ops.LayerNormGrad(srcT.TGradient, alphaT.TGradient, betaT.TGradient, res.TGradient, res.TWeight, srcT.TWeight, alphaT.TWeight, betaT.TWeight, eps);
+                };
+                this.backprop.Add(backward);
+            }
+
+            return res;
         }
 
         public IWeightMatrix Dropout(IWeightMatrix V, float drop_prob)

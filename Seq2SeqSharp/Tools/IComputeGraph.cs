@@ -50,5 +50,7 @@ namespace Seq2SeqSharp
         IWeightMatrix ConcatRowColumn(List<IWeightMatrix> wl1, List<IWeightMatrix> wl2);
 		
 		 IWeightMatrix Mul(IWeightMatrix w, float v);
+
+        IWeightMatrix LayerNorm(IWeightMatrix src, IWeightMatrix alpha, IWeightMatrix beta, float eps = 1e-09f);
     }
 }
