@@ -88,7 +88,7 @@ namespace Seq2SeqSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void UpdateWeightsTensor(WeightTensor m, int batchSize, float step_size, float clipval, float regc)
         {
-            Ops.SGD(m.TWeight, m.TGradient, m.TCache, m.TLrW, batchSize, step_size, clipval, regc, decay_rate, smooth_eps);
+            Ops.RMSProp(m.TWeight, m.TGradient, m.TCache, batchSize, step_size, clipval, regc, decay_rate, smooth_eps);
         }
 
 

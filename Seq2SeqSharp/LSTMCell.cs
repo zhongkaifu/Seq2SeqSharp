@@ -28,12 +28,12 @@ namespace Seq2SeqSharp
         private LayerNormalization layerNorm1;
         private LayerNormalization layerNorm2;
 
-        public LSTMCell(int batchSize, int hdim, int dim, ArchTypeEnums archType, int deviceId, bool isDefaultDevice)
+        public LSTMCell(int batchSize, int hdim, int dim, ArchTypeEnums archType, int deviceId)
         {
             if (archType == ArchTypeEnums.GPU_CUDA)
             {
-                Wxh = new WeightTensor(dim + hdim, hdim * 4, deviceId, isDefaultDevice, true);
-                b = new WeightTensor(1, hdim * 4, 0, deviceId, isDefaultDevice);
+                Wxh = new WeightTensor(dim + hdim, hdim * 4, deviceId, true);
+                b = new WeightTensor(1, hdim * 4, 0, deviceId);
             }
             else
             {
@@ -46,8 +46,8 @@ namespace Seq2SeqSharp
             this.batchSize = batchSize;
             this.deviceId = deviceId;
 
-            layerNorm1 = new LayerNormalization(batchSize, hdim * 4, archType, deviceId, isDefaultDevice);
-            layerNorm2 = new LayerNormalization(batchSize, hdim, archType, deviceId, isDefaultDevice);
+            layerNorm1 = new LayerNormalization(hdim * 4, archType, deviceId);
+            layerNorm2 = new LayerNormalization(hdim, archType, deviceId);
         }
 
         public IWeightMatrix Step(IWeightMatrix input, IComputeGraph innerGraph)

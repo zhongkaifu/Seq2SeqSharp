@@ -28,7 +28,7 @@ namespace Seq2SeqSharp
         private LayerNormalization layerNorm1;
         private LayerNormalization layerNorm2;
 
-        public LSTMAttentionDecoderCell(int batchSize, int hdim, int dim, ArchTypeEnums archType, int deviceId, bool isDefaultDevice)
+        public LSTMAttentionDecoderCell(int batchSize, int hdim, int dim, ArchTypeEnums archType, int deviceId)
         {
             int contextSize = hdim * 2;
             this.hdim = hdim;
@@ -39,11 +39,11 @@ namespace Seq2SeqSharp
 
             if (archType == ArchTypeEnums.GPU_CUDA)
             {
-                Wxhc = new WeightTensor(dim + hdim + contextSize, hdim * 4, deviceId, isDefaultDevice, true);
-                b = new WeightTensor(1, hdim * 4, 0, deviceId, isDefaultDevice);
+                Wxhc = new WeightTensor(dim + hdim + contextSize, hdim * 4, deviceId, true);
+                b = new WeightTensor(1, hdim * 4, 0, deviceId);
 
-                this.ht = new WeightTensor(batchSize, hdim, 0, deviceId, isDefaultDevice);
-                this.ct = new WeightTensor(batchSize, hdim, 0, deviceId, isDefaultDevice);
+                this.ht = new WeightTensor(batchSize, hdim, 0, deviceId);
+                this.ct = new WeightTensor(batchSize, hdim, 0, deviceId);
             }
             else
             {
@@ -54,8 +54,8 @@ namespace Seq2SeqSharp
                 this.ct = new WeightMatrix(batchSize, hdim, 0);
             }
 
-            layerNorm1 = new LayerNormalization(batchSize, hdim * 4, archType, deviceId, isDefaultDevice);
-            layerNorm2 = new LayerNormalization(batchSize, hdim, archType, deviceId, isDefaultDevice);
+            layerNorm1 = new LayerNormalization(hdim * 4, archType, deviceId);
+            layerNorm2 = new LayerNormalization(hdim, archType, deviceId);
         }
 
         /// <summary>

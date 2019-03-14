@@ -77,13 +77,66 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        public Tensor TLrW;
-        public Tensor TCache;
+      //  private Tensor m_TLrW;
+        private Tensor m_TCache;
+
+       // private bool releasedTLrW = false;
+        private bool releasedTCache = false;
+
+        //public Tensor TLrW
+        //{
+        //    get
+        //    {
+        //        if (releasedTLrW)
+        //        {
+        //            return null;
+        //        }
+
+        //        if (m_TLrW == null)
+        //        {
+        //            m_TLrW = new Tensor(allocator, DType.Float32, Rows, Columns);
+        //            Ops.Fill(m_TLrW, 0.0f);
+        //        }
+
+        //        return m_TLrW;
+        //    }
+        //    set
+        //    {
+        //        m_TLrW = value;
+        //        releasedTLrW = false;
+        //    }
+        //}
+
+        public Tensor TCache
+        {
+            get
+            {
+                if (releasedTCache)
+                {
+                    return null;
+                }
+
+                if (m_TCache == null)
+                {
+                    m_TCache = new Tensor(allocator, DType.Float32, Rows, Columns);
+                    Ops.Fill(m_TCache, 0.0f);
+                }
+
+                return m_TCache;
+            }
+            set
+            {
+                m_TCache = value;
+                releasedTCache = false;
+            }
+
+
+        }
 
 
 
 
-        public WeightTensor(int rows, int columns, int deviceId, bool keepCache = true, bool normal = false)
+        public WeightTensor(int rows, int columns, int deviceId, bool normal = false)
         {
             DeviceId = deviceId;
             allocator = TensorAllocator.Allocator(DeviceId);
@@ -107,15 +160,6 @@ namespace Seq2SeqSharp.Tools
 
             TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
             Ops.Fill(TGradient, 0.0f);
-
-            if (keepCache)
-            {
-                TCache = new Tensor(allocator, DType.Float32, Rows, Columns);
-                Ops.Fill(TCache, 0.0f);
-
-                TLrW = new Tensor(allocator, DType.Float32, Rows, Columns);
-                Ops.Fill(TLrW, 0.0f);
-            }
 
             TWeight = Tensor.FromArray(allocator, weight).View(Rows, Columns);
         }
@@ -164,7 +208,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public WeightTensor(int rows, int columns, float c, int deviceId, bool keepCache = true)
+        public WeightTensor(int rows, int columns, float c, int deviceId)
         {
             DeviceId = deviceId;
             allocator = TensorAllocator.Allocator(DeviceId);
@@ -177,15 +221,6 @@ namespace Seq2SeqSharp.Tools
             TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
             Ops.Fill(TGradient, 0.0f);
 
-            if (keepCache)
-            {
-                TCache = new Tensor(allocator, DType.Float32, Rows, Columns);
-                Ops.Fill(TCache, 0.0f);
-
-                TLrW = new Tensor(allocator, DType.Float32, Rows, Columns);
-                Ops.Fill(TLrW, 0.0f);
-            }
-
             TWeight = new Tensor(allocator, DType.Float32, Rows, Columns);
             Ops.Fill(TWeight, c);
         }
@@ -194,7 +229,7 @@ namespace Seq2SeqSharp.Tools
         public void CleanCache()
         {
             Ops.Fill(TCache, 0.0f);
-            Ops.Fill(TLrW, 0.0f);
+        //    Ops.Fill(TLrW, 0.0f);
         }
 
         public void ClearGradient()
@@ -414,26 +449,9 @@ namespace Seq2SeqSharp.Tools
         public void Dispose()
         {
             ReleaseWeight();
-
-            if (m_TGradient != null)
-            {
-                m_TGradient.Dispose();
-                m_TGradient = null;
-
-                releasedTGradient = true;
-            }
-
-            if (TCache != null)
-            {
-                TCache.Dispose();
-                TCache = null;
-            }
-
-            if (TLrW != null)
-            {
-                TLrW.Dispose();
-                TLrW = null;
-            }
+            ReleaseGradient();
+          //  ReleaseLrW();
+            ReleaseCache();
         }
 
         public void ReleaseWeight()
@@ -445,6 +463,38 @@ namespace Seq2SeqSharp.Tools
                 releasedTWeight = true;
             }
         }
+
+        private void ReleaseGradient()
+        {
+            if (m_TGradient != null)
+            {
+                m_TGradient.Dispose();
+                m_TGradient = null;
+                releasedTGradient = true;
+            }
+        }
+
+        //private void ReleaseLrW()
+        //{
+        //    if (m_TLrW != null)
+        //    {
+        //        m_TLrW.Dispose();
+        //        m_TLrW = null;
+        //        releasedTLrW = true;
+        //    }
+        //}
+
+        private void ReleaseCache()
+        {
+            if (m_TCache != null)
+            {
+                m_TCache.Dispose();
+                m_TCache = null;
+                releasedTCache = true;
+            }
+
+        }
+
 
         public void Save(Stream stream)
         {

@@ -29,17 +29,17 @@ namespace Seq2SeqSharp
 
         int m_batchSize;
 
-        public AttentionUnit(int batchSize, int size, int context, ArchTypeEnums archType, int deviceId, bool isDefaultDevice)
+        public AttentionUnit(int batchSize, int size, int context, ArchTypeEnums archType, int deviceId)
         {
             m_batchSize = batchSize;
 
             if (archType == ArchTypeEnums.GPU_CUDA)
             {
-                this.Ua = new WeightTensor(context, size, deviceId, isDefaultDevice, true);
-                this.Wa = new WeightTensor(size, size, deviceId, isDefaultDevice, true);
-                this.bUa = new WeightTensor(1, size, 0, deviceId, isDefaultDevice);
-                this.bWa = new WeightTensor(1, size, 0, deviceId, isDefaultDevice);
-                this.V = new WeightTensor(size, 1, deviceId, isDefaultDevice, true);
+                this.Ua = new WeightTensor(context, size, deviceId, true);
+                this.Wa = new WeightTensor(size, size, deviceId, true);
+                this.bUa = new WeightTensor(1, size, 0, deviceId);
+                this.bWa = new WeightTensor(1, size, 0, deviceId);
+                this.V = new WeightTensor(size, 1, deviceId, true);
             }
             else
             {

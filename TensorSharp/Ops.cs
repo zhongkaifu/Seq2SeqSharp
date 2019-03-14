@@ -184,9 +184,9 @@ namespace TensorSharp
         public static Tensor LayerNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps = 1e-09f) { return (Tensor)OpRegistry.Invoke("layernormgrad", outGrad, alphaGrad, betaGrad, inGrad, y, x, alpha, beta, eps); }
 
 
-        public static Tensor SGD(Tensor weight, Tensor gradient, Tensor cache, Tensor lrw, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
+        public static Tensor RMSProp(Tensor weight, Tensor gradient, Tensor cache, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
         {
-            return (Tensor)OpRegistry.Invoke("sgd", weight, gradient, cache, lrw, batchSize, step_size, clipval, regc, decay_rate, eps);
+            return (Tensor)OpRegistry.Invoke("rmsprop", weight, gradient, cache, batchSize, step_size, clipval, regc, decay_rate, eps);
         }
 
         public static Tensor SumAll(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("sumall", result, src); }

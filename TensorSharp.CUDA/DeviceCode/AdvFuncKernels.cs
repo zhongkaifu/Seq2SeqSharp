@@ -195,7 +195,7 @@ __global__ void gLayerNormalizationGrad(float* gradX,
 
 
 
-__global__ void SGD(float* __restrict__ w, float* __restrict__ g, float* __restrict__ c, float* __restrict__ l, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
+__global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __restrict__ c, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
 {
   for(int bid = 0; bid < rows; bid += gridDim.x) 
   {
@@ -205,7 +205,6 @@ __global__ void SGD(float* __restrict__ w, float* __restrict__ g, float* __restr
       float* sw = w + j * cols;
       float* sg = g + j * cols;
       float* sc = c + j * cols;
-      float* sl = l + j * cols;
       
       for(int tid = 0; tid < cols; tid += blockDim.x) 
       {        
@@ -227,9 +226,7 @@ __global__ void SGD(float* __restrict__ w, float* __restrict__ g, float* __restr
 
            g = g * rsqrtf(sc[i] + eps);
 
-           sl[i] = sl[i] * decay_rate + (1.0 - decay_rate) * g * g;
-
-           sw[i] += -g * (step_size / (sqrtf(sl[i]) + 1.0)) - sw[i] * regc;
+           sw[i] -= g * step_size + sw[i] * regc;
 
            sg[i] = 0;
         }
@@ -485,8 +482,7 @@ __global__ void SGD(float* __restrict__ w, float* __restrict__ g, float* __restr
             Invoke(context, cudaContext, "gSoftmax", grid, threads, (uint)(threads.x * sizeof(float)), CUstream.NullStream, resultPtr, srcPtr, rows, cols);
         }
 
-        //__global__ void SGD(float* w, float* g, float* c, float* l, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
-        private void SGD(TSCudaContext context, Tensor weight, Tensor gradient, Tensor cache, Tensor lrw, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
+        private void RMSProp(TSCudaContext context, Tensor weight, Tensor gradient, Tensor cache, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
         {
             var cudaContext = context.CudaContextForTensor(weight);
 
@@ -508,15 +504,14 @@ __global__ void SGD(float* __restrict__ w, float* __restrict__ g, float* __restr
             var weightPtr = CudaHelpers.GetBufferStart(weight);
             var gradientPtr = CudaHelpers.GetBufferStart(gradient);
             var cachePtr = CudaHelpers.GetBufferStart(cache);
-            var lrwPtr = CudaHelpers.GetBufferStart(lrw);
 
-            Invoke(context, cudaContext, "SGD", grid, threads, (uint)(threads.x * sizeof(float)), CUstream.NullStream, weightPtr, gradientPtr, cachePtr, lrwPtr, rows, cols, batchSize, step_size, clipval, regc, decay_rate, eps);
+            Invoke(context, cudaContext, "RMSProp", grid, threads, 0, CUstream.NullStream, weightPtr, gradientPtr, cachePtr, rows, cols, batchSize, step_size, clipval, regc, decay_rate, eps);
         }
 
-        public Tensor SGD(Tensor weight, Tensor gradient, Tensor cache, Tensor lrw, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
+        public Tensor RMSProp(Tensor weight, Tensor gradient, Tensor cache, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
         {
             var context = CudaHelpers.TSContextForTensor(weight);
-            SGD(context, weight, gradient, cache, lrw, batchSize, step_size, clipval, regc, decay_rate, eps);
+            RMSProp(context, weight, gradient, cache, batchSize, step_size, clipval, regc, decay_rate, eps);
 
             return weight;
         }

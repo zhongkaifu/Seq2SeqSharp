@@ -15,26 +15,18 @@ namespace Seq2SeqSharp
 
         public IWeightMatrix beta { get; set; }
 
-        int batchSize;
-        int dim;
-
-        public LayerNormalization(int batchSize, int dim, ArchTypeEnums archType, int deviceId, bool isDefaultDevice)
+        public LayerNormalization(int dim, ArchTypeEnums archType, int deviceId)
         {
             if (archType == ArchTypeEnums.GPU_CUDA)
             {
-                alpha = new WeightTensor(1, dim, 1, deviceId, isDefaultDevice);
-                beta = new WeightTensor(1, dim, 0, deviceId, isDefaultDevice);
+                alpha = new WeightTensor(1, dim, 1, deviceId);
+                beta = new WeightTensor(1, dim, 0, deviceId);
             }
             else
             {
                 alpha = new WeightMatrix(1, dim, 1);
                 beta = new WeightMatrix(1, dim, 0);
             }
-
-
-            this.batchSize = batchSize;
-            this.dim = dim;
-
         }
 
         public IWeightMatrix Process(IWeightMatrix input, IComputeGraph innerGraph)
@@ -52,11 +44,6 @@ namespace Seq2SeqSharp
             response.Add(beta);
 
             return response;
-        }
-
-        public void SetBatchSize(IWeightFactory weightFactory, int batchSize)
-        {
-            this.batchSize = batchSize;
         }
 
         public void Save(Stream stream)

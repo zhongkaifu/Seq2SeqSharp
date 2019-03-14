@@ -256,11 +256,11 @@ namespace Seq2SeqSharp
                 Logger.WriteLine($"Initializing weights for device '{m_deviceIds[i]}'");
                 if (m_archType == ArchTypeEnums.GPU_CUDA)
                 {
-                    m_Whd[i] = new WeightTensor(HiddenSize, m_tgtIndexToWord.Count + 3, m_deviceIds[i], m_deviceIds[i] == m_WhdDefaultDeviceId, true);
-                    m_bd[i] = new WeightTensor(1, m_tgtIndexToWord.Count + 3, 0, m_deviceIds[i], m_deviceIds[i] == m_bdDefaultDeviceId);
+                    m_Whd[i] = new WeightTensor(HiddenSize, m_tgtIndexToWord.Count + 3, m_deviceIds[i], true);
+                    m_bd[i] = new WeightTensor(1, m_tgtIndexToWord.Count + 3, 0, m_deviceIds[i]);
 
-                    m_srcEmbedding[i] = new WeightTensor(m_srcIndexToWord.Count, WordVectorSize, m_deviceIds[i], m_deviceIds[i] == m_srcEmbeddingDefaultDeviceId, true);
-                    m_tgtEmbedding[i] = new WeightTensor(m_tgtIndexToWord.Count + 3, WordVectorSize, m_deviceIds[i], m_deviceIds[i] == m_tgtEmbeddingDefaultDeviceId, true);
+                    m_srcEmbedding[i] = new WeightTensor(m_srcIndexToWord.Count, WordVectorSize, m_deviceIds[i], true);
+                    m_tgtEmbedding[i] = new WeightTensor(m_tgtIndexToWord.Count + 3, WordVectorSize, m_deviceIds[i], true);
                 }
                 else
                 {
@@ -273,9 +273,9 @@ namespace Seq2SeqSharp
 
                 Logger.WriteLine($"Initializing encoders and decoders for device '{m_deviceIds[i]}'...");
 
-                m_encoder[i] = new Encoder(m_batchSize, HiddenSize, WordVectorSize, Depth, m_archType, m_deviceIds[i], m_deviceIds[i] == m_encoderDefaultDeviceId);
-                m_reversEncoder[i] = new Encoder(m_batchSize, HiddenSize, WordVectorSize, Depth, m_archType, m_deviceIds[i], m_deviceIds[i] == m_reversEncoderDefaultDeviceId);
-                m_decoder[i] = new AttentionDecoder(m_batchSize, HiddenSize, WordVectorSize, HiddenSize * 2, Depth, m_archType, m_deviceIds[i], m_deviceIds[i] == m_decoderDefaultDeviceId);
+                m_encoder[i] = new Encoder(m_batchSize, HiddenSize, WordVectorSize, Depth, m_archType, m_deviceIds[i]);
+                m_reversEncoder[i] = new Encoder(m_batchSize, HiddenSize, WordVectorSize, Depth, m_archType, m_deviceIds[i]);
+                m_decoder[i] = new AttentionDecoder(m_batchSize, HiddenSize, WordVectorSize, HiddenSize * 2, Depth, m_archType, m_deviceIds[i]);
 
             }
 

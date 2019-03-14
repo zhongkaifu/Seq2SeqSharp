@@ -47,8 +47,9 @@ Note that:
 
 Example: Seq2SeqConsole.exe -TaskName train -WordVectorSize 1024 -HiddenSize 1024 -LearningRate 0.001 -Depth 2 -TrainCorpusPath .\corpus -ModelFilePath nmt.model -SrcLang enu -TgtLang chs -ArchType 0 -DeviceIds 0,1,2,3  
 
-Here is a snapshot while Seq2SeqSharp is encoding a new model.  
-![](https://github.com/zhongkaifu/Seq2SeqSharp/blob/master/Seq2SeqSharp_Snapshot.JPG)
+During training, the iteration information will be printed out and logged as follows:  
+info,3/13/2019 5:40:22 AM Epoch = '0' LR = '0.002', Current Cost = '3.213204', Avg Cost = '4.764458', SentInTotal = '17612800', SentPerMin = '44415.11', WordPerSec = '37689.26'  
+info,3/13/2019 5:49:16 AM Epoch = '0' LR = '0.002', Current Cost = '3.172645', Avg Cost = '4.731404', SentInTotal = '18022400', SentPerMin = '44451.65', WordPerSec = '37674.58'  
 
 Here is the command line to test models  
 **Seq2SeqConsole.exe -TaskName test [parameters...]**  

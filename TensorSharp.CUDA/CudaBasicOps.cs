@@ -428,10 +428,10 @@ namespace TensorSharp.CUDA
 
 
 
-        [RegisterOpStorageType("sgd", typeof(CudaStorage))]
-        public Tensor SGD(Tensor weight, Tensor gradient, Tensor cache, Tensor lrw, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
+        [RegisterOpStorageType("rmsprop", typeof(CudaStorage))]
+        public Tensor RMSProp(Tensor weight, Tensor gradient, Tensor cache, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
         {
-            return advFuncKernels.SGD(weight, gradient, cache, lrw, batchSize, step_size, clipval, regc, decay_rate, eps);
+            return advFuncKernels.RMSProp(weight, gradient, cache, batchSize, step_size, clipval, regc, decay_rate, eps);
         }
 
 
