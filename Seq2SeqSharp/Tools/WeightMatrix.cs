@@ -216,7 +216,9 @@ namespace Seq2SeqSharp
 
         public void CopyWeights(IWeightMatrix src)
         {
-            throw new NotImplementedException();
+            WeightMatrix m = src as WeightMatrix;
+
+            Array.Copy(m.Weight, Weight, m.Weight.Length);
         }
 
         public void AddGradient(IWeightMatrix src)

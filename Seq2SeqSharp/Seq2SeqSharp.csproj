@@ -57,6 +57,7 @@
     <Compile Include="AttentionUnit.cs" />
     <Compile Include="AttentionDecoder.cs" />
     <Compile Include="AttentionSeq2Seq.cs" />
+    <Compile Include="BiEncoder.cs" />
     <Compile Include="CostEventArg.cs" />
     <Compile Include="Encoder.cs" />
     <Compile Include="FeedForwardLayer.cs" />

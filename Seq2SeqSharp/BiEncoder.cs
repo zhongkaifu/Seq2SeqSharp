@@ -17,33 +17,19 @@ namespace Seq2SeqSharp
         public List<LSTMCell> forwardEncoders = new List<LSTMCell>();
         public List<LSTMCell> backwardEncoders = new List<LSTMCell>();
 
-        IWeightMatrix wxh { get; set; }
-        IWeightMatrix b { get; set; }
-
         public int hdim { get; set; }
         public int dim { get; set; }
         public int depth { get; set; }
 
-        public BiEncoder(int batchSize, int hdim, int dim, int depth, ArchTypeEnums archType, int deviceId, bool isDefaultDevice)
+        public BiEncoder(int batchSize, int hdim, int dim, int depth, ArchTypeEnums archType, int deviceId)
         {
-            forwardEncoders.Add(new LSTMCell(batchSize, hdim, dim, archType, deviceId, isDefaultDevice));
-            backwardEncoders.Add(new LSTMCell(batchSize, hdim, dim, archType, deviceId, isDefaultDevice));
+            forwardEncoders.Add(new LSTMCell(batchSize, hdim, dim, archType, deviceId));
+            backwardEncoders.Add(new LSTMCell(batchSize, hdim, dim, archType, deviceId));
 
             for (int i = 1; i < depth; i++)
             {
-                forwardEncoders.Add(new LSTMCell(batchSize, hdim, hdim, archType, deviceId, isDefaultDevice));
-                backwardEncoders.Add(new LSTMCell(batchSize, hdim, hdim, archType, deviceId, isDefaultDevice));
-            }
-
-            if (archType == ArchTypeEnums.GPU_CUDA)
-            {
-                wxh = new WeightTensor(2 * hdim, hdim, deviceId, isDefaultDevice, true);
-                b = new WeightTensor(1, hdim, 0, deviceId, isDefaultDevice);
-            }
-            else
-            {
-                wxh = new WeightMatrix(2* hdim, hdim, true);
-                b = new WeightMatrix(1, hdim, 0);
+                forwardEncoders.Add(new LSTMCell(batchSize, hdim, dim, archType, deviceId));
+                backwardEncoders.Add(new LSTMCell(batchSize, hdim, dim, archType, deviceId));
             }
 
             this.hdim = hdim;
@@ -101,11 +87,7 @@ namespace Seq2SeqSharp
                 for (int j = 0; j < seqLen; j++)
                 {
                     var concatW = g.ConcatColumns(forwardOutputs[j], backwardOutputs[j]);
-
-                    var bs = g.RepeatRows(b, concatW.Rows);
-                    var output = g.MulAdd(concatW, wxh, bs);
-
-                    layerOutputs.Add(output);
+                    layerOutputs.Add(concatW);
                 }
 
             }
@@ -129,9 +111,6 @@ namespace Seq2SeqSharp
                 response.AddRange(item.getParams());
             }
 
-            response.Add(wxh);
-            response.Add(b);
-
             return response;
         }
 
@@ -146,9 +125,6 @@ namespace Seq2SeqSharp
             {
                 item.Save(stream);
             }
-
-            wxh.Save(stream);
-            b.Save(stream);
         }
 
         public void Load(Stream stream)
@@ -162,9 +138,6 @@ namespace Seq2SeqSharp
             {
                 item.Load(stream);
             }
-
-            wxh.Load(stream);
-            b.Load(stream);
         }
     }
 }

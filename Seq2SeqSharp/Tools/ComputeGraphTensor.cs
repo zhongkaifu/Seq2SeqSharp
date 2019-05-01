@@ -749,6 +749,56 @@ namespace Seq2SeqSharp.Tools
             return (res[0], res[1], res[2]);
         }
 
+
+        public IWeightMatrix View(IWeightMatrix m, int r, int c)
+        {
+            WeightTensor t = m as WeightTensor;
+            var res = weightTensorFactory.CreateWeightTensor(r, c, deviceId);
+            res.TWeight = t.TWeight.View(r, c);
+
+            if (this.needs_backprop)
+            {
+                Action backward = () =>
+                {
+                    var g = res.TGradient.View(m.Rows, m.Columns);
+                    t.CopyOrAddGradient(g);
+                };
+                this.backprop.Add(backward);
+            }
+
+
+            return res;
+        }
+
+        public IWeightMatrix PermuteBatch(IWeightMatrix m, int batchSize)
+        {
+            WeightTensor t = m as WeightTensor;
+            var res = weightTensorFactory.CreateWeightTensor(m.Rows, m.Columns, deviceId);
+            int sizeEveryBatch = m.Rows / batchSize;
+
+            res.TWeight = Ops.AsContiguous(t.TWeight.View(sizeEveryBatch, batchSize, m.Columns).Permute(1, 0, 2)).View(m.Rows, m.Columns);
+
+            if (this.needs_backprop)
+            {
+                Action backward = () =>
+                {
+                    var g = t.TGradient.View(sizeEveryBatch, batchSize, m.Columns);
+                    var t2 = res.TGradient.View(batchSize, sizeEveryBatch, m.Columns).Permute(1, 0, 2);
+                    Ops.Add(g, g, t2);
+                   
+                    g.Dispose();
+                    t2.Dispose();
+                    res.Dispose();
+                };
+                this.backprop.Add(backward);
+            }
+
+
+            return res;
+        }
+
+
+
         public List<IWeightMatrix> UnFolderRow(IWeightMatrix m, int n, bool gradient = true)
         {
             List<IWeightMatrix> resList = new List<IWeightMatrix>();

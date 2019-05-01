@@ -53,8 +53,13 @@ namespace Seq2SeqSharp
 
         }
 
-        public AttentionPreProcessResult PreProcess(IWeightMatrix encoderOutput, IComputeGraph g)
+        public AttentionPreProcessResult PreProcess(IWeightMatrix encoderOutput, IWeightMatrix lastForwardToken, IComputeGraph g)
         {
+            for (int i = 0; i < decoders.Count; i++)
+            {
+                decoders[i].ht.CopyWeights(lastForwardToken);
+            }
+
             return attentionLayer.PreProcess(encoderOutput, g);
         }
 

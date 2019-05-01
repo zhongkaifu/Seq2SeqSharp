@@ -59,7 +59,7 @@ namespace Seq2SeqSharp
 
             IWeightMatrix bUas = g.RepeatRows(bUa, inputs.Rows);
             r.uhs = g.MulAdd(inputs, Ua, bUas);
-            r.inputs = g.ConcatRows(g.UnFolderRow(inputs, m_batchSize));
+            r.inputs = g.PermuteBatch(inputs, m_batchSize);
 
             return r;
         }
@@ -74,15 +74,11 @@ namespace Seq2SeqSharp
             var ggs = g.AddTanh(attenPreProcessResult.uhs, wcs);
             var atten = g.Mul(ggs, V);
 
-            List<IWeightMatrix> attens = g.UnFolderRow(atten, m_batchSize);
-            List<IWeightMatrix> attensT = new List<IWeightMatrix>();
-            for (int i = 0; i < m_batchSize; i++)
-            {
-                attensT.Add(g.Transpose2(attens[i]));
-            }
+            var atten2 = g.PermuteBatch(atten, m_batchSize);
+            var attenT = g.Transpose2(atten2);
+            var attenT2 = g.View(attenT, m_batchSize, attenPreProcessResult.inputs.Rows / m_batchSize);
 
-            var attenT = g.ConcatRows(attensT);
-            var attenSoftmax = g.Softmax(attenT);
+            var attenSoftmax = g.Softmax(attenT2);
 
             IWeightMatrix contexts = g.MulBatch(attenSoftmax, attenPreProcessResult.inputs, m_batchSize);
 

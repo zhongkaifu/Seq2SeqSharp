@@ -22,6 +22,9 @@ namespace Seq2SeqSharp
         IWeightMatrix EltMulMulAdd(IWeightMatrix w1, IWeightMatrix w2, IWeightMatrix w3, IWeightMatrix w4);
 
         List<IWeightMatrix> UnFolderRow(IWeightMatrix m, int n, bool gradient = true);
+        IWeightMatrix PermuteBatch(IWeightMatrix m, int batchSize);
+
+        IWeightMatrix View(IWeightMatrix m, int r, int c);
 
         IWeightMatrix AddTanh(IWeightMatrix w1, IWeightMatrix w2);
 

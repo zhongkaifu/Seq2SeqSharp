@@ -1363,6 +1363,16 @@ namespace Seq2SeqSharp
             return res;
         }
 
+        public IWeightMatrix PermuteBatch(IWeightMatrix m, int batchSize)
+        {
+            return m;
+        }
+
+        public IWeightMatrix View(IWeightMatrix m, int r, int c)
+        {
+            return m;
+        }
+
         public List<IWeightMatrix> UnFolderRow(IWeightMatrix m, int n, bool gradient = true)
         {
             if (n != 1)
