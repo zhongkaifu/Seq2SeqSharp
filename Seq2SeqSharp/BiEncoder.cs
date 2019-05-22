@@ -28,8 +28,8 @@ namespace Seq2SeqSharp
 
             for (int i = 1; i < depth; i++)
             {
-                forwardEncoders.Add(new LSTMCell(batchSize, hdim, dim, archType, deviceId));
-                backwardEncoders.Add(new LSTMCell(batchSize, hdim, dim, archType, deviceId));
+                forwardEncoders.Add(new LSTMCell(batchSize, hdim, hdim * 2, archType, deviceId));
+                backwardEncoders.Add(new LSTMCell(batchSize, hdim, hdim * 2, archType, deviceId));
             }
 
             this.hdim = hdim;

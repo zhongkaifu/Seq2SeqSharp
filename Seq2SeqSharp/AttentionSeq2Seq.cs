@@ -70,21 +70,11 @@ namespace Seq2SeqSharp
         private IWeightMatrix[] m_tgtEmbedding;
         private int m_tgtEmbeddingDefaultDeviceId = 0;
 
-        private Encoder[] m_encoder;
-        private int m_encoderDefaultDeviceId = 0;
-
-        private Encoder[] m_reversEncoder;
-        private int m_reversEncoderDefaultDeviceId = 0;
+        private BiEncoder[] m_biEncoder;
+        private int m_biEncoderDefaultDeviceId = 0;
 
         private AttentionDecoder[] m_decoder;
         private int m_decoderDefaultDeviceId = 0;
-
-        ////Output Layer Weights
-        //private IWeightMatrix[] m_Whd;
-        //private int m_WhdDefaultDeviceId = 0;
-
-        //private IWeightMatrix[] m_bd;
-        //private int m_bdDefaultDeviceId = 0;
 
         //The feed forward layer after LSTM layers in decoder
         private FeedForwardLayer[] m_decoderFFLayer;
@@ -180,12 +170,8 @@ namespace Seq2SeqSharp
             m_srcEmbeddingDefaultDeviceId = (i++) % deviceNum;
             m_tgtEmbeddingDefaultDeviceId = (i++) % deviceNum;
 
-            m_encoderDefaultDeviceId = (i++) % deviceNum;
-            m_reversEncoderDefaultDeviceId = (i++) % deviceNum;
+            m_biEncoderDefaultDeviceId = (i++) % deviceNum;
             m_decoderDefaultDeviceId = (i++) % deviceNum;
-
-            //m_WhdDefaultDeviceId = (i++) % deviceNum;
-            //m_bdDefaultDeviceId = (i++) % deviceNum;
 
             m_DecoderFFLayerDeviceId = (i++) % deviceNum;
         }
@@ -207,14 +193,10 @@ namespace Seq2SeqSharp
 
             for (int i = 0; i < m_deviceIds.Length; i++)
             {
-                if (m_encoder[i] != null)
-                {
-                    m_encoder[i].SetBatchSize(m_weightFactory[i], batchSize);
-                }
 
-                if (m_reversEncoder[i] != null)
+                if (m_biEncoder[i] != null)
                 {
-                    m_reversEncoder[i].SetBatchSize(m_weightFactory[i], batchSize);
+                    m_biEncoder[i].SetBatchSize(m_weightFactory[i], batchSize);
                 }
 
                 if (m_decoder[i] != null)
@@ -248,13 +230,10 @@ namespace Seq2SeqSharp
         {
             Logger.WriteLine($"Initializing weights...");
 
-            //m_Whd = new IWeightMatrix[m_deviceIds.Length];
-            //m_bd = new IWeightMatrix[m_deviceIds.Length];
             m_srcEmbedding = new IWeightMatrix[m_deviceIds.Length];
             m_tgtEmbedding = new IWeightMatrix[m_deviceIds.Length];
 
-            m_encoder = new Encoder[m_deviceIds.Length];
-            m_reversEncoder = new Encoder[m_deviceIds.Length];
+            m_biEncoder = new BiEncoder[m_deviceIds.Length];
             m_decoder = new AttentionDecoder[m_deviceIds.Length];
 
             m_decoderFFLayer = new FeedForwardLayer[m_deviceIds.Length];
@@ -281,8 +260,7 @@ namespace Seq2SeqSharp
 
                 Logger.WriteLine($"Initializing encoders and decoders for device '{m_deviceIds[i]}'...");
 
-                m_encoder[i] = new Encoder(m_batchSize, HiddenSize, WordVectorSize, Depth, m_archType, m_deviceIds[i]);
-                m_reversEncoder[i] = new Encoder(m_batchSize, HiddenSize, WordVectorSize, Depth, m_archType, m_deviceIds[i]);
+                m_biEncoder[i] = new BiEncoder(m_batchSize, HiddenSize, WordVectorSize, Depth, m_archType, m_deviceIds[i]);
                 m_decoder[i] = new AttentionDecoder(m_batchSize, HiddenSize, WordVectorSize, HiddenSize * 2, Depth, m_archType, m_deviceIds[i]);
 
                 m_decoderFFLayer[i] = new FeedForwardLayer(HiddenSize, m_tgtIndexToWord.Count + 3, m_archType, m_deviceIds[i]);
@@ -566,11 +544,11 @@ namespace Seq2SeqSharp
                         IComputeGraph computeGraph = CreateComputGraph(i);
 
                         //Bi-directional encoding input source sentences
-                        (IWeightMatrix encodedWeightMatrix, IWeightMatrix lastForwardTokenWeightMatrix) = Encode(computeGraph, srcSnts.GetRange(i * m_batchSize, m_batchSize), m_encoder[i], m_reversEncoder[i], m_srcEmbedding[i]);
+                        IWeightMatrix encodedWeightMatrix = Encode(computeGraph, srcSnts.GetRange(i * m_batchSize, m_batchSize), m_biEncoder[i], m_srcEmbedding[i]);
 
                         //Generate output decoder sentences
                         List<List<string>> predictSentence;
-                        float lcost = Decode(tgtSnts.GetRange(i * m_batchSize, m_batchSize), computeGraph, encodedWeightMatrix, lastForwardTokenWeightMatrix, m_decoder[i], m_decoderFFLayer[i], 
+                        float lcost = Decode(tgtSnts.GetRange(i * m_batchSize, m_batchSize), computeGraph, encodedWeightMatrix, m_decoder[i], m_decoderFFLayer[i], 
                             m_tgtEmbedding[i], out predictSentence);
 
                         lock (locker)
@@ -691,7 +669,7 @@ namespace Seq2SeqSharp
         /// <param name="reversEncoder"></param>
         /// <param name="Embedding"></param>
         /// <returns></returns>
-        private (IWeightMatrix, IWeightMatrix) Encode(IComputeGraph g, List<List<string>> inputSentences, Encoder encoder, Encoder reversEncoder, IWeightMatrix Embedding)
+        private IWeightMatrix Encode(IComputeGraph g, List<List<string>> inputSentences, BiEncoder biEncoder, IWeightMatrix Embedding)
         {
             PadSentences(inputSentences);
             List<IWeightMatrix> forwardOutputs = new List<IWeightMatrix>();
@@ -718,24 +696,14 @@ namespace Seq2SeqSharp
             List<IWeightMatrix> attResults = new List<IWeightMatrix>();
             for (int i = 0; i < seqLen; i++)
             {
-                var emb_i = g.PeekRow(forwardInputsM, i * inputSentences.Count, inputSentences.Count);
+                var emb_i = g.PeekRow(forwardInputsM, i * inputSentences.Count, inputSentences.Count);             
                 attResults.Add(emb_i);
             }
 
-            for (int i = 0; i < seqLen; i++)
-            {
-                var eOutput = encoder.Encode(attResults[i], g);
-                forwardOutputs.Add(eOutput);
+            var encodedOutput = biEncoder.Encode(attResults, g);
+            var encodedOutput2 = g.ConcatRows(encodedOutput);
 
-                var eOutput2 = reversEncoder.Encode(attResults[seqLen - i - 1], g);
-                backwardOutputs.Add(eOutput2);
-            }
-
-            backwardOutputs.Reverse();
-            
-            var encodedOutput = g.ConcatRowColumn(forwardOutputs, backwardOutputs);
-
-            return (encodedOutput, forwardOutputs[seqLen - 1]);
+            return encodedOutput2;
         }
 
         /// <summary>
@@ -750,14 +718,11 @@ namespace Seq2SeqSharp
         /// <param name="Embedding"></param>
         /// <param name="predictSentence"></param>
         /// <returns></returns>
-        private float Decode(List<List<string>> outputSentences, IComputeGraph g, IWeightMatrix encodedOutputs, IWeightMatrix lastForwardTokenWeightMatrix, AttentionDecoder decoder, FeedForwardLayer decoderFFLayer,
-                   IWeightMatrix Embedding, out List<List<string>> predictSentence)
+        private float Decode(List<List<string>> outputSentences, IComputeGraph g, IWeightMatrix encodedOutputs, AttentionDecoder decoder, FeedForwardLayer decoderFFLayer, IWeightMatrix Embedding, out List<List<string>> predictSentence)
         {
             predictSentence = null;
-
             float cost = 0.0f;
-
-            var attPreProcessResult = decoder.PreProcess(encodedOutputs, lastForwardTokenWeightMatrix, g);
+            var attPreProcessResult = decoder.PreProcess(encodedOutputs, g);
 
             var originalOutputLengths = PadSentences(outputSentences);
             int seqLen = outputSentences[0].Count;
@@ -852,13 +817,10 @@ namespace Seq2SeqSharp
     
         private List<IWeightMatrix> GetParametersFromDeviceAt(int i)
         {
-            var model_i = m_encoder[i].getParams();
+            var model_i = m_biEncoder[i].getParams();
             model_i.AddRange(m_decoder[i].getParams());
-            model_i.AddRange(m_reversEncoder[i].getParams());
             model_i.Add(m_srcEmbedding[i]);
             model_i.Add(m_tgtEmbedding[i]);
-            //model_i.Add(m_Whd[i]);
-            //model_i.Add(m_bd[i]);
 
             model_i.AddRange(m_decoderFFLayer[i].getParams());
 
@@ -867,13 +829,10 @@ namespace Seq2SeqSharp
 
         private List<IWeightMatrix> GetParametersFromDefaultDevice()
         {
-            var model = m_encoder[m_encoderDefaultDeviceId].getParams();
+            var model = m_biEncoder[m_biEncoderDefaultDeviceId].getParams();
             model.AddRange(m_decoder[m_decoderDefaultDeviceId].getParams());
-            model.AddRange(m_reversEncoder[m_reversEncoderDefaultDeviceId].getParams());
             model.Add(m_srcEmbedding[m_srcEmbeddingDefaultDeviceId]);
             model.Add(m_tgtEmbedding[m_tgtEmbeddingDefaultDeviceId]);
-            //model.Add(m_Whd[m_WhdDefaultDeviceId]);
-            //model.Add(m_bd[m_bdDefaultDeviceId]);
 
             model.AddRange(m_decoderFFLayer[m_DecoderFFLayerDeviceId].getParams());
 
@@ -943,16 +902,14 @@ namespace Seq2SeqSharp
             {
                 m_weightFactory[i].Clear();
 
-                m_encoder[i].Reset(m_weightFactory[i]);
-                m_reversEncoder[i].Reset(m_weightFactory[i]);
+                m_biEncoder[i].Reset(m_weightFactory[i]);
                 m_decoder[i].Reset(m_weightFactory[i]);
             }
         }
 
         public List<List<string>> Predict(List<string> input, int beamSearchSize = 1)
         {
-            var encoder = m_encoder[m_defaultDeviceId];
-            var reversEncoder = m_reversEncoder[m_defaultDeviceId];
+            var biEncoder = m_biEncoder[m_defaultDeviceId];
             var srcEmbedding = m_srcEmbedding[m_defaultDeviceId];
             var tgtEmbedding = m_tgtEmbedding[m_defaultDeviceId];
             var decoder = m_decoder[m_defaultDeviceId];
@@ -970,9 +927,9 @@ namespace Seq2SeqSharp
          
             var inputSeqs = new List<List<string>>();
             inputSeqs.Add(inputSeq);
-            (IWeightMatrix encodedWeightMatrix, IWeightMatrix lastForwardTokenWeightMatrix) = Encode(g, inputSeqs, encoder, reversEncoder, srcEmbedding);
+            IWeightMatrix encodedWeightMatrix = Encode(g, inputSeqs, biEncoder, srcEmbedding);
 
-            var attPreProcessResult = decoder.PreProcess(encodedWeightMatrix, lastForwardTokenWeightMatrix, g);
+            var attPreProcessResult = decoder.PreProcess(encodedWeightMatrix, g);
 
             BeamSearchStatus bss = new BeamSearchStatus();
             bss.OutputIds.Add((int)SENTTAGS.START);
@@ -1099,11 +1056,9 @@ namespace Seq2SeqSharp
                 FileStream fs = new FileStream(m_modelFilePath, FileMode.Create, FileAccess.Write);
                 bf.Serialize(fs, tosave);
 
-               /// m_bd[m_bdDefaultDeviceId].Save(fs);
+                m_biEncoder[m_biEncoderDefaultDeviceId].Save(fs);
                 m_decoder[m_decoderDefaultDeviceId].Save(fs);
-                m_encoder[m_encoderDefaultDeviceId].Save(fs);
-                m_reversEncoder[m_reversEncoderDefaultDeviceId].Save(fs);
-               // m_Whd[m_WhdDefaultDeviceId].Save(fs);
+
                 m_srcEmbedding[m_srcEmbeddingDefaultDeviceId].Save(fs);
                 m_tgtEmbedding[m_tgtEmbeddingDefaultDeviceId].Save(fs);
 
@@ -1143,11 +1098,9 @@ namespace Seq2SeqSharp
 
             InitWeights();
 
-           // m_bd[m_bdDefaultDeviceId].Load(fs);
+            m_biEncoder[m_biEncoderDefaultDeviceId].Load(fs);
             m_decoder[m_decoderDefaultDeviceId].Load(fs);
-            m_encoder[m_encoderDefaultDeviceId].Load(fs);
-            m_reversEncoder[m_reversEncoderDefaultDeviceId].Load(fs);
-          //  m_Whd[m_WhdDefaultDeviceId].Load(fs);
+
             m_srcEmbedding[m_srcEmbeddingDefaultDeviceId].Load(fs);
             m_tgtEmbedding[m_tgtEmbeddingDefaultDeviceId].Load(fs);
 
