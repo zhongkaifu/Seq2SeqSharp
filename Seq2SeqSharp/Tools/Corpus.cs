@@ -17,8 +17,7 @@ namespace Seq2SeqSharp.Tools
 
     public class Corpus : IEnumerable<SntPair>
     {
-        public const int MaxSentLength = 32;
-
+        int maxSentLength = 32;
         int blockSize = 1000000;
         int batchSize = 1;
 
@@ -132,7 +131,7 @@ namespace Seq2SeqSharp.Tools
                     line = srTgt.ReadLine();
                     sntPair.TgtSnt = line.ToLower().Trim().Split(' ').ToArray();
 
-                    if (sntPair.SrcSnt.Length >= MaxSentLength || sntPair.TgtSnt.Length >= MaxSentLength)
+                    if (sntPair.SrcSnt.Length >= maxSentLength || sntPair.TgtSnt.Length >= maxSentLength)
                     {
                         tooLongSntCnt++;
                         continue;
@@ -175,7 +174,7 @@ namespace Seq2SeqSharp.Tools
             swTgt.Close();
 
             Logger.WriteLine($"Shuffled '{CorpusSize}' sentence pairs.");
-            Logger.WriteLine($"Found {tooLongSntCnt} sentences are longer than '{MaxSentLength}' tokens, ignore them.");
+            Logger.WriteLine($"Found {tooLongSntCnt} sentences are longer than '{maxSentLength}' tokens, ignore them.");
         }
 
         public IEnumerator<SntPair> GetEnumerator()
@@ -246,10 +245,11 @@ namespace Seq2SeqSharp.Tools
             return GetEnumerator();
         }
 
-        public Corpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1)
+        public Corpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSentLength = 32)
         {
             this.batchSize = batchSize;
             blockSize = shuffleBlockSize;
+            this.maxSentLength = maxSentLength;
 
             srcFileList = new List<string>();
             tgtFileList = new List<string>();

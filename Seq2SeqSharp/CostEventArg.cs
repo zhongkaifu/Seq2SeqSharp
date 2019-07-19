@@ -12,6 +12,7 @@ namespace Seq2SeqSharp
         public double avgCostInTotal { get; set; }
 
         public int Epoch { get; set; }
+        public int Update { get; set; }
 
         public int ProcessedSentencesInTotal { get; set; }
 

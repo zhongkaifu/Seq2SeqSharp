@@ -33,7 +33,7 @@ namespace Seq2SeqConsole
                     wordPerSec = ep.ProcessedWordsInTotal / ts.TotalSeconds;
                 }
 
-                Logger.WriteLine($"Epoch = '{ep.Epoch}' LR = '{ep.AvgLearningRate}', Current Cost = '{ep.CostPerWord.ToString("F6")}', Avg Cost = '{ep.avgCostInTotal.ToString("F6")}', SentInTotal = '{ep.ProcessedSentencesInTotal}', SentPerMin = '{sentPerMin.ToString("F")}', WordPerSec = '{wordPerSec.ToString("F")}'");
+                Logger.WriteLine($"Update = '{ep.Update}' Epoch = '{ep.Epoch}' LR = '{ep.AvgLearningRate.ToString("F6")}', Current Cost = '{ep.CostPerWord.ToString("F6")}', Avg Cost = '{ep.avgCostInTotal.ToString("F6")}', SentInTotal = '{ep.ProcessedSentencesInTotal}', SentPerMin = '{sentPerMin.ToString("F")}', WordPerSec = '{wordPerSec.ToString("F")}'");
             }
 
         }
@@ -61,12 +61,14 @@ namespace Seq2SeqConsole
             {
                 ShowOptions(args, options);
 
-                Corpus trainCorpus = new Corpus(options.TrainCorpusPath, options.SrcLang, options.TgtLang, options.BatchSize * deviceIds.Length, options.ShuffleBlockSize);
+                Corpus trainCorpus = new Corpus(options.TrainCorpusPath, options.SrcLang, options.TgtLang, options.BatchSize * deviceIds.Length, 
+                    options.ShuffleBlockSize, options.MaxSentLength);
                 if (File.Exists(options.ModelFilePath) == false)
                 {
                     //New training
-                    ss = new AttentionSeq2Seq(options.WordVectorSize, options.HiddenSize, options.Depth, trainCorpus, options.SrcVocab, options.TgtVocab, options.SrcEmbeddingModelFilePath, options.TgtEmbeddingModelFilePath,
-                        true, options.ModelFilePath, options.BatchSize, options.DropoutRatio, archType, deviceIds);
+                    ss = new AttentionSeq2Seq(options.WordVectorSize, options.HiddenSize, options.Depth, trainCorpus, options.SrcVocab, options.TgtVocab, 
+                        options.SrcEmbeddingModelFilePath, options.TgtEmbeddingModelFilePath, true, options.ModelFilePath, options.BatchSize, options.DropoutRatio, 
+                        archType, deviceIds);
                 }
                 else
                 {
@@ -122,6 +124,7 @@ namespace Seq2SeqConsole
             Logger.WriteLine($"Arch Type = '{archType}'");
             Logger.WriteLine($"Device Ids = '{options.DeviceIds}'");
             Logger.WriteLine($"Maxmium Epoch Number = '{options.MaxEpochNum}'");
+            Logger.WriteLine($"Maxmium Sentence Length = '{options.MaxSentLength}'");
         }
     }
 }

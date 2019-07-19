@@ -85,11 +85,14 @@ namespace Seq2SeqSharp
         private float m_startLearningRate = 0.001f;
         private float m_clipvalue = 5.0f; // clip gradients at this value
         private int m_batchSize = 1;
+        private int m_parameterUpdateCount = 0;
         private float m_dropoutRatio = 0.1f;
         private string m_modelFilePath;
         private ArchTypeEnums m_archType = ArchTypeEnums.GPU_CUDA;
         private int[] m_deviceIds;
         private int m_defaultDeviceId = 0;
+        private double m_avgCostPerWordInTotalInLastEpoch = 100000.0;
+
 
         public AttentionSeq2Seq(string modelFilePath, int batchSize, ArchTypeEnums archType, int[] deviceIds)
         {
@@ -491,7 +494,6 @@ namespace Seq2SeqSharp
             long srcWordCnts = 0;
             long tgtWordCnts = 0;
             double avgCostPerWordInTotal = 0.0;
-            double lastAvgCostPerWordInTotal = 100000.0;
             List<SntPair> sntPairs = new List<SntPair>();
 
             TensorAllocator.FreeMemoryAllDevices();
@@ -569,7 +571,6 @@ namespace Seq2SeqSharp
                         double costPerWord = (cost / tlen);
                         costInTotal += cost;
                         avgCostPerWordInTotal = costInTotal / tgtWordCnts;
-                        lastAvgCostPerWordInTotal = avgCostPerWordInTotal;
                     }
                     else
                     {
@@ -578,6 +579,7 @@ namespace Seq2SeqSharp
 
                     //Optmize parameters
                     float avgAllLR = UpdateParameters(learningRate, TrainCorpus.BatchSize);
+                    m_parameterUpdateCount++;
 
                     //Clear gradient over all devices
                     ClearGradient();
@@ -590,6 +592,7 @@ namespace Seq2SeqSharp
                             CostPerWord = cost / tlen,
                             avgCostInTotal = avgCostPerWordInTotal,
                             Epoch = ep,
+                            Update = m_parameterUpdateCount,
                             ProcessedSentencesInTotal = processedLine,
                             ProcessedWordsInTotal = srcWordCnts * 2 + tgtWordCnts,
                             StartDateTime = startDateTime
@@ -598,7 +601,7 @@ namespace Seq2SeqSharp
 
 
                     //Save model for each 10000 steps
-                    if (processedLine % (TrainCorpus.BatchSize * 1000) == 0)
+                    if (m_parameterUpdateCount % 1000 == 0 && m_avgCostPerWordInTotalInLastEpoch > avgCostPerWordInTotal)
                     {
                         Save();
                         TensorAllocator.FreeMemoryAllDevices();
@@ -608,9 +611,13 @@ namespace Seq2SeqSharp
                 }
             }
 
-            Logger.WriteLine($"Epoch '{ep}' took '{DateTime.Now - startDateTime}' time to finish.");
+            Logger.WriteLine($"Epoch '{ep}' took '{DateTime.Now - startDateTime}' time to finish. AvgCost = {avgCostPerWordInTotal.ToString("F6")}, AvgCostInLastEpoch = {m_avgCostPerWordInTotalInLastEpoch.ToString("F6")}");
+            if (m_avgCostPerWordInTotalInLastEpoch > avgCostPerWordInTotal)
+            {
+                Save();
+            }
 
-            Save();
+            m_avgCostPerWordInTotalInLastEpoch = avgCostPerWordInTotal;
         }
 
         private IComputeGraph CreateComputGraph(int deviceIdIdx, bool needBack = true)
@@ -686,6 +693,10 @@ namespace Seq2SeqSharp
                     if (m_srcWordToIndex.ContainsKey(inputSentence[i]))
                     {
                         ix_source = m_srcWordToIndex[inputSentence[i]];
+                    }
+                    else
+                    {
+                        Logger.WriteLine($"'{inputSentence[i]}' is an unknown word.");
                     }
                     var x = g.PeekRow(Embedding, ix_source);
                     forwardInput.Add(x);

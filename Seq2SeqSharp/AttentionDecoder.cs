@@ -62,7 +62,7 @@ namespace Seq2SeqSharp
         public IWeightMatrix Decode(IWeightMatrix input, AttentionPreProcessResult attenPreProcessResult, IComputeGraph g)
         {
             var V = input;
-            var lastStatus = this.decoders.FirstOrDefault().ct;
+            var lastStatus = this.decoders.LastOrDefault().ct;
             var context = attentionLayer.Perform(lastStatus, attenPreProcessResult, g);
 
             foreach (var decoder in decoders)

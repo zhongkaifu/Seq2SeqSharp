@@ -78,5 +78,8 @@ namespace Seq2SeqConsole
 
         [Arg("Maxmium epoch number during training. Default is 100", "MaxEpochNum")]
         public int MaxEpochNum = 100;
+
+        [Arg("Maxmium sentence length", "MaxSentLength")]
+        public int MaxSentLength = 32;
     }
 }
