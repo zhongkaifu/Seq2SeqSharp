@@ -11,44 +11,43 @@ namespace Seq2SeqSharp
     [Serializable]
     class LayerNormalization
     {
-        public IWeightMatrix alpha { get; set; }
+        IWeightTensor m_alpha;
+        IWeightTensor m_beta;
 
-        public IWeightMatrix beta { get; set; }
-
-        public LayerNormalization(int dim, ArchTypeEnums archType, int deviceId)
+        public LayerNormalization(int dim, int deviceId)
         {
-            alpha = new WeightTensor(1, dim, 1, deviceId);
-            beta = new WeightTensor(1, dim, 0, deviceId);
+            m_alpha = new WeightTensor(1, dim, 1, deviceId);
+            m_beta = new WeightTensor(1, dim, 0, deviceId);
         }
 
-        public IWeightMatrix Process(IWeightMatrix input, IComputeGraph innerGraph)
+        public IWeightTensor Process(IWeightTensor input, IComputeGraph innerGraph)
         {
-            var alphas = innerGraph.RepeatRows(alpha, input.Rows);
-            var betas = innerGraph.RepeatRows(beta, input.Rows);
+            var alphas = innerGraph.RepeatRows(m_alpha, input.Rows);
+            var betas = innerGraph.RepeatRows(m_beta, input.Rows);
 
             return innerGraph.LayerNorm(input, alphas, betas);
         }
 
-        public virtual List<IWeightMatrix> getParams()
+        public virtual List<IWeightTensor> getParams()
         {
-            List<IWeightMatrix> response = new List<IWeightMatrix>();
-            response.Add(alpha);
-            response.Add(beta);
+            List<IWeightTensor> response = new List<IWeightTensor>();
+            response.Add(m_alpha);
+            response.Add(m_beta);
 
             return response;
         }
 
         public void Save(Stream stream)
         {
-            alpha.Save(stream);
-            beta.Save(stream);
+            m_alpha.Save(stream);
+            m_beta.Save(stream);
         }
 
 
         public void Load(Stream stream)
         {
-            alpha.Load(stream);
-            beta.Load(stream);
+            m_alpha.Load(stream);
+            m_beta.Load(stream);
         }
     }
 }

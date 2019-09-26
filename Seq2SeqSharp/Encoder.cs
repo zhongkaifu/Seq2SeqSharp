@@ -19,13 +19,13 @@ namespace Seq2SeqSharp
         public int dim { get; set; }
         public int depth { get; set; }
 
-        public Encoder(int batchSize, int hdim, int dim, int depth, ArchTypeEnums archType, int deviceId)
+        public Encoder(int batchSize, int hdim, int dim, int depth, int deviceId)
         {
-            encoders.Add(new LSTMCell(batchSize, hdim, dim, archType, deviceId));
+            encoders.Add(new LSTMCell(batchSize, hdim, dim, deviceId));
 
             for (int i = 1; i < depth; i++)
             {
-                encoders.Add(new LSTMCell(batchSize, hdim, hdim, archType, deviceId));
+                encoders.Add(new LSTMCell(batchSize, hdim, hdim, deviceId));
 
             }
             this.hdim = hdim;
@@ -42,7 +42,7 @@ namespace Seq2SeqSharp
 
         }
 
-        public IWeightMatrix Encode(IWeightMatrix V, IComputeGraph g)
+        public IWeightTensor Encode(IWeightTensor V, IComputeGraph g)
         {
             foreach (var encoder in encoders)
             {
@@ -54,9 +54,9 @@ namespace Seq2SeqSharp
         }
 
 
-        public List<IWeightMatrix> getParams()
+        public List<IWeightTensor> getParams()
         {
-            List<IWeightMatrix> response = new List<IWeightMatrix>();
+            List<IWeightTensor> response = new List<IWeightTensor>();
 
             foreach (var item in encoders)
             {

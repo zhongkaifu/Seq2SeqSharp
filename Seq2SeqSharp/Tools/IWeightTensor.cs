@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.Tools
 {
-    public interface IWeightMatrix : IDisposable
+    public interface IWeightTensor : IDisposable
     {
         int Rows { get; set; }
         int Columns { get; set; }
@@ -22,7 +22,7 @@ namespace Seq2SeqSharp.Tools
         void SetWeightAt(float val, int offset);
         void SetGradientAt(float val, int offset);
 
-        void SetGradientByWeight(IWeightMatrix src);
+        void SetGradientByWeight(IWeightTensor src);
 
         void SetWeightAtRow(int row, float[] val);
 
@@ -41,7 +41,7 @@ namespace Seq2SeqSharp.Tools
         void Save(Stream stream);
         void Load(Stream stream);
 
-        void CopyWeights(IWeightMatrix src);
-        void AddGradient(IWeightMatrix src);
+        void CopyWeights(IWeightTensor src);
+        void AddGradient(IWeightTensor src);
     }
 }

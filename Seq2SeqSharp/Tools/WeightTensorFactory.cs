@@ -83,12 +83,12 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public IWeightMatrix CreateWeights(int row, int column, int deviceId)
+        public IWeightTensor CreateWeights(int row, int column, int deviceId)
         {
             return CreateWeightTensor(row, column, deviceId);
         }
 
-        public IWeightMatrix CreateWeights(int row, int column, int deviceId, bool cleanWeights)
+        public IWeightTensor CreateWeights(int row, int column, int deviceId, bool cleanWeights)
         {
             return CreateWeightTensor(row, column, deviceId, cleanWeights);
         }

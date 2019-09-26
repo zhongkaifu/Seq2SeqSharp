@@ -10,16 +10,16 @@ namespace Seq2SeqSharp
 {
     class FeedForwardLayer
     {
-        private IWeightMatrix m_Whd;
-        private IWeightMatrix m_Bd;
+        private IWeightTensor m_Whd;
+        private IWeightTensor m_Bd;
 
-        public FeedForwardLayer(int inputDim, int outputDim, ArchTypeEnums archType, int deviceId)
+        public FeedForwardLayer(int inputDim, int outputDim, int deviceId)
         {
             m_Whd = new WeightTensor(inputDim, outputDim, deviceId);
             m_Bd = new WeightTensor(1, outputDim, 0, deviceId);
         }
 
-        public IWeightMatrix Process(IWeightMatrix inputT, IComputeGraph g)
+        public IWeightTensor Process(IWeightTensor inputT, IComputeGraph g)
         {
             var bds = g.RepeatRows(m_Bd, inputT.Rows);
             var r = g.MulAdd(inputT, m_Whd, bds);
@@ -27,9 +27,9 @@ namespace Seq2SeqSharp
             return r;
         }
 
-        public virtual List<IWeightMatrix> GetParams()
+        public virtual List<IWeightTensor> GetParams()
         {
-            List<IWeightMatrix> response = new List<IWeightMatrix>();
+            List<IWeightTensor> response = new List<IWeightTensor>();
             response.Add(m_Whd);
             response.Add(m_Bd);
 

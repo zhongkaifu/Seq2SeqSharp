@@ -12,56 +12,51 @@ namespace Seq2SeqSharp
 
     public class AttentionPreProcessResult
     {
-        public IWeightMatrix uhs;
-        public IWeightMatrix inputs;
+        public IWeightTensor uhs;
+        public IWeightTensor inputs;
 
     }
 
     [Serializable]
     public class AttentionUnit
     {
-
-        public IWeightMatrix V { get; set; }
-        public IWeightMatrix Ua { get; set; }
-        public IWeightMatrix bUa { get; set; }
-        public IWeightMatrix Wa { get; set; }
-        public IWeightMatrix bWa { get; set; }
+        IWeightTensor m_V;
+        IWeightTensor m_Ua;
+        IWeightTensor m_bUa;
+        IWeightTensor m_Wa;
+        IWeightTensor m_bWa;
 
         int m_batchSize;
 
-        public AttentionUnit(int batchSize, int size, int context, ArchTypeEnums archType, int deviceId)
+        public AttentionUnit(int batchSize, int size, int context, int deviceId)
         {
             m_batchSize = batchSize;
 
-            this.Ua = new WeightTensor(context, size, deviceId);
-            this.Wa = new WeightTensor(size, size, deviceId);
-            this.bUa = new WeightTensor(1, size, 0, deviceId);
-            this.bWa = new WeightTensor(1, size, 0, deviceId);
-            this.V = new WeightTensor(size, 1, deviceId);
+            m_Ua = new WeightTensor(context, size, deviceId, true);
+            m_Wa = new WeightTensor(size, size, deviceId, true);
+            m_bUa = new WeightTensor(1, size, 0, deviceId);
+            m_bWa = new WeightTensor(1, size, 0, deviceId);
+            m_V = new WeightTensor(size, 1, deviceId, true);
         }
 
-
-
-        public AttentionPreProcessResult PreProcess(IWeightMatrix inputs, IComputeGraph g)
+        public AttentionPreProcessResult PreProcess(IWeightTensor inputs, IComputeGraph g)
         {
             AttentionPreProcessResult r = new AttentionPreProcessResult();
 
-            IWeightMatrix bUas = g.RepeatRows(bUa, inputs.Rows);
-            r.uhs = g.MulAdd(inputs, Ua, bUas);
+            IWeightTensor bUas = g.RepeatRows(m_bUa, inputs.Rows);
+            r.uhs = g.MulAdd(inputs, m_Ua, bUas);
             r.inputs = g.PermuteBatch(inputs, m_batchSize);
 
             return r;
         }
 
-      
-
-        public IWeightMatrix Perform(IWeightMatrix state, AttentionPreProcessResult attenPreProcessResult, IComputeGraph g)
+        public IWeightTensor Perform(IWeightTensor state, AttentionPreProcessResult attenPreProcessResult, IComputeGraph g)
         {
-            var bWas = g.RepeatRows(bWa, state.Rows);
-            var wc = g.MulAdd(state, Wa, bWas);
+            var bWas = g.RepeatRows(m_bWa, state.Rows);
+            var wc = g.MulAdd(state, m_Wa, bWas);
             var wcs = g.RepeatRows(wc, attenPreProcessResult.inputs.Rows / m_batchSize);
             var ggs = g.AddTanh(attenPreProcessResult.uhs, wcs);
-            var atten = g.Mul(ggs, V);
+            var atten = g.Mul(ggs, m_V);
 
             var atten2 = g.PermuteBatch(atten, m_batchSize);
             var attenT = g.Transpose2(atten2);
@@ -72,7 +67,7 @@ namespace Seq2SeqSharp
             var attenSoftmax = g.View(attenSoftmax1, m_batchSize, attenSoftmax1.Rows / m_batchSize, attenSoftmax1.Columns);
             var inputs2 = g.View(attenPreProcessResult.inputs, m_batchSize, attenPreProcessResult.inputs.Rows / m_batchSize, attenPreProcessResult.inputs.Columns);
 
-            IWeightMatrix contexts = g.MulBatch(attenSoftmax, inputs2, m_batchSize);
+            IWeightTensor contexts = g.MulBatch(attenSoftmax, inputs2, m_batchSize);
 
 
             return contexts;
@@ -80,36 +75,36 @@ namespace Seq2SeqSharp
 
       
 
-        public virtual List<IWeightMatrix> getParams()
+        public virtual List<IWeightTensor> getParams()
         {
-            List<IWeightMatrix> response = new List<IWeightMatrix>();
+            List<IWeightTensor> response = new List<IWeightTensor>();
 
-            response.Add(Ua);
-            response.Add(Wa);
-            response.Add(bUa);
-            response.Add(bWa);
-            response.Add(V);
+            response.Add(m_Ua);
+            response.Add(m_Wa);
+            response.Add(m_bUa);
+            response.Add(m_bWa);
+            response.Add(m_V);
 
             return response;
         }
 
         public void Save(Stream stream)
         {
-            Ua.Save(stream);
-            Wa.Save(stream);
-            bUa.Save(stream);
-            bWa.Save(stream);
-            V.Save(stream);
+            m_Ua.Save(stream);
+            m_Wa.Save(stream);
+            m_bUa.Save(stream);
+            m_bWa.Save(stream);
+            m_V.Save(stream);
         }
 
 
         public void Load(Stream stream)
         {
-            Ua.Load(stream);
-            Wa.Load(stream);
-            bUa.Load(stream);
-            bWa.Load(stream);
-            V.Load(stream);
+            m_Ua.Load(stream);
+            m_Wa.Load(stream);
+            m_bUa.Load(stream);
+            m_bWa.Load(stream);
+            m_V.Load(stream);
         }
     }
 }

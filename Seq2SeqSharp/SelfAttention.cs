@@ -10,29 +10,24 @@ namespace Seq2SeqSharp
 {
     class SelfAttention
     {
-
-        private IWeightMatrix W0;
-        private IWeightMatrix b0;
-
+        private IWeightTensor W0;
+        private IWeightTensor b0;
 
         private FeedForwardLayer Q;
         private FeedForwardLayer K;
         private FeedForwardLayer V;
-
-
 
         private LayerNormalization layerNorm1;
         private LayerNormalization layerNorm2;
         private FeedForwardLayer feedForwardLayer1;
         private FeedForwardLayer feedForwardLayer2;
 
-
         private int m_batchSize;
         private int m_hiddenDim;
         private int m_d;
         private int m_multiHeadNum;
 
-        public SelfAttention(int batchSize, int multiHeadNum, int hiddenDim, int inputDim, ArchTypeEnums archType, int deviceId)
+        public SelfAttention(int batchSize, int multiHeadNum, int hiddenDim, int inputDim, int deviceId)
         {
             m_batchSize = batchSize;
             m_hiddenDim = hiddenDim;
@@ -42,14 +37,14 @@ namespace Seq2SeqSharp
             W0 = new WeightTensor(hiddenDim, hiddenDim, deviceId);
             b0 = new WeightTensor(1, hiddenDim, 0, deviceId);
 
-            Q = new FeedForwardLayer(inputDim, hiddenDim, archType, deviceId);
-            K = new FeedForwardLayer(inputDim, hiddenDim, archType, deviceId);
-            V = new FeedForwardLayer(inputDim, hiddenDim, archType, deviceId);
+            Q = new FeedForwardLayer(inputDim, hiddenDim, deviceId);
+            K = new FeedForwardLayer(inputDim, hiddenDim, deviceId);
+            V = new FeedForwardLayer(inputDim, hiddenDim, deviceId);
 
-            layerNorm1 = new LayerNormalization(hiddenDim, archType, deviceId);
-            layerNorm2 = new LayerNormalization(hiddenDim, archType, deviceId);
-            feedForwardLayer1 = new FeedForwardLayer(hiddenDim, hiddenDim * 4, archType, deviceId);
-            feedForwardLayer2 = new FeedForwardLayer(hiddenDim * 4, hiddenDim, archType, deviceId);
+            layerNorm1 = new LayerNormalization(hiddenDim, deviceId);
+            layerNorm2 = new LayerNormalization(hiddenDim, deviceId);
+            feedForwardLayer1 = new FeedForwardLayer(hiddenDim, hiddenDim * 4, deviceId);
+            feedForwardLayer2 = new FeedForwardLayer(hiddenDim * 4, hiddenDim, deviceId);
         }       
 
         /// <summary>
@@ -58,7 +53,7 @@ namespace Seq2SeqSharp
         /// <param name="input">The input tensor</param>
         /// <param name="g">The instance of computing graph</param>
         /// <returns></returns>
-        public IWeightMatrix Perform(IWeightMatrix input, IComputeGraph g)
+        public IWeightTensor Perform(IWeightTensor input, IComputeGraph g)
         {
             var seqLen = input.Rows / m_batchSize;
 
@@ -105,9 +100,9 @@ namespace Seq2SeqSharp
         }
 
 
-        public virtual List<IWeightMatrix> getParams()
+        public virtual List<IWeightTensor> getParams()
         {
-            List<IWeightMatrix> response = new List<IWeightMatrix>();
+            List<IWeightTensor> response = new List<IWeightTensor>();
 
             response.AddRange(Q.GetParams());
             response.AddRange(K.GetParams());

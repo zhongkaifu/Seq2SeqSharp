@@ -21,17 +21,17 @@ namespace Seq2SeqSharp
         public int depth { get; set; }
         public AttentionUnit attentionLayer { get; set; }
 
-        public AttentionDecoder(int batchSize, int hdim, int dim, int context, int depth, ArchTypeEnums archType, int deviceId)
+        public AttentionDecoder(int batchSize, int hdim, int dim, int context, int depth, int deviceId)
         {
-            attentionLayer = new AttentionUnit(batchSize, hdim, context, archType, deviceId);
+            attentionLayer = new AttentionUnit(batchSize, hdim, context, deviceId);
             this.hdim = hdim;
             this.dim = dim;
             this.depth = depth;
 
-            decoders.Add(new LSTMAttentionDecoderCell(batchSize, hdim, dim, context, archType, deviceId));
+            decoders.Add(new LSTMAttentionDecoderCell(batchSize, hdim, dim, context, deviceId));
             for (int i = 1; i < depth; i++)
             {
-                decoders.Add(new LSTMAttentionDecoderCell(batchSize, hdim, hdim, context, archType, deviceId));
+                decoders.Add(new LSTMAttentionDecoderCell(batchSize, hdim, hdim, context, deviceId));
             }
         }
 
@@ -45,16 +45,16 @@ namespace Seq2SeqSharp
 
         }
 
-        public AttentionPreProcessResult PreProcess(IWeightMatrix encoderOutput, IComputeGraph g)
+        public AttentionPreProcessResult PreProcess(IWeightTensor encoderOutput, IComputeGraph g)
         {
             return attentionLayer.PreProcess(encoderOutput, g);
         }
 
 
-        public IWeightMatrix Decode(IWeightMatrix input, AttentionPreProcessResult attenPreProcessResult, IComputeGraph g)
+        public IWeightTensor Decode(IWeightTensor input, AttentionPreProcessResult attenPreProcessResult, IComputeGraph g)
         {
             var V = input;
-            var lastStatus = this.decoders.LastOrDefault().ct;
+            var lastStatus = this.decoders.LastOrDefault().Cell;
             var context = attentionLayer.Perform(lastStatus, attenPreProcessResult, g);
 
             foreach (var decoder in decoders)
@@ -66,47 +66,47 @@ namespace Seq2SeqSharp
             return V;
         }
 
-        public List<IWeightMatrix> GetCTs()
+        public List<IWeightTensor> GetCTs()
         {
-            List<IWeightMatrix> res = new List<IWeightMatrix>();
+            List<IWeightTensor> res = new List<IWeightTensor>();
             foreach (var decoder in decoders)
             {
-                res.Add(decoder.ct);
+                res.Add(decoder.Cell);
             }
 
             return res;
         }
 
-        public List<IWeightMatrix> GetHTs()
+        public List<IWeightTensor> GetHTs()
         {
-            List<IWeightMatrix> res = new List<IWeightMatrix>();
+            List<IWeightTensor> res = new List<IWeightTensor>();
             foreach (var decoder in decoders)
             {
-                res.Add(decoder.ht);
+                res.Add(decoder.Hidden);
             }
 
             return res;
         }
 
-        public void SetCTs(List<IWeightMatrix> l)
+        public void SetCTs(List<IWeightTensor> l)
         {
             for (int i = 0; i < l.Count; i++)
             {
-                decoders[i].ct = l[i];
+                decoders[i].Cell = l[i];
             }
         }
 
-        public void SetHTs(List<IWeightMatrix> l)
+        public void SetHTs(List<IWeightTensor> l)
         {
             for (int i = 0; i < l.Count; i++)
             {
-                decoders[i].ht = l[i];
+                decoders[i].Hidden = l[i];
             }
         }
 
-        public List<IWeightMatrix> GetParams()
+        public List<IWeightTensor> GetParams()
         {
-            List<IWeightMatrix> response = new List<IWeightMatrix>();
+            List<IWeightTensor> response = new List<IWeightTensor>();
 
             foreach (var item in decoders)
             {

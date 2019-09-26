@@ -11,11 +11,11 @@ namespace Seq2SeqSharp
 {
     class TransformerEncoder : IEncoder
     {
-        List<SelfAttention> encoders = new List<SelfAttention>();
+        List<SelfAttention> m_encoders = new List<SelfAttention>();
         private int m_batchSize;
         private int m_inputDim;
 
-        public TransformerEncoder(int batchSize, int multiHeadNum, int hiddenDim, int inputDim, int depth, ArchTypeEnums archType, int deviceId)
+        public TransformerEncoder(int batchSize, int multiHeadNum, int hiddenDim, int inputDim, int depth, int deviceId)
         {
             Logger.WriteLine($"Creating transformer encoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', InputDim = '{inputDim}', Depth = '{depth}', MultiHeadNum = '{multiHeadNum}', batchSize = '{batchSize}'");
 
@@ -23,7 +23,7 @@ namespace Seq2SeqSharp
             m_inputDim = inputDim;
             for (int i = 0; i < depth; i++)
             {
-                encoders.Add(new SelfAttention(batchSize, multiHeadNum, hiddenDim, inputDim, archType, deviceId));
+                m_encoders.Add(new SelfAttention(batchSize, multiHeadNum, hiddenDim, inputDim, deviceId));
             }
         }
 
@@ -37,7 +37,7 @@ namespace Seq2SeqSharp
         /// <param name="rawInputs"></param>
         /// <param name="g"></param>
         /// <returns></returns>
-        public IWeightMatrix Encode(IWeightMatrix rawInput, IComputeGraph g)
+        public IWeightTensor Encode(IWeightTensor rawInput, IComputeGraph g)
         {
             int seqLen = rawInput.Rows / m_batchSize;
             var posEmbedding = g.BuildPositionMatrix(seqLen, m_inputDim);
@@ -49,9 +49,9 @@ namespace Seq2SeqSharp
             inputs = g.Mul(inputs, (float)Math.Sqrt(m_inputDim));
             inputs = g.Add(inputs, posEmbeddingRepeat);
 
-            for (int k = 0; k < encoders.Count; k++)
+            for (int k = 0; k < m_encoders.Count; k++)
             {
-                inputs = encoders[k].Perform(inputs, g);
+                inputs = m_encoders[k].Perform(inputs, g);
             }
 
             // Transpose back to time-first based sequence
@@ -62,11 +62,11 @@ namespace Seq2SeqSharp
 
 
 
-        public List<IWeightMatrix> GetParams()
+        public List<IWeightTensor> GetParams()
         {
-            List<IWeightMatrix> response = new List<IWeightMatrix>();
+            List<IWeightTensor> response = new List<IWeightTensor>();
 
-            foreach (var item in encoders)
+            foreach (var item in m_encoders)
             {
                 response.AddRange(item.getParams());
             }
@@ -76,7 +76,7 @@ namespace Seq2SeqSharp
 
         public void Save(Stream stream)
         {
-            foreach (var item in encoders)
+            foreach (var item in m_encoders)
             {
                 item.Save(stream);
             }
@@ -84,7 +84,7 @@ namespace Seq2SeqSharp
 
         public void Load(Stream stream)
         {
-            foreach (var item in encoders)
+            foreach (var item in m_encoders)
             {
                 item.Load(stream);
             }

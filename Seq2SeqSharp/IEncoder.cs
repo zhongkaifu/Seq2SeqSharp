@@ -10,9 +10,9 @@ namespace Seq2SeqSharp
 {
     public interface IEncoder
     {
-        IWeightMatrix Encode(IWeightMatrix rawInput, IComputeGraph g);
+        IWeightTensor Encode(IWeightTensor rawInput, IComputeGraph g);
         void Reset(IWeightFactory weightFactory);
-        List<IWeightMatrix> GetParams();
+        List<IWeightTensor> GetParams();
         void Save(Stream stream);
         void Load(Stream stream);
     }

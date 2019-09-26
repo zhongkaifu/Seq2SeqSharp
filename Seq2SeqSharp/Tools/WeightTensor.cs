@@ -13,7 +13,7 @@ using AdvUtils;
 namespace Seq2SeqSharp.Tools
 {
     [Serializable]
-    public class WeightTensor : IWeightMatrix,  IDisposable
+    public class WeightTensor : IWeightTensor,  IDisposable
     {
         public long[] Sizes { get; set; }
 
@@ -258,7 +258,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public void SetGradientByWeight(IWeightMatrix src)
+        public void SetGradientByWeight(IWeightTensor src)
         {
             WeightTensor m = src as WeightTensor;
 
@@ -271,14 +271,14 @@ namespace Seq2SeqSharp.Tools
             m.m_TWeight = null;
         }
 
-        public void CopyWeights(IWeightMatrix src)
+        public void CopyWeights(IWeightTensor src)
         {
             WeightTensor m = src as WeightTensor;
 
             Ops.Copy(TWeight, m.TWeight);
         }
 
-        public void AddGradient(IWeightMatrix src)
+        public void AddGradient(IWeightTensor src)
         {
             WeightTensor m = src as WeightTensor;
 

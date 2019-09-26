@@ -70,7 +70,7 @@ namespace Seq2SeqConsole
         [Arg("Dropout ratio", "Dropout")]
         public float DropoutRatio = 0.1f;
 
-        [Arg("Arch type: GPU, CPU, CPU_MKL", "ArchType")]
+        [Arg("Arch type: GPU, CPU", "ArchType")]
         public string ArchType = "GPU";
 
         [Arg("Encoder type: BiLSTM, Transformer", "EncoderType")]

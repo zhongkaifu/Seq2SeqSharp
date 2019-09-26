@@ -9,56 +9,56 @@ namespace Seq2SeqSharp
 {
     public interface IComputeGraph
     {
-        IWeightMatrix MulBatch(IWeightMatrix m1, IWeightMatrix m2, int batchSize, float alpha = 1.0f);
+        IWeightTensor MulBatch(IWeightTensor m1, IWeightTensor m2, int batchSize, float alpha = 1.0f);
 
-        IWeightMatrix Mul(IWeightMatrix w1, IWeightMatrix w2);
-        IWeightMatrix EltMul(IWeightMatrix w1, IWeightMatrix w2);
-        IWeightMatrix Add(IWeightMatrix w1, IWeightMatrix w2);
-        IWeightMatrix Tanh(IWeightMatrix w, bool updateWeightsInPlace = false);
-        IWeightMatrix Sigmoid(IWeightMatrix w, bool updateWeightsInPlace = false);
-        IWeightMatrix Relu(IWeightMatrix w);
+        IWeightTensor Mul(IWeightTensor w1, IWeightTensor w2);
+        IWeightTensor EltMul(IWeightTensor w1, IWeightTensor w2);
+        IWeightTensor Add(IWeightTensor w1, IWeightTensor w2);
+        IWeightTensor Tanh(IWeightTensor w, bool updateWeightsInPlace = false);
+        IWeightTensor Sigmoid(IWeightTensor w, bool updateWeightsInPlace = false);
+        IWeightTensor Relu(IWeightTensor w);
 
-        IWeightMatrix BuildPositionMatrix(int row, int column);
-        IWeightMatrix MulAdd(IWeightMatrix m1, IWeightMatrix m2, IWeightMatrix m3);
+        IWeightTensor BuildPositionMatrix(int row, int column);
+        IWeightTensor MulAdd(IWeightTensor m1, IWeightTensor m2, IWeightTensor m3);
 
-        IWeightMatrix EltMulMulAdd(IWeightMatrix w1, IWeightMatrix w2, IWeightMatrix w3, IWeightMatrix w4);
+        IWeightTensor EltMulMulAdd(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3, IWeightTensor w4);
 
-        List<IWeightMatrix> UnFolderRow(IWeightMatrix m, int n, bool gradient = true);
+        List<IWeightTensor> UnFolderRow(IWeightTensor m, int n, bool gradient = true);
 
-        IWeightMatrix PermuteBatch(IWeightMatrix m, int batchSize);
+        IWeightTensor PermuteBatch(IWeightTensor m, int batchSize);
 
-        IWeightMatrix Permute(IWeightMatrix w, params int[] dims);
+        IWeightTensor Permute(IWeightTensor w, params int[] dims);
 
-        IWeightMatrix View(IWeightMatrix w, params long[] dims);
+        IWeightTensor View(IWeightTensor w, params long[] dims);
 
-        IWeightMatrix AddTanh(IWeightMatrix w1, IWeightMatrix w2);
+        IWeightTensor AddTanh(IWeightTensor w1, IWeightTensor w2);
 
-        IWeightMatrix ConcatColumns(IWeightMatrix m1, IWeightMatrix m2);
+        IWeightTensor ConcatColumns(IWeightTensor m1, IWeightTensor m2);
 
         void Backward();
         void RunTopBackward();
 
-        IWeightMatrix PeekRow(IWeightMatrix w, int ix, int num = 1);
-        IWeightMatrix Dropout(IWeightMatrix V, float drop_prob);
+        IWeightTensor PeekRow(IWeightTensor w, int ix, int num = 1);
+        IWeightTensor Dropout(IWeightTensor V, float drop_prob);
 
-        IWeightMatrix Softmax(IWeightMatrix w, bool bp = true);
+        IWeightTensor Softmax(IWeightTensor w, bool bp = true);
 
-        IWeightMatrix ConcatColumns(params IWeightMatrix[] wl);        
+        IWeightTensor ConcatColumns(params IWeightTensor[] wl);        
 
-        List<IWeightMatrix> SplitColumns2(IWeightMatrix w, params int[] sizes);
-        (IWeightMatrix r1, IWeightMatrix r2) SplitColumns(IWeightMatrix w, int size1, int size2);
-        (IWeightMatrix r1, IWeightMatrix r2, IWeightMatrix r3) SplitColumns(IWeightMatrix w, int size1, int size2, int size3);
+        List<IWeightTensor> SplitColumns2(IWeightTensor w, params int[] sizes);
+        (IWeightTensor r1, IWeightTensor r2) SplitColumns(IWeightTensor w, int size1, int size2);
+        (IWeightTensor r1, IWeightTensor r2, IWeightTensor r3) SplitColumns(IWeightTensor w, int size1, int size2, int size3);
 
-        IWeightMatrix ConcatRows(List<IWeightMatrix> wl);
+        IWeightTensor ConcatRows(List<IWeightTensor> wl);
 
-        IWeightMatrix RepeatRows(IWeightMatrix w, int n);
+        IWeightTensor RepeatRows(IWeightTensor w, int n);
 
-        IWeightMatrix Transpose2(IWeightMatrix w);
+        IWeightTensor Transpose2(IWeightTensor w);
 
-        IWeightMatrix ConcatRowColumn(List<IWeightMatrix> wl1, List<IWeightMatrix> wl2);
+        IWeightTensor ConcatRowColumn(List<IWeightTensor> wl1, List<IWeightTensor> wl2);
 		
-		 IWeightMatrix Mul(IWeightMatrix w, float v);
+		 IWeightTensor Mul(IWeightTensor w, float v);
 
-        IWeightMatrix LayerNorm(IWeightMatrix src, IWeightMatrix alpha, IWeightMatrix beta, float eps = 1e-09f);
+        IWeightTensor LayerNorm(IWeightTensor src, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-09f);
     }
 }

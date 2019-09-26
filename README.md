@@ -1,5 +1,5 @@
 ﻿# Seq2SeqSharp  
-Seq2SeqSharp is an C# encoder-decoder deep neural network framework running on both CPU and GPU  
+Seq2SeqSharp is a tensor based fast & flexible encoder-decoder deep neural network framework written by .NET (C#). It can run on both CPU and GPU  
 
 # Features  
 Pure C# framework   
@@ -14,13 +14,13 @@ Support multi-GPUs
 Mini-batch  
 Dropout  
 RMSProp optmization  
-Pre-trained model  
+Embedding & Pre-trained model  
 Auto data shuffling  
 Auto vocabulary building  
 Beam search decoder  
 
 # Usage  
-You could use Seq2SeqConsole tool to train and test models.  
+You can use Seq2SeqConsole tool to train and test models.  
 
 Here is the command line to train a model:
 **Seq2SeqConsole.exe -TaskName train [parameters...]**  
@@ -28,7 +28,10 @@ Parameters:
 **-WordVectorSize**: The vector size of encoded source word.  
 **-HiddenSize**: The hidden layer size of encoder and decoder.    
 **-LearningRate**: Learning rate. Default is 0.001  
-**-Depth**: The network depth in decoder. Default is 1  
+**-EncoderLayerDepth**: The network depth in encoder. The default depth is 1.  
+**-DecoderLayerDepth**: The network depth in decoder. The default depth is 1.  
+**-EncoderType**: The type of encoder. It supports BiLSTM and Transformer.  
+**-MultiHeadNum**: The number of multi-heads in Transformer encoder.  
 **-ModelFilePath**: The trained model file path.  
 **-SrcVocab**: The vocabulary file path for source side.  
 **-TgtVocab**: The vocabulary file path for target side.  
@@ -37,20 +40,23 @@ Parameters:
 **-SrcLang**: Source language name.  
 **-TgtLang**: Target language name.  
 **-TrainCorpusPath**: training corpus folder path  
-**-BatchSize**: Mini-batch size. Default is 1. For CPU runner, it must be 1.  
-**-DropoutRatio**: Dropout ratio. Defaul is 0.1  
-**-ArchType**: Runner type. 0 - GPU (CUDA), 1 - CPU (Intel MKL), 2 - CPU. Default is 0  
+**-ShuffleBlockSize**: The block size for corpus shuffle. The default value is -1 which means we shuffle entire corpus.  
+**-GradClip**: The clip gradients.  
+**-BatchSize**: Mini-batch size. Default is 1.  
+**-Dropout**: Dropout ratio. Defaul is 0.1  
+**-ArchType**: Architecture type: CPU or GPU  
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
 **-MaxEpochNum**: Maxmium epoch number during training. Default is 100  
+**-MaxSentLength**: Maxmium sentence length  
 Note that:  
   1) if "-SrcVocab" and "-TgtVocab" are empty, vocabulary will be built from training corpus.  
   2) Txt2Vec for external embedding model building can get downloaded from https://github.com/zhongkaifu/Txt2Vec  
 
-Example: Seq2SeqConsole.exe -TaskName train -WordVectorSize 1024 -HiddenSize 1024 -LearningRate 0.001 -Depth 2 -TrainCorpusPath .\corpus -ModelFilePath nmt.model -SrcLang enu -TgtLang chs -ArchType 0 -DeviceIds 0,1,2,3  
+Example: Seq2SeqConsole.exe -TaskName train -WordVectorSize 512 -HiddenSize 512 -LearningRate 0.002 -ModelFilePath seq2seq.model -TrainCorpusPath .\corpus -SrcLang ENU -TgtLang CHS -BatchSize 256 -ArchType GPU -EncoderType Transformer -EncoderLayerDepth 6 -DecoderLayerDepth 2 -MultiHeadNum 8 -DeviceIds 0,1,2,3,4,5,6,7  
 
 During training, the iteration information will be printed out and logged as follows:  
-info,3/13/2019 5:40:22 AM Epoch = '0' LR = '0.002', Current Cost = '3.213204', Avg Cost = '4.764458', SentInTotal = '17612800', SentPerMin = '44415.11', WordPerSec = '37689.26'  
-info,3/13/2019 5:49:16 AM Epoch = '0' LR = '0.002', Current Cost = '3.172645', Avg Cost = '4.731404', SentInTotal = '18022400', SentPerMin = '44451.65', WordPerSec = '37674.58'  
+info,9/26/2019 3:38:24 PM Update = '15600' Epoch = '0' LR = '0.002000', Current Cost = '2.817434', Avg Cost = '3.551963', SentInTotal = '31948800', SentPerMin = '52153.52', WordPerSec = '39515.27'  
+info,9/26/2019 3:42:28 PM Update = '15700' Epoch = '0' LR = '0.002000', Current Cost = '2.800056', Avg Cost = '3.546863', SentInTotal = '32153600', SentPerMin = '52141.86', WordPerSec = '39523.83'  
 
 Here is the command line to test models  
 **Seq2SeqConsole.exe -TaskName test [parameters...]**  
@@ -58,11 +64,11 @@ Parameters:
 **-InputTestFile**: The input file for test.  
 **-OutputTestFile**: The test result file.  
 **-ModelFilePath**: The trained model file path. 
-**-ArchType**: Runner type. 0 - GPU (CUDA), 1 - CPU, 2 - CPU (Intel MKL). Default is 0  
+**-ArchType**: Architecture type: CPU or GPU 
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
 **-BeamSearch**: Beam search size. Default is 1  
 
-Example: Seq2SeqConsole.exe -TaskName test -ModelFilePath seq2seq_256.model -InputTestFile test.txt -OutputTestFile result.txt -ArchType 1 -BeamSearch 5  
+Example: Seq2SeqConsole.exe -TaskName test -ModelFilePath seq2seq.model -InputTestFile test.txt -OutputTestFile result.txt -ArchType CPU -BeamSearch 5  
 
 # Data Format  
 The corpus contains each sentence per line. The file name pattern is "mainfilename.{source language name}.snt" and "mainfilename.{target language name}.snt".    

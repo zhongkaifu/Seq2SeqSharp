@@ -77,14 +77,14 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public IWeightMatrix BuildPositionMatrix(int row, int column)
+        public IWeightTensor BuildPositionMatrix(int row, int column)
         {
             var res = weightTensorFactory.BuildPositionWeightTensor(row, column, deviceId);
 
             return res;
         }
 
-        public IWeightMatrix Sigmoid(IWeightMatrix w, bool updateWeightsInPlace = false)
+        public IWeightTensor Sigmoid(IWeightTensor w, bool updateWeightsInPlace = false)
         {
             var m = w as WeightTensor;
             var res = weightTensorFactory.CreateWeightTensor(m.Sizes, deviceId);
@@ -111,7 +111,7 @@ namespace Seq2SeqSharp.Tools
         }
       
             
-        public IWeightMatrix AddTanh(IWeightMatrix w1, IWeightMatrix w2)
+        public IWeightTensor AddTanh(IWeightTensor w1, IWeightTensor w2)
         {
             var m1 = w1 as WeightTensor;
             var m2 = w2 as WeightTensor;
@@ -137,7 +137,7 @@ namespace Seq2SeqSharp.Tools
 
 
 
-        public IWeightMatrix Mul(IWeightMatrix w, float v)
+        public IWeightTensor Mul(IWeightTensor w, float v)
         {
             var m = w as WeightTensor;
             var res = weightTensorFactory.CreateWeightTensor(m.Sizes, deviceId);
@@ -159,7 +159,7 @@ namespace Seq2SeqSharp.Tools
         }
 		
 
-        public IWeightMatrix EltMulMulAdd(IWeightMatrix w1, IWeightMatrix w2, IWeightMatrix w3, IWeightMatrix w4)
+        public IWeightTensor EltMulMulAdd(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3, IWeightTensor w4)
         {
             var m1 = w1 as WeightTensor;
             var m2 = w2 as WeightTensor;
@@ -190,7 +190,7 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
        
-        public IWeightMatrix EltMul(IWeightMatrix w1, IWeightMatrix w2)
+        public IWeightTensor EltMul(IWeightTensor w1, IWeightTensor w2)
         {
             var m1 = w1 as WeightTensor;
             var m2 = w2 as WeightTensor;
@@ -215,7 +215,7 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightMatrix Add(IWeightMatrix w1, IWeightMatrix w2)
+        public IWeightTensor Add(IWeightTensor w1, IWeightTensor w2)
         {
             var m1 = w1 as WeightTensor;
             var m2 = w2 as WeightTensor;          
@@ -240,7 +240,7 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightMatrix Tanh(IWeightMatrix w, bool updateWeightsInPlace = false)
+        public IWeightTensor Tanh(IWeightTensor w, bool updateWeightsInPlace = false)
         {
             var m = w as WeightTensor;
             var res = weightTensorFactory.CreateWeightTensor(m.Sizes, deviceId);
@@ -268,7 +268,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightMatrix Relu(IWeightMatrix w)
+        public IWeightTensor Relu(IWeightTensor w)
         {
             var m = w as WeightTensor;
             var res = weightTensorFactory.CreateWeightTensor(m.Sizes, deviceId);
@@ -288,7 +288,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightMatrix MulBatch(IWeightMatrix m1, IWeightMatrix m2, int batchSize, float alpha = 1.0f)
+        public IWeightTensor MulBatch(IWeightTensor m1, IWeightTensor m2, int batchSize, float alpha = 1.0f)
         {
             WeightTensor t1 = m1 as WeightTensor;
             WeightTensor t2 = m2 as WeightTensor;
@@ -346,7 +346,7 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightMatrix Mul(IWeightMatrix m1, IWeightMatrix m2)
+        public IWeightTensor Mul(IWeightTensor m1, IWeightTensor m2)
         {
             WeightTensor t1 = m1 as WeightTensor;
             WeightTensor t2 = m2 as WeightTensor;
@@ -381,7 +381,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightMatrix MulAdd(IWeightMatrix m1, IWeightMatrix m2, IWeightMatrix m3)
+        public IWeightTensor MulAdd(IWeightTensor m1, IWeightTensor m2, IWeightTensor m3)
         {            
             WeightTensor t1 = m1 as WeightTensor;
             WeightTensor t2 = m2 as WeightTensor;
@@ -421,7 +421,7 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightMatrix Transpose2(IWeightMatrix w)
+        public IWeightTensor Transpose2(IWeightTensor w)
         {
             WeightTensor m = w as WeightTensor;
             var res = weightTensorFactory.CreateWeightTensor(m.Sizes, deviceId);
@@ -444,7 +444,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightMatrix Transpose2(IWeightMatrix w, int dim1, int dim2)
+        public IWeightTensor Transpose2(IWeightTensor w, int dim1, int dim2)
         {
             WeightTensor m = w as WeightTensor;
 
@@ -470,7 +470,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightMatrix Softmax(IWeightMatrix w, bool bp = true)
+        public IWeightTensor Softmax(IWeightTensor w, bool bp = true)
         {
             WeightTensor m = w as WeightTensor;
             var res = weightTensorFactory.CreateWeightTensor(m.Sizes, deviceId);
@@ -493,7 +493,7 @@ namespace Seq2SeqSharp.Tools
 
         private static object locker = new object();
 
-        public IWeightMatrix PeekRow(IWeightMatrix w, int ix, int num = 1)
+        public IWeightTensor PeekRow(IWeightTensor w, int ix, int num = 1)
         {
             WeightTensor m = w as WeightTensor;
             var tw = m.TWeight.Narrow(0, ix, num);
@@ -528,7 +528,7 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
     
-        public IWeightMatrix ConcatColumns(IWeightMatrix w1, IWeightMatrix w2)
+        public IWeightTensor ConcatColumns(IWeightTensor w1, IWeightTensor w2)
         {
             var m1 = w1 as WeightTensor;
             var m2 = w2 as WeightTensor;
@@ -566,7 +566,7 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightMatrix RepeatRows(IWeightMatrix w, int n)
+        public IWeightTensor RepeatRows(IWeightTensor w, int n)
         {
             var m = w as WeightTensor;
             if (m.Rows == 1)
@@ -586,7 +586,7 @@ namespace Seq2SeqSharp.Tools
             }
             else
             {
-                List<IWeightMatrix> ws = new List<IWeightMatrix>();
+                List<IWeightTensor> ws = new List<IWeightTensor>();
                 for (int i = 0; i < n; i++)
                 {
                     ws.Add(w);
@@ -597,7 +597,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightMatrix ConcatRows(List<IWeightMatrix> wl)
+        public IWeightTensor ConcatRows(List<IWeightTensor> wl)
         {
             if (wl.Count == 1)
             {
@@ -607,7 +607,7 @@ namespace Seq2SeqSharp.Tools
             List<Tensor> twl = new List<Tensor>();
             int sx = 0;
             int sy = 0;
-            foreach (IWeightMatrix item in wl)
+            foreach (IWeightTensor item in wl)
             {
                 WeightTensor m = item as WeightTensor;
                 sx += m.Rows;
@@ -627,7 +627,7 @@ namespace Seq2SeqSharp.Tools
                     res.ReleaseWeight();
 
                     sx = 0;
-                    foreach (IWeightMatrix item in wl)
+                    foreach (IWeightTensor item in wl)
                     {
                         WeightTensor m = item as WeightTensor;
 
@@ -647,7 +647,7 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public IWeightMatrix ConcatRowColumn(List<IWeightMatrix> wl1, List<IWeightMatrix> wl2)
+        public IWeightTensor ConcatRowColumn(List<IWeightTensor> wl1, List<IWeightTensor> wl2)
         {
             int sx = wl1[0].Rows * wl1.Count;
             int sy = wl1[0].Columns + wl2[0].Columns;
@@ -712,7 +712,7 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightMatrix PermuteBatch(IWeightMatrix m, int batchSize)
+        public IWeightTensor PermuteBatch(IWeightTensor m, int batchSize)
         {
             WeightTensor t = m as WeightTensor;
             var res = weightTensorFactory.CreateWeightTensor(t.Sizes, deviceId);
@@ -751,7 +751,7 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightMatrix ConcatColumns(params IWeightMatrix[] wl)
+        public IWeightTensor ConcatColumns(params IWeightTensor[] wl)
         {
             if (wl.Length == 1)
             {
@@ -762,7 +762,7 @@ namespace Seq2SeqSharp.Tools
             int sx = 0;
             int sy = 0;
 
-            foreach (IWeightMatrix item in wl)
+            foreach (IWeightTensor item in wl)
             {
                 WeightTensor m = item as WeightTensor;
                 sx = m.Rows;
@@ -783,7 +783,7 @@ namespace Seq2SeqSharp.Tools
                     res.ReleaseWeight();
 
                     sy = 0;
-                    foreach (IWeightMatrix item in wl)
+                    foreach (IWeightTensor item in wl)
                     {
                         WeightTensor m = item as WeightTensor;
 
@@ -803,10 +803,10 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public List<IWeightMatrix> SplitRows(IWeightMatrix w, params int[] sizes)
+        public List<IWeightTensor> SplitRows(IWeightTensor w, params int[] sizes)
         {
             var m = w as WeightTensor;
-            List<IWeightMatrix> resList = new List<IWeightMatrix>();
+            List<IWeightTensor> resList = new List<IWeightTensor>();
 
             int y = 0;
             foreach (int size in sizes)
@@ -819,7 +819,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightMatrix AsContiguous(IWeightMatrix w)
+        public IWeightTensor AsContiguous(IWeightTensor w)
         {
             var m = w as WeightTensor;
             WeightTensor res = weightTensorFactory.CreateWeightTensor(m.Sizes, deviceId);
@@ -839,10 +839,10 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public List<IWeightMatrix> SplitColumns2(IWeightMatrix w, params int[] sizes)
+        public List<IWeightTensor> SplitColumns2(IWeightTensor w, params int[] sizes)
         {
             var m = w as WeightTensor;
-            List<IWeightMatrix> resList = new List<IWeightMatrix>();
+            List<IWeightTensor> resList = new List<IWeightTensor>();
 
             int x = 0;
             foreach (int size in sizes)
@@ -883,7 +883,7 @@ namespace Seq2SeqSharp.Tools
             return resList;
         }
 
-        public IWeightMatrix Permute(IWeightMatrix w, params int[] dims)
+        public IWeightTensor Permute(IWeightTensor w, params int[] dims)
         {
             var m = w as WeightTensor;
             WeightTensor res = weightTensorFactory.CreateWeightTensor(m.Sizes, deviceId);
@@ -913,7 +913,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightMatrix View(IWeightMatrix w, params long[] dims)
+        public IWeightTensor View(IWeightTensor w, params long[] dims)
         {
             var m = w as WeightTensor;
             WeightTensor res = weightTensorFactory.CreateWeightTensor(dims, deviceId);
@@ -939,23 +939,23 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public (IWeightMatrix r1, IWeightMatrix r2) SplitColumns(IWeightMatrix w, int size1, int size2)
+        public (IWeightTensor r1, IWeightTensor r2) SplitColumns(IWeightTensor w, int size1, int size2)
         {
             var res = SplitColumns2(w, size1, size2);
 
             return (res[0], res[1]);
         }
 
-        public (IWeightMatrix r1, IWeightMatrix r2, IWeightMatrix r3) SplitColumns(IWeightMatrix w, int size1, int size2, int size3)
+        public (IWeightTensor r1, IWeightTensor r2, IWeightTensor r3) SplitColumns(IWeightTensor w, int size1, int size2, int size3)
         {
             var res = SplitColumns2(w, size1, size2, size3);
 
             return (res[0], res[1], res[2]);
         }
 
-        public List<IWeightMatrix> UnFolderRow(IWeightMatrix m, int n, bool gradient = true)
+        public List<IWeightTensor> UnFolderRow(IWeightTensor m, int n, bool gradient = true)
         {
-            List<IWeightMatrix> resList = new List<IWeightMatrix>();
+            List<IWeightTensor> resList = new List<IWeightTensor>();
 
             WeightTensor t = m as WeightTensor;
 
@@ -1032,7 +1032,7 @@ namespace Seq2SeqSharp.Tools
             return noise;
         }
 
-        public IWeightMatrix LayerNorm(IWeightMatrix src, IWeightMatrix alpha, IWeightMatrix beta, float eps = 1e-09f)
+        public IWeightTensor LayerNorm(IWeightTensor src, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-09f)
         {
             var srcT = src as WeightTensor;
             var alphaT = alpha as WeightTensor;
@@ -1057,7 +1057,7 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightMatrix Dropout(IWeightMatrix V, float drop_prob)
+        public IWeightTensor Dropout(IWeightTensor V, float drop_prob)
         {
             float p = 1.0f - drop_prob;
             var w = V as WeightTensor;

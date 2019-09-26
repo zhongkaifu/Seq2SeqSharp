@@ -12,45 +12,42 @@ namespace Seq2SeqSharp
     [Serializable]
     public class LSTMCell 
     {
-        public IWeightMatrix Wxh { get; set; }
+        IWeightTensor m_Wxh;
+        IWeightTensor m_b;
+        IWeightTensor m_hidden;
+        IWeightTensor m_cell;
 
-        public IWeightMatrix b { get; set; }
+        int m_hdim;
+        int m_dim;
+        int m_batchSize;
+        int m_deviceId;
 
-        public IWeightMatrix ht { get; set; }
-        public IWeightMatrix ct { get; set; }
+        LayerNormalization m_layerNorm1;
+        LayerNormalization m_layerNorm2;
 
-        public int m_hdim { get; set; }
-        public int m_dim { get; set; }
-
-        private int m_batchSize;
-        private int m_deviceId;
-
-        private LayerNormalization layerNorm1;
-        private LayerNormalization layerNorm2;
-
-        public LSTMCell(int batchSize, int hdim, int dim, ArchTypeEnums archType, int deviceId)
+        public LSTMCell(int batchSize, int hdim, int dim, int deviceId)
         {
-            Wxh = new WeightTensor(dim + hdim, hdim * 4, deviceId);
-            b = new WeightTensor(1, hdim * 4, 0, deviceId);
+            m_Wxh = new WeightTensor(dim + hdim, hdim * 4, deviceId, true);
+            m_b = new WeightTensor(1, hdim * 4, 0, deviceId);
 
             m_hdim = hdim;
             m_dim = dim;
             m_batchSize = batchSize;
             m_deviceId = deviceId;
 
-            layerNorm1 = new LayerNormalization(hdim * 4, archType, deviceId);
-            layerNorm2 = new LayerNormalization(hdim, archType, deviceId);
+            m_layerNorm1 = new LayerNormalization(hdim * 4, deviceId);
+            m_layerNorm2 = new LayerNormalization(hdim, deviceId);
         }
 
-        public IWeightMatrix Step(IWeightMatrix input, IComputeGraph innerGraph)
+        public IWeightTensor Step(IWeightTensor input, IComputeGraph innerGraph)
         {
-            var hidden_prev = ht;
-            var cell_prev = ct;
+            var hidden_prev = m_hidden;
+            var cell_prev = m_cell;
         
             var inputs = innerGraph.ConcatColumns(input, hidden_prev);
-            var bs = innerGraph.RepeatRows(b, input.Rows);
-            var hhSum = innerGraph.MulAdd(inputs, Wxh, bs);
-            var hhSum2 = layerNorm1.Process(hhSum, innerGraph);
+            var bs = innerGraph.RepeatRows(m_b, input.Rows);
+            var hhSum = innerGraph.MulAdd(inputs, m_Wxh, bs);
+            var hhSum2 = m_layerNorm1.Process(hhSum, innerGraph);
 
             (var gates_raw, var cell_write_raw) = innerGraph.SplitColumns(hhSum2, m_hdim * 3, m_hdim);
             var gates = innerGraph.Sigmoid(gates_raw);
@@ -59,51 +56,51 @@ namespace Seq2SeqSharp
             (var input_gate, var forget_gate, var output_gate) = innerGraph.SplitColumns(gates, m_hdim, m_hdim, m_hdim);
 
             // compute new cell activation: ct = forget_gate * cell_prev + input_gate * cell_write
-            ct = innerGraph.EltMulMulAdd(forget_gate, cell_prev, input_gate, cell_write);
-            var ct2 = layerNorm2.Process(ct, innerGraph);
+            m_cell = innerGraph.EltMulMulAdd(forget_gate, cell_prev, input_gate, cell_write);
+            var ct2 = m_layerNorm2.Process(m_cell, innerGraph);
 
             // compute hidden state as gated, saturated cell activations
-            ht = innerGraph.EltMul(output_gate, innerGraph.Tanh(ct2));
+            m_hidden = innerGraph.EltMul(output_gate, innerGraph.Tanh(ct2));
 
-            return ht;
+            return m_hidden;
         }
 
-        public virtual List<IWeightMatrix> getParams()
+        public virtual List<IWeightTensor> getParams()
         {
-            List<IWeightMatrix> response = new List<IWeightMatrix>();
-            response.Add(Wxh);
-            response.Add(b);
+            List<IWeightTensor> response = new List<IWeightTensor>();
+            response.Add(m_Wxh);
+            response.Add(m_b);
 
-            response.AddRange(layerNorm1.getParams());
-            response.AddRange(layerNorm2.getParams());
+            response.AddRange(m_layerNorm1.getParams());
+            response.AddRange(m_layerNorm2.getParams());
 
             return response;
         }
 
         public void Reset(IWeightFactory weightFactory)
         {
-            ht = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true);
-            ct = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true);
+            m_hidden = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true);
+            m_cell = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true);
         }
 
         public void Save(Stream stream)
         {
-            Wxh.Save(stream);
-            b.Save(stream);
+            m_Wxh.Save(stream);
+            m_b.Save(stream);
 
-            layerNorm1.Save(stream);
-            layerNorm2.Save(stream);
+            m_layerNorm1.Save(stream);
+            m_layerNorm2.Save(stream);
 
         }
 
 
         public void Load(Stream stream)
         {
-            Wxh.Load(stream);
-            b.Load(stream);
+            m_Wxh.Load(stream);
+            m_b.Load(stream);
 
-            layerNorm1.Load(stream);
-            layerNorm2.Load(stream);
+            m_layerNorm1.Load(stream);
+            m_layerNorm2.Load(stream);
         }
     }
      

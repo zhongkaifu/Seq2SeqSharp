@@ -22,21 +22,21 @@ namespace Seq2SeqSharp
         public Vector<float> vecDecayRate = new Vector<float>(decay_rate);
         public Vector<float> vecSmoothEPS = new Vector<float>(smooth_eps);
 
-        public float UpdateWeights(List<IWeightMatrix> model, int batchSize, float step_size, float regc, float clipval)
+        public float UpdateWeights(List<IWeightTensor> model, int batchSize, float step_size, float regc, float clipval)
         {
             UpdateWeightsTensors(model, batchSize, step_size, regc, clipval);
 
             return step_size;
         }
 
-        private void UpdateWeightsTensors(List<IWeightMatrix> model, int batchSize, float step_size, float regc, float clipval)
+        private void UpdateWeightsTensors(List<IWeightTensor> model, int batchSize, float step_size, float regc, float clipval)
         {
-            Dictionary<int, List<IWeightMatrix>> id2Models = new Dictionary<int, List<IWeightMatrix>>();
+            Dictionary<int, List<IWeightTensor>> id2Models = new Dictionary<int, List<IWeightTensor>>();
             foreach (var item in model)
             {
                 if (id2Models.ContainsKey(item.DeviceId) == false)
                 {
-                    id2Models.Add(item.DeviceId, new List<IWeightMatrix>());
+                    id2Models.Add(item.DeviceId, new List<IWeightTensor>());
                 }
                 id2Models[item.DeviceId].Add(item);
             }
@@ -61,7 +61,7 @@ namespace Seq2SeqSharp
         }
 
        
-        public void CleanCache(List<IWeightMatrix> model)
+        public void CleanCache(List<IWeightTensor> model)
         {
             foreach (var k in model)
             {

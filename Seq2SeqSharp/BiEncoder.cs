@@ -24,20 +24,20 @@ namespace Seq2SeqSharp
 
         private int m_batchSize;
 
-        public BiEncoder(int batchSize, int hiddenDim, int inputDim, int depth, ArchTypeEnums archType, int deviceId)
+        public BiEncoder(int batchSize, int hiddenDim, int inputDim, int depth, int deviceId)
         {
             Logger.WriteLine($"Creating BiLSTM encoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', InputDim = '{inputDim}', Depth = '{depth}'");
 
             m_forwardEncoders = new List<LSTMCell>();
             m_backwardEncoders = new List<LSTMCell>();
 
-            m_forwardEncoders.Add(new LSTMCell(batchSize, hiddenDim, inputDim, archType, deviceId));
-            m_backwardEncoders.Add(new LSTMCell(batchSize, hiddenDim, inputDim, archType, deviceId));
+            m_forwardEncoders.Add(new LSTMCell(batchSize, hiddenDim, inputDim, deviceId));
+            m_backwardEncoders.Add(new LSTMCell(batchSize, hiddenDim, inputDim, deviceId));
 
             for (int i = 1; i < depth; i++)
             {
-                m_forwardEncoders.Add(new LSTMCell(batchSize, hiddenDim, hiddenDim * 2, archType, deviceId));
-                m_backwardEncoders.Add(new LSTMCell(batchSize, hiddenDim, hiddenDim * 2, archType, deviceId));
+                m_forwardEncoders.Add(new LSTMCell(batchSize, hiddenDim, hiddenDim * 2, deviceId));
+                m_backwardEncoders.Add(new LSTMCell(batchSize, hiddenDim, hiddenDim * 2, deviceId));
             }
 
             m_hiddenDim = hiddenDim;
@@ -59,21 +59,21 @@ namespace Seq2SeqSharp
             }
         }
 
-        public IWeightMatrix Encode(IWeightMatrix rawInputs, IComputeGraph g)
+        public IWeightTensor Encode(IWeightTensor rawInputs, IComputeGraph g)
         {
             int seqLen = rawInputs.Rows / m_batchSize;
 
-            List<IWeightMatrix> inputs = new List<IWeightMatrix>();
+            List<IWeightTensor> inputs = new List<IWeightTensor>();
             for (int i = 0; i < seqLen; i++)
             {
                 var emb_i = g.PeekRow(rawInputs, i * m_batchSize, m_batchSize);
                 inputs.Add(emb_i);
             }
 
-            List<IWeightMatrix> forwardOutputs = new List<IWeightMatrix>();
-            List<IWeightMatrix> backwardOutputs = new List<IWeightMatrix>();
+            List<IWeightTensor> forwardOutputs = new List<IWeightTensor>();
+            List<IWeightTensor> backwardOutputs = new List<IWeightTensor>();
 
-            List<IWeightMatrix> layerOutputs = inputs.ToList();
+            List<IWeightTensor> layerOutputs = inputs.ToList();
             for (int i = 0; i < m_depth; i++)
             {
                 for (int j = 0; j < seqLen; j++)
@@ -99,9 +99,9 @@ namespace Seq2SeqSharp
         }
 
 
-        public List<IWeightMatrix> GetParams()
+        public List<IWeightTensor> GetParams()
         {
-            List<IWeightMatrix> response = new List<IWeightMatrix>();
+            List<IWeightTensor> response = new List<IWeightTensor>();
 
             foreach (var item in m_forwardEncoders)
             {

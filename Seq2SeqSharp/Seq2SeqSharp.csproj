@@ -75,7 +75,7 @@
     <Compile Include="Tools\Corpus.cs" />
     <Compile Include="Tools\IComputeGraph.cs" />
     <Compile Include="Tools\IWeightFactory.cs" />
-    <Compile Include="Tools\IWeightMatrix.cs" />
+    <Compile Include="Tools\IWeightTensor.cs" />
     <Compile Include="Tools\RandomGenerator.cs" />
     <Compile Include="Tools\WeightTensor.cs" />
     <Compile Include="Tools\WeightTensorFactory.cs" />
