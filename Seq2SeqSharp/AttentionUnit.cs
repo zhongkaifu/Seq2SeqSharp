@@ -33,22 +33,11 @@ namespace Seq2SeqSharp
         {
             m_batchSize = batchSize;
 
-            if (archType == ArchTypeEnums.GPU_CUDA)
-            {
-                this.Ua = new WeightTensor(context, size, deviceId, true);
-                this.Wa = new WeightTensor(size, size, deviceId, true);
-                this.bUa = new WeightTensor(1, size, 0, deviceId);
-                this.bWa = new WeightTensor(1, size, 0, deviceId);
-                this.V = new WeightTensor(size, 1, deviceId, true);
-            }
-            else
-            {
-                this.Ua = new WeightMatrix((size * 2), size, true);
-                this.Wa = new WeightMatrix(size, size, true);
-                this.bUa = new WeightMatrix(1, size, 0);
-                this.bWa = new WeightMatrix(1, size, 0);
-                this.V = new WeightMatrix(size, 1, true);
-            }
+            this.Ua = new WeightTensor(context, size, deviceId);
+            this.Wa = new WeightTensor(size, size, deviceId);
+            this.bUa = new WeightTensor(1, size, 0, deviceId);
+            this.bWa = new WeightTensor(1, size, 0, deviceId);
+            this.V = new WeightTensor(size, 1, deviceId);
         }
 
 
@@ -78,9 +67,12 @@ namespace Seq2SeqSharp
             var attenT = g.Transpose2(atten2);
             var attenT2 = g.View(attenT, m_batchSize, attenPreProcessResult.inputs.Rows / m_batchSize);
 
-            var attenSoftmax = g.Softmax(attenT2);
+            var attenSoftmax1 = g.Softmax(attenT2);
 
-            IWeightMatrix contexts = g.MulBatch(attenSoftmax, attenPreProcessResult.inputs, m_batchSize);
+            var attenSoftmax = g.View(attenSoftmax1, m_batchSize, attenSoftmax1.Rows / m_batchSize, attenSoftmax1.Columns);
+            var inputs2 = g.View(attenPreProcessResult.inputs, m_batchSize, attenPreProcessResult.inputs.Rows / m_batchSize, attenPreProcessResult.inputs.Columns);
+
+            IWeightMatrix contexts = g.MulBatch(attenSoftmax, inputs2, m_batchSize);
 
 
             return contexts;
@@ -99,11 +91,6 @@ namespace Seq2SeqSharp
             response.Add(V);
 
             return response;
-        }
-
-        public void SetBatchSize(int batchSize)
-        {
-            m_batchSize = batchSize;
         }
 
         public void Save(Stream stream)

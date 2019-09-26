@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using TensorSharp;
+using TensorSharp.Cpu;
 using TensorSharp.CUDA;
 
 namespace Seq2SeqSharp
@@ -14,34 +15,45 @@ namespace Seq2SeqSharp
         private static IAllocator[] allocator = null;
         private static TSCudaContext cudaContext = null;
         private static int[] deviceIds;
+        private static ArchTypeEnums m_archType;
 
 
-        public static void InitDevices(int[] ids)
+        public static void InitDevices(ArchTypeEnums archType, int[] ids)
         {
-            deviceIds = ids;
-
-            foreach (var id in deviceIds)
+            m_archType = archType;
+            if (m_archType == ArchTypeEnums.GPU)
             {
-                Logger.WriteLine($"Initialize device '{id}'");
+                deviceIds = ids;
+
+                foreach (var id in deviceIds)
+                {
+                    Logger.WriteLine($"Initialize device '{id}'");
+                }
+
+                cudaContext = new TSCudaContext(deviceIds);
+                cudaContext.Precompile(Console.Write);
+                cudaContext.CleanUnusedPTX();
+
+                allocator = new IAllocator[deviceIds.Length];
             }
-
-            cudaContext = new TSCudaContext(deviceIds);
-            cudaContext.Precompile(Console.Write);
-            cudaContext.CleanUnusedPTX();
-
-            allocator = new IAllocator[deviceIds.Length];
         }
 
         public static IAllocator Allocator(int deviceId)
         {
-            int idx = GetDeviceIdIndex(deviceId);
-            if (allocator[idx] == null)
+            if (m_archType == ArchTypeEnums.GPU)
             {
-                allocator[idx] = new CudaAllocator(cudaContext, deviceId);
+                int idx = GetDeviceIdIndex(deviceId);
+                if (allocator[idx] == null)
+                {
+                    allocator[idx] = new CudaAllocator(cudaContext, deviceId);
+                }
+
+                return allocator[idx];
             }
-
-            return allocator[idx];
-
+            else
+            {
+                return new CpuAllocator();
+            }
         }
 
         private static int GetDeviceIdIndex(int id)

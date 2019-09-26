@@ -78,6 +78,14 @@ namespace TensorSharp
         public static Tensor Neg(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("neg", result, src); }
         public static Tensor Sign(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("sign", result, src); }
 
+
+        public static Tensor Relu(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("relu", result, src); }
+
+
+        public static Tensor ReluD(Tensor result, Tensor w, Tensor g) { return (Tensor)OpRegistry.Invoke("relud", result, w, g); }
+
+        public static Tensor AddReluD(Tensor result, Tensor t, Tensor w, Tensor g) { return (Tensor)OpRegistry.Invoke("addrelud", result, t, w, g); }
+
         public static Tensor Sqrt(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("sqrt", result, src); }
 
         public static Tensor Rsqrt(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("rsqrt", result, src); }

@@ -15,8 +15,30 @@ namespace Seq2SeqSharp.Tools
     [Serializable]
     public class WeightTensor : IWeightMatrix,  IDisposable
     {
-        public int Rows { get; set; }
-        public int Columns { get; set; }
+        public long[] Sizes { get; set; }
+
+        public int Rows
+        {
+            get
+            {
+                return (int)Sizes[0];
+            }
+            set
+            {
+                Sizes[0] = value;
+            }
+        }
+        public int Columns
+        {
+            get
+            {
+                return (int)Sizes[1];
+            }
+            set
+            {
+                Sizes[1] = value;
+            }
+        }
 
         public Dictionary<int, int> RowToBeUpdated { get; set; } = new Dictionary<int, int>();
 
@@ -29,6 +51,8 @@ namespace Seq2SeqSharp.Tools
         private bool releasedTWeight = false;
         private bool releasedTGradient = false;
 
+        private static object locker = new object();
+
         public Tensor TWeight
         {
             get
@@ -40,7 +64,7 @@ namespace Seq2SeqSharp.Tools
 
                 if (m_TWeight == null)
                 {                    
-                    m_TWeight = new Tensor(allocator, DType.Float32, Rows, Columns);
+                    m_TWeight = new Tensor(allocator, DType.Float32, Sizes);
                 }
 
                 return m_TWeight;
@@ -63,7 +87,14 @@ namespace Seq2SeqSharp.Tools
 
                 if (m_TGradient == null)
                 {
-                    m_TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
+                    if (m_TWeight != null)
+                    {
+                        m_TGradient = new Tensor(allocator, DType.Float32, m_TWeight.Sizes);
+                    }
+                    else
+                    {
+                        m_TGradient = new Tensor(allocator, DType.Float32, Sizes);
+                    }
                     Ops.Fill(m_TGradient, 0.0f);
                 }
 
@@ -77,35 +108,9 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-      //  private Tensor m_TLrW;
         private Tensor m_TCache;
-
-       // private bool releasedTLrW = false;
         private bool releasedTCache = false;
-
-        //public Tensor TLrW
-        //{
-        //    get
-        //    {
-        //        if (releasedTLrW)
-        //        {
-        //            return null;
-        //        }
-
-        //        if (m_TLrW == null)
-        //        {
-        //            m_TLrW = new Tensor(allocator, DType.Float32, Rows, Columns);
-        //            Ops.Fill(m_TLrW, 0.0f);
-        //        }
-
-        //        return m_TLrW;
-        //    }
-        //    set
-        //    {
-        //        m_TLrW = value;
-        //        releasedTLrW = false;
-        //    }
-        //}
+     
 
         public Tensor TCache
         {
@@ -118,7 +123,7 @@ namespace Seq2SeqSharp.Tools
 
                 if (m_TCache == null)
                 {
-                    m_TCache = new Tensor(allocator, DType.Float32, Rows, Columns);
+                    m_TCache = new Tensor(allocator, DType.Float32, Sizes);
                     Ops.Fill(m_TCache, 0.0f);
                 }
 
@@ -134,17 +139,16 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-
-
         public WeightTensor(int rows, int columns, int deviceId, bool normal = false)
         {
             DeviceId = deviceId;
             allocator = TensorAllocator.Allocator(DeviceId);
 
-            Rows = rows;
-            Columns = columns;
-            var n = rows * columns;
+            Sizes = new long[2];
+            Sizes[0] = rows;
+            Sizes[1] = columns;
 
+            var n = rows * columns;
             float[] weight = new float[n];
 
 
@@ -158,10 +162,10 @@ namespace Seq2SeqSharp.Tools
                 weight[i] = RandomGenerator.NormalRandom(0.0f, scale);
             }
 
-            TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
+            TGradient = new Tensor(allocator, DType.Float32, Sizes);
             Ops.Fill(TGradient, 0.0f);
 
-            TWeight = Tensor.FromArray(allocator, weight).View(Rows, Columns);
+            TWeight = Tensor.FromArray(allocator, weight).View(Sizes);
         }
 
         public WeightTensor(int rows, int columns, int deviceId)
@@ -169,39 +173,24 @@ namespace Seq2SeqSharp.Tools
             DeviceId = deviceId;
             allocator = TensorAllocator.Allocator(DeviceId);
 
-            Rows = rows;
-            Columns = columns;
-
-            //var allocator = TensorAllocator.Allocator(deviceId);
-
-            //TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
-            //Ops.Fill(TGradient, 0.0f);
-
-            //TWeight = new Tensor(allocator, DType.Float32, Rows, Columns);
+            Sizes = new long[2];
+            Sizes[0] = rows;
+            Sizes[1] = columns;
         }
 
+        public WeightTensor(long[] sizes, int deviceId)
+        {
+            DeviceId = deviceId;
+            allocator = TensorAllocator.Allocator(DeviceId);
 
-        //public WeightTensor(int rows, int columns, Tensor weight, int deviceId, bool graident = true)
-        //{
-        //    DeviceId = deviceId;
-        //    Rows = rows;
-        //    Columns = columns;
-
-        //    TWeight = weight;
-
-        //    //if (graident)
-        //    //{
-        //    //    var allocator = TensorAllocator.Allocator(deviceId);
-
-        //    //    TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
-        //    //    Ops.Fill(TGradient, 0.0f);
-        //    //}
-        //}
+            Sizes = sizes;
+        }
 
         public WeightTensor(int rows, int columns, Tensor weight, Tensor gradient)
         {
-            this.Rows = rows;
-            this.Columns = columns;
+            Sizes = new long[2];
+            Sizes[0] = rows;
+            Sizes[1] = columns;
 
             m_TGradient = gradient;
             m_TWeight = weight;
@@ -213,15 +202,16 @@ namespace Seq2SeqSharp.Tools
             DeviceId = deviceId;
             allocator = TensorAllocator.Allocator(DeviceId);
 
-            Rows = rows;
-            Columns = columns;
+            Sizes = new long[2];
+            Sizes[0] = rows;
+            Sizes[1] = columns;
 
             var n = rows * columns;
 
-            TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
+            TGradient = new Tensor(allocator, DType.Float32, Sizes);
             Ops.Fill(TGradient, 0.0f);
 
-            TWeight = new Tensor(allocator, DType.Float32, Rows, Columns);
+            TWeight = new Tensor(allocator, DType.Float32, Sizes);
             Ops.Fill(TWeight, c);
         }
 
@@ -229,7 +219,6 @@ namespace Seq2SeqSharp.Tools
         public void CleanCache()
         {
             Ops.Fill(TCache, 0.0f);
-        //    Ops.Fill(TLrW, 0.0f);
         }
 
         public void ClearGradient()
@@ -273,8 +262,6 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor m = src as WeightTensor;
 
-            //  Ops.Copy(TGradient, m.TWeight);
-
             if (m_TGradient != null)
             {
                 m_TGradient.Dispose();
@@ -291,14 +278,13 @@ namespace Seq2SeqSharp.Tools
             Ops.Copy(TWeight, m.TWeight);
         }
 
-        private object locker = new object();
         public void AddGradient(IWeightMatrix src)
         {
             WeightTensor m = src as WeightTensor;
 
             lock (locker)
             {
-                Tensor t = new Tensor(TGradient.Allocator, DType.Float32, Rows, Columns);
+                Tensor t = new Tensor(TGradient.Allocator, DType.Float32, Sizes);
                 Ops.Copy(t, m.TGradient);
 
                 Ops.Add(TGradient, TGradient, t);
@@ -328,7 +314,7 @@ namespace Seq2SeqSharp.Tools
             if (m_TGradient == null)
             {
                 allocator = TensorAllocator.Allocator(DeviceId);
-                m_TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
+                m_TGradient = new Tensor(allocator, DType.Float32, src.TGradient.Sizes);
                 Ops.SoftmaxGrad(m_TGradient, src.TGradient, src.TWeight, false);
             }
             else
@@ -343,7 +329,7 @@ namespace Seq2SeqSharp.Tools
             if (m_TGradient == null)
             {
                 allocator = TensorAllocator.Allocator(DeviceId);
-                m_TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
+                m_TGradient = new Tensor(allocator, DType.Float32, src.TGradient.Sizes);
                 Ops.Copy(m_TGradient, src.TGradient);
             }
             else
@@ -357,7 +343,7 @@ namespace Seq2SeqSharp.Tools
             if (m_TGradient == null)
             {
                 allocator = TensorAllocator.Allocator(DeviceId);
-                m_TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
+                m_TGradient = new Tensor(allocator, DType.Float32, src.Sizes);
                 Ops.Copy(m_TGradient, src);
             }
             else
@@ -371,7 +357,7 @@ namespace Seq2SeqSharp.Tools
             if (m_TGradient == null)
             {
                 allocator = TensorAllocator.Allocator(DeviceId);
-                m_TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
+                m_TGradient = new Tensor(allocator, DType.Float32, w.Sizes);
                 Ops.Mul(m_TGradient, w, g);
             }
             else
@@ -386,7 +372,7 @@ namespace Seq2SeqSharp.Tools
             if (m_TGradient == null)
             {
                 allocator = TensorAllocator.Allocator(DeviceId);
-                m_TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
+                m_TGradient = new Tensor(allocator, DType.Float32, src.TWeight.Sizes);
                 Ops.SigmoidD(m_TGradient, src.TWeight, src.TGradient);
             }
             else
@@ -401,7 +387,7 @@ namespace Seq2SeqSharp.Tools
             if (m_TGradient == null)
             {
                 allocator = TensorAllocator.Allocator(DeviceId);
-                m_TGradient = new Tensor(allocator, DType.Float32, Rows, Columns);
+                m_TGradient = new Tensor(allocator, DType.Float32, src.TWeight.Sizes);
 
                 Ops.TanhD(m_TGradient, src.TWeight, src.TGradient);
             }
@@ -450,7 +436,6 @@ namespace Seq2SeqSharp.Tools
         {
             ReleaseWeight();
             ReleaseGradient();
-          //  ReleaseLrW();
             ReleaseCache();
         }
 
@@ -473,16 +458,6 @@ namespace Seq2SeqSharp.Tools
                 releasedTGradient = true;
             }
         }
-
-        //private void ReleaseLrW()
-        //{
-        //    if (m_TLrW != null)
-        //    {
-        //        m_TLrW.Dispose();
-        //        m_TLrW = null;
-        //        releasedTLrW = true;
-        //    }
-        //}
 
         private void ReleaseCache()
         {

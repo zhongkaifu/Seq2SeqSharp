@@ -20,18 +20,48 @@ namespace Seq2SeqSharp.Tools
             return t;
         }
 
-        //public WeightTensor CreateWeightTensor(int row, int column, int deviceId, Tensor w, bool gradient = true)
-        //{
-        //    WeightTensor t = new WeightTensor(row, column, w, deviceId, gradient);
-        //    weights.Add(t);
+        public WeightTensor BuildPositionWeightTensor(int row, int column, int deviceId)
+        {
+            WeightTensor t = new WeightTensor(row, column, deviceId);
 
-        //    return t;
-        //}
+            double numTimescales = (float)column / 2;
+            double logTimescaleIncrement = Math.Log(10000.0f) / (numTimescales - 1.0f);
+            float[] posWeights = new float[row * column];
 
+            for (int p = 0; p < row; ++p)
+            {
+                for (int i = 0; i < numTimescales; ++i)
+                {
+                    float v = (float)(p * Math.Exp(i * -logTimescaleIncrement));
+                    posWeights[p * column + i] = (float)Math.Sin(v);
+                    posWeights[p * column + (int)numTimescales + i] = (float)Math.Cos(v);
+                }
+            }
+
+            t.TWeight.CopyFrom(posWeights);
+
+            weights.Add(t);
+
+            return t;
+        }
 
         public WeightTensor CreateWeightTensor(int row, int column, int deviceId, bool cleanWeights = false)
         {
             WeightTensor r = new WeightTensor(row, column, deviceId);
+
+            if (cleanWeights)
+            {
+                r.ClearWeight();
+            }
+
+            weights.Add(r);
+
+            return r;
+        }
+
+        public WeightTensor CreateWeightTensor(long[] sizes, int deviceId, bool cleanWeights = false)
+        {
+            WeightTensor r = new WeightTensor(sizes, deviceId);
 
             if (cleanWeights)
             {

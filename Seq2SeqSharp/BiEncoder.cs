@@ -1,4 +1,5 @@
 ﻿
+using AdvUtils;
 using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
@@ -12,73 +13,75 @@ namespace Seq2SeqSharp
 {
 
     [Serializable]
-    public class BiEncoder
+    public class BiEncoder : IEncoder
     {
-        public List<LSTMCell> forwardEncoders = new List<LSTMCell>();
-        public List<LSTMCell> backwardEncoders = new List<LSTMCell>();
+        private List<LSTMCell> m_forwardEncoders;
+        private List<LSTMCell> m_backwardEncoders;
 
-        public int hdim { get; set; }
-        public int dim { get; set; }
-        public int depth { get; set; }
+        private int m_hiddenDim;
+        private int m_inputDim;
+        private int m_depth;
 
-        public BiEncoder(int batchSize, int hdim, int dim, int depth, ArchTypeEnums archType, int deviceId)
+        private int m_batchSize;
+
+        public BiEncoder(int batchSize, int hiddenDim, int inputDim, int depth, ArchTypeEnums archType, int deviceId)
         {
-            forwardEncoders.Add(new LSTMCell(batchSize, hdim, dim, archType, deviceId));
-            backwardEncoders.Add(new LSTMCell(batchSize, hdim, dim, archType, deviceId));
+            Logger.WriteLine($"Creating BiLSTM encoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', InputDim = '{inputDim}', Depth = '{depth}'");
+
+            m_forwardEncoders = new List<LSTMCell>();
+            m_backwardEncoders = new List<LSTMCell>();
+
+            m_forwardEncoders.Add(new LSTMCell(batchSize, hiddenDim, inputDim, archType, deviceId));
+            m_backwardEncoders.Add(new LSTMCell(batchSize, hiddenDim, inputDim, archType, deviceId));
 
             for (int i = 1; i < depth; i++)
             {
-                forwardEncoders.Add(new LSTMCell(batchSize, hdim, hdim * 2, archType, deviceId));
-                backwardEncoders.Add(new LSTMCell(batchSize, hdim, hdim * 2, archType, deviceId));
+                m_forwardEncoders.Add(new LSTMCell(batchSize, hiddenDim, hiddenDim * 2, archType, deviceId));
+                m_backwardEncoders.Add(new LSTMCell(batchSize, hiddenDim, hiddenDim * 2, archType, deviceId));
             }
 
-            this.hdim = hdim;
-            this.dim = dim;
-            this.depth = depth;
-        }
-
-        public void SetBatchSize(IWeightFactory weightFactory, int batchSize)
-        {
-            foreach (var item in forwardEncoders)
-            {
-                item.SetBatchSize(weightFactory, batchSize);
-            }
-
-            foreach (var item in backwardEncoders)
-            {
-                item.SetBatchSize(weightFactory, batchSize);
-            }
+            m_hiddenDim = hiddenDim;
+            m_inputDim = inputDim;
+            m_depth = depth;
+            m_batchSize = batchSize;
         }
 
         public void Reset(IWeightFactory weightFactory)
         {
-            foreach (var item in forwardEncoders)
+            foreach (var item in m_forwardEncoders)
             {
                 item.Reset(weightFactory);
             }
 
-            foreach (var item in backwardEncoders)
+            foreach (var item in m_backwardEncoders)
             {
                 item.Reset(weightFactory);
             }
         }
 
-        public List<IWeightMatrix> Encode(List<IWeightMatrix> inputs, IComputeGraph g)
+        public IWeightMatrix Encode(IWeightMatrix rawInputs, IComputeGraph g)
         {
+            int seqLen = rawInputs.Rows / m_batchSize;
+
+            List<IWeightMatrix> inputs = new List<IWeightMatrix>();
+            for (int i = 0; i < seqLen; i++)
+            {
+                var emb_i = g.PeekRow(rawInputs, i * m_batchSize, m_batchSize);
+                inputs.Add(emb_i);
+            }
+
             List<IWeightMatrix> forwardOutputs = new List<IWeightMatrix>();
             List<IWeightMatrix> backwardOutputs = new List<IWeightMatrix>();
 
             List<IWeightMatrix> layerOutputs = inputs.ToList();
-            int seqLen = inputs.Count;
-
-            for (int i = 0; i < depth; i++)
+            for (int i = 0; i < m_depth; i++)
             {
                 for (int j = 0; j < seqLen; j++)
                 {
-                    var forwardOutput = forwardEncoders[i].Step(layerOutputs[j], g);
+                    var forwardOutput = m_forwardEncoders[i].Step(layerOutputs[j], g);
                     forwardOutputs.Add(forwardOutput);
 
-                    var backwardOutput = backwardEncoders[i].Step(layerOutputs[inputs.Count - j - 1], g);
+                    var backwardOutput = m_backwardEncoders[i].Step(layerOutputs[inputs.Count - j - 1], g);
                     backwardOutputs.Add(backwardOutput);
                 }
 
@@ -92,21 +95,21 @@ namespace Seq2SeqSharp
 
             }
 
-            return layerOutputs;
+            return g.ConcatRows(layerOutputs);
         }
 
 
-        public List<IWeightMatrix> getParams()
+        public List<IWeightMatrix> GetParams()
         {
             List<IWeightMatrix> response = new List<IWeightMatrix>();
 
-            foreach (var item in forwardEncoders)
+            foreach (var item in m_forwardEncoders)
             {
                 response.AddRange(item.getParams());
             }
 
 
-            foreach (var item in backwardEncoders)
+            foreach (var item in m_backwardEncoders)
             {
                 response.AddRange(item.getParams());
             }
@@ -116,12 +119,12 @@ namespace Seq2SeqSharp
 
         public void Save(Stream stream)
         {
-            foreach (var item in forwardEncoders)
+            foreach (var item in m_forwardEncoders)
             {
                 item.Save(stream);
             }
 
-            foreach (var item in backwardEncoders)
+            foreach (var item in m_backwardEncoders)
             {
                 item.Save(stream);
             }
@@ -129,12 +132,12 @@ namespace Seq2SeqSharp
 
         public void Load(Stream stream)
         {
-            foreach (var item in forwardEncoders)
+            foreach (var item in m_forwardEncoders)
             {
                 item.Load(stream);
             }
 
-            foreach (var item in backwardEncoders)
+            foreach (var item in m_backwardEncoders)
             {
                 item.Load(stream);
             }

@@ -33,14 +33,6 @@ namespace Seq2SeqSharp
             this.depth = depth;
         }
 
-        public void SetBatchSize(IWeightFactory weightFactory, int batchSize)
-        {
-            foreach (var item in encoders)
-            {
-                item.SetBatchSize(weightFactory, batchSize);
-            }
-        }
-
         public void Reset(IWeightFactory weightFactory)
         {
             foreach (var item in encoders)

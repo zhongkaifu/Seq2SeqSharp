@@ -15,25 +15,19 @@ namespace Seq2SeqSharp
 
         public FeedForwardLayer(int inputDim, int outputDim, ArchTypeEnums archType, int deviceId)
         {
-            if (archType == ArchTypeEnums.GPU_CUDA)
-            {
-                m_Whd = new WeightTensor(inputDim, outputDim, deviceId, true);
-                m_Bd = new WeightTensor(1, outputDim, 0, deviceId);
-            }
-            else
-            {
-                m_Whd = new WeightMatrix(inputDim, outputDim, true);
-                m_Bd = new WeightMatrix(1, outputDim, 0);
-            }
+            m_Whd = new WeightTensor(inputDim, outputDim, deviceId);
+            m_Bd = new WeightTensor(1, outputDim, 0, deviceId);
         }
 
         public IWeightMatrix Process(IWeightMatrix inputT, IComputeGraph g)
         {
             var bds = g.RepeatRows(m_Bd, inputT.Rows);
-            return g.MulAdd(inputT, m_Whd, bds);
+            var r = g.MulAdd(inputT, m_Whd, bds);
+
+            return r;
         }
 
-        public virtual List<IWeightMatrix> getParams()
+        public virtual List<IWeightMatrix> GetParams()
         {
             List<IWeightMatrix> response = new List<IWeightMatrix>();
             response.Add(m_Whd);

@@ -8,8 +8,7 @@ namespace Seq2SeqSharp
 {
     public enum ArchTypeEnums
     {
-        GPU_CUDA,
-        CPU,
-        CPU_MKL
+        GPU,
+        CPU
     }
 }

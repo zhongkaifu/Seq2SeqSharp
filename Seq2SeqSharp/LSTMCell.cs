@@ -19,32 +19,24 @@ namespace Seq2SeqSharp
         public IWeightMatrix ht { get; set; }
         public IWeightMatrix ct { get; set; }
 
-        public int hdim { get; set; }
-        public int dim { get; set; }
+        public int m_hdim { get; set; }
+        public int m_dim { get; set; }
 
-        private int batchSize;
-        private int deviceId;
+        private int m_batchSize;
+        private int m_deviceId;
 
         private LayerNormalization layerNorm1;
         private LayerNormalization layerNorm2;
 
         public LSTMCell(int batchSize, int hdim, int dim, ArchTypeEnums archType, int deviceId)
         {
-            if (archType == ArchTypeEnums.GPU_CUDA)
-            {
-                Wxh = new WeightTensor(dim + hdim, hdim * 4, deviceId, true);
-                b = new WeightTensor(1, hdim * 4, 0, deviceId);
-            }
-            else
-            {
-                Wxh = new WeightMatrix(dim + hdim, hdim * 4, true);
-                b = new WeightMatrix(1, hdim * 4, 0);
-            }
+            Wxh = new WeightTensor(dim + hdim, hdim * 4, deviceId);
+            b = new WeightTensor(1, hdim * 4, 0, deviceId);
 
-            this.hdim = hdim;
-            this.dim = dim;
-            this.batchSize = batchSize;
-            this.deviceId = deviceId;
+            m_hdim = hdim;
+            m_dim = dim;
+            m_batchSize = batchSize;
+            m_deviceId = deviceId;
 
             layerNorm1 = new LayerNormalization(hdim * 4, archType, deviceId);
             layerNorm2 = new LayerNormalization(hdim, archType, deviceId);
@@ -60,11 +52,11 @@ namespace Seq2SeqSharp
             var hhSum = innerGraph.MulAdd(inputs, Wxh, bs);
             var hhSum2 = layerNorm1.Process(hhSum, innerGraph);
 
-            (var gates_raw, var cell_write_raw) = innerGraph.SplitColumns(hhSum2, hdim * 3, hdim);
+            (var gates_raw, var cell_write_raw) = innerGraph.SplitColumns(hhSum2, m_hdim * 3, m_hdim);
             var gates = innerGraph.Sigmoid(gates_raw);
             var cell_write = innerGraph.Tanh(cell_write_raw);
 
-            (var input_gate, var forget_gate, var output_gate) = innerGraph.SplitColumns(gates, hdim, hdim, hdim);
+            (var input_gate, var forget_gate, var output_gate) = innerGraph.SplitColumns(gates, m_hdim, m_hdim, m_hdim);
 
             // compute new cell activation: ct = forget_gate * cell_prev + input_gate * cell_write
             ct = innerGraph.EltMulMulAdd(forget_gate, cell_prev, input_gate, cell_write);
@@ -88,16 +80,10 @@ namespace Seq2SeqSharp
             return response;
         }
 
-        public void SetBatchSize(IWeightFactory weightFactory, int batchSize)
-        {
-            this.batchSize = batchSize;
-            Reset(weightFactory);
-        }
-
         public void Reset(IWeightFactory weightFactory)
         {
-            ht = weightFactory.CreateWeights(batchSize, hdim, deviceId, true);
-            ct = weightFactory.CreateWeights(batchSize, hdim, deviceId, true);
+            ht = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true);
+            ct = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true);
         }
 
         public void Save(Stream stream)

@@ -20,10 +20,13 @@ namespace Seq2SeqConsole
         public int HiddenSize = 128;
 
         [Arg("Learning rate.", "LearningRate")]
-        public float LearningRate = 0.001f;
+        public float LearningRate = 0.0003f;
 
-        [Arg("The network depth in decoder.", "Depth")]
-        public int Depth = 1;
+        [Arg("The network depth in encoder.", "EncoderLayerDepth")]
+        public int EncoderLayerDepth = 1;
+
+        [Arg("The network depth in decoder.", "DecoderLayerDepth")]
+        public int DecoderLayerDepth = 1;
 
         [Arg("The trained model file path.", "ModelFilePath")]
         public string ModelFilePath = "Seq2Seq.Model";
@@ -59,7 +62,7 @@ namespace Seq2SeqConsole
         public int ShuffleBlockSize = -1;
 
         [Arg("Clip gradients", "GradClip")]
-        public float GradClip = 5.0f;
+        public float GradClip = 3.0f;
 
         [Arg("The batch size", "BatchSize")]
         public int BatchSize = 1;
@@ -67,8 +70,14 @@ namespace Seq2SeqConsole
         [Arg("Dropout ratio", "Dropout")]
         public float DropoutRatio = 0.1f;
 
-        [Arg("Arch type: 0 - GPU, 1 - CPU, 2 - CPU MKL", "ArchType")]
-        public int ArchType = 0;
+        [Arg("Arch type: GPU, CPU, CPU_MKL", "ArchType")]
+        public string ArchType = "GPU";
+
+        [Arg("Encoder type: BiLSTM, Transformer", "EncoderType")]
+        public string EncoderType = "BiLSTM";
+
+        [Arg("The number of multi-heads in transformer model", "MultiHeadNum")]
+        public int MultiHeadNum = 8;
 
         [Arg("Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2", "DeviceIds")]
         public string DeviceIds = "0";
@@ -81,5 +90,7 @@ namespace Seq2SeqConsole
 
         [Arg("Maxmium sentence length", "MaxSentLength")]
         public int MaxSentLength = 32;
+
+
     }
 }

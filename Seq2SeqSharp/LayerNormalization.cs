@@ -17,16 +17,8 @@ namespace Seq2SeqSharp
 
         public LayerNormalization(int dim, ArchTypeEnums archType, int deviceId)
         {
-            if (archType == ArchTypeEnums.GPU_CUDA)
-            {
-                alpha = new WeightTensor(1, dim, 1, deviceId);
-                beta = new WeightTensor(1, dim, 0, deviceId);
-            }
-            else
-            {
-                alpha = new WeightMatrix(1, dim, 1);
-                beta = new WeightMatrix(1, dim, 0);
-            }
+            alpha = new WeightTensor(1, dim, 1, deviceId);
+            beta = new WeightTensor(1, dim, 0, deviceId);
         }
 
         public IWeightMatrix Process(IWeightMatrix input, IComputeGraph innerGraph)

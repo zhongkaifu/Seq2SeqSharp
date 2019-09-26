@@ -2,13 +2,14 @@
 Seq2SeqSharp is an C# encoder-decoder deep neural network framework running on both CPU and GPU  
 
 # Features  
-Pure C# framework (except kernel C code in CUDA)  
+Pure C# framework   
 Deep bi-directional LSTM encoder  
 Deep attention based LSTM decoder  
+Transformer encoder  
 Graph based neural network  
 Automatic differentiation  
 Tensor based operations  
-Running on both CPU (Intel MKL lib) and GPU (CUDA)  
+Running on both CPU and GPU (CUDA)  
 Support multi-GPUs  
 Mini-batch  
 Dropout  
@@ -74,8 +75,8 @@ So, train01.chs.snt has the corresponding translated sentences:
 汽车 业 也 在 不断 地 变化 .  
 
 # Build Your Neural Networks  
-Benefit from automatic differentiation, tensor based compute graph and other features, you can easily build your neural network by a few of code. The only thing you need to implment is forward part, and the framework will automatically build the corresponding backward part for you, and make the network could run on multi-GPUs or CPUs.  
-Here is an example for attentioned based LSTM.  
+Benefit from automatic differentiation, tensor based compute graph and other features, you can easily build your neural network by a few code. The only thing you need to implment is forward part, and the framework will automatically build the corresponding backward part for you, and make the network could run on multi-GPUs or CPUs.  
+Here is an example about attentioned based LSTM cells.  
 ```c#
         /// <summary>
         /// Update LSTM-Attention cells according to given weights
@@ -109,9 +110,63 @@ Here is an example for attentioned based LSTM.
             return ht;
         }
 ```
+Another example about scaled multi-heads attention component which is the core part in Transformer model.  
+```c#
+        /// <summary>
+        /// Scaled multi-heads attention component with skip connectioned feed forward layers
+        /// </summary>
+        /// <param name="input">The input tensor</param>
+        /// <param name="g">The instance of computing graph</param>
+        /// <returns></returns>
+        public IWeightMatrix Perform(IWeightMatrix input, IComputeGraph g)
+        {
+            var seqLen = input.Rows / m_batchSize;
+
+            //Input projections
+            var allQ = g.View(Q.Process(input, g), m_batchSize, seqLen, m_multiHeadNum, m_d);
+
+            var allK = g.View(K.Process(input, g), m_batchSize, seqLen, m_multiHeadNum, m_d);
+
+            var allV = g.View(V.Process(input, g), m_batchSize, seqLen, m_multiHeadNum, m_d);
+
+            //Multi-head attentions
+            var Qs = g.View(g.Permute(allQ, 2, 0, 1, 3), m_multiHeadNum * m_batchSize, seqLen, m_d);
+            var Ks = g.View(g.Permute(allK, 2, 0, 3, 1), m_multiHeadNum * m_batchSize, m_d, seqLen);
+            var Vs = g.View(g.Permute(allV, 2, 0, 1, 3), m_multiHeadNum * m_batchSize, seqLen, m_d);
+
+            float scale = 1.0f / (float)Math.Sqrt(m_d);
+
+            var attn = g.MulBatch(Qs, Ks, m_multiHeadNum * m_batchSize, scale);
+            var attn2 = g.View(attn, m_multiHeadNum * m_batchSize * seqLen, seqLen);
+
+            var softmax = g.Softmax(attn2);
+            var softmax2 = g.View(softmax, m_multiHeadNum * m_batchSize, seqLen, seqLen);
+            var o = g.View(g.MulBatch(softmax2, Vs, m_multiHeadNum * m_batchSize), m_multiHeadNum, m_batchSize, seqLen, m_d);
+            var W = g.View(g.Permute(o, 1, 2, 0, 3), m_batchSize * seqLen, m_multiHeadNum * m_d);
+
+            // Output projection
+            var b0s = g.RepeatRows(b0, W.Rows);
+            var finalAttResults = g.MulAdd(W, W0, b0s);
+
+            //Skip connection and layer normaliztion
+            var addedAttResult = g.Add(finalAttResults, input);
+            var normAddedAttResult = layerNorm1.Process(addedAttResult, g);
+
+            //Feed forward
+            var ffnResult = feedForwardLayer1.Process(normAddedAttResult, g);
+            var reluFFNResult = g.Relu(ffnResult);
+            var ffn2Result = feedForwardLayer2.Process(reluFFNResult, g);
+
+            //Skip connection and layer normaliztion
+            var addFFNResult = g.Add(ffn2Result, normAddedAttResult);
+            var normAddFFNResult = layerNorm2.Process(addFFNResult, g);
+
+            return normAddFFNResult;
+        }
+```
+
 # Todo List  
 If you are interested in below items, please let me know. Becuase African proverb says "If you want to go fast, go alone. If you want to go far, go together" :)  
-Transformer Components  
 Support Tensor Cores in CUDA  
 Support Half-Float Type (FP16)  
 And More...  

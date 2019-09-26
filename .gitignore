@@ -45,3 +45,7 @@
 /TensorSharp/obj
 /TensorSharp/bin
 /packages
+/CpuOps/x64/Release
+/CpuOps/Release
+/CpuOps/Debug
+/CpuOps/bin/x64/Release

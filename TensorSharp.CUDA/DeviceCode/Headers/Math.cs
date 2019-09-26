@@ -92,6 +92,27 @@ template <typename T> INLINE_FUNC T sgn(T val) {
 	return T(0);
 }
 
+template <typename T> INLINE_FUNC T relu(T w) {
+	if (w < T(0))
+		return T(0);
+	return w;
+}
+
+
+template <typename T> INLINE_FUNC T relud(T w, T g) {
+	if (w > T(0))
+		return g;
+	return T(0);
+}
+
+
+template <typename T> INLINE_FUNC T addrelud(T t, T w, T g) {
+	if (w > T(0))
+		return t + g;
+	return t + T(0);
+}
+
+
 template <typename T> INLINE_FUNC T Clamp(T val, T min, T max) {
 	if (val < min)
 		return min;

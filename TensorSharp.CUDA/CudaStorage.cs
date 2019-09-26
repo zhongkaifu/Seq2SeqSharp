@@ -101,6 +101,7 @@ namespace TensorSharp.CUDA
         public override void CopyToStorage(long storageIndex, IntPtr src, long byteCount)
         {
             var dstPtr = DevicePtrAtElement(storageIndex);
+            context.SetCurrent();
             context.CopyToDevice(dstPtr, src, byteCount);
         }
 

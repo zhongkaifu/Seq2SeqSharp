@@ -19,8 +19,8 @@ namespace Seq2SeqSharp
         public IWeightMatrix ht { get; set; }
         public IWeightMatrix ct { get; set; }
 
-        public int hdim { get; set; }
-        public int dim { get; set; }
+        public int m_hdim { get; set; }
+        public int m_dim { get; set; }
 
         public int m_batchSize;
         private int m_deviceId;
@@ -28,31 +28,18 @@ namespace Seq2SeqSharp
         private LayerNormalization layerNorm1;
         private LayerNormalization layerNorm2;
 
-        public LSTMAttentionDecoderCell(int batchSize, int hdim, int dim, ArchTypeEnums archType, int deviceId)
+        public LSTMAttentionDecoderCell(int batchSize, int hdim, int dim, int contextSize, ArchTypeEnums archType, int deviceId)
         {
-            int contextSize = hdim * 2;
-            this.hdim = hdim;
-            this.dim = dim;
+            m_hdim = hdim;
+            m_dim = dim;
             m_deviceId = deviceId;
-
             m_batchSize = batchSize;
 
-            if (archType == ArchTypeEnums.GPU_CUDA)
-            {
-                Wxhc = new WeightTensor(dim + hdim + contextSize, hdim * 4, deviceId, true);
-                b = new WeightTensor(1, hdim * 4, 0, deviceId);
+            Wxhc = new WeightTensor(dim + hdim + contextSize, hdim * 4, deviceId);
+            b = new WeightTensor(1, hdim * 4, 0, deviceId);
 
-                this.ht = new WeightTensor(batchSize, hdim, 0, deviceId);
-                this.ct = new WeightTensor(batchSize, hdim, 0, deviceId);
-            }
-            else
-            {
-                Wxhc = new WeightMatrix(dim + hdim + contextSize, hdim * 4, true);
-                b = new WeightMatrix(1, hdim * 4, 0);
-
-                this.ht = new WeightMatrix(batchSize, hdim, 0);
-                this.ct = new WeightMatrix(batchSize, hdim, 0);
-            }
+            ht = new WeightTensor(batchSize, hdim, 0, deviceId);
+            ct = new WeightTensor(batchSize, hdim, 0, deviceId);
 
             layerNorm1 = new LayerNormalization(hdim * 4, archType, deviceId);
             layerNorm2 = new LayerNormalization(hdim, archType, deviceId);
@@ -75,11 +62,11 @@ namespace Seq2SeqSharp
             var hhSum = computeGraph.MulAdd(hxhc, Wxhc, bs);
             var hhSum2 = layerNorm1.Process(hhSum, computeGraph);
 
-            (var gates_raw, var cell_write_raw) = computeGraph.SplitColumns(hhSum2, hdim * 3, hdim);
+            (var gates_raw, var cell_write_raw) = computeGraph.SplitColumns(hhSum2, m_hdim * 3, m_hdim);
             var gates = computeGraph.Sigmoid(gates_raw);
             var cell_write = computeGraph.Tanh(cell_write_raw);
 
-            (var input_gate, var forget_gate, var output_gate) = computeGraph.SplitColumns(gates, hdim, hdim, hdim);
+            (var input_gate, var forget_gate, var output_gate) = computeGraph.SplitColumns(gates, m_hdim, m_hdim, m_hdim);
 
             // compute new cell activation: ct = forget_gate * cell_prev + input_gate * cell_write
             ct = computeGraph.EltMulMulAdd(forget_gate, cell_prev, input_gate, cell_write);
@@ -102,17 +89,10 @@ namespace Seq2SeqSharp
             return response;
         }
 
-
-        public void SetBatchSize(IWeightFactory weightFactory, int batchSize)
-        {
-            m_batchSize = batchSize;
-            Reset(weightFactory);
-        }
-
         public void Reset(IWeightFactory weightFactory)
         {
-            ht = weightFactory.CreateWeights(m_batchSize, hdim, m_deviceId, true);
-            ct = weightFactory.CreateWeights(m_batchSize, hdim, m_deviceId, true);
+            ht = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true);
+            ct = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true);
         }
 
         public void Save(Stream stream)

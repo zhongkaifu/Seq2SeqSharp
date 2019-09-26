@@ -28,21 +28,13 @@ namespace Seq2SeqSharp
             this.dim = dim;
             this.depth = depth;
 
-            decoders.Add(new LSTMAttentionDecoderCell(batchSize, hdim, dim, archType, deviceId));
+            decoders.Add(new LSTMAttentionDecoderCell(batchSize, hdim, dim, context, archType, deviceId));
             for (int i = 1; i < depth; i++)
             {
-                decoders.Add(new LSTMAttentionDecoderCell(batchSize, hdim, hdim, archType, deviceId));
+                decoders.Add(new LSTMAttentionDecoderCell(batchSize, hdim, hdim, context, archType, deviceId));
             }
         }
 
-        public void SetBatchSize(IWeightFactory weightFactory, int batchSize)
-        {
-            attentionLayer.SetBatchSize(batchSize);
-            foreach (var item in decoders)
-            {
-                item.SetBatchSize(weightFactory, batchSize);
-            }
-        }
 
         public void Reset(IWeightFactory weightFactory)
         {
@@ -112,7 +104,7 @@ namespace Seq2SeqSharp
             }
         }
 
-        public List<IWeightMatrix> getParams()
+        public List<IWeightMatrix> GetParams()
         {
             List<IWeightMatrix> response = new List<IWeightMatrix>();
 

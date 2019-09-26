@@ -213,6 +213,8 @@ namespace TensorSharp.CUDA
 
 
 
+
+
         [RegisterOpStorageType("rsqrt", typeof(CudaStorage))]
         public Tensor Rsqrt(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseKernels, "rsqrt", result, src); }
 
@@ -264,6 +266,16 @@ namespace TensorSharp.CUDA
 
         [RegisterOpStorageType("addtanhD", typeof(CudaStorage))]
         public Tensor AddTanhD(Tensor result, Tensor t, Tensor resW, Tensor resG) { return ElementwiseTTTTOp.Invoke(elementwiseKernels, "addtanhD", result, t, resW, resG); }
+
+
+        [RegisterOpStorageType("relu", typeof(CudaStorage))]
+        public Tensor Relu(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseKernels, "relu", result, src); }
+
+        [RegisterOpStorageType("relud", typeof(CudaStorage))]
+        public Tensor ReluD(Tensor result, Tensor w, Tensor g) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "relud", result, w, g); }
+
+        [RegisterOpStorageType("addrelud", typeof(CudaStorage))]
+        public Tensor AddReluD(Tensor result, Tensor t, Tensor w, Tensor g) { return ElementwiseTTTTOp.Invoke(elementwiseKernels, "addrelud", result, t, w, g); }
 
 
         [RegisterOpStorageType("sigmoidD", typeof(CudaStorage))]

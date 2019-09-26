@@ -226,13 +226,25 @@ namespace TensorSharp
         }
 
 
+        private string PrintSizes(long[] sizes)
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (var size in sizes)
+            {
+                sb.Append(size);
+                sb.Append(" ");
+            }
+
+            return sb.ToString();
+        }
+
         public Tensor View(params long[] sizes)
         {
             if (!this.IsContiguous()) throw new InvalidOperationException("Cannot use View on a non-contiguous tensor");
 
             if (this.ElementCount() != TensorDimensionHelpers.ElementCount(sizes))
             {
-                throw new InvalidOperationException("Output tensor must have the same number of elements as the input");
+                throw new InvalidOperationException($"Output tensor must have the same number of elements as the input. Size = {PrintSizes(this.sizes)}, New Size = {PrintSizes(sizes)}");
             }
 
             return new Tensor(sizes, TensorDimensionHelpers.GetContiguousStride(sizes), this.storage, this.storageOffset);

@@ -60,26 +60,26 @@
     <Compile Include="BiEncoder.cs" />
     <Compile Include="CostEventArg.cs" />
     <Compile Include="Encoder.cs" />
+    <Compile Include="EncoderTypeEnums.cs" />
     <Compile Include="FeedForwardLayer.cs" />
+    <Compile Include="IEncoder.cs" />
     <Compile Include="LayerNormalization.cs" />
     <Compile Include="LSTMCell.cs" />
     <Compile Include="LSTMAttentionDecoderCell.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Optimizer.cs" />
+    <Compile Include="SelfAttention.cs" />
     <Compile Include="TensorAllocator.cs" />
     <Compile Include="Tools\ComparableItem.cs" />
-    <Compile Include="Tools\ComputeGraph.cs" />
-    <Compile Include="Tools\ComputeGraphMKL.cs" />
     <Compile Include="Tools\ComputeGraphTensor.cs" />
     <Compile Include="Tools\Corpus.cs" />
     <Compile Include="Tools\IComputeGraph.cs" />
     <Compile Include="Tools\IWeightFactory.cs" />
     <Compile Include="Tools\IWeightMatrix.cs" />
     <Compile Include="Tools\RandomGenerator.cs" />
-    <Compile Include="Tools\WeightMatrix.cs" />
-    <Compile Include="Tools\WeightMatrixFactory.cs" />
     <Compile Include="Tools\WeightTensor.cs" />
     <Compile Include="Tools\WeightTensorFactory.cs" />
+    <Compile Include="TransformerEncoder.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

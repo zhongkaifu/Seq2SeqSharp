@@ -45,12 +45,11 @@ namespace Seq2SeqSharp
     public class AttentionSeq2Seq
     {
         public event EventHandler IterationDone;
-        public int HiddenSize { get; set; }
-        public int WordVectorSize { get; set; }
+        public int m_hiddenDim { get; set; }
+        public int m_embeddingDim { get; set; }
         public Corpus TrainCorpus { get; set; }
-        public int Depth { get; set; }
-
-
+        private int m_encoderLayerDepth;
+        private int m_decoderLayerDepth;
         private const string m_UNK = "<UNK>";
         private const string m_END = "<END>";
         private const string m_START = "<START>";
@@ -70,69 +69,99 @@ namespace Seq2SeqSharp
         private IWeightMatrix[] m_tgtEmbedding;
         private int m_tgtEmbeddingDefaultDeviceId = 0;
 
-        private BiEncoder[] m_biEncoder;
-        private int m_biEncoderDefaultDeviceId = 0;
+        private IEncoder[] m_encoder;
+        private int m_encoderDefaultDeviceId = 0;
 
         private AttentionDecoder[] m_decoder;
         private int m_decoderDefaultDeviceId = 0;
 
         //The feed forward layer after LSTM layers in decoder
         private FeedForwardLayer[] m_decoderFFLayer;
-        private int m_DecoderFFLayerDeviceId = 0;
+        private int m_DecoderFFLayerDefaultDeviceId = 0;
 
         // optimization  hyperparameters
-        private float m_regc = 0.000001f; // L2 regularization strength
+        private float m_regc = 1e-10f; // L2 regularization strength
         private float m_startLearningRate = 0.001f;
-        private float m_clipvalue = 5.0f; // clip gradients at this value
+        private float m_clipvalue = 3.0f; // clip gradients at this value
         private int m_batchSize = 1;
         private int m_parameterUpdateCount = 0;
         private float m_dropoutRatio = 0.1f;
         private string m_modelFilePath;
-        private ArchTypeEnums m_archType = ArchTypeEnums.GPU_CUDA;
+        private ArchTypeEnums m_archType = ArchTypeEnums.GPU;
+        private EncoderTypeEnums m_encoderType = EncoderTypeEnums.Transformer;
         private int[] m_deviceIds;
         private int m_defaultDeviceId = 0;
         private double m_avgCostPerWordInTotalInLastEpoch = 100000.0;
+        private int m_multiHeadNum = 8;
 
 
         public AttentionSeq2Seq(string modelFilePath, int batchSize, ArchTypeEnums archType, int[] deviceIds)
         {
-            CheckParameters(batchSize, archType, deviceIds);
-
-            if (archType == ArchTypeEnums.GPU_CUDA)
-            {
-                TensorAllocator.InitDevices(deviceIds);
-                SetDefaultDeviceIds(deviceIds.Length);
-            }
-
+            m_batchSize = batchSize;
             m_archType = archType;
             m_deviceIds = deviceIds;
+            m_modelFilePath = modelFilePath;
 
-            Load(modelFilePath);
-            InitWeightsFactory();
+            TensorAllocator.InitDevices(archType, deviceIds);
+            SetDefaultDeviceIds(deviceIds.Length);
 
-            SetBatchSize(batchSize);
+            Logger.WriteLine($"Loading model from '{modelFilePath}'...");
+
+            ModelAttentionMetaData modelMetaData = new ModelAttentionMetaData();
+            BinaryFormatter bf = new BinaryFormatter();
+            FileStream fs = new FileStream(m_modelFilePath, FileMode.Open, FileAccess.Read);
+            modelMetaData = bf.Deserialize(fs) as ModelAttentionMetaData;
+
+            m_clipvalue = modelMetaData.Clipval;
+            m_encoderLayerDepth = modelMetaData.EncoderLayerDepth;
+            m_decoderLayerDepth = modelMetaData.DecoderLayerDepth;
+            m_hiddenDim = modelMetaData.HiddenDim;
+            m_startLearningRate = modelMetaData.LearningRate;
+            m_embeddingDim = modelMetaData.EmbeddingDim;
+            m_multiHeadNum = modelMetaData.MultiHeadNum;
+            m_encoderType = modelMetaData.EncoderType;
+            m_maxWord = modelMetaData.MaxCharsGen;
+            m_regc = modelMetaData.Regc;
+            m_dropoutRatio = modelMetaData.DropoutRatio;
+            m_srcWordToIndex = modelMetaData.SrcWordToIndex;
+            m_srcIndexToWord = modelMetaData.SrcIndexToWord;
+            m_tgtWordToIndex = modelMetaData.TgtWordToIndex;
+            m_tgtIndexToWord = modelMetaData.TgtIndexToWord;
+
+            CreateEncoderDecoderEmbeddings();
+
+            m_encoder[m_encoderDefaultDeviceId].Load(fs);
+            m_decoder[m_decoderDefaultDeviceId].Load(fs);
+
+            m_srcEmbedding[m_srcEmbeddingDefaultDeviceId].Load(fs);
+            m_tgtEmbedding[m_tgtEmbeddingDefaultDeviceId].Load(fs);
+
+            m_decoderFFLayer[m_DecoderFFLayerDefaultDeviceId].Load(fs);
+
+            fs.Close();
+            fs.Dispose();
         }
 
-        public AttentionSeq2Seq(int inputSize, int hiddenSize, int depth, Corpus trainCorpus, string srcVocabFilePath, string tgtVocabFilePath, string srcEmbeddingFilePath, string tgtEmbeddingFilePath,
-            bool useDropout, string modelFilePath, int batchSize, float dropoutRatio, ArchTypeEnums archType, int[] deviceIds)
+        public AttentionSeq2Seq(int inputSize, int hiddenSize, int encoderLayerDepth, int decoderLayerDepth, Corpus trainCorpus, string srcVocabFilePath, string tgtVocabFilePath,
+            string srcEmbeddingFilePath, string tgtEmbeddingFilePath, string modelFilePath, int batchSize, float dropoutRatio, int multiHeadNum,
+            ArchTypeEnums archType, EncoderTypeEnums encoderType, int[] deviceIds)
         {
-            CheckParameters(batchSize, archType, deviceIds);
-            if (archType == ArchTypeEnums.GPU_CUDA)
-            {
-                TensorAllocator.InitDevices(deviceIds);
-                SetDefaultDeviceIds(deviceIds.Length);
-            }
+            TensorAllocator.InitDevices(archType, deviceIds);
+            SetDefaultDeviceIds(deviceIds.Length);
 
             m_dropoutRatio = dropoutRatio;
             m_batchSize = batchSize;
             m_archType = archType;
             m_modelFilePath = modelFilePath;
             m_deviceIds = deviceIds;
+            m_multiHeadNum = multiHeadNum;
+            m_encoderType = encoderType;
 
             TrainCorpus = trainCorpus;
-            Depth = depth;
-            WordVectorSize = inputSize;
-            HiddenSize = hiddenSize;
+            m_encoderLayerDepth = encoderLayerDepth;
+            m_decoderLayerDepth = decoderLayerDepth;
+            m_embeddingDim = inputSize;
+            m_hiddenDim = hiddenSize;
 
             //If vocabulary files are specified, we load them from file, otherwise, we build them from training corpus
             if (String.IsNullOrEmpty(srcVocabFilePath) == false && String.IsNullOrEmpty(tgtVocabFilePath) == false)
@@ -147,7 +176,7 @@ namespace Seq2SeqSharp
             }
 
             //Initializng weights in encoders and decoders
-            InitWeights();
+            CreateEncoderDecoderEmbeddings();
 
             for (int i = 0; i < m_deviceIds.Length; i++)
             {
@@ -173,100 +202,61 @@ namespace Seq2SeqSharp
             m_srcEmbeddingDefaultDeviceId = (i++) % deviceNum;
             m_tgtEmbeddingDefaultDeviceId = (i++) % deviceNum;
 
-            m_biEncoderDefaultDeviceId = (i++) % deviceNum;
+            m_encoderDefaultDeviceId = (i++) % deviceNum;
             m_decoderDefaultDeviceId = (i++) % deviceNum;
 
-            m_DecoderFFLayerDeviceId = (i++) % deviceNum;
-        }
-
-        private static void CheckParameters(int batchSize, ArchTypeEnums archType, int[] deviceIds)
-        {
-            if (archType != ArchTypeEnums.GPU_CUDA)
-            {
-                if (batchSize != 1 || deviceIds.Length != 1)
-                {
-                    throw new ArgumentException($"Batch size and device Ids length must be 1 if arch type is not GPU");
-                }
-            }
-        }
-
-        private void SetBatchSize(int batchSize)
-        {
-            m_batchSize = batchSize;
-
-            for (int i = 0; i < m_deviceIds.Length; i++)
-            {
-
-                if (m_biEncoder[i] != null)
-                {
-                    m_biEncoder[i].SetBatchSize(m_weightFactory[i], batchSize);
-                }
-
-                if (m_decoder[i] != null)
-                {
-                    m_decoder[i].SetBatchSize(m_weightFactory[i], batchSize);
-                }
-            }
+            m_DecoderFFLayerDefaultDeviceId = (i++) % deviceNum;
         }
 
         private void InitWeightsFactory()
         {
             m_weightFactory = new IWeightFactory[m_deviceIds.Length];
-            if (m_archType == ArchTypeEnums.GPU_CUDA)
+            for (int i = 0; i < m_deviceIds.Length; i++)
             {
-                for (int i = 0; i < m_deviceIds.Length; i++)
-                {
-                    m_weightFactory[i] = new WeightTensorFactory();
-                }
-            }
-            else
-            {
-                for (int i = 0; i < m_deviceIds.Length; i++)
-                {
-                    m_weightFactory[i] = new WeightMatrixFactory();
-                }
+                m_weightFactory[i] = new WeightTensorFactory();
             }
 
         }
 
-        private void InitWeights()
+        private (IEncoder[], AttentionDecoder[]) CreateEncoderDecoder()
         {
-            Logger.WriteLine($"Initializing weights...");
+            Logger.WriteLine($"Creating encoders and decoders...");
+
+            IEncoder[] encoder = new IEncoder[m_deviceIds.Length];
+            AttentionDecoder[] decoder = new AttentionDecoder[m_deviceIds.Length];
+
+            for (int i = 0; i < m_deviceIds.Length; i++)
+            {
+                if (m_encoderType == EncoderTypeEnums.BiLSTM)
+                {
+                    encoder[i] = new BiEncoder(m_batchSize, m_hiddenDim, m_embeddingDim, m_encoderLayerDepth, m_archType, m_deviceIds[i]);
+                    decoder[i] = new AttentionDecoder(m_batchSize, m_hiddenDim, m_embeddingDim, m_hiddenDim * 2, m_decoderLayerDepth, m_archType, m_deviceIds[i]);
+                }
+                else
+                {
+                    encoder[i] = new TransformerEncoder(m_batchSize, m_multiHeadNum, m_hiddenDim, m_embeddingDim, m_encoderLayerDepth, m_archType, m_deviceIds[i]);
+                    decoder[i] = new AttentionDecoder(m_batchSize, m_hiddenDim, m_embeddingDim, m_hiddenDim, m_decoderLayerDepth, m_archType, m_deviceIds[i]);
+                }
+            }
+
+            return (encoder, decoder);
+        }
+
+        private void CreateEncoderDecoderEmbeddings()
+        {
+            (m_encoder, m_decoder) = CreateEncoderDecoder();
 
             m_srcEmbedding = new IWeightMatrix[m_deviceIds.Length];
             m_tgtEmbedding = new IWeightMatrix[m_deviceIds.Length];
-
-            m_biEncoder = new BiEncoder[m_deviceIds.Length];
-            m_decoder = new AttentionDecoder[m_deviceIds.Length];
-
             m_decoderFFLayer = new FeedForwardLayer[m_deviceIds.Length];
 
             for (int i = 0; i < m_deviceIds.Length; i++)
             {
                 Logger.WriteLine($"Initializing weights for device '{m_deviceIds[i]}'");
-                if (m_archType == ArchTypeEnums.GPU_CUDA)
-                {
-                    //m_Whd[i] = new WeightTensor(HiddenSize, m_tgtIndexToWord.Count + 3, m_deviceIds[i], true);
-                    //m_bd[i] = new WeightTensor(1, m_tgtIndexToWord.Count + 3, 0, m_deviceIds[i]);
+                m_srcEmbedding[i] = new WeightTensor(m_srcIndexToWord.Count, m_embeddingDim, m_deviceIds[i]);
+                m_tgtEmbedding[i] = new WeightTensor(m_tgtIndexToWord.Count + 3, m_embeddingDim, m_deviceIds[i]);
 
-                    m_srcEmbedding[i] = new WeightTensor(m_srcIndexToWord.Count, WordVectorSize, m_deviceIds[i], true);
-                    m_tgtEmbedding[i] = new WeightTensor(m_tgtIndexToWord.Count + 3, WordVectorSize, m_deviceIds[i], true);
-                }
-                else
-                {
-                    //m_Whd[i] = new WeightMatrix(HiddenSize, m_tgtIndexToWord.Count + 3, true);
-                    //m_bd[i] = new WeightMatrix(1, m_tgtIndexToWord.Count + 3, 0);
-
-                    m_srcEmbedding[i] = new WeightMatrix(m_srcIndexToWord.Count, WordVectorSize, true);
-                    m_tgtEmbedding[i] = new WeightMatrix(m_tgtIndexToWord.Count + 3, WordVectorSize, true);
-                }
-
-                Logger.WriteLine($"Initializing encoders and decoders for device '{m_deviceIds[i]}'...");
-
-                m_biEncoder[i] = new BiEncoder(m_batchSize, HiddenSize, WordVectorSize, Depth, m_archType, m_deviceIds[i]);
-                m_decoder[i] = new AttentionDecoder(m_batchSize, HiddenSize, WordVectorSize, HiddenSize * 2, Depth, m_archType, m_deviceIds[i]);
-
-                m_decoderFFLayer[i] = new FeedForwardLayer(HiddenSize, m_tgtIndexToWord.Count + 3, m_archType, m_deviceIds[i]);
+                m_decoderFFLayer[i] = new FeedForwardLayer(m_hiddenDim, m_tgtIndexToWord.Count + 3, m_archType, m_deviceIds[i]);
             }
 
             InitWeightsFactory();
@@ -546,7 +536,7 @@ namespace Seq2SeqSharp
                         IComputeGraph computeGraph = CreateComputGraph(i);
 
                         //Bi-directional encoding input source sentences
-                        IWeightMatrix encodedWeightMatrix = Encode(computeGraph, srcSnts.GetRange(i * m_batchSize, m_batchSize), m_biEncoder[i], m_srcEmbedding[i]);
+                        IWeightMatrix encodedWeightMatrix = Encode(computeGraph, srcSnts.GetRange(i * m_batchSize, m_batchSize), m_encoder[i], m_srcEmbedding[i]);
 
                         //Generate output decoder sentences
                         List<List<string>> predictSentence;
@@ -622,21 +612,7 @@ namespace Seq2SeqSharp
 
         private IComputeGraph CreateComputGraph(int deviceIdIdx, bool needBack = true)
         {
-            IComputeGraph g;
-            if (m_archType == ArchTypeEnums.CPU_MKL)
-            {
-                g = new ComputeGraphMKL(m_weightFactory[deviceIdIdx], needBack);
-            }
-            else if (m_archType == ArchTypeEnums.GPU_CUDA)
-            {
-                g = new ComputeGraphTensor(m_weightFactory[deviceIdIdx], m_deviceIds[deviceIdIdx], needBack);
-            }
-            else
-            {
-                g = new ComputeGraph(m_weightFactory[deviceIdIdx], needBack);
-            }
-
-            return g;
+            return new ComputeGraphTensor(m_weightFactory[deviceIdIdx], m_deviceIds[deviceIdIdx], needBack);
         }
 
         private List<int> PadSentences(List<List<string>> s)
@@ -676,7 +652,7 @@ namespace Seq2SeqSharp
         /// <param name="reversEncoder"></param>
         /// <param name="Embedding"></param>
         /// <returns></returns>
-        private IWeightMatrix Encode(IComputeGraph g, List<List<string>> inputSentences, BiEncoder biEncoder, IWeightMatrix Embedding)
+        private IWeightMatrix Encode(IComputeGraph g, List<List<string>> inputSentences, IEncoder encoder, IWeightMatrix Embedding)
         {
             PadSentences(inputSentences);
             List<IWeightMatrix> forwardOutputs = new List<IWeightMatrix>();
@@ -704,18 +680,9 @@ namespace Seq2SeqSharp
             }
 
             var forwardInputsM = g.ConcatRows(forwardInput);
-            List<IWeightMatrix> attResults = new List<IWeightMatrix>();
-            for (int i = 0; i < seqLen; i++)
-            {
-                var emb_i = g.PeekRow(forwardInputsM, i * inputSentences.Count, inputSentences.Count);             
-                attResults.Add(emb_i);
-            }
-
-            var encodedOutput = biEncoder.Encode(attResults, g);
-            var encodedOutput2 = g.ConcatRows(encodedOutput);
-
-            return encodedOutput2;
+            return encoder.Encode(forwardInputsM, g);
         }
+
 
         /// <summary>
         /// Decode output sentences in training
@@ -823,29 +790,29 @@ namespace Seq2SeqSharp
         private float UpdateParameters(float learningRate, int batchSize)
         {
             var models = GetParametersFromDefaultDevice();
-            return m_solver.UpdateWeights(models, batchSize, learningRate, m_regc, m_clipvalue, m_archType);
+            return m_solver.UpdateWeights(models, batchSize, learningRate, m_regc, m_clipvalue);
         }
     
         private List<IWeightMatrix> GetParametersFromDeviceAt(int i)
         {
-            var model_i = m_biEncoder[i].getParams();
-            model_i.AddRange(m_decoder[i].getParams());
+            var model_i = m_encoder[i].GetParams();
+            model_i.AddRange(m_decoder[i].GetParams());
             model_i.Add(m_srcEmbedding[i]);
             model_i.Add(m_tgtEmbedding[i]);
 
-            model_i.AddRange(m_decoderFFLayer[i].getParams());
+            model_i.AddRange(m_decoderFFLayer[i].GetParams());
 
             return model_i;
         }
 
         private List<IWeightMatrix> GetParametersFromDefaultDevice()
         {
-            var model = m_biEncoder[m_biEncoderDefaultDeviceId].getParams();
-            model.AddRange(m_decoder[m_decoderDefaultDeviceId].getParams());
+            var model = m_encoder[m_encoderDefaultDeviceId].GetParams();
+            model.AddRange(m_decoder[m_decoderDefaultDeviceId].GetParams());
             model.Add(m_srcEmbedding[m_srcEmbeddingDefaultDeviceId]);
             model.Add(m_tgtEmbedding[m_tgtEmbeddingDefaultDeviceId]);
 
-            model.AddRange(m_decoderFFLayer[m_DecoderFFLayerDeviceId].getParams());
+            model.AddRange(m_decoderFFLayer[m_DecoderFFLayerDefaultDeviceId].GetParams());
 
             return model;
         }
@@ -913,14 +880,14 @@ namespace Seq2SeqSharp
             {
                 m_weightFactory[i].Clear();
 
-                m_biEncoder[i].Reset(m_weightFactory[i]);
+                m_encoder[i].Reset(m_weightFactory[i]);
                 m_decoder[i].Reset(m_weightFactory[i]);
             }
         }
 
         public List<List<string>> Predict(List<string> input, int beamSearchSize = 1)
         {
-            var biEncoder = m_biEncoder[m_defaultDeviceId];
+            var biEncoder = m_encoder[m_defaultDeviceId];
             var srcEmbedding = m_srcEmbedding[m_defaultDeviceId];
             var tgtEmbedding = m_tgtEmbedding[m_defaultDeviceId];
             var decoder = m_decoder[m_defaultDeviceId];
@@ -1042,19 +1009,22 @@ namespace Seq2SeqSharp
         public void Save()
         {
             ModelAttentionMetaData tosave = new ModelAttentionMetaData();
-            tosave.clipval = this.m_clipvalue;
-            tosave.Depth = this.Depth;
-            tosave.hidden_sizes = this.HiddenSize;
-            tosave.learning_rate = m_startLearningRate;
-            tosave.letter_size = this.WordVectorSize;
-            tosave.max_chars_gen = this.m_maxWord;
-            tosave.regc = this.m_regc;
+            tosave.Clipval = m_clipvalue;
+            tosave.EncoderLayerDepth = m_encoderLayerDepth;
+            tosave.DecoderLayerDepth = m_decoderLayerDepth;
+            tosave.HiddenDim = m_hiddenDim;
+            tosave.LearningRate = m_startLearningRate;
+            tosave.EmbeddingDim = m_embeddingDim;
+            tosave.MultiHeadNum = m_multiHeadNum;
+            tosave.EncoderType = m_encoderType;
+            tosave.MaxCharsGen = m_maxWord;
+            tosave.Regc = m_regc;
             tosave.DropoutRatio = m_dropoutRatio;
-            tosave.s_wordToIndex = m_srcWordToIndex;
-            tosave.s_indexToWord = m_srcIndexToWord;
+            tosave.SrcWordToIndex = m_srcWordToIndex;
+            tosave.SrcIndexToWord = m_srcIndexToWord;
 
-            tosave.t_wordToIndex = m_tgtWordToIndex;
-            tosave.t_indexToWord = m_tgtIndexToWord;
+            tosave.TgtWordToIndex = m_tgtWordToIndex;
+            tosave.TgtIndexToWord = m_tgtIndexToWord;
 
             try
             {
@@ -1067,13 +1037,13 @@ namespace Seq2SeqSharp
                 FileStream fs = new FileStream(m_modelFilePath, FileMode.Create, FileAccess.Write);
                 bf.Serialize(fs, tosave);
 
-                m_biEncoder[m_biEncoderDefaultDeviceId].Save(fs);
+                m_encoder[m_encoderDefaultDeviceId].Save(fs);
                 m_decoder[m_decoderDefaultDeviceId].Save(fs);
 
                 m_srcEmbedding[m_srcEmbeddingDefaultDeviceId].Save(fs);
                 m_tgtEmbedding[m_tgtEmbeddingDefaultDeviceId].Save(fs);
 
-                m_decoderFFLayer[m_DecoderFFLayerDeviceId].Save(fs);
+                m_decoderFFLayer[m_DecoderFFLayerDefaultDeviceId].Save(fs);
 
                 fs.Close();
                 fs.Dispose();
@@ -1083,66 +1053,32 @@ namespace Seq2SeqSharp
                 Logger.WriteLine($"Failed to save model to file. Exception = '{err.Message}'");
             }
         }
-
-        public void Load(string modelFilePath)
-        {
-            Logger.WriteLine($"Loading model from '{modelFilePath}'...");
-            m_modelFilePath = modelFilePath;
-
-            ModelAttentionMetaData tosave = new ModelAttentionMetaData();
-            BinaryFormatter bf = new BinaryFormatter();
-            FileStream fs = new FileStream(m_modelFilePath, FileMode.Open, FileAccess.Read);
-            tosave = bf.Deserialize(fs) as ModelAttentionMetaData;
-
-            m_clipvalue = tosave.clipval;
-            Depth = tosave.Depth;
-            HiddenSize = tosave.hidden_sizes;
-            m_startLearningRate = tosave.learning_rate;
-            WordVectorSize = tosave.letter_size;
-            m_maxWord = 100;
-            m_regc = tosave.regc;
-            m_dropoutRatio = tosave.DropoutRatio;
-            m_srcWordToIndex = tosave.s_wordToIndex;
-            m_srcIndexToWord = tosave.s_indexToWord;
-            m_tgtWordToIndex = tosave.t_wordToIndex;
-            m_tgtIndexToWord = tosave.t_indexToWord;
-
-            InitWeights();
-
-            m_biEncoder[m_biEncoderDefaultDeviceId].Load(fs);
-            m_decoder[m_decoderDefaultDeviceId].Load(fs);
-
-            m_srcEmbedding[m_srcEmbeddingDefaultDeviceId].Load(fs);
-            m_tgtEmbedding[m_tgtEmbeddingDefaultDeviceId].Load(fs);
-
-            m_decoderFFLayer[m_DecoderFFLayerDeviceId].Load(fs);
-
-            fs.Close();
-            fs.Dispose();
-        }
     }
 
     [Serializable]
     public class ModelAttentionMetaData
     {
 
-        public int max_chars_gen = 100; // max length of generated sentences  
-        public int hidden_sizes;
-        public int letter_size;
+        public int MaxCharsGen = 100; // max length of generated sentences  
+        public int HiddenDim;
+        public int EmbeddingDim;
 
         // optimization  
-        public float regc = 0.000001f; // L2 regularization strength
-        public float learning_rate = 0.01f; // learning rate
-        public float clipval = 5.0f; // clip gradients at this value
+        public float Regc = 0.000001f; // L2 regularization strength
+        public float LearningRate = 0.01f; // learning rate
+        public float Clipval = 5.0f; // clip gradients at this value
 
         public float DropoutRatio { get; set; }
 
-        public int Depth { get; set; }
+        public int EncoderLayerDepth { get; set; }
+        public int DecoderLayerDepth { get; set; }
+        public int MultiHeadNum { get; set; }
+        public EncoderTypeEnums EncoderType { get; set; }
 
-        public ConcurrentDictionary<string, int> s_wordToIndex;
-        public ConcurrentDictionary<int, string> s_indexToWord;
+        public ConcurrentDictionary<string, int> SrcWordToIndex;
+        public ConcurrentDictionary<int, string> SrcIndexToWord;
 
-        public ConcurrentDictionary<string, int> t_wordToIndex;
-        public ConcurrentDictionary<int, string> t_indexToWord;
+        public ConcurrentDictionary<string, int> TgtWordToIndex;
+        public ConcurrentDictionary<int, string> TgtIndexToWord;
     }
 }

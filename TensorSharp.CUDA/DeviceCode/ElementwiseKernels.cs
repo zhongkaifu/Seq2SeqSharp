@@ -20,6 +20,8 @@ namespace TensorSharp.CUDA.DeviceCode
             AppendTTFunc(result, "neg", "-");
             AppendTTFunc(result, "sign", "sgn");
 
+            AppendTTFunc(result, "relu", "relu");
+
             AppendTTFunc(result, "sqrt", "sqrtf");
             AppendTTFunc(result, "rsqrt", "rsqrtf");
 
@@ -49,6 +51,10 @@ namespace TensorSharp.CUDA.DeviceCode
             AppendTTTFunc(result, "addtanh", "AddTanh");
             AppendTTTTFunc(result, "addtanhD", "AddTanhD");
             AppendTTTFunc(result, "tanhD", "TanhD");
+
+
+            AppendTTTFunc(result, "relud", "relud");
+            AppendTTTTFunc(result, "addrelud", "addrelud");
 
             AppendTTTTTFunc(result, "mulmuladd", "MulMulAdd");
             AppendTTTTFunc(result, "addmul", "AddMul");

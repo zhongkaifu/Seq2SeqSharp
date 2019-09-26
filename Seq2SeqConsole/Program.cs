@@ -48,53 +48,56 @@ namespace Seq2SeqConsole
             Logger.LogFile = $"{nameof(Seq2SeqConsole)}_{GetTimeStamp(DateTime.Now)}.log";
 
             //Parse command line
-            Options options = new Options();
-            ArgParser argParser = new ArgParser(args, options);
+            Options opts = new Options();
+            ArgParser argParser = new ArgParser(args, opts);
 
             AttentionSeq2Seq ss = null;
-            ArchTypeEnums archType = (ArchTypeEnums)options.ArchType;
+            ArchTypeEnums archType = (ArchTypeEnums)Enum.Parse(typeof(ArchTypeEnums), opts.ArchType);
+            EncoderTypeEnums encoderType = (EncoderTypeEnums)Enum.Parse(typeof(EncoderTypeEnums), opts.EncoderType);
 
             //Parse device ids from options          
-            int[] deviceIds = options.DeviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
+            int[] deviceIds = opts.DeviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
 
-            if (String.Equals(options.TaskName, "train", StringComparison.InvariantCultureIgnoreCase))
+            if (String.Equals(opts.TaskName, "train", StringComparison.InvariantCultureIgnoreCase))
             {
-                ShowOptions(args, options);
+                ShowOptions(args, opts);
 
-                Corpus trainCorpus = new Corpus(options.TrainCorpusPath, options.SrcLang, options.TgtLang, options.BatchSize * deviceIds.Length, 
-                    options.ShuffleBlockSize, options.MaxSentLength);
-                if (File.Exists(options.ModelFilePath) == false)
+                Corpus trainCorpus = new Corpus(opts.TrainCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize * deviceIds.Length, 
+                    opts.ShuffleBlockSize, opts.MaxSentLength);
+                if (File.Exists(opts.ModelFilePath) == false)
                 {
                     //New training
-                    ss = new AttentionSeq2Seq(options.WordVectorSize, options.HiddenSize, options.Depth, trainCorpus, options.SrcVocab, options.TgtVocab, 
-                        options.SrcEmbeddingModelFilePath, options.TgtEmbeddingModelFilePath, true, options.ModelFilePath, options.BatchSize, options.DropoutRatio, 
-                        archType, deviceIds);
+                    ss = new AttentionSeq2Seq(inputSize: opts.WordVectorSize, hiddenSize: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth, 
+                        trainCorpus: trainCorpus, srcVocabFilePath: opts.SrcVocab, tgtVocabFilePath: opts.TgtVocab,
+                        srcEmbeddingFilePath: opts.SrcEmbeddingModelFilePath, tgtEmbeddingFilePath: opts.TgtEmbeddingModelFilePath,
+                        modelFilePath: opts.ModelFilePath, batchSize: opts.BatchSize, dropoutRatio: opts.DropoutRatio,
+                        archType: archType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType);
                 }
                 else
                 {
                     //Incremental training
-                    Logger.WriteLine($"Loading model from '{options.ModelFilePath}'...");
-                    ss = new AttentionSeq2Seq(options.ModelFilePath, options.BatchSize, archType, deviceIds);
+                    Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
+                    ss = new AttentionSeq2Seq(opts.ModelFilePath, opts.BatchSize, archType, deviceIds);
                     ss.TrainCorpus = trainCorpus;
                 }
 
                 ss.IterationDone += ss_IterationDone;
-                ss.Train(options.MaxEpochNum, options.LearningRate, options.GradClip);
+                ss.Train(opts.MaxEpochNum, opts.LearningRate, opts.GradClip);
             }
-            else if (String.Equals(options.TaskName, "test", StringComparison.InvariantCultureIgnoreCase))
+            else if (String.Equals(opts.TaskName, "test", StringComparison.InvariantCultureIgnoreCase))
             {
                 //Test trained model
-                ss = new AttentionSeq2Seq(options.ModelFilePath, 1, archType, deviceIds);
+                ss = new AttentionSeq2Seq(opts.ModelFilePath, 1, archType, deviceIds);
 
                 List<string> outputLines = new List<string>();
-                var data_sents_raw1 = File.ReadAllLines(options.InputTestFile);
+                var data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
                 foreach (string line in data_sents_raw1)
                 {
-                    List<List<string>> outputWordsList = ss.Predict(line.ToLower().Trim().Split(' ').ToList(), options.BeamSearch);
+                    List<List<string>> outputWordsList = ss.Predict(line.ToLower().Trim().Split(' ').ToList(), opts.BeamSearch);
                     outputLines.AddRange(outputWordsList.Select(x => String.Join(" ", x)));
                 }
 
-                File.WriteAllLines(options.OutputTestFile, outputLines);
+                File.WriteAllLines(opts.OutputTestFile, outputLines);
             }
             else
             {
@@ -107,8 +110,6 @@ namespace Seq2SeqConsole
             string commandLine = String.Join(" ", args);
             Logger.WriteLine($"Command Line = '{commandLine}'");
 
-            ArchTypeEnums archType = (ArchTypeEnums)options.ArchType;
-
             Logger.WriteLine($"Source Language = '{options.SrcLang}'");
             Logger.WriteLine($"Target Language = '{options.TgtLang}'");
             Logger.WriteLine($"SSE Enable = '{System.Numerics.Vector.IsHardwareAccelerated}'");
@@ -117,11 +118,13 @@ namespace Seq2SeqConsole
             Logger.WriteLine($"Hidden Size = '{options.HiddenSize}'");
             Logger.WriteLine($"Word Vector Size = '{options.WordVectorSize}'");
             Logger.WriteLine($"Learning Rate = '{options.LearningRate}'");
-            Logger.WriteLine($"Network Layer = '{options.Depth}'");
+            Logger.WriteLine($"Encoder Layer Depth = '{options.EncoderLayerDepth}'");
+            Logger.WriteLine($"Decoder Layer Depth = '{options.DecoderLayerDepth}'");
             Logger.WriteLine($"Gradient Clip = '{options.GradClip}'");
             Logger.WriteLine($"Dropout Ratio = '{options.DropoutRatio}'");
             Logger.WriteLine($"Batch Size = '{options.BatchSize}'");
-            Logger.WriteLine($"Arch Type = '{archType}'");
+            Logger.WriteLine($"Arch Type = '{options.ArchType}'");
+            Logger.WriteLine($"Encoder Type = '{options.EncoderType}'");
             Logger.WriteLine($"Device Ids = '{options.DeviceIds}'");
             Logger.WriteLine($"Maxmium Epoch Number = '{options.MaxEpochNum}'");
             Logger.WriteLine($"Maxmium Sentence Length = '{options.MaxSentLength}'");

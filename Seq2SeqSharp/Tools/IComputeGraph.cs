@@ -9,22 +9,27 @@ namespace Seq2SeqSharp
 {
     public interface IComputeGraph
     {
-        IWeightMatrix MulBatch(IWeightMatrix m1, IWeightMatrix m2, int batchSize);
+        IWeightMatrix MulBatch(IWeightMatrix m1, IWeightMatrix m2, int batchSize, float alpha = 1.0f);
 
         IWeightMatrix Mul(IWeightMatrix w1, IWeightMatrix w2);
         IWeightMatrix EltMul(IWeightMatrix w1, IWeightMatrix w2);
         IWeightMatrix Add(IWeightMatrix w1, IWeightMatrix w2);
         IWeightMatrix Tanh(IWeightMatrix w, bool updateWeightsInPlace = false);
         IWeightMatrix Sigmoid(IWeightMatrix w, bool updateWeightsInPlace = false);
+        IWeightMatrix Relu(IWeightMatrix w);
 
+        IWeightMatrix BuildPositionMatrix(int row, int column);
         IWeightMatrix MulAdd(IWeightMatrix m1, IWeightMatrix m2, IWeightMatrix m3);
 
         IWeightMatrix EltMulMulAdd(IWeightMatrix w1, IWeightMatrix w2, IWeightMatrix w3, IWeightMatrix w4);
 
         List<IWeightMatrix> UnFolderRow(IWeightMatrix m, int n, bool gradient = true);
+
         IWeightMatrix PermuteBatch(IWeightMatrix m, int batchSize);
 
-        IWeightMatrix View(IWeightMatrix m, int r, int c);
+        IWeightMatrix Permute(IWeightMatrix w, params int[] dims);
+
+        IWeightMatrix View(IWeightMatrix w, params long[] dims);
 
         IWeightMatrix AddTanh(IWeightMatrix w1, IWeightMatrix w2);
 

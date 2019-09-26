@@ -40,6 +40,8 @@ namespace TensorSharp.Cpu
         [RegisterOpStorageType("addmm", typeof(CpuStorage))]
         public Tensor Addmm(Tensor result, float beta, Tensor src, float alpha, Tensor m1, Tensor m2)
         {
+            //Console.WriteLine($"src0 = {src.Sizes[0]}, src1 = {src.Sizes[1]}, m1_0 = {m1.Sizes[0]}, m1_1 = {m1.Sizes[1]}, m2_0 = {m2.Sizes[0]}, m2_1 = {m2.Sizes[1]}");
+
             if (src.ElementType != m1.ElementType || src.ElementType != m2.ElementType || (result != null && result.ElementType != src.ElementType))
                 throw new InvalidOperationException("All tensors must have the same element type");
             if (result != null && !(result.Storage is CpuStorage)) throw new ArgumentException("result must be a CPU tensor", "result");
@@ -67,8 +69,47 @@ namespace TensorSharp.Cpu
             return writeTarget;
         }
 
+        [RegisterOpStorageType("addmmbatch", typeof(CpuStorage))]
+        public Tensor AddmmBatch(Tensor result, float beta, Tensor src, float alpha, Tensor m1, Tensor m2)
+        {
+            if (src.ElementType != m1.ElementType || src.ElementType != m2.ElementType || (result != null && result.ElementType != src.ElementType))
+                throw new InvalidOperationException("All tensors must have the same element type");
+            if (result != null && !(result.Storage is CpuStorage)) throw new ArgumentException("result must be a CPU tensor", "result");
+            if (!(m1.Storage is CpuStorage)) throw new ArgumentException("m1 must be a CPU tensor", "m1");
+            if (!(m2.Storage is CpuStorage)) throw new ArgumentException("m2 must be a CPU tensor", "m2");
 
-        
+            if (src.DimensionCount != 3) throw new ArgumentException("src must be a matrix", "src");
+            if (m1.DimensionCount != 3) throw new ArgumentException("m1 must be a matrix", "m1");
+            if (m2.DimensionCount != 3) throw new ArgumentException("m2 must be a matrix", "m2");
+
+            if (src.Sizes[1] != m1.Sizes[1] || src.Sizes[2] != m2.Sizes[2] || m1.Sizes[2] != m2.Sizes[1])
+                throw new InvalidOperationException($"Size mismatch, srcSize0 = {src.Sizes[0]}, m1Size0 = {m1.Sizes[0]}, srcSize1 = {src.Sizes[1]}, m2Size1 = {m2.Sizes[1]}, m1Size1 = '{m1.Sizes[1]}', m2Size0 = '{m2.Sizes[0]}'");
+
+
+            var writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
+
+            if (writeTarget != src)
+            {
+                Ops.Copy(writeTarget, src);
+            }
+
+            int batchSize = (int)src.Sizes[0];
+            for (int i = 0; i < batchSize; i++)
+            {
+                var a = m1.Select(0, i);// m1.Narrow(0, i, 1).View(m1.Sizes[1], m1.Sizes[2]);
+                var b = m2.Select(0, i); // m2.Narrow(0, i, 1).View(m2.Sizes[1], m2.Sizes[2]);
+                var r = writeTarget.Select(0, i); // writeTarget.Narrow(0, i, 1).View(writeTarget.Sizes[1], writeTarget.Sizes[2]);
+
+                MatrixMultiplication.Gemm(alpha, a, b, beta, r);
+            }
+            
+
+            //MatrixMultiplication.Gemm(alpha, m1, m2, beta, writeTarget);
+
+
+            return writeTarget;
+        }
+
 
 
         private MethodInfo abs_func = NativeWrapper.GetMethod("TS_Abs");
@@ -126,6 +167,11 @@ namespace TensorSharp.Cpu
         public Tensor Frac(Tensor result, Tensor src) { return NativeWrapper.InvokeNullableResultElementwise(frac_func, result, src); }
 
 
+        private MethodInfo relu_func = NativeWrapper.GetMethod("TS_Relu");
+        [RegisterOpStorageType("relu", typeof(CpuStorage))]
+        public Tensor Relu(Tensor result, Tensor src) { return NativeWrapper.InvokeNullableResultElementwise(relu_func, result, src); }
+
+
         private MethodInfo sin_func = NativeWrapper.GetMethod("TS_Sin");
         [RegisterOpStorageType("sin", typeof(CpuStorage))]
         public Tensor Sin(Tensor result, Tensor src) { return NativeWrapper.InvokeNullableResultElementwise(sin_func, result, src); }
@@ -173,6 +219,9 @@ namespace TensorSharp.Cpu
         [RegisterOpStorageType("tanhD", typeof(CpuStorage))]
         public Tensor TanhD(Tensor result, Tensor resW, Tensor resG) { return NativeWrapper.InvokeNullableResultElementwise(tanhD_func, result, resW, resG); }
 
+        private MethodInfo sigmoidD_func = NativeWrapper.GetMethod("TS_SigmoidD");
+        [RegisterOpStorageType("sigmoidD", typeof(CpuStorage))]
+        public Tensor SigmoidD(Tensor result, Tensor resW, Tensor resG) { return NativeWrapper.InvokeNullableResultElementwise(sigmoidD_func, result, resW, resG); }
 
         private MethodInfo add3_func = NativeWrapper.GetMethod("TS_Add3");
         [RegisterOpStorageType("add3", typeof(CpuStorage))]
@@ -187,6 +236,9 @@ namespace TensorSharp.Cpu
         [RegisterOpStorageType("addmul", typeof(CpuStorage))]
         public Tensor AddMul(Tensor result, Tensor x, Tensor y, Tensor z) { return NativeWrapper.InvokeNullableResultElementwise(addmul_func, result, x, y, z); }
 
+        private MethodInfo addmulv_func = NativeWrapper.GetMethod("TS_AddMulV");
+        [RegisterOpStorageType("addmulv", typeof(CpuStorage))]
+        public Tensor AddMulV(Tensor result, Tensor x, Tensor y, float z) { return NativeWrapper.InvokeNullableResultElementwise(addmulv_func, result, x, y, z); }
 
         private MethodInfo atan2_func = NativeWrapper.GetMethod("TS_Atan2");
         [RegisterOpStorageType("atan2", typeof(CpuStorage))]
@@ -209,6 +261,25 @@ namespace TensorSharp.Cpu
         public Tensor Clamp(Tensor result, Tensor src, float min, float max) { return NativeWrapper.InvokeNullableResultElementwise(tanh_func, result, src, min, max); }
 
 
+        private MethodInfo mulmuladd_func = NativeWrapper.GetMethod("TS_MulMulAdd");
+        [RegisterOpStorageType("mulmuladd", typeof(CpuStorage))]
+        public Tensor MulMulAdd(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ, Tensor srcW) { return NativeWrapper.InvokeNullableResultElementwise(mulmuladd_func, result, srcX, srcY, srcZ, srcW); }
+
+
+
+        private MethodInfo addtanh_func = NativeWrapper.GetMethod("TS_AddTanh");
+        [RegisterOpStorageType("addtanh", typeof(CpuStorage))]
+        public Tensor AddTanh(Tensor result, Tensor srcX, Tensor srcY) { return NativeWrapper.InvokeNullableResultElementwise(addtanh_func, result, srcX, srcY); }
+
+
+        private MethodInfo addtanhD_func = NativeWrapper.GetMethod("TS_AddTanhD");
+        [RegisterOpStorageType("addtanhD", typeof(CpuStorage))]
+        public Tensor AddTanhD(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ) { return NativeWrapper.InvokeNullableResultElementwise(addtanhD_func, result, srcX, srcY, srcZ); }
+
+
+        private MethodInfo addreluD_func = NativeWrapper.GetMethod("TS_AddReluD");
+        [RegisterOpStorageType("addrelud", typeof(CpuStorage))]
+        public Tensor AddReluD(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ) { return NativeWrapper.InvokeNullableResultElementwise(addreluD_func, result, srcX, srcY, srcZ); }
 
         private MethodInfo add_func = NativeWrapper.GetMethod("TS_Add");
         [RegisterOpStorageType("addv", typeof(CpuStorage))]
@@ -419,6 +490,53 @@ namespace TensorSharp.Cpu
             NativeWrapper.InvokeTypeMatch(stdall_func, writeTarget, src);
             return writeTarget;
         }
+
+
+        private MethodInfo layerNorm_func = NativeWrapper.GetMethod("TS_LayerNorm");
+        [RegisterOpStorageType("layernorm", typeof(CpuStorage))]
+        public Tensor LayerNorm(Tensor result, Tensor src, Tensor gamma_, Tensor beta_, float eps)
+        {
+            var writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
+            NativeWrapper.InvokeTypeMatch(layerNorm_func, writeTarget, src, gamma_, beta_, eps, (int)src.Sizes[0], (int)src.Sizes[1]);
+            return writeTarget;
+        }
+
+        private MethodInfo layerNormGrad_func = NativeWrapper.GetMethod("TS_LayerNormGrad");
+        [RegisterOpStorageType("layernormgrad", typeof(CpuStorage))]
+        public Tensor LayerNormGrad(Tensor result, Tensor gradGamma_, Tensor gradBeta_, Tensor adj_, Tensor y_, Tensor x_, Tensor gamma_, Tensor beta_, float eps)
+        {
+            var writeTarget = TensorResultBuilder.GetWriteTarget(result, adj_, false, adj_.Sizes);
+            NativeWrapper.InvokeTypeMatch(layerNormGrad_func, writeTarget, gradGamma_, gradBeta_, adj_, y_, x_, gamma_, beta_, (int)adj_.Sizes[0], (int)adj_.Sizes[1], eps);
+            return writeTarget;
+        }
+
+        private MethodInfo softmax_func = NativeWrapper.GetMethod("TS_Softmax");
+        [RegisterOpStorageType("softmax", typeof(CpuStorage))]
+        public Tensor Softmax(Tensor result, Tensor src)
+        {
+            var writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
+            NativeWrapper.InvokeTypeMatch(softmax_func, writeTarget, src, (int)src.Sizes[0], (int)src.Sizes[1]);
+            return writeTarget;
+        }
+
+        private MethodInfo softmaxGrad_func = NativeWrapper.GetMethod("TS_SoftmaxGrad");
+        [RegisterOpStorageType("softmaxgrad", typeof(CpuStorage))]
+        public Tensor SoftmaxGrad(Tensor grad_, Tensor adj_, Tensor val_, bool addGrad = true)
+        {
+            var writeTarget = TensorResultBuilder.GetWriteTarget(grad_, adj_, false, adj_.Sizes);
+            NativeWrapper.InvokeTypeMatch(softmaxGrad_func, writeTarget, adj_, val_, (int)adj_.Sizes[0], (int)adj_.Sizes[1], addGrad);
+            return writeTarget;
+        }
+
+
+        private MethodInfo rmsProp_func = NativeWrapper.GetMethod("TS_RMSProp");
+        [RegisterOpStorageType("rmsprop", typeof(CpuStorage))]
+        public Tensor RMSProp(Tensor tw, Tensor tg, Tensor tc, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
+        {
+            NativeWrapper.InvokeTypeMatch(rmsProp_func, tw, tg, tc, (int)tw.Sizes[0], (int)tw.Sizes[1], batchSize, step_size, clipval, regc, decay_rate, eps);
+            return tw;
+        }
+
 
         private MethodInfo normall_func = NativeWrapper.GetMethod("TS_NormAll");
         [RegisterOpStorageType("normall", typeof(CpuStorage))]
