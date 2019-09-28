@@ -91,6 +91,7 @@ namespace Seq2SeqConsole
         [Arg("Maxmium sentence length", "MaxSentLength")]
         public int MaxSentLength = 32;
 
-
+        [Arg("The number of steps for warming up", "WarmUpSteps")]
+        public int WarmUpSteps = 8000;
     }
 }

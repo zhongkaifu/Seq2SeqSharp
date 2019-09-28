@@ -22,14 +22,7 @@ namespace Seq2SeqSharp
         public Vector<float> vecDecayRate = new Vector<float>(decay_rate);
         public Vector<float> vecSmoothEPS = new Vector<float>(smooth_eps);
 
-        public float UpdateWeights(List<IWeightTensor> model, int batchSize, float step_size, float regc, float clipval)
-        {
-            UpdateWeightsTensors(model, batchSize, step_size, regc, clipval);
-
-            return step_size;
-        }
-
-        private void UpdateWeightsTensors(List<IWeightTensor> model, int batchSize, float step_size, float regc, float clipval)
+        public void UpdateWeights(List<IWeightTensor> model, int batchSize, float step_size, float regc, float clipval)
         {
             Dictionary<int, List<IWeightTensor>> id2Models = new Dictionary<int, List<IWeightTensor>>();
             foreach (var item in model)
@@ -49,7 +42,6 @@ namespace Seq2SeqSharp
                     var m = item as WeightTensor;
 
                     UpdateWeightsTensor(m, batchSize, step_size, clipval, regc);
-                    m.RowToBeUpdated.Clear();
                 }
             });
         }

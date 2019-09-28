@@ -14,8 +14,6 @@ namespace Seq2SeqSharp.Tools
 
         int DeviceId { get; set; }
 
-        Dictionary<int, int> RowToBeUpdated { get; set; }
-
         void CleanCache();
 
         float GetWeightAt(int offset);
@@ -34,6 +32,7 @@ namespace Seq2SeqSharp.Tools
         void SetWeightArray(float[] v);
 
         void ReleaseWeight();
+        void ReleaseGradient();
 
         void ClearGradient();
         void ClearWeight();

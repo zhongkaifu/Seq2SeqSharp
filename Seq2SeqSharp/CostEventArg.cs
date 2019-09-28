@@ -20,6 +20,6 @@ namespace Seq2SeqSharp
 
         public DateTime StartDateTime { get; set; }
 
-        public float AvgLearningRate { get; set; }
+        public float LearningRate { get; set; }
     }
 }

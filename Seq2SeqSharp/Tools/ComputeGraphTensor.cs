@@ -292,12 +292,10 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor t1 = m1 as WeightTensor;
             WeightTensor t2 = m2 as WeightTensor;
-            //var n = t1.Rows;
-            //var d = t2.Columns;
             WeightTensor res = weightTensorFactory.CreateWeightTensor((int)(batchSize * t1.TWeight.Sizes[1]), (int)t2.TWeight.Sizes[2], deviceId);
 
-            Tensor t1W = t1.TWeight;//.View(batchSize, t1.Rows / batchSize, t1.Columns);
-            Tensor t2W = t2.TWeight;//.View(batchSize, t2.Rows / batchSize, t2.Columns);
+            Tensor t1W = t1.TWeight;
+            Tensor t2W = t2.TWeight;
             Tensor rW = res.TWeight.View(batchSize, t1.TWeight.Sizes[1], t2.TWeight.Sizes[2]);
 
             Ops.AddmmBatch(rW, 0.0f, rW, alpha, t1W, t2W);
@@ -317,31 +315,19 @@ namespace Seq2SeqSharp.Tools
                     Ops.AddmmBatch(t1G, 1.0f, t1G, 1.0f, rG, tW2);
 
                     t1G.Dispose();
-                 //   t2W.Dispose();
                     tW2.Dispose();
 
                     var tW1 = t1W.Transpose(1, 2);
                     Ops.AddmmBatch(t2G, 1.0f, t2G, 1.0f, tW1, rG);
 
                     t2G.Dispose();
-                 //   t1W.Dispose();
-                    tW1.Dispose();
-
-                  
-                    
-                                  
+                    tW1.Dispose();                                  
                     rG.Dispose();
-
                     res.Dispose();
 
                 };
                 this.backprop.Add(backward);
             }
-            //else
-            //{
-            //    t1W.Dispose();
-            //    t2W.Dispose();
-            //}
 
             return res;
         }
@@ -421,7 +407,7 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightTensor Transpose2(IWeightTensor w)
+        public IWeightTensor Transpose(IWeightTensor w)
         {
             WeightTensor m = w as WeightTensor;
             var res = weightTensorFactory.CreateWeightTensor(m.Sizes, deviceId);
@@ -493,28 +479,12 @@ namespace Seq2SeqSharp.Tools
 
         private static object locker = new object();
 
-        public IWeightTensor PeekRow(IWeightTensor w, int ix, int num = 1)
+        public IWeightTensor PeekRow(IWeightTensor w, int ix, int num = 1, bool runGradients = true)
         {
             WeightTensor m = w as WeightTensor;
             var tw = m.TWeight.Narrow(0, ix, num);
-            var tg = m.TGradient != null ? m.TGradient.Narrow(0, ix, num) : null;
-
+            var tg = (m.TGradient != null && runGradients) ? m.TGradient.Narrow(0, ix, num) : null;
             var res = weightTensorFactory.CreateWeightTensor(num, m.Columns, tw, tg);
-
-            lock (locker)
-            {
-                for (int i = 0; i < num; i++)
-                {
-                    if (m.RowToBeUpdated.ContainsKey(ix + i) == false)
-                    {
-                        m.RowToBeUpdated.Add(ix + i, 1);
-                    }
-                    else
-                    {
-                        m.RowToBeUpdated[ix + i]++;
-                    }
-                }
-            }
 
             if (this.needs_backprop)
             {
@@ -644,74 +614,8 @@ namespace Seq2SeqSharp.Tools
                 this.backprop.Add(backward);
             }
             return res;
-
         }
-
-        public IWeightTensor ConcatRowColumn(List<IWeightTensor> wl1, List<IWeightTensor> wl2)
-        {
-            int sx = wl1[0].Rows * wl1.Count;
-            int sy = wl1[0].Columns + wl2[0].Columns;
-
-            var res = weightTensorFactory.CreateWeightTensor(sx, sy, deviceId);
-
-            var resTWC1 = res.TWeight.Narrow(1, 0, wl1[0].Columns);
-            var resTWC2 = res.TWeight.Narrow(1, wl1[0].Columns, wl2[0].Columns);
-
-            for (int i = 0; i < wl1.Count; i++)
-            {
-                WeightTensor m1 = wl1[i] as WeightTensor;
-                WeightTensor m2 = wl2[i] as WeightTensor;
-
-                var resTWC1R = resTWC1.Narrow(0, i * m1.Rows, m1.Rows);
-                Ops.Copy(resTWC1R, m1.TWeight);
-
-                var resTWC2R = resTWC2.Narrow(0, i * m2.Rows, m2.Rows);
-                Ops.Copy(resTWC2R, m2.TWeight);
-
-                resTWC1R.Dispose();
-                resTWC2R.Dispose();
-            }
-
-            resTWC1.Dispose();
-            resTWC2.Dispose();
-
-            if (this.needs_backprop)
-            {
-                Action backward = () =>
-                {
-                    res.ReleaseWeight();
-
-                    var res1 = res.TGradient.Narrow(1, 0, wl1[0].Columns);
-                    var res2 = res.TGradient.Narrow(1, wl1[0].Columns, wl2[0].Columns);
-
-                    for (int i = 0; i < wl1.Count; i++)
-                    {
-                        WeightTensor m1 = wl1[i] as WeightTensor;
-                        WeightTensor m2 = wl2[i] as WeightTensor;
-
-                        var resTGC1R = res1.Narrow(0, i * m1.Rows, m1.Rows);
-                        var resTGC2R = res2.Narrow(0, i * m1.Rows, m1.Rows);
-
-                        //Ops.Add(m1.TGradient, m1.TGradient, resTGC1R);
-                        //Ops.Add(m2.TGradient, m2.TGradient, resTGC2R);
-
-                        m1.CopyOrAddGradient(resTGC1R);
-                        m2.CopyOrAddGradient(resTGC2R);
-
-                        resTGC1R.Dispose();
-                        resTGC2R.Dispose();
-                    }
-
-                    res1.Dispose();
-                    res2.Dispose();
-                    res.Dispose();
-                };
-                this.backprop.Add(backward);
-            }
-
-            return res;
-        }
-
+      
         public IWeightTensor PermuteBatch(IWeightTensor m, int batchSize)
         {
             WeightTensor t = m as WeightTensor;

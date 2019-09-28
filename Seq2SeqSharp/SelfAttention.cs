@@ -59,9 +59,7 @@ namespace Seq2SeqSharp
 
             //Input projections
             var allQ = g.View(Q.Process(input, g), m_batchSize, seqLen, m_multiHeadNum, m_d);
-
             var allK = g.View(K.Process(input, g), m_batchSize, seqLen, m_multiHeadNum, m_d);
-
             var allV = g.View(V.Process(input, g), m_batchSize, seqLen, m_multiHeadNum, m_d);
 
             //Multi-head attentions
@@ -69,8 +67,8 @@ namespace Seq2SeqSharp
             var Ks = g.View(g.Permute(allK, 2, 0, 3, 1), m_multiHeadNum * m_batchSize, m_d, seqLen);
             var Vs = g.View(g.Permute(allV, 2, 0, 1, 3), m_multiHeadNum * m_batchSize, seqLen, m_d);
 
+            // Scaled softmax
             float scale = 1.0f / (float)Math.Sqrt(m_d);
-
             var attn = g.MulBatch(Qs, Ks, m_multiHeadNum * m_batchSize, scale);
             var attn2 = g.View(attn, m_multiHeadNum * m_batchSize * seqLen, seqLen);
 

@@ -92,7 +92,7 @@ namespace Seq2SeqSharp
         private int m_defaultDeviceId = 0;
         private double m_avgCostPerWordInTotalInLastEpoch = 100000.0;
         private int m_multiHeadNum = 8;
-
+        private int m_warmupSteps = 8000;
 
         public AttentionSeq2Seq(string modelFilePath, int batchSize, ArchTypeEnums archType, int[] deviceIds)
         {
@@ -141,7 +141,7 @@ namespace Seq2SeqSharp
         }
 
         public AttentionSeq2Seq(int inputSize, int hiddenSize, int encoderLayerDepth, int decoderLayerDepth, Corpus trainCorpus, string srcVocabFilePath, string tgtVocabFilePath,
-            string srcEmbeddingFilePath, string tgtEmbeddingFilePath, string modelFilePath, int batchSize, float dropoutRatio, int multiHeadNum,
+            string srcEmbeddingFilePath, string tgtEmbeddingFilePath, string modelFilePath, int batchSize, float dropoutRatio, int multiHeadNum, int warmupSteps,
             ArchTypeEnums archType, EncoderTypeEnums encoderType, int[] deviceIds)
         {
             TensorAllocator.InitDevices(archType, deviceIds);
@@ -153,6 +153,7 @@ namespace Seq2SeqSharp
             m_deviceIds = deviceIds;
             m_multiHeadNum = multiHeadNum;
             m_encoderType = encoderType;
+            m_warmupSteps = warmupSteps + 1;
 
             TrainCorpus = trainCorpus;
             m_encoderLayerDepth = encoderLayerDepth;
@@ -481,6 +482,7 @@ namespace Seq2SeqSharp
             long srcWordCnts = 0;
             long tgtWordCnts = 0;
             double avgCostPerWordInTotal = 0.0;
+
             List<SntPair> sntPairs = new List<SntPair>();
 
             TensorAllocator.FreeMemoryAllDevices();
@@ -565,8 +567,10 @@ namespace Seq2SeqSharp
                     }
 
                     //Optmize parameters
-                    float avgAllLR = UpdateParameters(learningRate, TrainCorpus.BatchSize);
+
                     m_parameterUpdateCount++;
+                    var lr = m_startLearningRate * (float)(Math.Min(Math.Pow(m_parameterUpdateCount, -0.5), Math.Pow(m_warmupSteps, -1.5) * m_parameterUpdateCount) / Math.Pow(m_warmupSteps, -0.5));		                    
+                    UpdateParameters(lr, TrainCorpus.BatchSize);
 
                     //Clear gradient over all devices
                     ClearGradient();
@@ -575,7 +579,7 @@ namespace Seq2SeqSharp
                     {
                         IterationDone(this, new CostEventArg()
                         {
-                            AvgLearningRate = avgAllLR,
+                            LearningRate = lr,
                             CostPerWord = cost / tlen,
                             avgCostInTotal = avgCostPerWordInTotal,
                             Epoch = ep,
@@ -715,7 +719,7 @@ namespace Seq2SeqSharp
                 List<IWeightTensor> inputs = new List<IWeightTensor>();
                 for (int j = 0; j < m_batchSize; j++)
                 {
-                    List<string> OutputSentence = outputSentences[j];
+                    List<string> outputSentence = outputSentences[j];
 
                     ix_targets[j] = (int)SENTTAGS.UNK;
                     if (i >= seqLen)
@@ -724,9 +728,9 @@ namespace Seq2SeqSharp
                     }
                     else
                     {
-                        if (m_tgtWordToIndex.ContainsKey(OutputSentence[i]))
+                        if (m_tgtWordToIndex.ContainsKey(outputSentence[i]))
                         {
-                            ix_targets[j] = m_tgtWordToIndex[OutputSentence[i]];
+                            ix_targets[j] = m_tgtWordToIndex[outputSentence[i]];
                         }
                     }
 
@@ -753,10 +757,10 @@ namespace Seq2SeqSharp
                 o.ReleaseWeight();
 
                 //Calculate loss for each word in the batch
-                List<IWeightTensor> probs_g = g.UnFolderRow(probs, m_batchSize, false);
+              //  List<IWeightTensor> probs_g = g.UnFolderRow(probs, m_batchSize, false);
                 for (int k = 0; k < m_batchSize; k++)
                 {
-                    var probs_k = probs_g[k];
+                    var probs_k = g.PeekRow(probs, k, runGradients: false);  //probs_g[k];
                     var score_k = probs_k.GetWeightAt(ix_targets[k]);
 
                     if (i < originalOutputLengths[k] + 1)
@@ -770,6 +774,7 @@ namespace Seq2SeqSharp
                     probs_k.Dispose();
                 }
 
+                probs.ReleaseGradient();
                 o.SetGradientByWeight(probs);
 
                 //Hacky: Run backward for last feed forward layer and dropout layer in order to save memory usage, since it's not time sequence dependency
@@ -784,10 +789,10 @@ namespace Seq2SeqSharp
             return cost;
         }
 
-        private float UpdateParameters(float learningRate, int batchSize)
+        private void UpdateParameters(float learningRate, int batchSize)
         {
             var models = GetParametersFromDefaultDevice();
-            return m_solver.UpdateWeights(models, batchSize, learningRate, m_regc, m_clipvalue);
+            m_solver.UpdateWeights(models, batchSize, learningRate, m_regc, m_clipvalue);
         }
     
         private List<IWeightTensor> GetParametersFromDeviceAt(int i)

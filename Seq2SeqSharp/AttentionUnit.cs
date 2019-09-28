@@ -59,7 +59,7 @@ namespace Seq2SeqSharp
             var atten = g.Mul(ggs, m_V);
 
             var atten2 = g.PermuteBatch(atten, m_batchSize);
-            var attenT = g.Transpose2(atten2);
+            var attenT = g.Transpose(atten2);
             var attenT2 = g.View(attenT, m_batchSize, attenPreProcessResult.inputs.Rows / m_batchSize);
 
             var attenSoftmax1 = g.Softmax(attenT2);

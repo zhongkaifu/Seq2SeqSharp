@@ -48,6 +48,7 @@ Parameters:
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
 **-MaxEpochNum**: Maxmium epoch number during training. Default is 100  
 **-MaxSentLength**: Maxmium sentence length  
+**-WarmUpSteps**: The number of steps for warming up. Default is 8,000  
 Note that:  
   1) if "-SrcVocab" and "-TgtVocab" are empty, vocabulary will be built from training corpus.  
   2) Txt2Vec for external embedding model building can get downloaded from https://github.com/zhongkaifu/Txt2Vec  
@@ -124,15 +125,13 @@ Another example about scaled multi-heads attention component which is the core p
         /// <param name="input">The input tensor</param>
         /// <param name="g">The instance of computing graph</param>
         /// <returns></returns>
-        public IWeightMatrix Perform(IWeightMatrix input, IComputeGraph g)
+        public IWeightTensor Perform(IWeightTensor input, IComputeGraph g)
         {
             var seqLen = input.Rows / m_batchSize;
 
             //Input projections
             var allQ = g.View(Q.Process(input, g), m_batchSize, seqLen, m_multiHeadNum, m_d);
-
             var allK = g.View(K.Process(input, g), m_batchSize, seqLen, m_multiHeadNum, m_d);
-
             var allV = g.View(V.Process(input, g), m_batchSize, seqLen, m_multiHeadNum, m_d);
 
             //Multi-head attentions
@@ -140,8 +139,8 @@ Another example about scaled multi-heads attention component which is the core p
             var Ks = g.View(g.Permute(allK, 2, 0, 3, 1), m_multiHeadNum * m_batchSize, m_d, seqLen);
             var Vs = g.View(g.Permute(allV, 2, 0, 1, 3), m_multiHeadNum * m_batchSize, seqLen, m_d);
 
+            // Scaled softmax
             float scale = 1.0f / (float)Math.Sqrt(m_d);
-
             var attn = g.MulBatch(Qs, Ks, m_multiHeadNum * m_batchSize, scale);
             var attn2 = g.View(attn, m_multiHeadNum * m_batchSize * seqLen, seqLen);
 

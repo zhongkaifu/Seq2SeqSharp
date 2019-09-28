@@ -33,7 +33,7 @@ namespace Seq2SeqConsole
                     wordPerSec = ep.ProcessedWordsInTotal / ts.TotalSeconds;
                 }
 
-                Logger.WriteLine($"Update = '{ep.Update}' Epoch = '{ep.Epoch}' LR = '{ep.AvgLearningRate.ToString("F6")}', Current Cost = '{ep.CostPerWord.ToString("F6")}', Avg Cost = '{ep.avgCostInTotal.ToString("F6")}', SentInTotal = '{ep.ProcessedSentencesInTotal}', SentPerMin = '{sentPerMin.ToString("F")}', WordPerSec = '{wordPerSec.ToString("F")}'");
+                Logger.WriteLine($"Update = '{ep.Update}' Epoch = '{ep.Epoch}' LR = '{ep.LearningRate.ToString("F6")}', Current Cost = '{ep.CostPerWord.ToString("F6")}', Avg Cost = '{ep.avgCostInTotal.ToString("F6")}', SentInTotal = '{ep.ProcessedSentencesInTotal}', SentPerMin = '{sentPerMin.ToString("F")}', WordPerSec = '{wordPerSec.ToString("F")}'");
             }
 
         }
@@ -71,7 +71,7 @@ namespace Seq2SeqConsole
                         trainCorpus: trainCorpus, srcVocabFilePath: opts.SrcVocab, tgtVocabFilePath: opts.TgtVocab,
                         srcEmbeddingFilePath: opts.SrcEmbeddingModelFilePath, tgtEmbeddingFilePath: opts.TgtEmbeddingModelFilePath,
                         modelFilePath: opts.ModelFilePath, batchSize: opts.BatchSize, dropoutRatio: opts.DropoutRatio,
-                        archType: archType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType);
+                        archType: archType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, warmupSteps: opts.WarmUpSteps, encoderType: encoderType);
                 }
                 else
                 {
@@ -108,6 +108,7 @@ namespace Seq2SeqConsole
         private static void ShowOptions(string[] args, Options options)
         {
             string commandLine = String.Join(" ", args);
+            Logger.WriteLine($"Seq2SeqSharp v2.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
             Logger.WriteLine($"Command Line = '{commandLine}'");
 
             Logger.WriteLine($"Source Language = '{options.SrcLang}'");
@@ -128,6 +129,7 @@ namespace Seq2SeqConsole
             Logger.WriteLine($"Device Ids = '{options.DeviceIds}'");
             Logger.WriteLine($"Maxmium Epoch Number = '{options.MaxEpochNum}'");
             Logger.WriteLine($"Maxmium Sentence Length = '{options.MaxSentLength}'");
+            Logger.WriteLine($"Warming Up Steps = '{options.WarmUpSteps}'");
         }
     }
 }

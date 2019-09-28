@@ -38,7 +38,7 @@ namespace Seq2SeqSharp
         void Backward();
         void RunTopBackward();
 
-        IWeightTensor PeekRow(IWeightTensor w, int ix, int num = 1);
+        IWeightTensor PeekRow(IWeightTensor w, int ix, int num = 1, bool runGradients = true);
         IWeightTensor Dropout(IWeightTensor V, float drop_prob);
 
         IWeightTensor Softmax(IWeightTensor w, bool bp = true);
@@ -53,9 +53,7 @@ namespace Seq2SeqSharp
 
         IWeightTensor RepeatRows(IWeightTensor w, int n);
 
-        IWeightTensor Transpose2(IWeightTensor w);
-
-        IWeightTensor ConcatRowColumn(List<IWeightTensor> wl1, List<IWeightTensor> wl2);
+        IWeightTensor Transpose(IWeightTensor w);
 		
 		 IWeightTensor Mul(IWeightTensor w, float v);
 

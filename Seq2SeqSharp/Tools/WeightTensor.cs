@@ -40,8 +40,6 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        public Dictionary<int, int> RowToBeUpdated { get; set; } = new Dictionary<int, int>();
-
         public int DeviceId { get; set; }
         IAllocator allocator;
 
@@ -286,19 +284,7 @@ namespace Seq2SeqSharp.Tools
             {
                 Tensor t = new Tensor(TGradient.Allocator, DType.Float32, Sizes);
                 Ops.Copy(t, m.TGradient);
-
                 Ops.Add(TGradient, TGradient, t);
-                foreach (var kv in m.RowToBeUpdated)
-                {
-                    if (RowToBeUpdated.ContainsKey(kv.Key) == false)
-                    {
-                        RowToBeUpdated.Add(kv.Key, kv.Value);
-                    }
-                    else
-                    {
-                        RowToBeUpdated[kv.Key] += kv.Value;
-                    }
-                }
 
                 t.Dispose();
             }           
@@ -449,7 +435,7 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        private void ReleaseGradient()
+        public void ReleaseGradient()
         {
             if (m_TGradient != null)
             {
