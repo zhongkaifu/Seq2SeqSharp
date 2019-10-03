@@ -17,19 +17,19 @@ namespace Seq2SeqSharp.Tools
 
     public class Corpus : IEnumerable<SntPair>
     {
-        int maxSentLength = 32;
-        int blockSize = 1000000;
-        int batchSize = 1;
+        int m_maxSentLength = 32;
+        int m_blockSize = 1000000;
+        int m_batchSize = 1;
 
-        List<string> srcFileList;
-        List<string> tgtFileList;
+        List<string> m_srcFileList;
+        List<string> m_tgtFileList;
 
-        private const string srcShuffledFilePath = "shuffled.src.snt";
-        private const string tgtShuffledFilePath = "shuffled.tgt.snt";
+        private const string m_srcShuffledFilePath = "shuffled.src.snt";
+        private const string m_tgtShuffledFilePath = "shuffled.tgt.snt";
 
         public int CorpusSize = 0;
 
-        public int BatchSize { get { return batchSize; } }
+        public int BatchSize { get { return m_batchSize; } }
 
         void Shuffle(List<SntPair> sntPairs)
         {
@@ -61,14 +61,14 @@ namespace Seq2SeqSharp.Tools
             SortedDictionary<int, List<SntPair>> sdict = new SortedDictionary<int, List<SntPair>>(); //<The bucket size, sentence pair set>
             foreach (KeyValuePair<int, List<SntPair>> pair in dict)
             {
-                if (pair.Value.Count < batchSize)
+                if (pair.Value.Count < m_batchSize)
                 {
                     //If the bucket size is less than batch size, ignore it
                     continue;
                 }
 
                 //Align the bucket size to batch size
-                int externalItemCnt = pair.Value.Count % batchSize;
+                int externalItemCnt = pair.Value.Count % m_batchSize;
                 pair.Value.RemoveRange(pair.Value.Count - externalItemCnt, externalItemCnt);
 
                 if (sdict.ContainsKey(pair.Value.Count) == false)
@@ -98,24 +98,24 @@ namespace Seq2SeqSharp.Tools
 
         public void ShuffleAll(bool notShulledForExistingFiles)
         {
-            Logger.WriteLine("Shuffling training corpus...");
-
-            if (File.Exists(srcShuffledFilePath) && File.Exists(tgtShuffledFilePath) && notShulledForExistingFiles)
+            if (File.Exists(m_srcShuffledFilePath) && File.Exists(m_tgtShuffledFilePath) && notShulledForExistingFiles)
             {
+                Logger.WriteLine($"Shuffled files '{m_srcShuffledFilePath}' and '{m_tgtShuffledFilePath}' exist, so skip it. If they are not correct files, please delete them and rerun the command.");
                 return;
             }
 
+            Logger.WriteLine("Shuffling training corpus...");
 
-            StreamWriter swSrc = new StreamWriter(srcShuffledFilePath, false);
-            StreamWriter swTgt = new StreamWriter(tgtShuffledFilePath, false);
+            StreamWriter swSrc = new StreamWriter(m_srcShuffledFilePath, false);
+            StreamWriter swTgt = new StreamWriter(m_tgtShuffledFilePath, false);
 
             List<SntPair> sntPairs = new List<SntPair>();
             CorpusSize = 0;
             var tooLongSntCnt = 0;
-            for (int i = 0; i < srcFileList.Count; i++)
+            for (int i = 0; i < m_srcFileList.Count; i++)
             {
-                StreamReader srSrc = new StreamReader(srcFileList[i]);
-                StreamReader srTgt = new StreamReader(tgtFileList[i]);
+                StreamReader srSrc = new StreamReader(m_srcFileList[i]);
+                StreamReader srTgt = new StreamReader(m_tgtFileList[i]);
 
                 while (true)
                 {
@@ -131,7 +131,7 @@ namespace Seq2SeqSharp.Tools
                     line = srTgt.ReadLine();
                     sntPair.TgtSnt = line.ToLower().Trim().Split(' ').ToArray();
 
-                    if (sntPair.SrcSnt.Length >= maxSentLength || sntPair.TgtSnt.Length >= maxSentLength)
+                    if (sntPair.SrcSnt.Length >= m_maxSentLength || sntPair.TgtSnt.Length >= m_maxSentLength)
                     {
                         tooLongSntCnt++;
                         continue;
@@ -139,7 +139,7 @@ namespace Seq2SeqSharp.Tools
 
                     sntPairs.Add(sntPair);
                     CorpusSize++;
-                    if (blockSize > 0 && sntPairs.Count >= blockSize)
+                    if (m_blockSize > 0 && sntPairs.Count >= m_blockSize)
                     {
                         Logger.WriteLine($"Shuffle training corpus...");
                         Shuffle(sntPairs);
@@ -174,15 +174,15 @@ namespace Seq2SeqSharp.Tools
             swTgt.Close();
 
             Logger.WriteLine($"Shuffled '{CorpusSize}' sentence pairs.");
-            Logger.WriteLine($"Found {tooLongSntCnt} sentences are longer than '{maxSentLength}' tokens, ignore them.");
+            Logger.WriteLine($"Found {tooLongSntCnt} sentences are longer than '{m_maxSentLength}' tokens, ignore them.");
         }
 
         public IEnumerator<SntPair> GetEnumerator()
-        {
+        {            
             ShuffleAll(true);
 
-            StreamReader srSrc = new StreamReader(srcShuffledFilePath);
-            StreamReader srTgt = new StreamReader(tgtShuffledFilePath);
+            StreamReader srSrc = new StreamReader(m_srcShuffledFilePath);
+            StreamReader srTgt = new StreamReader(m_tgtShuffledFilePath);
             Random rnd = new Random(DateTime.Now.Millisecond);
             int lastSrcSntLen = -1;
             const int maxOutputsSize = 1000000;
@@ -247,19 +247,19 @@ namespace Seq2SeqSharp.Tools
 
         public Corpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSentLength = 32)
         {
-            this.batchSize = batchSize;
-            blockSize = shuffleBlockSize;
-            this.maxSentLength = maxSentLength;
+            m_batchSize = batchSize;
+            m_blockSize = shuffleBlockSize;
+            m_maxSentLength = maxSentLength;
 
-            srcFileList = new List<string>();
-            tgtFileList = new List<string>();
+            m_srcFileList = new List<string>();
+            m_tgtFileList = new List<string>();
             string[] srcFiles = Directory.GetFiles(corpusFilePath, $"*.{srcLangName}.snt", SearchOption.TopDirectoryOnly);
             foreach (string srcFile in srcFiles)
             {
                 string tgtFile = srcFile.ToLower().Replace($".{srcLangName.ToLower()}.", $".{tgtLangName.ToLower()}.");
 
-                srcFileList.Add(srcFile);
-                tgtFileList.Add(tgtFile);
+                m_srcFileList.Add(srcFile);
+                m_tgtFileList.Add(tgtFile);
             }
         }
     }

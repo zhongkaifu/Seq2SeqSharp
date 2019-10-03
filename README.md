@@ -18,12 +18,13 @@ Embedding & Pre-trained model
 Auto data shuffling  
 Auto vocabulary building  
 Beam search decoder  
+Visualize neural network  
 
 # Usage  
-You can use Seq2SeqConsole tool to train and test models.  
+You can use Seq2SeqConsole tool to train, test and visualize models.  
 
 Here is the command line to train a model:
-**Seq2SeqConsole.exe -TaskName train [parameters...]**  
+**Seq2SeqConsole.exe -TaskName Train [parameters...]**  
 Parameters:  
 **-WordVectorSize**: The vector size of encoded source word.  
 **-HiddenSize**: The hidden layer size of encoder and decoder.    
@@ -53,14 +54,14 @@ Note that:
   1) if "-SrcVocab" and "-TgtVocab" are empty, vocabulary will be built from training corpus.  
   2) Txt2Vec for external embedding model building can get downloaded from https://github.com/zhongkaifu/Txt2Vec  
 
-Example: Seq2SeqConsole.exe -TaskName train -WordVectorSize 512 -HiddenSize 512 -LearningRate 0.002 -ModelFilePath seq2seq.model -TrainCorpusPath .\corpus -SrcLang ENU -TgtLang CHS -BatchSize 256 -ArchType GPU -EncoderType Transformer -EncoderLayerDepth 6 -DecoderLayerDepth 2 -MultiHeadNum 8 -DeviceIds 0,1,2,3,4,5,6,7  
+Example: Seq2SeqConsole.exe -TaskName Train -WordVectorSize 512 -HiddenSize 512 -LearningRate 0.002 -ModelFilePath seq2seq.model -TrainCorpusPath .\corpus -SrcLang ENU -TgtLang CHS -BatchSize 256 -ArchType GPU -EncoderType Transformer -EncoderLayerDepth 6 -DecoderLayerDepth 2 -MultiHeadNum 8 -DeviceIds 0,1,2,3,4,5,6,7  
 
 During training, the iteration information will be printed out and logged as follows:  
 info,9/26/2019 3:38:24 PM Update = '15600' Epoch = '0' LR = '0.002000', Current Cost = '2.817434', Avg Cost = '3.551963', SentInTotal = '31948800', SentPerMin = '52153.52', WordPerSec = '39515.27'  
 info,9/26/2019 3:42:28 PM Update = '15700' Epoch = '0' LR = '0.002000', Current Cost = '2.800056', Avg Cost = '3.546863', SentInTotal = '32153600', SentPerMin = '52141.86', WordPerSec = '39523.83'  
 
 Here is the command line to test models  
-**Seq2SeqConsole.exe -TaskName test [parameters...]**  
+**Seq2SeqConsole.exe -TaskName Test [parameters...]**  
 Parameters:  
 **-InputTestFile**: The input file for test.  
 **-OutputTestFile**: The test result file.  
@@ -69,7 +70,17 @@ Parameters:
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
 **-BeamSearch**: Beam search size. Default is 1  
 
-Example: Seq2SeqConsole.exe -TaskName test -ModelFilePath seq2seq.model -InputTestFile test.txt -OutputTestFile result.txt -ArchType CPU -BeamSearch 5  
+Example: Seq2SeqConsole.exe -TaskName Test -ModelFilePath seq2seq.model -InputTestFile test.txt -OutputTestFile result.txt -ArchType CPU -BeamSearch 5  
+
+Here is the command line to visualize network  
+**Seq2SeqConsole.exe -TaskName VisualizeNetwork [parameters...]**  
+Parameters:  
+**-VisNNFile**: The output PNG file to visualize network  
+**-EncoderType**: The type of encoder. BiLSTM and Transformer are built-in and you can implement your own network and visualize it  
+**-EncoderLayerDepth**: The network depth in encoder. The default depth is 1.  
+**-DecoderLayerDepth**: The network depth in decoder. The default depth is 1.  
+
+Example: Seq2SeqConsole.exe -TaskName VisualizeNetwork -VisNNFile abc.png -EncoderType Transformer -EncoderLayerDepth 2 -DecoderLayerDepth 2  
 
 # Data Format  
 The corpus contains each sentence per line. The file name pattern is "mainfilename.{source language name}.snt" and "mainfilename.{target language name}.snt".    
@@ -83,7 +94,7 @@ So, train01.chs.snt has the corresponding translated sentences:
 
 # Build Your Neural Networks  
 Benefit from automatic differentiation, tensor based compute graph and other features, you can easily build your neural network by a few code. The only thing you need to implment is forward part, and the framework will automatically build the corresponding backward part for you, and make the network could run on multi-GPUs or CPUs.  
-Here is an example about attentioned based LSTM cells.  
+Here is an example about **attentioned based LSTM cells**.  
 ```c#
         /// <summary>
         /// Update LSTM-Attention cells according to given weights
@@ -117,7 +128,7 @@ Here is an example about attentioned based LSTM cells.
             return ht;
         }
 ```
-Another example about scaled multi-heads attention component which is the core part in Transformer model.  
+Another example about **scaled multi-heads attention** component which is the core part in **Transformer** model.  
 ```c#
         /// <summary>
         /// Scaled multi-heads attention component with skip connectioned feed forward layers

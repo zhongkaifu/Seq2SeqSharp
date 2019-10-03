@@ -21,32 +21,36 @@ namespace Seq2SeqSharp
         int m_dim;
         int m_batchSize;
         int m_deviceId;
+        string m_name;
 
         LayerNormalization m_layerNorm1;
         LayerNormalization m_layerNorm2;
 
-        public LSTMCell(int batchSize, int hdim, int dim, int deviceId)
+        public LSTMCell(string name, int batchSize, int hdim, int dim, int deviceId)
         {
-            m_Wxh = new WeightTensor(dim + hdim, hdim * 4, deviceId, true);
-            m_b = new WeightTensor(1, hdim * 4, 0, deviceId);
+            m_name = name;
+
+            m_Wxh = new WeightTensor(new long[2] { dim + hdim, hdim * 4 }, deviceId, normal: true, name: $"{name}.{nameof(m_Wxh)}", isTrainable: true);
+            m_b = new WeightTensor(new long[2] { 1, hdim * 4 }, 0, deviceId, name: $"{name}.{nameof(m_b)}", isTrainable: true);
 
             m_hdim = hdim;
             m_dim = dim;
             m_batchSize = batchSize;
             m_deviceId = deviceId;
 
-            m_layerNorm1 = new LayerNormalization(hdim * 4, deviceId);
-            m_layerNorm2 = new LayerNormalization(hdim, deviceId);
+            m_layerNorm1 = new LayerNormalization($"{name}.{nameof(m_layerNorm1)}", hdim * 4, deviceId);
+            m_layerNorm2 = new LayerNormalization($"{name}.{nameof(m_layerNorm2)}", hdim, deviceId);
         }
 
-        public IWeightTensor Step(IWeightTensor input, IComputeGraph innerGraph)
+        public IWeightTensor Step(IWeightTensor input, IComputeGraph g)
         {
+            var innerGraph = g.CreateSubGraph(m_name);
+
             var hidden_prev = m_hidden;
             var cell_prev = m_cell;
         
             var inputs = innerGraph.ConcatColumns(input, hidden_prev);
-            var bs = innerGraph.RepeatRows(m_b, input.Rows);
-            var hhSum = innerGraph.MulAdd(inputs, m_Wxh, bs);
+            var hhSum = innerGraph.Affine(inputs, m_Wxh, m_b);
             var hhSum2 = m_layerNorm1.Process(hhSum, innerGraph);
 
             (var gates_raw, var cell_write_raw) = innerGraph.SplitColumns(hhSum2, m_hdim * 3, m_hdim);
@@ -79,8 +83,8 @@ namespace Seq2SeqSharp
 
         public void Reset(IWeightFactory weightFactory)
         {
-            m_hidden = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true);
-            m_cell = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true);
+            m_hidden = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true, name: $"{m_name}.{nameof(m_hidden)}", isTrainable: true);
+            m_cell = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true, name: $"{m_name}.{nameof(m_cell)}", isTrainable: true);
         }
 
         public void Save(Stream stream)

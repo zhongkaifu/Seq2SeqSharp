@@ -19,6 +19,7 @@ namespace Seq2SeqSharp
         int m_dim;
         int m_batchSize;
         int m_deviceId;
+        string m_name;
 
         IWeightTensor m_Wxhc;
         IWeightTensor m_b;
@@ -26,21 +27,22 @@ namespace Seq2SeqSharp
         LayerNormalization layerNorm1;
         LayerNormalization layerNorm2;
 
-        public LSTMAttentionDecoderCell(int batchSize, int hdim, int dim, int contextSize, int deviceId)
+        public LSTMAttentionDecoderCell(string name, int batchSize, int hdim, int dim, int contextSize, int deviceId)
         {
+            m_name = name;
             m_hdim = hdim;
             m_dim = dim;
             m_deviceId = deviceId;
             m_batchSize = batchSize;
 
-            m_Wxhc = new WeightTensor(dim + hdim + contextSize, hdim * 4, deviceId, true);
-            m_b = new WeightTensor(1, hdim * 4, 0, deviceId);
+            m_Wxhc = new WeightTensor(new long[2] { dim + hdim + contextSize, hdim * 4 }, deviceId, normal: true, name: $"{name}.{nameof(m_Wxhc)}", isTrainable: true);
+            m_b = new WeightTensor(new long[2] { 1, hdim * 4 }, 0, deviceId, name: $"{name}.{nameof(m_b)}", isTrainable: true);
 
-            Hidden = new WeightTensor(batchSize, hdim, 0, deviceId);
-            Cell = new WeightTensor(batchSize, hdim, 0, deviceId);
+            Hidden = new WeightTensor(new long[2] { batchSize, hdim }, 0, deviceId, name: $"{name}.{nameof(Hidden)}", isTrainable: true);
+            Cell = new WeightTensor(new long[2] { batchSize, hdim }, 0, deviceId, name: $"{name}.{nameof(Cell)}", isTrainable: true);
 
-            layerNorm1 = new LayerNormalization(hdim * 4, deviceId);
-            layerNorm2 = new LayerNormalization(hdim, deviceId);
+            layerNorm1 = new LayerNormalization($"{name}.{nameof(layerNorm1)}", hdim * 4, deviceId);
+            layerNorm2 = new LayerNormalization($"{name}.{nameof(layerNorm2)}", hdim, deviceId);
         }
 
         /// <summary>
@@ -50,14 +52,15 @@ namespace Seq2SeqSharp
         /// <param name="input">The input weights</param>
         /// <param name="computeGraph">The compute graph to build workflow</param>
         /// <returns>Update hidden weights</returns>
-        public IWeightTensor Step(IWeightTensor context, IWeightTensor input, IComputeGraph computeGraph)
+        public IWeightTensor Step(IWeightTensor context, IWeightTensor input, IComputeGraph g)
         {
+            var computeGraph = g.CreateSubGraph(m_name);
+
             var cell_prev = Cell;
             var hidden_prev = Hidden;
 
             var hxhc = computeGraph.ConcatColumns(input, hidden_prev, context);
-            var bs = computeGraph.RepeatRows(m_b, input.Rows);
-            var hhSum = computeGraph.MulAdd(hxhc, m_Wxhc, bs);
+            var hhSum = computeGraph.Affine(hxhc, m_Wxhc, m_b);
             var hhSum2 = layerNorm1.Process(hhSum, computeGraph);
 
             (var gates_raw, var cell_write_raw) = computeGraph.SplitColumns(hhSum2, m_hdim * 3, m_hdim);
@@ -89,8 +92,8 @@ namespace Seq2SeqSharp
 
         public void Reset(IWeightFactory weightFactory)
         {
-            Hidden = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true);
-            Cell = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true);
+            Hidden = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true, name: $"{m_name}.{nameof(Hidden)}", isTrainable: true);
+            Cell = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true, name: $"{m_name}.{nameof(Cell)}", isTrainable: true);
         }
 
         public void Save(Stream stream)

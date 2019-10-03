@@ -8,8 +8,7 @@ namespace Seq2SeqSharp.Tools
 {
     public interface IWeightFactory
     {
-        IWeightTensor CreateWeights(int row, int column, int deviceId);
-        IWeightTensor CreateWeights(int row, int column, int deviceId, bool cleanWeights);
+        IWeightTensor CreateWeights(int row, int column, int deviceId, bool cleanWeights, string name = "", bool isTrainable = false);
 
         void Clear();
     }

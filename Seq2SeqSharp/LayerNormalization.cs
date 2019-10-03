@@ -13,19 +13,23 @@ namespace Seq2SeqSharp
     {
         IWeightTensor m_alpha;
         IWeightTensor m_beta;
+        string m_name;
 
-        public LayerNormalization(int dim, int deviceId)
+        public LayerNormalization(string name, int dim, int deviceId)
         {
-            m_alpha = new WeightTensor(1, dim, 1, deviceId);
-            m_beta = new WeightTensor(1, dim, 0, deviceId);
+            m_name = name;
+            m_alpha = new WeightTensor(new long[2] { 1, dim }, 1, deviceId, name: $"{name}.{nameof(m_alpha)}", isTrainable: true);
+            m_beta = new WeightTensor(new long[2] { 1, dim }, 0, deviceId, name: $"{name}.{nameof(m_beta)}", isTrainable: true);
         }
 
-        public IWeightTensor Process(IWeightTensor input, IComputeGraph innerGraph)
+        public IWeightTensor Process(IWeightTensor input, IComputeGraph g)
         {
-            var alphas = innerGraph.RepeatRows(m_alpha, input.Rows);
-            var betas = innerGraph.RepeatRows(m_beta, input.Rows);
+            var innerGraph = g.CreateSubGraph(m_name);
 
-            return innerGraph.LayerNorm(input, alphas, betas);
+            //var alphas = innerGraph.RepeatRows(m_alpha, input.Rows);
+            //var betas = innerGraph.RepeatRows(m_beta, input.Rows);
+
+            return innerGraph.LayerNorm(input, m_alpha, m_beta);
         }
 
         public virtual List<IWeightTensor> getParams()

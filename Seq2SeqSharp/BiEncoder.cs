@@ -24,20 +24,20 @@ namespace Seq2SeqSharp
 
         private int m_batchSize;
 
-        public BiEncoder(int batchSize, int hiddenDim, int inputDim, int depth, int deviceId)
+        public BiEncoder(string name, int batchSize, int hiddenDim, int inputDim, int depth, int deviceId)
         {
             Logger.WriteLine($"Creating BiLSTM encoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', InputDim = '{inputDim}', Depth = '{depth}'");
 
             m_forwardEncoders = new List<LSTMCell>();
             m_backwardEncoders = new List<LSTMCell>();
 
-            m_forwardEncoders.Add(new LSTMCell(batchSize, hiddenDim, inputDim, deviceId));
-            m_backwardEncoders.Add(new LSTMCell(batchSize, hiddenDim, inputDim, deviceId));
+            m_forwardEncoders.Add(new LSTMCell($"{name}.Forward_LSTM_0", batchSize, hiddenDim, inputDim, deviceId));
+            m_backwardEncoders.Add(new LSTMCell($"{name}.Backward_LSTM_0", batchSize, hiddenDim, inputDim, deviceId));
 
             for (int i = 1; i < depth; i++)
             {
-                m_forwardEncoders.Add(new LSTMCell(batchSize, hiddenDim, hiddenDim * 2, deviceId));
-                m_backwardEncoders.Add(new LSTMCell(batchSize, hiddenDim, hiddenDim * 2, deviceId));
+                m_forwardEncoders.Add(new LSTMCell($"{name}.Forward_LSTM_{i}", batchSize, hiddenDim, hiddenDim * 2, deviceId));
+                m_backwardEncoders.Add(new LSTMCell($"{name}.Backward_LSTM_{i}", batchSize, hiddenDim, hiddenDim * 2, deviceId));
             }
 
             m_hiddenDim = hiddenDim;

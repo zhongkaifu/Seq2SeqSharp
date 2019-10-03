@@ -40,6 +40,9 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
+        public string Name { get; set; }
+        public bool IsTrainable { get; set; }
+
         public int DeviceId { get; set; }
         IAllocator allocator;
 
@@ -136,75 +139,47 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-
-        public WeightTensor(int rows, int columns, int deviceId, bool normal = false)
+        public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, bool normal = false)
         {
+            Name = name;
             DeviceId = deviceId;
-            allocator = TensorAllocator.Allocator(DeviceId);
-
-            Sizes = new long[2];
-            Sizes[0] = rows;
-            Sizes[1] = columns;
-
-            var n = rows * columns;
-            float[] weight = new float[n];
-
-
-            var scale = (float)Math.Sqrt(1.0 / (rows * columns));
-            if (normal)
-            {
-                scale = 0.08f;
-            }
-            for (int i = 0; i < n; i++)
-            {
-                weight[i] = RandomGenerator.NormalRandom(0.0f, scale);
-            }
-
-            TGradient = new Tensor(allocator, DType.Float32, Sizes);
-            Ops.Fill(TGradient, 0.0f);
-
-            TWeight = Tensor.FromArray(allocator, weight).View(Sizes);
-        }
-
-        public WeightTensor(int rows, int columns, int deviceId)
-        {
-            DeviceId = deviceId;
-            allocator = TensorAllocator.Allocator(DeviceId);
-
-            Sizes = new long[2];
-            Sizes[0] = rows;
-            Sizes[1] = columns;
-        }
-
-        public WeightTensor(long[] sizes, int deviceId)
-        {
-            DeviceId = deviceId;
+            IsTrainable = isTrainable;
             allocator = TensorAllocator.Allocator(DeviceId);
 
             Sizes = sizes;
+
+            if (normal)
+            {
+                var n = Rows * Columns;
+                float[] weight = new float[n];
+
+
+                var scale = (float)Math.Sqrt(1.0 / (Rows * Columns));
+                if (normal)
+                {
+                    scale = 0.08f;
+                }
+                for (int i = 0; i < n; i++)
+                {
+                    weight[i] = RandomGenerator.NormalRandom(0.0f, scale);
+                }
+
+                TGradient = new Tensor(allocator, DType.Float32, Sizes);
+                Ops.Fill(TGradient, 0.0f);
+
+                TWeight = Tensor.FromArray(allocator, weight).View(Sizes);
+            }
         }
 
-        public WeightTensor(int rows, int columns, Tensor weight, Tensor gradient)
+        public WeightTensor(long[] sizes, float c, int deviceId, string name = "", bool isTrainable = false)
         {
-            Sizes = new long[2];
-            Sizes[0] = rows;
-            Sizes[1] = columns;
-
-            m_TGradient = gradient;
-            m_TWeight = weight;
-        }
-
-
-        public WeightTensor(int rows, int columns, float c, int deviceId)
-        {
+            Name = name;
             DeviceId = deviceId;
+            IsTrainable = isTrainable;
             allocator = TensorAllocator.Allocator(DeviceId);
+            Sizes = sizes;
 
-            Sizes = new long[2];
-            Sizes[0] = rows;
-            Sizes[1] = columns;
-
-            var n = rows * columns;
+            var n = Rows * Columns;
 
             TGradient = new Tensor(allocator, DType.Float32, Sizes);
             Ops.Fill(TGradient, 0.0f);
@@ -212,7 +187,6 @@ namespace Seq2SeqSharp.Tools
             TWeight = new Tensor(allocator, DType.Float32, Sizes);
             Ops.Fill(TWeight, c);
         }
-
 
         public void CleanCache()
         {
@@ -232,17 +206,6 @@ namespace Seq2SeqSharp.Tools
         public float GetWeightAt(int offset)
         {
             return TWeight.GetElementAsFloat(0, offset);
-        }
-
-
-        public float GetGradientAt(int offset)
-        {
-            return TGradient.GetElementAsFloat(0, offset);
-        }
-
-        public void SetGradientAt(float val, int offset)
-        {
-            TGradient.SetElementAsFloat(val, 0, offset);
         }
 
         public void SetWeightAt(float val, int offset)
@@ -381,23 +344,6 @@ namespace Seq2SeqSharp.Tools
             {
                 Ops.AddTanhD(m_TGradient, m_TGradient, src.TWeight, src.TGradient);
             }
-        }
-
-        public int GetMaxWeightIdx()
-        {
-            float[] weights = ToWeightArray();
-            var maxv = weights[0];
-            var maxi = 0;
-            for (int i = 1; i < weights.Length; i++)
-            {
-                if (weights[i] > maxv)
-                {
-                    maxv = weights[i];
-                    maxi = i;
-                }
-            }
-
-            return maxi;
         }
 
         public List<int> GetTopNMaxWeightIdx(int topN)

@@ -10,8 +10,8 @@ namespace Seq2SeqConsole
 {
     class Options
     {
-        [Arg("Task name. It could be train and test", "TaskName")]
-        public string TaskName;
+        [Arg("Task name. It could be Train, Test, VisualizeNetwork or Help", "TaskName")]
+        public string TaskName = "Help";
 
         [Arg("The vector size of encoded source word.", "WordVectorSize")]
         public int WordVectorSize = 128;
@@ -93,5 +93,8 @@ namespace Seq2SeqConsole
 
         [Arg("The number of steps for warming up", "WarmUpSteps")]
         public int WarmUpSteps = 8000;
+
+        [Arg("The file path of dumped neural network (.png file)", "VisNNFile")]
+        public string VisualizeNNFilePath;
     }
 }

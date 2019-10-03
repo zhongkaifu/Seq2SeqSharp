@@ -12,19 +12,19 @@ namespace Seq2SeqSharp
     {
         private IWeightTensor m_Whd;
         private IWeightTensor m_Bd;
+        private string m_name;
 
-        public FeedForwardLayer(int inputDim, int outputDim, int deviceId)
+        public FeedForwardLayer(string name, int inputDim, int outputDim, int deviceId)
         {
-            m_Whd = new WeightTensor(inputDim, outputDim, deviceId);
-            m_Bd = new WeightTensor(1, outputDim, 0, deviceId);
+            m_name = name;
+            m_Whd = new WeightTensor(new long[2] { inputDim, outputDim }, deviceId, name: $"{name}.{nameof(m_Whd)}", isTrainable: true);
+            m_Bd = new WeightTensor(new long[2] { 1, outputDim }, 0, deviceId, name: $"{name}.{nameof(m_Bd)}", isTrainable: true);
         }
 
-        public IWeightTensor Process(IWeightTensor inputT, IComputeGraph g)
+        public IWeightTensor Process(IWeightTensor inputT, IComputeGraph graph)
         {
-            var bds = g.RepeatRows(m_Bd, inputT.Rows);
-            var r = g.MulAdd(inputT, m_Whd, bds);
-
-            return r;
+            var g = graph.CreateSubGraph(m_name);
+            return g.Affine(inputT, m_Whd, m_Bd);
         }
 
         public virtual List<IWeightTensor> GetParams()

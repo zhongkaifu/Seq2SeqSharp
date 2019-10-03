@@ -15,7 +15,7 @@ namespace Seq2SeqSharp
         private int m_batchSize;
         private int m_inputDim;
 
-        public TransformerEncoder(int batchSize, int multiHeadNum, int hiddenDim, int inputDim, int depth, int deviceId)
+        public TransformerEncoder(string name, int batchSize, int multiHeadNum, int hiddenDim, int inputDim, int depth, int deviceId)
         {
             Logger.WriteLine($"Creating transformer encoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', InputDim = '{inputDim}', Depth = '{depth}', MultiHeadNum = '{multiHeadNum}', batchSize = '{batchSize}'");
 
@@ -23,7 +23,7 @@ namespace Seq2SeqSharp
             m_inputDim = inputDim;
             for (int i = 0; i < depth; i++)
             {
-                m_encoders.Add(new SelfAttention(batchSize, multiHeadNum, hiddenDim, inputDim, deviceId));
+                m_encoders.Add(new SelfAttention($"{name}.SelfAttn_{i}", batchSize, multiHeadNum, hiddenDim, inputDim, deviceId));
             }
         }
 
@@ -38,13 +38,13 @@ namespace Seq2SeqSharp
         /// <param name="g"></param>
         /// <returns></returns>
         public IWeightTensor Encode(IWeightTensor rawInput, IComputeGraph g)
-        {
+        {        
             int seqLen = rawInput.Rows / m_batchSize;
             var posEmbedding = g.BuildPositionMatrix(seqLen, m_inputDim);
             var posEmbeddingRepeat = g.RepeatRows(posEmbedding, m_batchSize);
 
             // Transpose to batch-first based sequence
-            var inputs = g.PermuteBatch(rawInput, m_batchSize);
+            var inputs = g.TransposeBatch(rawInput, m_batchSize);
 
             inputs = g.Mul(inputs, (float)Math.Sqrt(m_inputDim));
             inputs = g.Add(inputs, posEmbeddingRepeat);
@@ -55,7 +55,7 @@ namespace Seq2SeqSharp
             }
 
             // Transpose back to time-first based sequence
-            rawInput = g.PermuteBatch(inputs, seqLen);
+            rawInput = g.TransposeBatch(inputs, seqLen);
 
             return rawInput;
         }

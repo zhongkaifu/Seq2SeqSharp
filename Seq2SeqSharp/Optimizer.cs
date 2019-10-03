@@ -19,9 +19,6 @@ namespace Seq2SeqSharp
         public static float smooth_eps = 1e-10f;
         public static float lr_decay_rate = 0.999f;
 
-        public Vector<float> vecDecayRate = new Vector<float>(decay_rate);
-        public Vector<float> vecSmoothEPS = new Vector<float>(smooth_eps);
-
         public void UpdateWeights(List<IWeightTensor> model, int batchSize, float step_size, float regc, float clipval)
         {
             Dictionary<int, List<IWeightTensor>> id2Models = new Dictionary<int, List<IWeightTensor>>();

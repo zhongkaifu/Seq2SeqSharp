@@ -11,6 +11,9 @@ namespace Seq2SeqSharp.Tools
     {
         int Rows { get; set; }
         int Columns { get; set; }
+        string Name { get; set; }
+
+        bool IsTrainable { get; set; }
 
         int DeviceId { get; set; }
 
@@ -18,14 +21,12 @@ namespace Seq2SeqSharp.Tools
 
         float GetWeightAt(int offset);
         void SetWeightAt(float val, int offset);
-        void SetGradientAt(float val, int offset);
 
         void SetGradientByWeight(IWeightTensor src);
 
         void SetWeightAtRow(int row, float[] val);
 
         float[] ToWeightArray();
-        int GetMaxWeightIdx();
 
         List<int> GetTopNMaxWeightIdx(int topN);
 

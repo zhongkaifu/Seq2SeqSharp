@@ -12,17 +12,9 @@ namespace Seq2SeqSharp.Tools
     {
         List<WeightTensor> weights = new List<WeightTensor>();
 
-        public WeightTensor CreateWeightTensor(int row, int column, Tensor w, Tensor g)
+        public WeightTensor BuildPositionWeightTensor(int row, int column, int deviceId, string name = "", bool isTrainable = false)
         {
-            WeightTensor t = new WeightTensor(row, column, w, g);
-            weights.Add(t);
-
-            return t;
-        }
-
-        public WeightTensor BuildPositionWeightTensor(int row, int column, int deviceId)
-        {
-            WeightTensor t = new WeightTensor(row, column, deviceId);
+            WeightTensor t = new WeightTensor(new long[2] { row, column }, deviceId, name: name, isTrainable: isTrainable);
 
             double numTimescales = (float)column / 2;
             double logTimescaleIncrement = Math.Log(10000.0f) / (numTimescales - 1.0f);
@@ -45,9 +37,9 @@ namespace Seq2SeqSharp.Tools
             return t;
         }
 
-        public WeightTensor CreateWeightTensor(int row, int column, int deviceId, bool cleanWeights = false)
+        public WeightTensor CreateWeightTensor(int row, int column, int deviceId, bool cleanWeights = false, string name = "", bool isTrainable = false)
         {
-            WeightTensor r = new WeightTensor(row, column, deviceId);
+            WeightTensor r = new WeightTensor(new long[2] { row, column }, deviceId, name: name, isTrainable: isTrainable);
 
             if (cleanWeights)
             {
@@ -59,9 +51,9 @@ namespace Seq2SeqSharp.Tools
             return r;
         }
 
-        public WeightTensor CreateWeightTensor(long[] sizes, int deviceId, bool cleanWeights = false)
+        public WeightTensor CreateWeightTensor(long[] sizes, int deviceId, bool cleanWeights = false, string name = "")
         {
-            WeightTensor r = new WeightTensor(sizes, deviceId);
+            WeightTensor r = new WeightTensor(sizes, deviceId, name);
 
             if (cleanWeights)
             {
@@ -83,14 +75,9 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public IWeightTensor CreateWeights(int row, int column, int deviceId)
+        public IWeightTensor CreateWeights(int row, int column, int deviceId, bool cleanWeights, string name = "", bool isTrainable = false)
         {
-            return CreateWeightTensor(row, column, deviceId);
-        }
-
-        public IWeightTensor CreateWeights(int row, int column, int deviceId, bool cleanWeights)
-        {
-            return CreateWeightTensor(row, column, deviceId, cleanWeights);
+            return CreateWeightTensor(row, column, deviceId, cleanWeights, name: name, isTrainable: isTrainable);
         }
     }
 }

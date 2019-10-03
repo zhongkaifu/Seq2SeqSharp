@@ -54,20 +54,22 @@ namespace Seq2SeqConsole
             AttentionSeq2Seq ss = null;
             ArchTypeEnums archType = (ArchTypeEnums)Enum.Parse(typeof(ArchTypeEnums), opts.ArchType);
             EncoderTypeEnums encoderType = (EncoderTypeEnums)Enum.Parse(typeof(EncoderTypeEnums), opts.EncoderType);
+            ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.TaskName);
+
 
             //Parse device ids from options          
             int[] deviceIds = opts.DeviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
 
-            if (String.Equals(opts.TaskName, "train", StringComparison.InvariantCultureIgnoreCase))
+            if (mode == ModeEnums.Train)
             {
                 ShowOptions(args, opts);
 
-                Corpus trainCorpus = new Corpus(opts.TrainCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize * deviceIds.Length, 
+                Corpus trainCorpus = new Corpus(opts.TrainCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize * deviceIds.Length,
                     opts.ShuffleBlockSize, opts.MaxSentLength);
                 if (File.Exists(opts.ModelFilePath) == false)
                 {
                     //New training
-                    ss = new AttentionSeq2Seq(inputSize: opts.WordVectorSize, hiddenSize: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth, 
+                    ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth,
                         trainCorpus: trainCorpus, srcVocabFilePath: opts.SrcVocab, tgtVocabFilePath: opts.TgtVocab,
                         srcEmbeddingFilePath: opts.SrcEmbeddingModelFilePath, tgtEmbeddingFilePath: opts.TgtEmbeddingModelFilePath,
                         modelFilePath: opts.ModelFilePath, batchSize: opts.BatchSize, dropoutRatio: opts.DropoutRatio,
@@ -84,7 +86,7 @@ namespace Seq2SeqConsole
                 ss.IterationDone += ss_IterationDone;
                 ss.Train(opts.MaxEpochNum, opts.LearningRate, opts.GradClip);
             }
-            else if (String.Equals(opts.TaskName, "test", StringComparison.InvariantCultureIgnoreCase))
+            else if (mode == ModeEnums.Test)
             {
                 //Test trained model
                 ss = new AttentionSeq2Seq(opts.ModelFilePath, 1, archType, deviceIds);
@@ -98,6 +100,17 @@ namespace Seq2SeqConsole
                 }
 
                 File.WriteAllLines(opts.OutputTestFile, outputLines);
+            }
+            else if (mode == ModeEnums.VisualizeNetwork)
+            {
+                ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, 
+                    decoderLayerDepth: opts.DecoderLayerDepth,trainCorpus: null, srcVocabFilePath: null, tgtVocabFilePath: null,
+                    srcEmbeddingFilePath: null, tgtEmbeddingFilePath: null,
+                    modelFilePath: opts.ModelFilePath, batchSize: 1, dropoutRatio: opts.DropoutRatio,
+                    archType: archType, deviceIds: new int[1] { 0 }, multiHeadNum: opts.MultiHeadNum, 
+                    warmupSteps: opts.WarmUpSteps, encoderType: encoderType);
+
+                ss.VisualizeNeuralNetwork(opts.VisualizeNNFilePath);
             }
             else
             {

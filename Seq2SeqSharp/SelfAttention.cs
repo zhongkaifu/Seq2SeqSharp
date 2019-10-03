@@ -26,25 +26,27 @@ namespace Seq2SeqSharp
         private int m_hiddenDim;
         private int m_d;
         private int m_multiHeadNum;
+        private string m_name;
 
-        public SelfAttention(int batchSize, int multiHeadNum, int hiddenDim, int inputDim, int deviceId)
+        public SelfAttention(string name, int batchSize, int multiHeadNum, int hiddenDim, int inputDim, int deviceId)
         {
+            m_name = name;
             m_batchSize = batchSize;
             m_hiddenDim = hiddenDim;
             m_multiHeadNum = multiHeadNum;
             m_d = m_hiddenDim / m_multiHeadNum;
 
-            W0 = new WeightTensor(hiddenDim, hiddenDim, deviceId);
-            b0 = new WeightTensor(1, hiddenDim, 0, deviceId);
+            W0 = new WeightTensor(new long[2] { hiddenDim, hiddenDim }, deviceId, name: $"{name}.{nameof(W0)}", isTrainable: true);
+            b0 = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(b0)}", isTrainable: true);
 
-            Q = new FeedForwardLayer(inputDim, hiddenDim, deviceId);
-            K = new FeedForwardLayer(inputDim, hiddenDim, deviceId);
-            V = new FeedForwardLayer(inputDim, hiddenDim, deviceId);
+            Q = new FeedForwardLayer($"{name}.{nameof(Q)}", inputDim, hiddenDim, deviceId);
+            K = new FeedForwardLayer($"{name}.{nameof(K)}", inputDim, hiddenDim, deviceId);
+            V = new FeedForwardLayer($"{name}.{nameof(V)}", inputDim, hiddenDim, deviceId);
 
-            layerNorm1 = new LayerNormalization(hiddenDim, deviceId);
-            layerNorm2 = new LayerNormalization(hiddenDim, deviceId);
-            feedForwardLayer1 = new FeedForwardLayer(hiddenDim, hiddenDim * 4, deviceId);
-            feedForwardLayer2 = new FeedForwardLayer(hiddenDim * 4, hiddenDim, deviceId);
+            layerNorm1 = new LayerNormalization($"{name}.{nameof(layerNorm1)}", hiddenDim, deviceId);
+            layerNorm2 = new LayerNormalization($"{name}.{nameof(layerNorm2)}", hiddenDim, deviceId);
+            feedForwardLayer1 = new FeedForwardLayer($"{name}.{nameof(feedForwardLayer1)}", hiddenDim, hiddenDim * 4, deviceId);
+            feedForwardLayer2 = new FeedForwardLayer($"{name}.{nameof(feedForwardLayer2)}", hiddenDim * 4, hiddenDim, deviceId);
         }       
 
         /// <summary>
@@ -53,8 +55,10 @@ namespace Seq2SeqSharp
         /// <param name="input">The input tensor</param>
         /// <param name="g">The instance of computing graph</param>
         /// <returns></returns>
-        public IWeightTensor Perform(IWeightTensor input, IComputeGraph g)
+        public IWeightTensor Perform(IWeightTensor input, IComputeGraph graph)
         {
+            IComputeGraph g = graph.CreateSubGraph(m_name);
+
             var seqLen = input.Rows / m_batchSize;
 
             //Input projections
@@ -78,8 +82,7 @@ namespace Seq2SeqSharp
             var W = g.View(g.Permute(o, 1, 2, 0, 3), m_batchSize * seqLen, m_multiHeadNum * m_d);
 
             // Output projection
-            var b0s = g.RepeatRows(b0, W.Rows);
-            var finalAttResults = g.MulAdd(W, W0, b0s);
+            var finalAttResults = g.Affine(W, W0, b0);
 
             //Skip connection and layer normaliztion
             var addedAttResult = g.Add(finalAttResults, input);
