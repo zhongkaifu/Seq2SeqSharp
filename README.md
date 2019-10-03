@@ -106,29 +106,30 @@ Here is an example about **attentioned based LSTM cells**.
         /// <param name="input">The input weights</param>
         /// <param name="computeGraph">The compute graph to build workflow</param>
         /// <returns>Update hidden weights</returns>
-        public IWeightMatrix Step(IWeightMatrix context, IWeightMatrix input, IComputeGraph computeGraph)
+        public IWeightTensor Step(IWeightTensor context, IWeightTensor input, IComputeGraph g)
         {
-            var cell_prev = ct;
-            var hidden_prev = ht;
+            var computeGraph = g.CreateSubGraph(m_name);
+
+            var cell_prev = Cell;
+            var hidden_prev = Hidden;
 
             var hxhc = computeGraph.ConcatColumns(input, hidden_prev, context);
-            var bs = computeGraph.RepeatRows(b, input.Rows);
-            var hhSum = computeGraph.MulAdd(hxhc, Wxhc, bs);
+            var hhSum = computeGraph.Affine(hxhc, m_Wxhc, m_b);
             var hhSum2 = layerNorm1.Process(hhSum, computeGraph);
 
-            (var gates_raw, var cell_write_raw) = computeGraph.SplitColumns(hhSum2, hdim * 3, hdim);
+            (var gates_raw, var cell_write_raw) = computeGraph.SplitColumns(hhSum2, m_hdim * 3, m_hdim);
             var gates = computeGraph.Sigmoid(gates_raw);
             var cell_write = computeGraph.Tanh(cell_write_raw);
 
-            (var input_gate, var forget_gate, var output_gate) = computeGraph.SplitColumns(gates, hdim, hdim, hdim);
+            (var input_gate, var forget_gate, var output_gate) = computeGraph.SplitColumns(gates, m_hdim, m_hdim, m_hdim);
 
             // compute new cell activation: ct = forget_gate * cell_prev + input_gate * cell_write
-            ct = computeGraph.EltMulMulAdd(forget_gate, cell_prev, input_gate, cell_write);
-            var ct2 = layerNorm2.Process(ct, computeGraph);
+            Cell = computeGraph.EltMulMulAdd(forget_gate, cell_prev, input_gate, cell_write);
+            var ct2 = layerNorm2.Process(Cell, computeGraph);
 
-            ht = computeGraph.EltMul(output_gate, computeGraph.Tanh(ct2));
+            Hidden = computeGraph.EltMul(output_gate, computeGraph.Tanh(ct2));
 
-            return ht;
+            return Hidden;
         }
 ```
 Another example about **scaled multi-heads attention** component which is the core part in **Transformer** model.  
@@ -139,8 +140,10 @@ Another example about **scaled multi-heads attention** component which is the co
         /// <param name="input">The input tensor</param>
         /// <param name="g">The instance of computing graph</param>
         /// <returns></returns>
-        public IWeightTensor Perform(IWeightTensor input, IComputeGraph g)
+        public IWeightTensor Perform(IWeightTensor input, IComputeGraph graph)
         {
+            IComputeGraph g = graph.CreateSubGraph(m_name);
+
             var seqLen = input.Rows / m_batchSize;
 
             //Input projections
@@ -164,8 +167,7 @@ Another example about **scaled multi-heads attention** component which is the co
             var W = g.View(g.Permute(o, 1, 2, 0, 3), m_batchSize * seqLen, m_multiHeadNum * m_d);
 
             // Output projection
-            var b0s = g.RepeatRows(b0, W.Rows);
-            var finalAttResults = g.MulAdd(W, W0, b0s);
+            var finalAttResults = g.Affine(W, W0, b0);
 
             //Skip connection and layer normaliztion
             var addedAttResult = g.Add(finalAttResults, input);
