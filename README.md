@@ -82,6 +82,9 @@ Parameters:
 
 Example: Seq2SeqConsole.exe -TaskName VisualizeNetwork -VisNNFile abc.png -EncoderType Transformer -EncoderLayerDepth 2 -DecoderLayerDepth 2  
 
+Then it will visualize the network looks like below:  
+![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/NetworkViz.png)
+
 # Data Format  
 The corpus contains each sentence per line. The file name pattern is "mainfilename.{source language name}.snt" and "mainfilename.{target language name}.snt".    
 For example: Let's use three letters name CHS for Chinese and ENU for English in Chinese-English parallel corpus, so we could have these corpus files: train01.enu.snt, train01.chs.snt, train02.enu.snt and train02.chs.snt.  
