@@ -1,5 +1,6 @@
 ﻿using Microsoft.Msagl.Drawing;
 using Microsoft.Msagl.Layout.Incremental;
+using Microsoft.Msagl.Layout.Layered;
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -678,10 +679,13 @@ namespace Seq2SeqSharp.Tools
 
         public void VisualizeNeuralNetToFile(string neuralNetPicFilePath)
         {
-            var settings = new FastIncrementalLayoutSettings();
-            settings.AvoidOverlaps = true;
-            settings.NodeSeparation = 30;
-            settings.RouteEdges = true;
+            var fastSettings = new FastIncrementalLayoutSettings();
+            fastSettings.AvoidOverlaps = true;
+            fastSettings.NodeSeparation = 30;
+            fastSettings.RouteEdges = true;
+
+            var settings = new SugiyamaLayoutSettings();
+            settings.FallbackLayoutSettings = fastSettings;
 
             m_opsViz.LayoutAlgorithmSettings = settings;
 
@@ -950,8 +954,8 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor View(IWeightTensor w, params long[] dims)
         {
             var m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(dims, m_deviceId, name: $"{GetHashString(w.Name)}.View");
-            VisualizeNodes(w, res);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(dims, m_deviceId, name: w.Name);
+          //  VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.View(dims);
             if (this.m_needsBackprop)
