@@ -22,51 +22,48 @@ namespace Seq2SeqSharp
         private int m_inputDim;
         private int m_depth;
 
-        private int m_batchSize;
-
-        public BiEncoder(string name, int batchSize, int hiddenDim, int inputDim, int depth, int deviceId)
+        public BiEncoder(string name, int hiddenDim, int inputDim, int depth, int deviceId)
         {
             Logger.WriteLine($"Creating BiLSTM encoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', InputDim = '{inputDim}', Depth = '{depth}'");
 
             m_forwardEncoders = new List<LSTMCell>();
             m_backwardEncoders = new List<LSTMCell>();
 
-            m_forwardEncoders.Add(new LSTMCell($"{name}.Forward_LSTM_0", batchSize, hiddenDim, inputDim, deviceId));
-            m_backwardEncoders.Add(new LSTMCell($"{name}.Backward_LSTM_0", batchSize, hiddenDim, inputDim, deviceId));
+            m_forwardEncoders.Add(new LSTMCell($"{name}.Forward_LSTM_0", hiddenDim, inputDim, deviceId));
+            m_backwardEncoders.Add(new LSTMCell($"{name}.Backward_LSTM_0", hiddenDim, inputDim, deviceId));
 
             for (int i = 1; i < depth; i++)
             {
-                m_forwardEncoders.Add(new LSTMCell($"{name}.Forward_LSTM_{i}", batchSize, hiddenDim, hiddenDim * 2, deviceId));
-                m_backwardEncoders.Add(new LSTMCell($"{name}.Backward_LSTM_{i}", batchSize, hiddenDim, hiddenDim * 2, deviceId));
+                m_forwardEncoders.Add(new LSTMCell($"{name}.Forward_LSTM_{i}", hiddenDim, hiddenDim * 2, deviceId));
+                m_backwardEncoders.Add(new LSTMCell($"{name}.Backward_LSTM_{i}", hiddenDim, hiddenDim * 2, deviceId));
             }
 
             m_hiddenDim = hiddenDim;
             m_inputDim = inputDim;
             m_depth = depth;
-            m_batchSize = batchSize;
         }
 
-        public void Reset(IWeightFactory weightFactory)
+        public void Reset(IWeightFactory weightFactory, int batchSize)
         {
             foreach (var item in m_forwardEncoders)
             {
-                item.Reset(weightFactory);
+                item.Reset(weightFactory, batchSize);
             }
 
             foreach (var item in m_backwardEncoders)
             {
-                item.Reset(weightFactory);
+                item.Reset(weightFactory, batchSize);
             }
         }
 
-        public IWeightTensor Encode(IWeightTensor rawInputs, IComputeGraph g)
+        public IWeightTensor Encode(IWeightTensor rawInputs, int batchSize, IComputeGraph g)
         {
-            int seqLen = rawInputs.Rows / m_batchSize;
+            int seqLen = rawInputs.Rows / batchSize;
 
             List<IWeightTensor> inputs = new List<IWeightTensor>();
             for (int i = 0; i < seqLen; i++)
             {
-                var emb_i = g.PeekRow(rawInputs, i * m_batchSize, m_batchSize);
+                var emb_i = g.PeekRow(rawInputs, i * batchSize, batchSize);
                 inputs.Add(emb_i);
             }
 

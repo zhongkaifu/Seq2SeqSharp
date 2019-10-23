@@ -74,10 +74,5 @@ namespace Seq2SeqSharp.Tools
             weights.Clear();
 
         }
-
-        public IWeightTensor CreateWeights(int row, int column, int deviceId, bool cleanWeights, string name = "", bool isTrainable = false)
-        {
-            return CreateWeightTensor(row, column, deviceId, cleanWeights, name: name, isTrainable: isTrainable);
-        }
     }
 }

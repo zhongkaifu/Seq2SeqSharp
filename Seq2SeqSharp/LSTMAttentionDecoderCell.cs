@@ -17,32 +17,27 @@ namespace Seq2SeqSharp
 
         int m_hdim;
         int m_dim;
-        int m_batchSize;
         int m_deviceId;
         string m_name;
 
         IWeightTensor m_Wxhc;
         IWeightTensor m_b;
 
-        LayerNormalization layerNorm1;
-        LayerNormalization layerNorm2;
+        LayerNormalization m_layerNorm1;
+        LayerNormalization m_layerNorm2;
 
-        public LSTMAttentionDecoderCell(string name, int batchSize, int hdim, int dim, int contextSize, int deviceId)
+        public LSTMAttentionDecoderCell(string name, int hdim, int dim, int contextSize, int deviceId)
         {
             m_name = name;
             m_hdim = hdim;
             m_dim = dim;
             m_deviceId = deviceId;
-            m_batchSize = batchSize;
 
             m_Wxhc = new WeightTensor(new long[2] { dim + hdim + contextSize, hdim * 4 }, deviceId, normal: true, name: $"{name}.{nameof(m_Wxhc)}", isTrainable: true);
             m_b = new WeightTensor(new long[2] { 1, hdim * 4 }, 0, deviceId, name: $"{name}.{nameof(m_b)}", isTrainable: true);
 
-            Hidden = new WeightTensor(new long[2] { batchSize, hdim }, 0, deviceId, name: $"{name}.{nameof(Hidden)}", isTrainable: true);
-            Cell = new WeightTensor(new long[2] { batchSize, hdim }, 0, deviceId, name: $"{name}.{nameof(Cell)}", isTrainable: true);
-
-            layerNorm1 = new LayerNormalization($"{name}.{nameof(layerNorm1)}", hdim * 4, deviceId);
-            layerNorm2 = new LayerNormalization($"{name}.{nameof(layerNorm2)}", hdim, deviceId);
+            m_layerNorm1 = new LayerNormalization($"{name}.{nameof(m_layerNorm1)}", hdim * 4, deviceId);
+            m_layerNorm2 = new LayerNormalization($"{name}.{nameof(m_layerNorm2)}", hdim, deviceId);
         }
 
         /// <summary>
@@ -61,7 +56,7 @@ namespace Seq2SeqSharp
 
             var hxhc = computeGraph.ConcatColumns(input, hidden_prev, context);
             var hhSum = computeGraph.Affine(hxhc, m_Wxhc, m_b);
-            var hhSum2 = layerNorm1.Process(hhSum, computeGraph);
+            var hhSum2 = m_layerNorm1.Norm(hhSum, computeGraph);
 
             (var gates_raw, var cell_write_raw) = computeGraph.SplitColumns(hhSum2, m_hdim * 3, m_hdim);
             var gates = computeGraph.Sigmoid(gates_raw);
@@ -71,7 +66,7 @@ namespace Seq2SeqSharp
 
             // compute new cell activation: ct = forget_gate * cell_prev + input_gate * cell_write
             Cell = computeGraph.EltMulMulAdd(forget_gate, cell_prev, input_gate, cell_write);
-            var ct2 = layerNorm2.Process(Cell, computeGraph);
+            var ct2 = m_layerNorm2.Norm(Cell, computeGraph);
 
             Hidden = computeGraph.EltMul(output_gate, computeGraph.Tanh(ct2));
 
@@ -84,16 +79,16 @@ namespace Seq2SeqSharp
             response.Add(m_Wxhc);
             response.Add(m_b);
 
-            response.AddRange(layerNorm1.getParams());
-            response.AddRange(layerNorm2.getParams());
+            response.AddRange(m_layerNorm1.getParams());
+            response.AddRange(m_layerNorm2.getParams());
 
             return response;
         }
 
-        public void Reset(IWeightFactory weightFactory)
+        public void Reset(IWeightFactory weightFactory, int batchSize)
         {
-            Hidden = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true, name: $"{m_name}.{nameof(Hidden)}", isTrainable: true);
-            Cell = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true, name: $"{m_name}.{nameof(Cell)}", isTrainable: true);
+            Hidden = weightFactory.CreateWeightTensor(batchSize, m_hdim, m_deviceId, true, name: $"{m_name}.{nameof(Hidden)}", isTrainable: true);
+            Cell = weightFactory.CreateWeightTensor(batchSize, m_hdim, m_deviceId, true, name: $"{m_name}.{nameof(Cell)}", isTrainable: true);
         }
 
         public void Save(Stream stream)
@@ -101,8 +96,8 @@ namespace Seq2SeqSharp
             m_Wxhc.Save(stream);
             m_b.Save(stream);
 
-            layerNorm1.Save(stream);
-            layerNorm2.Save(stream);
+            m_layerNorm1.Save(stream);
+            m_layerNorm2.Save(stream);
         }
 
 
@@ -111,8 +106,8 @@ namespace Seq2SeqSharp
             m_Wxhc.Load(stream);
             m_b.Load(stream);
 
-            layerNorm1.Load(stream);
-            layerNorm2.Load(stream);
+            m_layerNorm1.Load(stream);
+            m_layerNorm2.Load(stream);
         }
     }
 }

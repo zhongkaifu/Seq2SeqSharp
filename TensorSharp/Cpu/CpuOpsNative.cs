@@ -169,6 +169,14 @@ namespace TensorSharp.Cpu
 
 
         [DllImport(dll, CallingConvention = cc)]
+        public static extern int TS_AddLayerNorm(IntPtr out_, IntPtr in1_, IntPtr in2_, IntPtr gamma_, IntPtr beta_, float eps, int rows, int cols);
+
+        [DllImport(dll, CallingConvention = cc)]
+        public static extern int TS_AddLayerNormGrad(IntPtr result1, IntPtr result2, IntPtr gradGamma_, IntPtr gradBeta_, IntPtr adj_, IntPtr y_, IntPtr x1_, IntPtr x2_, IntPtr gamma_, IntPtr beta_, int rows, int cols, float eps);
+
+
+
+        [DllImport(dll, CallingConvention = cc)]
         public static extern int TS_Softmax(IntPtr out_, IntPtr in_, int rows, int cols);
 
         [DllImport(dll, CallingConvention = cc)]

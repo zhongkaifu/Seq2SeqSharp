@@ -19,14 +19,13 @@ namespace Seq2SeqSharp
 
         int m_hdim;
         int m_dim;
-        int m_batchSize;
         int m_deviceId;
         string m_name;
 
         LayerNormalization m_layerNorm1;
         LayerNormalization m_layerNorm2;
 
-        public LSTMCell(string name, int batchSize, int hdim, int dim, int deviceId)
+        public LSTMCell(string name, int hdim, int dim, int deviceId)
         {
             m_name = name;
 
@@ -35,7 +34,6 @@ namespace Seq2SeqSharp
 
             m_hdim = hdim;
             m_dim = dim;
-            m_batchSize = batchSize;
             m_deviceId = deviceId;
 
             m_layerNorm1 = new LayerNormalization($"{name}.{nameof(m_layerNorm1)}", hdim * 4, deviceId);
@@ -51,7 +49,7 @@ namespace Seq2SeqSharp
         
             var inputs = innerGraph.ConcatColumns(input, hidden_prev);
             var hhSum = innerGraph.Affine(inputs, m_Wxh, m_b);
-            var hhSum2 = m_layerNorm1.Process(hhSum, innerGraph);
+            var hhSum2 = m_layerNorm1.Norm(hhSum, innerGraph);
 
             (var gates_raw, var cell_write_raw) = innerGraph.SplitColumns(hhSum2, m_hdim * 3, m_hdim);
             var gates = innerGraph.Sigmoid(gates_raw);
@@ -61,7 +59,7 @@ namespace Seq2SeqSharp
 
             // compute new cell activation: ct = forget_gate * cell_prev + input_gate * cell_write
             m_cell = innerGraph.EltMulMulAdd(forget_gate, cell_prev, input_gate, cell_write);
-            var ct2 = m_layerNorm2.Process(m_cell, innerGraph);
+            var ct2 = m_layerNorm2.Norm(m_cell, innerGraph);
 
             // compute hidden state as gated, saturated cell activations
             m_hidden = innerGraph.EltMul(output_gate, innerGraph.Tanh(ct2));
@@ -81,10 +79,10 @@ namespace Seq2SeqSharp
             return response;
         }
 
-        public void Reset(IWeightFactory weightFactory)
+        public void Reset(IWeightFactory weightFactory, int batchSize)
         {
-            m_hidden = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true, name: $"{m_name}.{nameof(m_hidden)}", isTrainable: true);
-            m_cell = weightFactory.CreateWeights(m_batchSize, m_hdim, m_deviceId, true, name: $"{m_name}.{nameof(m_cell)}", isTrainable: true);
+            m_hidden = weightFactory.CreateWeightTensor(batchSize, m_hdim, m_deviceId, true, name: $"{m_name}.{nameof(m_hidden)}", isTrainable: true);
+            m_cell = weightFactory.CreateWeightTensor(batchSize, m_hdim, m_deviceId, true, name: $"{m_name}.{nameof(m_cell)}", isTrainable: true);
         }
 
         public void Save(Stream stream)

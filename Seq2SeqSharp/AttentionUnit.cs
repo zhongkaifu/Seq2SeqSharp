@@ -26,13 +26,11 @@ namespace Seq2SeqSharp
         IWeightTensor m_Wa;
         IWeightTensor m_bWa;
 
-        int m_batchSize;
         string m_name;
 
-        public AttentionUnit(string name, int batchSize, int size, int context, int deviceId)
+        public AttentionUnit(string name, int size, int context, int deviceId)
         {
             m_name = name;
-            m_batchSize = batchSize;
 
             m_Ua = new WeightTensor(new long[2] { context, size }, deviceId, normal: true, name: $"{name}.{nameof(m_Ua)}", isTrainable: true);
             m_Wa = new WeightTensor(new long[2] { size, size }, deviceId, normal:true, name: $"{name}.{nameof(m_Wa)}", isTrainable: true);
@@ -41,36 +39,36 @@ namespace Seq2SeqSharp
             m_V = new WeightTensor(new long[2] { size, 1 }, deviceId, normal:true, name: $"{name}.{nameof(m_V)}", isTrainable: true);
         }
 
-        public AttentionPreProcessResult PreProcess(IWeightTensor inputs, IComputeGraph graph)
+        public AttentionPreProcessResult PreProcess(IWeightTensor inputs, int batchSize, IComputeGraph graph)
         {
             IComputeGraph g = graph.CreateSubGraph(m_name + "_PreProcess");
             AttentionPreProcessResult r = new AttentionPreProcessResult();
 
             r.uhs = g.Affine(inputs, m_Ua, m_bUa);
-            r.inputs = g.TransposeBatch(inputs, m_batchSize);
+            r.inputs = g.TransposeBatch(inputs, batchSize);
 
             return r;
         }
 
-        public IWeightTensor Perform(IWeightTensor state, AttentionPreProcessResult attenPreProcessResult, IComputeGraph graph)
+        public IWeightTensor Perform(IWeightTensor state, AttentionPreProcessResult attenPreProcessResult, int batchSize, IComputeGraph graph)
         {
             IComputeGraph g = graph.CreateSubGraph(m_name);
 
             var wc = g.Affine(state, m_Wa, m_bWa);
-            var wcs = g.RepeatRows(wc, attenPreProcessResult.inputs.Rows / m_batchSize);
+            var wcs = g.RepeatRows(wc, attenPreProcessResult.inputs.Rows / batchSize);
             var ggs = g.AddTanh(attenPreProcessResult.uhs, wcs);
             var atten = g.Mul(ggs, m_V);
 
-            var atten2 = g.TransposeBatch(atten, m_batchSize);
+            var atten2 = g.TransposeBatch(atten, batchSize);
             var attenT = g.Transpose(atten2);
-            var attenT2 = g.View(attenT, m_batchSize, attenPreProcessResult.inputs.Rows / m_batchSize);
+            var attenT2 = g.View(attenT, batchSize, attenPreProcessResult.inputs.Rows / batchSize);
 
-            var attenSoftmax1 = g.Softmax(attenT2);
+            var attenSoftmax1 = g.Softmax(attenT2, inPlace: true);
 
-            var attenSoftmax = g.View(attenSoftmax1, m_batchSize, attenSoftmax1.Rows / m_batchSize, attenSoftmax1.Columns);
-            var inputs2 = g.View(attenPreProcessResult.inputs, m_batchSize, attenPreProcessResult.inputs.Rows / m_batchSize, attenPreProcessResult.inputs.Columns);
+            var attenSoftmax = g.View(attenSoftmax1, batchSize, attenSoftmax1.Rows / batchSize, attenSoftmax1.Columns);
+            var inputs2 = g.View(attenPreProcessResult.inputs, batchSize, attenPreProcessResult.inputs.Rows / batchSize, attenPreProcessResult.inputs.Columns);
 
-            IWeightTensor contexts = g.MulBatch(attenSoftmax, inputs2, m_batchSize);
+            IWeightTensor contexts = g.MulBatch(attenSoftmax, inputs2, batchSize);
 
 
             return contexts;

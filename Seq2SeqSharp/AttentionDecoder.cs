@@ -22,42 +22,42 @@ namespace Seq2SeqSharp
         public AttentionUnit attentionLayer { get; set; }
         private string m_name;
 
-        public AttentionDecoder(string name, int batchSize, int hdim, int dim, int context, int depth, int deviceId)
+        public AttentionDecoder(string name, int hdim, int dim, int context, int depth, int deviceId)
         {
-            attentionLayer = new AttentionUnit($"{name}.AttnUnit", batchSize, hdim, context, deviceId);
+            attentionLayer = new AttentionUnit($"{name}.AttnUnit", hdim, context, deviceId);
             this.hdim = hdim;
             this.dim = dim;
             this.depth = depth;
             m_name = name;
 
-            decoders.Add(new LSTMAttentionDecoderCell($"{name}.LSTMAttn_0", batchSize, hdim, dim, context, deviceId));
+            decoders.Add(new LSTMAttentionDecoderCell($"{name}.LSTMAttn_0", hdim, dim, context, deviceId));
             for (int i = 1; i < depth; i++)
             {
-                decoders.Add(new LSTMAttentionDecoderCell($"{name}.LSTMAttn_{i}", batchSize, hdim, hdim, context, deviceId));
+                decoders.Add(new LSTMAttentionDecoderCell($"{name}.LSTMAttn_{i}", hdim, hdim, context, deviceId));
             }
         }
 
 
-        public void Reset(IWeightFactory weightFactory)
+        public void Reset(IWeightFactory weightFactory, int batchSize)
         {
             foreach (var item in decoders)
             {
-                item.Reset(weightFactory);
+                item.Reset(weightFactory, batchSize);
             }
 
         }
 
-        public AttentionPreProcessResult PreProcess(IWeightTensor encoderOutput, IComputeGraph g)
+        public AttentionPreProcessResult PreProcess(IWeightTensor encoderOutput, int batchSize, IComputeGraph g)
         {
-            return attentionLayer.PreProcess(encoderOutput, g);
+            return attentionLayer.PreProcess(encoderOutput, batchSize, g);
         }
 
 
-        public IWeightTensor Decode(IWeightTensor input, AttentionPreProcessResult attenPreProcessResult, IComputeGraph g)
+        public IWeightTensor Decode(IWeightTensor input, AttentionPreProcessResult attenPreProcessResult, int batchSize, IComputeGraph g)
         {
             var V = input;
             var lastStatus = this.decoders.LastOrDefault().Cell;
-            var context = attentionLayer.Perform(lastStatus, attenPreProcessResult, g);
+            var context = attentionLayer.Perform(lastStatus, attenPreProcessResult, batchSize, g);
 
             foreach (var decoder in decoders)
             {

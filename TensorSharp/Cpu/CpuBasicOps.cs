@@ -510,6 +510,30 @@ namespace TensorSharp.Cpu
             return writeTarget;
         }
 
+
+
+        private MethodInfo addlayerNorm_func = NativeWrapper.GetMethod("TS_AddLayerNorm");
+        [RegisterOpStorageType("addlayernorm", typeof(CpuStorage))]
+        public Tensor AddLayerNorm(Tensor result, Tensor src1, Tensor src2, Tensor gamma_, Tensor beta_, float eps)
+        {
+            var writeTarget = TensorResultBuilder.GetWriteTarget(result, src1, false, src1.Sizes);
+            NativeWrapper.InvokeTypeMatch(addlayerNorm_func, writeTarget, src1, src2, gamma_, beta_, eps, (int)src1.Sizes[0], (int)src1.Sizes[1]);
+            return writeTarget;
+        }
+
+        private MethodInfo addlayerNormGrad_func = NativeWrapper.GetMethod("TS_AddLayerNormGrad");
+        [RegisterOpStorageType("addlayernormgrad", typeof(CpuStorage))]
+        public void AddLayerNormGrad(Tensor result1, Tensor result2, Tensor gradGamma_, Tensor gradBeta_, Tensor adj_, Tensor y_, Tensor x1_, Tensor x2_, Tensor gamma_, Tensor beta_, float eps)
+        {
+            var writeTarget1 = TensorResultBuilder.GetWriteTarget(result1, adj_, false, adj_.Sizes);
+            var writeTarget2 = TensorResultBuilder.GetWriteTarget(result2, adj_, false, adj_.Sizes);
+            NativeWrapper.InvokeTypeMatch(addlayerNormGrad_func, writeTarget1, writeTarget2, gradGamma_, gradBeta_, adj_, y_, x1_, x2_, gamma_, beta_, (int)adj_.Sizes[0], (int)adj_.Sizes[1], eps);
+        }
+
+
+
+
+
         private MethodInfo softmax_func = NativeWrapper.GetMethod("TS_Softmax");
         [RegisterOpStorageType("softmax", typeof(CpuStorage))]
         public Tensor Softmax(Tensor result, Tensor src)

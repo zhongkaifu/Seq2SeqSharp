@@ -15,7 +15,18 @@ namespace Seq2SeqSharp.Tools
         public string[] TgtSnt;
     }
 
-    public class Corpus : IEnumerable<SntPair>
+    public class SntPairBatch
+    {
+        public List<SntPair> SntPairs; 
+        public int BatchSize { get { return SntPairs.Count; } }
+
+        public SntPairBatch(List<SntPair> sntPairs)
+        {
+            SntPairs = sntPairs;
+        }
+    }
+
+    public class Corpus : IEnumerable<SntPairBatch>
     {
         int m_maxSentLength = 32;
         int m_blockSize = 1000000;
@@ -30,6 +41,10 @@ namespace Seq2SeqSharp.Tools
         public int CorpusSize = 0;
 
         public int BatchSize { get { return m_batchSize; } }
+
+        public const string EOS = "<END>";
+        public const string BOS = "<START>";
+
 
         void Shuffle(List<SntPair> sntPairs)
         {
@@ -125,11 +140,11 @@ namespace Seq2SeqSharp.Tools
                     {
                         break;
                     }
-
-                    sntPair.SrcSnt = line.ToLower().Trim().Split(' ').ToArray();
+                
+                    sntPair.SrcSnt = line.Split(new char[]{ ' '}, StringSplitOptions.RemoveEmptyEntries);
 
                     line = srTgt.ReadLine();
-                    sntPair.TgtSnt = line.ToLower().Trim().Split(' ').ToArray();
+                    sntPair.TgtSnt = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
                     if (sntPair.SrcSnt.Length >= m_maxSentLength || sntPair.TgtSnt.Length >= m_maxSentLength)
                     {
@@ -177,7 +192,7 @@ namespace Seq2SeqSharp.Tools
             Logger.WriteLine($"Found {tooLongSntCnt} sentences are longer than '{m_maxSentLength}' tokens, ignore them.");
         }
 
-        public IEnumerator<SntPair> GetEnumerator()
+        public IEnumerator<SntPairBatch> GetEnumerator()
         {            
             ShuffleAll(true);
 
@@ -185,7 +200,7 @@ namespace Seq2SeqSharp.Tools
             StreamReader srTgt = new StreamReader(m_tgtShuffledFilePath);
             Random rnd = new Random(DateTime.Now.Millisecond);
             int lastSrcSntLen = -1;
-            const int maxOutputsSize = 1000000;
+            int maxOutputsSize = m_batchSize * 10000;
             List<SntPair> outputs = new List<SntPair>();
 
             while (true)
@@ -196,13 +211,16 @@ namespace Seq2SeqSharp.Tools
                 {
                     break;
                 }
-                sntPair.SrcSnt = line.ToLower().Trim().Split(' ').ToArray();
+
+                line = $"{BOS} {line.ToLower().Trim()} {EOS}";
+                sntPair.SrcSnt = line.Split(' ');
 
                 line = srTgt.ReadLine();
-                sntPair.TgtSnt = line.ToLower().Trim().Split(' ').ToArray();
+                sntPair.TgtSnt = line.ToLower().Trim().Split(' ');
 
                 if ((lastSrcSntLen > 0 && lastSrcSntLen != sntPair.SrcSnt.Length) || outputs.Count > maxOutputsSize)
                 {
+                    // The length of current src sentence is different the previous one, so let's do mini shuffle and return it
                     for (int i = 0; i < outputs.Count; i++)
                     {
                         int idx = rnd.Next(0, outputs.Count);
@@ -211,9 +229,12 @@ namespace Seq2SeqSharp.Tools
                         outputs[idx] = tmp;
                     }
 
-                    foreach (var sntPairItem in outputs)
+                    //float y = ((float)outputs[0].SrcSnt.Length / (float)m_maxSentLength);
+                    //int batchSize = Math.Max(1, m_batchSize / (int)Math.Pow(2, (int)(y * y)));
+                    for (int i = 0; i < outputs.Count; i += m_batchSize)
                     {
-                        yield return sntPairItem;
+                        int size = Math.Min(m_batchSize, outputs.Count - i);
+                        yield return new SntPairBatch(outputs.GetRange(i, size));
                     }
 
                     outputs.Clear();
@@ -234,9 +255,12 @@ namespace Seq2SeqSharp.Tools
                 outputs[idx] = tmp;
             }
 
-            foreach (var sntPairItem in outputs)
+            //float y2 = ((float)outputs[0].SrcSnt.Length / (float)m_maxSentLength);
+            //int batchSize2 = Math.Max(1, m_batchSize / (int)Math.Pow(2, (int)(y2 * y2)));
+            for (int i = 0; i < outputs.Count; i += m_batchSize)
             {
-                yield return sntPairItem;
+                int size = Math.Min(m_batchSize, outputs.Count - i);
+                yield return new SntPairBatch(outputs.GetRange(i, size));
             }
         }
 

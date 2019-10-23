@@ -218,8 +218,7 @@ namespace Seq2SeqSharp.Tools
             TWeight.SetElementsAsFloat(val, row, 0);
         }
 
-
-        public void SetGradientByWeight(IWeightTensor src)
+        public void CopyWeightsToGradients(IWeightTensor src)
         {
             WeightTensor m = src as WeightTensor;
 
@@ -227,10 +226,23 @@ namespace Seq2SeqSharp.Tools
             {
                 m_TGradient.Dispose();
             }
-            m_TGradient = m.TWeight;
 
-            m.m_TWeight = null;
+            m_TGradient = m.TWeight.CopyRef();
         }
+    
+
+        //public void SetGradientByWeight(IWeightTensor src)
+        //{
+        //    WeightTensor m = src as WeightTensor;
+
+        //    if (m_TGradient != null)
+        //    {
+        //        m_TGradient.Dispose();
+        //    }
+        //    m_TGradient = m.TWeight;
+
+        //    m.m_TWeight = null;
+        //}
 
         public void CopyWeights(IWeightTensor src)
         {
@@ -258,7 +270,7 @@ namespace Seq2SeqSharp.Tools
             return TWeight.GetElementsAsFloat(Rows * Columns);
         }
 
-        public void AddSoftmaxGradient(WeightTensor src)
+        public void AddSoftmaxGradient(WeightTensor src, bool inPlace = false)
         {
             if (m_TGradient == null)
             {
@@ -268,7 +280,7 @@ namespace Seq2SeqSharp.Tools
             }
             else
             {
-                Ops.SoftmaxGrad(m_TGradient, src.TGradient, src.TWeight);
+                Ops.SoftmaxGrad(m_TGradient, src.TGradient, src.TWeight, !inPlace);
             }
         }
 
@@ -301,7 +313,7 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        public void AddMulGradient(Tensor w, Tensor g)
+        public void AddMulGradient(Tensor w, Tensor g, bool inPlace = false)
         {
             if (m_TGradient == null)
             {
@@ -311,7 +323,14 @@ namespace Seq2SeqSharp.Tools
             }
             else
             {
-                Ops.AddMul(m_TGradient, m_TGradient, w, g);
+                if (inPlace)
+                {
+                    Ops.Mul(m_TGradient, w, g);
+                }
+                else
+                {
+                    Ops.AddMul(m_TGradient, m_TGradient, w, g);
+                }
             }
         }
 
@@ -362,6 +381,17 @@ namespace Seq2SeqSharp.Tools
         public void SetWeightArray(float[] v)
         {
             TWeight.SetElementsAsFloat(v);
+        }
+
+        public WeightTensor CopyWeightsRef(string name)
+        {
+            WeightTensor result = new WeightTensor(Sizes, DeviceId, name);
+
+            result.m_TWeight = m_TWeight.CopyRef();
+            //result.m_TGradient = m_TGradient.CopyRef();
+            //result.m_TCache = m_TCache.CopyRef();
+
+            return result;
         }
 
         public void Dispose()

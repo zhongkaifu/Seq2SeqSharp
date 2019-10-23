@@ -195,6 +195,207 @@ __global__ void gLayerNormalizationGrad(float* gradX,
 
 
 
+
+
+
+
+
+__global__ void gAddLNormalization(float* out,
+                                const float* in1,
+                                const float* in2,
+                                const float* alpha,
+                                const float* beta,
+                                int rows,
+                                int cols,
+                                float eps = 1e-9) {
+  extern __shared__ float _share[];
+
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float* so = out + j * cols;
+      const float* sp1 = in1 + j * cols;
+      const float* sp2 = in2 + j * cols;
+
+      float* _sum = _share;
+      _sum[threadIdx.x] = 0.0f;
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          _sum[threadIdx.x] += (sp1[id] + sp2[id]);
+        }
+      }
+      __syncthreads();
+      int len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1)) {
+          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+        }
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+      float mean = _sum[0] / cols;
+      __syncthreads();
+
+      float* _sqSum = _share;
+
+      _sqSum[threadIdx.x] = 0.0;
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          float ex = (sp1[id] + sp2[id]) - mean;
+          _sqSum[threadIdx.x] += ex * ex;
+        }
+      }
+      __syncthreads();
+      len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1))
+          _sqSum[threadIdx.x] += _sqSum[threadIdx.x + skip];
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+      float sigma = sqrtf(eps + (_sqSum[0] / cols));
+      __syncthreads();
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          float t = alpha[id] * (((sp1[id] + sp2[id]) - mean) / sigma);
+          if(beta)
+            t += beta[id];
+          so[id] = t;
+        }
+      }
+    }
+    __syncthreads();
+  }
+}
+
+
+
+
+
+
+__global__ void gAddLayerNormalizationGrad(float* gradX1,
+                                        float* gradX2,
+                                        float* gradGamma,
+                                        float* gradBeta,
+                                        float* adj,
+                                        float* y,
+                                        float* x1,
+                                        float* x2,
+                                        float* gamma,
+                                        float* beta,
+                                        int rows,
+                                        int cols,
+                                        float eps = 1e-9) {
+  extern __shared__ float shared[];
+
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float* sum_adj = shared;
+      float* sum_adj_x = shared + blockDim.x;
+      float* sum_x = shared + 2 * blockDim.x;
+      float* sum_sqr = shared + 3 * blockDim.x;
+
+      const float* x1Row = x1 + j * cols;
+      const float* x2Row = x2 + j * cols;
+      const float* yRow = y + j * cols;
+      const float* adjRow = adj + j * cols;
+      float* gradX1Row = gradX1 + j * cols;
+      float* gradX2Row = gradX2 + j * cols;
+
+      sum_x[threadIdx.x] = 0.0f;
+      sum_adj[threadIdx.x] = 0.0f;
+      sum_adj_x[threadIdx.x] = 0.0f;
+      sum_sqr[threadIdx.x] = 0.0f;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          sum_x[threadIdx.x] += (x1Row[id] + x2Row[id]);
+          sum_adj_x[threadIdx.x]
+              += adjRow[id] * (yRow[id] - ((beta) ? beta[id] : 0)) / gamma[id];
+          sum_adj[threadIdx.x] += adjRow[id];
+        }
+      }
+      __syncthreads();
+      int len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1)) {
+          sum_x[threadIdx.x] += sum_x[threadIdx.x + skip];
+          sum_adj[threadIdx.x] += sum_adj[threadIdx.x + skip];
+          sum_adj_x[threadIdx.x] += sum_adj_x[threadIdx.x + skip];
+        }
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+      float mean = sum_x[0] / cols;
+      __syncthreads();
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          float ex = (x1Row[id] + x2Row[id]) - mean;
+          sum_sqr[threadIdx.x] += ex * ex;
+        }
+      }
+
+      __syncthreads();
+      len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1))
+          sum_sqr[threadIdx.x] += sum_sqr[threadIdx.x + skip];
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+      float sigma = sqrtf(eps + (sum_sqr[0] / cols));
+      __syncthreads();
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          float grad_x = 0.0f;
+          float x_hat = (yRow[id] - ((beta) ? beta[id] : 0)) / gamma[id];
+          grad_x += cols * adjRow[id];
+          grad_x -= sum_adj[0];
+          grad_x -= sum_adj_x[0] * x_hat;
+          grad_x /= (cols * sigma);
+
+          float valX = gamma[id] * grad_x;
+          float sign = (0.f < valX) - (valX < 0.f);
+          valX = fabs(valX) > 1000 ? sign * 1000 : valX;
+
+          gradX1Row[id] += valX;
+          gradX2Row[id] += valX;
+          atomicAdd(gradGamma + id, adjRow[id] * x_hat);
+          if(beta) {
+            atomicAdd(gradBeta + id, adjRow[id]);
+          }
+        }
+      }
+    }
+    __syncthreads();
+  }
+}
+
+
+
+
+
+
+
+
 __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __restrict__ c, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
 {
   for(int bid = 0; bid < rows; bid += gridDim.x) 
@@ -236,7 +437,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 }
 
 
-  __global__ void gSoftmaxGrad(float* __restrict__ grad, float* __restrict__ adj, float* __restrict__ val, int rows, int cols, int addGrad)
+  __global__ void gSoftmaxGrad(float* grad, float* adj, float* val, int rows, int cols, int addGrad)
   {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -278,10 +479,6 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-        //  float val = valRow[id] * (adjRow[id] - sum);
-        //  if(val)
-        //    gradRow[id] += val;
-
          gradRow[id] -= sum * valRow[id];
         }
       }
@@ -290,7 +487,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
   }
 }
 
-  __global__ void gSoftmax(float* __restrict__ out, float* __restrict__ in, unsigned rows, unsigned cols)
+  __global__ void gSoftmax(float* out, float* in, unsigned rows, unsigned cols)
   {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -415,6 +612,49 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
         }
 
+        public void AddLayerNormGrad(Tensor out1Grad, Tensor out2Grad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x1, Tensor x2, Tensor alpha, Tensor beta, float eps = 1e-9f)
+        {
+            var context = CudaHelpers.TSContextForTensor(inGrad);
+            var writeTarget1 = TensorResultBuilder.GetWriteTarget(out1Grad, inGrad, false, inGrad.Sizes);
+            var writeTarget2 = TensorResultBuilder.GetWriteTarget(out2Grad, inGrad, false, inGrad.Sizes);
+            AddLayerNormGrad(context, writeTarget1, writeTarget2, alphaGrad, betaGrad, inGrad, y, x1, x2, alpha, beta, eps);
+        }
+
+        private void AddLayerNormGrad(TSCudaContext context, Tensor out1Grad, Tensor out2Grad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x1, Tensor x2, Tensor alpha, Tensor beta, float eps = 1e-9f)
+        {
+            var cudaContext = context.CudaContextForTensor(inGrad);
+
+            cudaContext.SetCurrent();
+
+            var rows = inGrad.Sizes[0];
+            var cols = inGrad.Sizes[1];
+
+            var ndim = inGrad.DimensionCount;
+            long num_rows = 1;
+            for (var dim = 0; dim < ndim - 1; dim++)
+            {
+                num_rows *= inGrad.Sizes[dim];
+            }
+
+            var threads = new dim3((uint)Math.Min(512, num_rows));
+            var grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
+
+            var out1GradPtr = CudaHelpers.GetBufferStart(out1Grad);
+            var out2GradPtr = CudaHelpers.GetBufferStart(out2Grad);
+            var alphaGradPtr = CudaHelpers.GetBufferStart(alphaGrad);
+            var betaGradPtr = CudaHelpers.GetBufferStart(betaGrad);
+            var inGradPtr = CudaHelpers.GetBufferStart(inGrad);
+            var yPtr = CudaHelpers.GetBufferStart(y);
+            var x1Ptr = CudaHelpers.GetBufferStart(x1);
+            var x2Ptr = CudaHelpers.GetBufferStart(x2);
+            var alphaPtr = CudaHelpers.GetBufferStart(alpha);
+            var betaPtr = CudaHelpers.GetBufferStart(beta);
+
+
+            Invoke(context, cudaContext, "gAddLayerNormalizationGrad", grid, threads, (uint)(threads.x * sizeof(float)) * 4, CUstream.NullStream, out1GradPtr, out2GradPtr, alphaGradPtr, betaGradPtr, inGradPtr, yPtr, x1Ptr, x2Ptr, alphaPtr, betaPtr, rows, cols, eps);
+
+        }
+
 
         public Tensor LayerNorm(Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-9f)
         {
@@ -455,8 +695,46 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
         }
 
+        public Tensor AddLayerNorm(Tensor result, Tensor src1, Tensor src2, Tensor alpha, Tensor beta, float eps = 1e-9f)
+        {
+            var context = CudaHelpers.TSContextForTensor(src1);
+            var writeTarget = TensorResultBuilder.GetWriteTarget(result, src1, false, src1.Sizes);
+            AddLayerNorm(context, writeTarget, src1, src2, alpha, beta, eps);
 
-     
+            return writeTarget;
+        }
+
+        private void AddLayerNorm(TSCudaContext context, Tensor result, Tensor src1, Tensor src2, Tensor alpha, Tensor beta, float eps = 1e-9f)
+        {
+            var cudaContext = context.CudaContextForTensor(src1);
+
+            cudaContext.SetCurrent();
+
+            var rows = src1.Sizes[0];
+            var cols = src1.Sizes[1];
+
+            var ndim = src1.DimensionCount;
+            long num_rows = 1;
+            for (var dim = 0; dim < ndim - 1; dim++)
+            {
+                num_rows *= src1.Sizes[dim];
+            }
+
+            var threads = new dim3((uint)Math.Min(512, num_rows));
+            var grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
+
+            var resultPtr = CudaHelpers.GetBufferStart(result);
+            var src1Ptr = CudaHelpers.GetBufferStart(src1);
+            var src2Ptr = CudaHelpers.GetBufferStart(src2);
+            var alphaPtr = CudaHelpers.GetBufferStart(alpha);
+            var betaPtr = CudaHelpers.GetBufferStart(beta);
+
+
+            Invoke(context, cudaContext, "gAddLNormalization", grid, threads, (uint)(threads.x * sizeof(float)), CUstream.NullStream, resultPtr, src1Ptr, src2Ptr, alphaPtr, betaPtr, rows, cols, eps);
+
+        }
+
+
         private void Softmax(TSCudaContext context, Tensor result, Tensor src)
         {
             var cudaContext = context.CudaContextForTensor(src);

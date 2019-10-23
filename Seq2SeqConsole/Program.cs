@@ -33,7 +33,7 @@ namespace Seq2SeqConsole
                     wordPerSec = ep.ProcessedWordsInTotal / ts.TotalSeconds;
                 }
 
-                Logger.WriteLine($"Update = '{ep.Update}' Epoch = '{ep.Epoch}' LR = '{ep.LearningRate.ToString("F6")}', Current Cost = '{ep.CostPerWord.ToString("F6")}', Avg Cost = '{ep.avgCostInTotal.ToString("F6")}', SentInTotal = '{ep.ProcessedSentencesInTotal}', SentPerMin = '{sentPerMin.ToString("F")}', WordPerSec = '{wordPerSec.ToString("F")}'");
+                Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate.ToString("F6")}, Cost = {ep.CostPerWord.ToString("F4")}, AvgCost = {ep.AvgCostInTotal.ToString("F4")}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin.ToString("F")}, WordPerSec = {wordPerSec.ToString("F")}, Batch = {ep.BatchSize}");
             }
 
         }
@@ -64,8 +64,7 @@ namespace Seq2SeqConsole
             {
                 ShowOptions(args, opts);
 
-                Corpus trainCorpus = new Corpus(opts.TrainCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize * deviceIds.Length,
-                    opts.ShuffleBlockSize, opts.MaxSentLength);
+                Corpus trainCorpus = new Corpus(opts.TrainCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
                 if (File.Exists(opts.ModelFilePath) == false)
                 {
                     //New training
@@ -73,23 +72,24 @@ namespace Seq2SeqConsole
                         trainCorpus: trainCorpus, srcVocabFilePath: opts.SrcVocab, tgtVocabFilePath: opts.TgtVocab,
                         srcEmbeddingFilePath: opts.SrcEmbeddingModelFilePath, tgtEmbeddingFilePath: opts.TgtEmbeddingModelFilePath,
                         modelFilePath: opts.ModelFilePath, batchSize: opts.BatchSize, dropoutRatio: opts.DropoutRatio,
-                        archType: archType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, warmupSteps: opts.WarmUpSteps, encoderType: encoderType);
+                        archType: archType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, warmupSteps: opts.WarmUpSteps, gradClip: opts.GradClip, encoderType: encoderType);
                 }
                 else
                 {
                     //Incremental training
                     Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
-                    ss = new AttentionSeq2Seq(opts.ModelFilePath, opts.BatchSize, archType, deviceIds);
+                    ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, batchSize: opts.BatchSize, archType: archType, dropoutRatio: opts.DropoutRatio, gradClip: opts.GradClip, 
+                        deviceIds: deviceIds);
                     ss.TrainCorpus = trainCorpus;
                 }
 
                 ss.IterationDone += ss_IterationDone;
-                ss.Train(opts.MaxEpochNum, opts.LearningRate, opts.GradClip);
+                ss.Train(opts.MaxEpochNum, opts.LearningRate);
             }
             else if (mode == ModeEnums.Test)
             {
                 //Test trained model
-                ss = new AttentionSeq2Seq(opts.ModelFilePath, 1, archType, deviceIds);
+                ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, batchSize: 1, archType: archType, dropoutRatio: 0.0f, gradClip: 0.0f, deviceIds: deviceIds);
 
                 List<string> outputLines = new List<string>();
                 var data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
@@ -108,7 +108,7 @@ namespace Seq2SeqConsole
                     srcEmbeddingFilePath: null, tgtEmbeddingFilePath: null,
                     modelFilePath: opts.ModelFilePath, batchSize: 1, dropoutRatio: opts.DropoutRatio,
                     archType: archType, deviceIds: new int[1] { 0 }, multiHeadNum: opts.MultiHeadNum, 
-                    warmupSteps: opts.WarmUpSteps, encoderType: encoderType);
+                    warmupSteps: opts.WarmUpSteps, gradClip: opts.GradClip, encoderType: encoderType);
 
                 ss.VisualizeNeuralNetwork(opts.VisualizeNNFilePath);
             }
@@ -126,8 +126,6 @@ namespace Seq2SeqConsole
 
             Logger.WriteLine($"Source Language = '{options.SrcLang}'");
             Logger.WriteLine($"Target Language = '{options.TgtLang}'");
-            Logger.WriteLine($"SSE Enable = '{System.Numerics.Vector.IsHardwareAccelerated}'");
-            Logger.WriteLine($"SSE Size = '{System.Numerics.Vector<float>.Count * 32}'");
             Logger.WriteLine($"Processor counter = '{Environment.ProcessorCount}'");
             Logger.WriteLine($"Hidden Size = '{options.HiddenSize}'");
             Logger.WriteLine($"Word Vector Size = '{options.WordVectorSize}'");
@@ -140,8 +138,8 @@ namespace Seq2SeqConsole
             Logger.WriteLine($"Arch Type = '{options.ArchType}'");
             Logger.WriteLine($"Encoder Type = '{options.EncoderType}'");
             Logger.WriteLine($"Device Ids = '{options.DeviceIds}'");
-            Logger.WriteLine($"Maxmium Epoch Number = '{options.MaxEpochNum}'");
             Logger.WriteLine($"Maxmium Sentence Length = '{options.MaxSentLength}'");
+            Logger.WriteLine($"Maxmium Epoch Number = '{options.MaxEpochNum}'");
             Logger.WriteLine($"Warming Up Steps = '{options.WarmUpSteps}'");
         }
     }

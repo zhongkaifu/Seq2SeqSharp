@@ -22,7 +22,9 @@ namespace Seq2SeqSharp.Tools
         float GetWeightAt(int offset);
         void SetWeightAt(float val, int offset);
 
-        void SetGradientByWeight(IWeightTensor src);
+        void CopyWeightsToGradients(IWeightTensor src);
+
+        //void SetGradientByWeight(IWeightTensor src);
 
         void SetWeightAtRow(int row, float[] val);
 

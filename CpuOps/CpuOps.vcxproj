@@ -241,6 +241,7 @@
     <ClCompile Include="General.cpp" />
     <ClCompile Include="MaxPoolingFrame.cpp" />
     <ClCompile Include="RandomGenerator.cpp" />
+    <ClCompile Include="LayerNormOps.cpp" />
     <ClCompile Include="TensorRandom.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -249,6 +250,7 @@
     <ClInclude Include="DimensionwiseOps.h" />
     <ClInclude Include="GatherScatterOps.h" />
     <ClInclude Include="General.h" />
+    <ClInclude Include="LayerNormOps.h" />
     <ClInclude Include="MaxPoolingFrame.h" />
     <ClInclude Include="RandomGenerator.h" />
     <ClInclude Include="TensorApply-inl.h" />

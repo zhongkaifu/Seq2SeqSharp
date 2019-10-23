@@ -19,13 +19,13 @@ namespace Seq2SeqSharp
         public int dim { get; set; }
         public int depth { get; set; }
 
-        public Encoder(string name, int batchSize, int hdim, int dim, int depth, int deviceId)
+        public Encoder(string name, int hdim, int dim, int depth, int deviceId)
         {
-            encoders.Add(new LSTMCell($"{name}.LSTM_0", batchSize, hdim, dim, deviceId));
+            encoders.Add(new LSTMCell($"{name}.LSTM_0", hdim, dim, deviceId));
 
             for (int i = 1; i < depth; i++)
             {
-                encoders.Add(new LSTMCell($"{name}.LSTM_{i}", batchSize, hdim, hdim, deviceId));
+                encoders.Add(new LSTMCell($"{name}.LSTM_{i}", hdim, hdim, deviceId));
 
             }
             this.hdim = hdim;
@@ -33,11 +33,11 @@ namespace Seq2SeqSharp
             this.depth = depth;
         }
 
-        public void Reset(IWeightFactory weightFactory)
+        public void Reset(IWeightFactory weightFactory, int batchSize)
         {
             foreach (var item in encoders)
             {
-                item.Reset(weightFactory);
+                item.Reset(weightFactory, batchSize);
             }
 
         }
