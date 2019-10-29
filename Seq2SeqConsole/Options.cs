@@ -19,8 +19,11 @@ namespace Seq2SeqConsole
         [Arg("The hidden layer size of encoder and decoder.", "HiddenSize")]
         public int HiddenSize = 128;
 
-        [Arg("Learning rate.", "LearningRate")]
-        public float LearningRate = 0.0003f;
+        [Arg("Start Learning rate.", "StartLearningRate")]
+        public float StartLearningRate = 0.0003f;
+
+        [Arg("The number of updates for weights", "WeightsUpdateCount")]
+        public int WeightsUpdateCount = 0;
 
         [Arg("The network depth in encoder.", "EncoderLayerDepth")]
         public int EncoderLayerDepth = 1;

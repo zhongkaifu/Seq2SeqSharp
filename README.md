@@ -185,6 +185,44 @@ Another example about **scaled multi-heads attention** component which is the co
             return normAddFFNResult;
         }
 ```
+# Build Your Operations  
+Seq2SeqSharp includes many built-in operations for neural networks. You can visit IComputeGraph.cs to get interfaces and ComputeGraphTensor.cs to get implementation.  
+You can also implement your customized operations. Here is an example for "w1 * w2 + w3 * w4" in a single operation. The forward part includes 1) create result tensor and 2) call inner-operation "Ops.MulMulAdd".  
+And the backward part is in "backward" action that the gradients of each input tensor(w?) will be added by the product between weights of input tensor(w?) and gradients of the output tensor(res).  
+If the operations is for forward part only, you can completely ignore "backward" action.  
+
+```c#
+        public IWeightTensor EltMulMulAdd(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3, IWeightTensor w4)
+        {
+            var m1 = w1 as WeightTensor;
+            var m2 = w2 as WeightTensor;
+            var m3 = w3 as WeightTensor;
+            var m4 = w4 as WeightTensor;
+
+            var res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name, w3.Name, w4.Name)}.EltMulMulAdd");
+            VisualizeNodes(new IWeightTensor[] { w1, w2, w3, w4 }, res);
+
+            Ops.MulMulAdd(res.TWeight, m1.TWeight, m2.TWeight, m3.TWeight, m4.TWeight);
+            if (m_needsBackprop)
+            {
+                Action backward = () =>
+                {
+                    res.ReleaseWeight();
+
+                    m1.AddMulGradient(m2.TWeight, res.TGradient);
+                    m2.AddMulGradient(m1.TWeight, res.TGradient);
+
+                    m3.AddMulGradient(m4.TWeight, res.TGradient);
+                    m4.AddMulGradient(m3.TWeight, res.TGradient);
+
+                    res.Dispose();
+                };
+                this.m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+```
 
 # Todo List  
 If you are interested in below items, please let me know. Becuase African proverb says "If you want to go fast, go alone. If you want to go far, go together" :)  

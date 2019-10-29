@@ -21,7 +21,5 @@ namespace Seq2SeqSharp
         public DateTime StartDateTime { get; set; }
 
         public float LearningRate { get; set; }
-
-        public int BatchSize;
     }
 }

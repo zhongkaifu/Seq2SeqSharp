@@ -150,7 +150,7 @@ namespace Seq2SeqSharp.Tools
 
             Ops.Sigmoid(res.TWeight, m.TWeight);
 
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -172,7 +172,7 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(new IWeightTensor[] { w1, w2 }, res);
 
             Ops.AddTanh(res.TWeight, m1.TWeight, m2.TWeight);
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -195,7 +195,7 @@ namespace Seq2SeqSharp.Tools
 
             Ops.Mul(res.TWeight, m.TWeight, v);
 
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -226,7 +226,7 @@ namespace Seq2SeqSharp.Tools
 
             Ops.AddMulV(res.TWeight, m1.TWeight, m2.TWeight, v);
 
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -250,7 +250,14 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 		
-
+        /// <summary>
+        /// Result = w1 * w2 + w3 * w4
+        /// </summary>
+        /// <param name="w1"></param>
+        /// <param name="w2"></param>
+        /// <param name="w3"></param>
+        /// <param name="w4"></param>
+        /// <returns></returns>
         public IWeightTensor EltMulMulAdd(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3, IWeightTensor w4)
         {
             var m1 = w1 as WeightTensor;
@@ -262,7 +269,7 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(new IWeightTensor[] { w1, w2, w3, w4 }, res);
 
             Ops.MulMulAdd(res.TWeight, m1.TWeight, m2.TWeight, m3.TWeight, m4.TWeight);
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -290,7 +297,7 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(new IWeightTensor[] { w1, w2 }, res);
 
             Ops.Mul(res.TWeight, m1.TWeight, m2.TWeight);
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -316,7 +323,7 @@ namespace Seq2SeqSharp.Tools
 
             Ops.Add(res.TWeight, m1.TWeight, m2.TWeight);
 
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -347,7 +354,7 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             Ops.Tanh(res.TWeight, m.TWeight);
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -368,7 +375,7 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             Ops.Relu(res.TWeight, m.TWeight);
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -395,7 +402,7 @@ namespace Seq2SeqSharp.Tools
                 Ops.AddmmBatch(rW, 0.0f, rW, alpha, t1W, t2W);
             }
 
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -439,7 +446,7 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(new IWeightTensor[] { m1, m2 }, res);
 
             Ops.Addmm(res.TWeight, 0.0f, res.TWeight, 1.0f, t1.TWeight, t2.TWeight);
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -479,7 +486,7 @@ namespace Seq2SeqSharp.Tools
                 Ops.Addmm(res.TWeight, 1.0f, t3WExp, 1.0f, t1.TWeight, t2.TWeight);
             }
 
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -516,7 +523,7 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.Transpose();
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -550,7 +557,7 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             Ops.Softmax(res.TWeight, m.TWeight);
-            if (this.m_needsBackprop && runGradients)
+            if (m_needsBackprop && runGradients)
             {
                 Action backward = () =>
                 {
@@ -573,11 +580,11 @@ namespace Seq2SeqSharp.Tools
             WeightTensor m = w as WeightTensor;
             var res = m_weightTensorFactory.CreateWeightTensor(num, m.Columns, m_deviceId, name: $"{GetHashString(w.Name)}.PeekRow");
             res.TWeight = m.TWeight.Narrow(0, ix, num);
-            res.TGradient = (m.TGradient != null && runGradients) ? m.TGradient.Narrow(0, ix, num) : null;
+            res.TGradient = runGradients ? m.TGradient.Narrow(0, ix, num) : null;
 
             VisualizeNodes(w, res);
 
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -698,7 +705,7 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.RepeatTensor(n, 1);
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -750,7 +757,7 @@ namespace Seq2SeqSharp.Tools
 
             Ops.Concat(res.TWeight, 0, twl.ToArray());
 
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -792,7 +799,7 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -845,7 +852,7 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(wl, res);
 
             Ops.Concat(res.TWeight, 1, twl.ToArray());
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -887,7 +894,7 @@ namespace Seq2SeqSharp.Tools
             }
 
 
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -925,7 +932,7 @@ namespace Seq2SeqSharp.Tools
                 res.TWeight = Ops.AsContiguous(tWPremute);
             }
 
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -949,7 +956,7 @@ namespace Seq2SeqSharp.Tools
           //  VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.View(dims);
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -1007,11 +1014,11 @@ namespace Seq2SeqSharp.Tools
             var alphaTWExp = alphaT.TWeight.Expand(src.Rows, src.Columns);
             var betaTWExp = betaT.TWeight.Expand(src.Rows, src.Columns);
 
-            var res = m_weightTensorFactory.CreateWeightTensor(src.Rows, src.Columns, m_deviceId, name:$"{GetHashString(src.Name, alpha.Name, beta.Name)}.LayerNorm");
+            var res = m_weightTensorFactory.CreateWeightTensor(srcT.Sizes, m_deviceId, name:$"{GetHashString(src.Name, alpha.Name, beta.Name)}.LayerNorm");
             VisualizeNodes(new IWeightTensor[] { src, alpha, beta }, res);
 
             Ops.LayerNorm(res.TWeight, srcT.TWeight, alphaTWExp, betaTWExp, eps);
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -1060,11 +1067,11 @@ namespace Seq2SeqSharp.Tools
             var alphaTWExp = alphaT.TWeight.Expand(src1.Rows, src1.Columns);
             var betaTWExp = betaT.TWeight.Expand(src1.Rows, src1.Columns);
 
-            var res = m_weightTensorFactory.CreateWeightTensor(src1.Rows, src1.Columns, m_deviceId, name: $"{GetHashString(src1.Name, src2.Name, alpha.Name, beta.Name)}.AddLayerNorm");
+            var res = m_weightTensorFactory.CreateWeightTensor(src1T.Sizes, m_deviceId, name: $"{GetHashString(src1.Name, src2.Name, alpha.Name, beta.Name)}.AddLayerNorm");
             VisualizeNodes(new IWeightTensor[] { src1, src2, alpha, beta }, res);
 
             Ops.AddLayerNorm(res.TWeight, src1T.TWeight, src2T.TWeight, alphaTWExp, betaTWExp, eps);
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -1112,12 +1119,12 @@ namespace Seq2SeqSharp.Tools
             }
             else
             {
-                res = m_weightTensorFactory.CreateWeightTensor(V.Rows, V.Columns, m_deviceId, name: $"{GetHashString(V.Name)}.Dropout");
+                res = m_weightTensorFactory.CreateWeightTensor(w.Sizes, m_deviceId, name: $"{GetHashString(V.Name)}.Dropout");
             }
             VisualizeNodes(V, res);
 
             Ops.Mul(res.TWeight, w.TWeight, noise);
-            if (this.m_needsBackprop)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {

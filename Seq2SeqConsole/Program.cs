@@ -33,7 +33,7 @@ namespace Seq2SeqConsole
                     wordPerSec = ep.ProcessedWordsInTotal / ts.TotalSeconds;
                 }
 
-                Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate.ToString("F6")}, Cost = {ep.CostPerWord.ToString("F4")}, AvgCost = {ep.AvgCostInTotal.ToString("F4")}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin.ToString("F")}, WordPerSec = {wordPerSec.ToString("F")}, Batch = {ep.BatchSize}");
+                Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate.ToString("F6")}, Cost = {ep.CostPerWord.ToString("F4")}, AvgCost = {ep.AvgCostInTotal.ToString("F4")}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin.ToString("F")}, WordPerSec = {wordPerSec.ToString("F")}");
             }
 
         }
@@ -64,32 +64,46 @@ namespace Seq2SeqConsole
             {
                 ShowOptions(args, opts);
 
+                // Load training corpus
                 Corpus trainCorpus = new Corpus(opts.TrainCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
+
+                // Load or build vocabulary
+                Vocab vocab = null;
+                if (!String.IsNullOrEmpty(opts.SrcVocab) && !String.IsNullOrEmpty(opts.TgtVocab))
+                {
+                    vocab = new Vocab(opts.SrcVocab, opts.TgtVocab);
+                }
+                else
+                {
+                    vocab = new Vocab(trainCorpus);
+                }
+
+                // Create learning rate
+                ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);
+
                 if (File.Exists(opts.ModelFilePath) == false)
                 {
                     //New training
-                    ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth,
-                        trainCorpus: trainCorpus, srcVocabFilePath: opts.SrcVocab, tgtVocabFilePath: opts.TgtVocab,
+                    ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth,                       
                         srcEmbeddingFilePath: opts.SrcEmbeddingModelFilePath, tgtEmbeddingFilePath: opts.TgtEmbeddingModelFilePath,
-                        modelFilePath: opts.ModelFilePath, batchSize: opts.BatchSize, dropoutRatio: opts.DropoutRatio,
-                        archType: archType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, warmupSteps: opts.WarmUpSteps, gradClip: opts.GradClip, encoderType: encoderType);
+                         trainCorpus: trainCorpus, vocab: vocab, modelFilePath: opts.ModelFilePath, batchSize: opts.BatchSize, dropoutRatio: opts.DropoutRatio,
+                        archType: archType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, gradClip: opts.GradClip, encoderType: encoderType);
                 }
                 else
                 {
                     //Incremental training
                     Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
-                    ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, batchSize: opts.BatchSize, archType: archType, dropoutRatio: opts.DropoutRatio, gradClip: opts.GradClip, 
-                        deviceIds: deviceIds);
-                    ss.TrainCorpus = trainCorpus;
+                    ss = new AttentionSeq2Seq(trainCorpus: trainCorpus, modelFilePath: opts.ModelFilePath, batchSize: opts.BatchSize, archType: archType, 
+                        dropoutRatio: opts.DropoutRatio, gradClip: opts.GradClip, deviceIds: deviceIds);
                 }
 
                 ss.IterationDone += ss_IterationDone;
-                ss.Train(opts.MaxEpochNum, opts.LearningRate);
+                ss.Train(opts.MaxEpochNum, learningRate);
             }
             else if (mode == ModeEnums.Test)
             {
                 //Test trained model
-                ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, batchSize: 1, archType: archType, dropoutRatio: 0.0f, gradClip: 0.0f, deviceIds: deviceIds);
+                ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, archType: archType, deviceIds: deviceIds);
 
                 List<string> outputLines = new List<string>();
                 var data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
@@ -104,11 +118,11 @@ namespace Seq2SeqConsole
             else if (mode == ModeEnums.VisualizeNetwork)
             {
                 ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, 
-                    decoderLayerDepth: opts.DecoderLayerDepth,trainCorpus: null, srcVocabFilePath: null, tgtVocabFilePath: null,
+                    decoderLayerDepth: opts.DecoderLayerDepth,trainCorpus: null, vocab: new Vocab(),
                     srcEmbeddingFilePath: null, tgtEmbeddingFilePath: null,
                     modelFilePath: opts.ModelFilePath, batchSize: 1, dropoutRatio: opts.DropoutRatio,
                     archType: archType, deviceIds: new int[1] { 0 }, multiHeadNum: opts.MultiHeadNum, 
-                    warmupSteps: opts.WarmUpSteps, gradClip: opts.GradClip, encoderType: encoderType);
+                    gradClip: opts.GradClip, encoderType: encoderType);
 
                 ss.VisualizeNeuralNetwork(opts.VisualizeNNFilePath);
             }
@@ -129,7 +143,7 @@ namespace Seq2SeqConsole
             Logger.WriteLine($"Processor counter = '{Environment.ProcessorCount}'");
             Logger.WriteLine($"Hidden Size = '{options.HiddenSize}'");
             Logger.WriteLine($"Word Vector Size = '{options.WordVectorSize}'");
-            Logger.WriteLine($"Learning Rate = '{options.LearningRate}'");
+            Logger.WriteLine($"Learning Rate = '{options.StartLearningRate}'");
             Logger.WriteLine($"Encoder Layer Depth = '{options.EncoderLayerDepth}'");
             Logger.WriteLine($"Decoder Layer Depth = '{options.DecoderLayerDepth}'");
             Logger.WriteLine($"Gradient Clip = '{options.GradClip}'");
@@ -141,6 +155,7 @@ namespace Seq2SeqConsole
             Logger.WriteLine($"Maxmium Sentence Length = '{options.MaxSentLength}'");
             Logger.WriteLine($"Maxmium Epoch Number = '{options.MaxEpochNum}'");
             Logger.WriteLine($"Warming Up Steps = '{options.WarmUpSteps}'");
+            Logger.WriteLine($"Weights Updates Count = '{options.WeightsUpdateCount}'");
         }
     }
 }

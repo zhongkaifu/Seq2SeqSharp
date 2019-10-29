@@ -40,7 +40,6 @@ namespace Seq2SeqSharp.Tools
         public WeightTensor CreateWeightTensor(int row, int column, int deviceId, bool cleanWeights = false, string name = "", bool isTrainable = false)
         {
             WeightTensor r = new WeightTensor(new long[2] { row, column }, deviceId, name: name, isTrainable: isTrainable);
-
             if (cleanWeights)
             {
                 r.ClearWeight();
@@ -54,7 +53,6 @@ namespace Seq2SeqSharp.Tools
         public WeightTensor CreateWeightTensor(long[] sizes, int deviceId, bool cleanWeights = false, string name = "")
         {
             WeightTensor r = new WeightTensor(sizes, deviceId, name);
-
             if (cleanWeights)
             {
                 r.ClearWeight();

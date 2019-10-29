@@ -44,7 +44,9 @@ namespace Seq2SeqSharp.Tools
 
         public const string EOS = "<END>";
         public const string BOS = "<START>";
+        public const string UNK = "<UNK>";
 
+        Random rnd = new Random(DateTime.Now.Millisecond);
 
         void Shuffle(List<SntPair> sntPairs)
         {
@@ -60,7 +62,6 @@ namespace Seq2SeqSharp.Tools
             }
 
             //Randomized the order of sentence pairs with same length in source side
-            Random rnd = new Random(DateTime.Now.Millisecond);
             foreach (KeyValuePair<int, List<SntPair>> pair in dict)
             {
                 var sntPairList = pair.Value;
@@ -193,75 +194,112 @@ namespace Seq2SeqSharp.Tools
         }
 
         public IEnumerator<SntPairBatch> GetEnumerator()
-        {            
+        {
             ShuffleAll(true);
 
-            StreamReader srSrc = new StreamReader(m_srcShuffledFilePath);
-            StreamReader srTgt = new StreamReader(m_tgtShuffledFilePath);
-            Random rnd = new Random(DateTime.Now.Millisecond);
-            int lastSrcSntLen = -1;
-            int maxOutputsSize = m_batchSize * 10000;
-            List<SntPair> outputs = new List<SntPair>();
-
-            while (true)
+            using (StreamReader srSrc = new StreamReader(m_srcShuffledFilePath))
             {
-                string line;
-                SntPair sntPair = new SntPair();
-                if ((line = srSrc.ReadLine()) == null)
+                using (StreamReader srTgt = new StreamReader(m_tgtShuffledFilePath))
                 {
-                    break;
-                }
+                    int lastSrcSntLen = -1;
+                    int maxOutputsSize = m_batchSize * 10000;
+                    List<SntPair> outputs = new List<SntPair>();
 
-                line = $"{BOS} {line.ToLower().Trim()} {EOS}";
-                sntPair.SrcSnt = line.Split(' ');
-
-                line = srTgt.ReadLine();
-                sntPair.TgtSnt = line.ToLower().Trim().Split(' ');
-
-                if ((lastSrcSntLen > 0 && lastSrcSntLen != sntPair.SrcSnt.Length) || outputs.Count > maxOutputsSize)
-                {
-                    // The length of current src sentence is different the previous one, so let's do mini shuffle and return it
-                    for (int i = 0; i < outputs.Count; i++)
+                    while (true)
                     {
-                        int idx = rnd.Next(0, outputs.Count);
-                        var tmp = outputs[i];
-                        outputs[i] = outputs[idx];
-                        outputs[idx] = tmp;
+                        string line;
+                        SntPair sntPair = new SntPair();
+                        if ((line = srSrc.ReadLine()) == null)
+                        {
+                            break;
+                        }
+
+                        line = $"{BOS} {line.ToLower().Trim()} {EOS}";
+                        sntPair.SrcSnt = line.Split(' ');
+
+                        line = $"{srTgt.ReadLine().ToLower().Trim()} {EOS}";
+                        sntPair.TgtSnt = line.Split(' ');
+
+                        if ((lastSrcSntLen > 0 && lastSrcSntLen != sntPair.SrcSnt.Length) || outputs.Count > maxOutputsSize)
+                        {
+                            InnerShuffle(outputs);
+                            for (int i = 0; i < outputs.Count; i += m_batchSize)
+                            {
+                                int size = Math.Min(m_batchSize, outputs.Count - i);
+                                yield return new SntPairBatch(outputs.GetRange(i, size));
+                            }
+
+                            outputs.Clear();
+                        }
+
+                        outputs.Add(sntPair);
+                        lastSrcSntLen = sntPair.SrcSnt.Length;
                     }
 
-                    //float y = ((float)outputs[0].SrcSnt.Length / (float)m_maxSentLength);
-                    //int batchSize = Math.Max(1, m_batchSize / (int)Math.Pow(2, (int)(y * y)));
+                    InnerShuffle(outputs);
                     for (int i = 0; i < outputs.Count; i += m_batchSize)
                     {
                         int size = Math.Min(m_batchSize, outputs.Count - i);
                         yield return new SntPairBatch(outputs.GetRange(i, size));
                     }
+                }
+            }
+        }
 
-                    outputs.Clear();
+        /// <summary>
+        /// Pad given sentences to the same length and return their original length
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static List<int> PadSentences(List<List<string>> s)
+        {
+            List<int> originalLengths = new List<int>();
+
+            int maxLen = -1;
+            foreach (var item in s)
+            {
+                if (item.Count > maxLen)
+                {
+                    maxLen = item.Count;
+                }
+            }
+
+            for (int i = 0; i < s.Count; i++)
+            {
+                int count = s[i].Count;
+                originalLengths.Add(count);
+
+                for (int j = 0; j < maxLen - count; j++)
+                {
+                    s[i].Add(Corpus.EOS);
+                }
+            }
+
+            return originalLengths;
+        }
+
+        /// <summary>
+        /// Shuffle given sentence pairs and return the length of the longgest source sentence
+        /// </summary>
+        /// <param name="sntPairs"></param>
+        /// <returns></returns>
+        private int InnerShuffle(List<SntPair> sntPairs)
+        {
+            int maxSrcLen = 0;
+            for (int i = 0; i < sntPairs.Count; i++)
+            {
+                if (sntPairs[i].SrcSnt.Length > maxSrcLen)
+                {
+                    maxSrcLen = sntPairs[i].SrcSnt.Length;
                 }
 
-                outputs.Add(sntPair);
-                lastSrcSntLen = sntPair.SrcSnt.Length;
+                int idx = rnd.Next(0, sntPairs.Count);
+                var tmp = sntPairs[i];
+                sntPairs[i] = sntPairs[idx];
+                sntPairs[idx] = tmp;
             }
 
-            srSrc.Close();
-            srTgt.Close();
-
-            for (int i = 0; i < outputs.Count; i++)
-            {
-                int idx = rnd.Next(0, outputs.Count);
-                var tmp = outputs[i];
-                outputs[i] = outputs[idx];
-                outputs[idx] = tmp;
-            }
-
-            //float y2 = ((float)outputs[0].SrcSnt.Length / (float)m_maxSentLength);
-            //int batchSize2 = Math.Max(1, m_batchSize / (int)Math.Pow(2, (int)(y2 * y2)));
-            for (int i = 0; i < outputs.Count; i += m_batchSize)
-            {
-                int size = Math.Min(m_batchSize, outputs.Count - i);
-                yield return new SntPairBatch(outputs.GetRange(i, size));
-            }
+            return maxSrcLen;
         }
 
         IEnumerator IEnumerable.GetEnumerator()

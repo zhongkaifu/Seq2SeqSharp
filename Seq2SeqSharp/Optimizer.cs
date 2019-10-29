@@ -17,7 +17,6 @@ namespace Seq2SeqSharp
     {
         public static float decay_rate = 0.999f;
         public static float smooth_eps = 1e-10f;
-        public static float lr_decay_rate = 0.999f;
 
         public void UpdateWeights(List<IWeightTensor> model, int batchSize, float step_size, float regc, float clipval)
         {
@@ -31,13 +30,11 @@ namespace Seq2SeqSharp
                 id2Models[item.DeviceId].Add(item);
             }
 
-
             Parallel.ForEach(id2Models, kv => 
             {
                 foreach (var item in kv.Value)
                 {
                     var m = item as WeightTensor;
-
                     UpdateWeightsTensor(m, batchSize, step_size, clipval, regc);
                 }
             });

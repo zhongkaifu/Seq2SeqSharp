@@ -48,21 +48,12 @@ namespace Seq2SeqSharp.Tools
 
         private Tensor m_TWeight = null;
         private Tensor m_TGradient = null;
-
-        private bool releasedTWeight = false;
-        private bool releasedTGradient = false;
-
         private static object locker = new object();
 
         public Tensor TWeight
         {
             get
             {
-                if (releasedTWeight)
-                {
-                    return null;
-                }
-
                 if (m_TWeight == null)
                 {                    
                     m_TWeight = new Tensor(allocator, DType.Float32, Sizes);
@@ -72,8 +63,8 @@ namespace Seq2SeqSharp.Tools
             }
             set
             {
+                ReleaseWeight();
                 m_TWeight = value;
-                releasedTWeight = false;
             }
         }
 
@@ -81,11 +72,6 @@ namespace Seq2SeqSharp.Tools
         {
             get
             {
-                if (releasedTGradient)
-                {
-                    return null;
-                }
-
                 if (m_TGradient == null)
                 {
                     if (m_TWeight != null)
@@ -104,24 +90,16 @@ namespace Seq2SeqSharp.Tools
 
             set
             {
+                ReleaseGradient();
                 m_TGradient = value;
-                releasedTGradient = false;
             }
         }
 
         private Tensor m_TCache;
-        private bool releasedTCache = false;
-     
-
         public Tensor TCache
         {
             get
             {
-                if (releasedTCache)
-                {
-                    return null;
-                }
-
                 if (m_TCache == null)
                 {
                     m_TCache = new Tensor(allocator, DType.Float32, Sizes);
@@ -132,8 +110,8 @@ namespace Seq2SeqSharp.Tools
             }
             set
             {
+                ReleaseCache();
                 m_TCache = value;
-                releasedTCache = false;
             }
 
 
@@ -164,9 +142,6 @@ namespace Seq2SeqSharp.Tools
                     weight[i] = RandomGenerator.NormalRandom(0.0f, scale);
                 }
 
-                TGradient = new Tensor(allocator, DType.Float32, Sizes);
-                Ops.Fill(TGradient, 0.0f);
-
                 TWeight = Tensor.FromArray(allocator, weight).View(Sizes);
             }
         }
@@ -181,9 +156,6 @@ namespace Seq2SeqSharp.Tools
 
             var n = Rows * Columns;
 
-            TGradient = new Tensor(allocator, DType.Float32, Sizes);
-            Ops.Fill(TGradient, 0.0f);
-
             TWeight = new Tensor(allocator, DType.Float32, Sizes);
             Ops.Fill(TWeight, c);
         }
@@ -195,7 +167,7 @@ namespace Seq2SeqSharp.Tools
 
         public void ClearGradient()
         {
-            Ops.Fill(TGradient, 0.0f);
+            ReleaseGradient();
         }
 
         public void ClearWeight()
@@ -229,20 +201,6 @@ namespace Seq2SeqSharp.Tools
 
             m_TGradient = m.TWeight.CopyRef();
         }
-    
-
-        //public void SetGradientByWeight(IWeightTensor src)
-        //{
-        //    WeightTensor m = src as WeightTensor;
-
-        //    if (m_TGradient != null)
-        //    {
-        //        m_TGradient.Dispose();
-        //    }
-        //    m_TGradient = m.TWeight;
-
-        //    m.m_TWeight = null;
-        //}
 
         public void CopyWeights(IWeightTensor src)
         {
@@ -386,10 +344,7 @@ namespace Seq2SeqSharp.Tools
         public WeightTensor CopyWeightsRef(string name)
         {
             WeightTensor result = new WeightTensor(Sizes, DeviceId, name);
-
             result.m_TWeight = m_TWeight.CopyRef();
-            //result.m_TGradient = m_TGradient.CopyRef();
-            //result.m_TCache = m_TCache.CopyRef();
 
             return result;
         }
@@ -407,7 +362,6 @@ namespace Seq2SeqSharp.Tools
             {
                 m_TWeight.Dispose();
                 m_TWeight = null;
-                releasedTWeight = true;
             }
         }
 
@@ -417,7 +371,6 @@ namespace Seq2SeqSharp.Tools
             {
                 m_TGradient.Dispose();
                 m_TGradient = null;
-                releasedTGradient = true;
             }
         }
 
@@ -427,7 +380,6 @@ namespace Seq2SeqSharp.Tools
             {
                 m_TCache.Dispose();
                 m_TCache = null;
-                releasedTCache = true;
             }
 
         }
