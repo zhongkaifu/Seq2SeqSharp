@@ -52,7 +52,7 @@ namespace Seq2SeqConsole
             ArgParser argParser = new ArgParser(args, opts);
 
             AttentionSeq2Seq ss = null;
-            ArchTypeEnums archType = (ArchTypeEnums)Enum.Parse(typeof(ArchTypeEnums), opts.ArchType);
+            ProcessorTypeEnums processorType = (ProcessorTypeEnums)Enum.Parse(typeof(ProcessorTypeEnums), opts.ProcessorType);
             EncoderTypeEnums encoderType = (EncoderTypeEnums)Enum.Parse(typeof(EncoderTypeEnums), opts.EncoderType);
             ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.TaskName);
 
@@ -86,14 +86,14 @@ namespace Seq2SeqConsole
                     //New training
                     ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth,                       
                         srcEmbeddingFilePath: opts.SrcEmbeddingModelFilePath, tgtEmbeddingFilePath: opts.TgtEmbeddingModelFilePath,
-                         trainCorpus: trainCorpus, vocab: vocab, modelFilePath: opts.ModelFilePath, batchSize: opts.BatchSize, dropoutRatio: opts.DropoutRatio,
-                        archType: archType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, gradClip: opts.GradClip, encoderType: encoderType);
+                         trainCorpus: trainCorpus, vocab: vocab, modelFilePath: opts.ModelFilePath, dropoutRatio: opts.DropoutRatio,
+                        processorType: processorType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, gradClip: opts.GradClip, encoderType: encoderType);
                 }
                 else
                 {
                     //Incremental training
                     Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
-                    ss = new AttentionSeq2Seq(trainCorpus: trainCorpus, modelFilePath: opts.ModelFilePath, batchSize: opts.BatchSize, archType: archType, 
+                    ss = new AttentionSeq2Seq(trainCorpus: trainCorpus, modelFilePath: opts.ModelFilePath, processorType: processorType, 
                         dropoutRatio: opts.DropoutRatio, gradClip: opts.GradClip, deviceIds: deviceIds);
                 }
 
@@ -103,7 +103,7 @@ namespace Seq2SeqConsole
             else if (mode == ModeEnums.Test)
             {
                 //Test trained model
-                ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, archType: archType, deviceIds: deviceIds);
+                ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds);
 
                 List<string> outputLines = new List<string>();
                 var data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
@@ -120,8 +120,8 @@ namespace Seq2SeqConsole
                 ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, 
                     decoderLayerDepth: opts.DecoderLayerDepth,trainCorpus: null, vocab: new Vocab(),
                     srcEmbeddingFilePath: null, tgtEmbeddingFilePath: null,
-                    modelFilePath: opts.ModelFilePath, batchSize: 1, dropoutRatio: opts.DropoutRatio,
-                    archType: archType, deviceIds: new int[1] { 0 }, multiHeadNum: opts.MultiHeadNum, 
+                    modelFilePath: opts.ModelFilePath, dropoutRatio: opts.DropoutRatio,
+                    processorType: processorType, deviceIds: new int[1] { 0 }, multiHeadNum: opts.MultiHeadNum, 
                     gradClip: opts.GradClip, encoderType: encoderType);
 
                 ss.VisualizeNeuralNetwork(opts.VisualizeNNFilePath);
@@ -149,7 +149,7 @@ namespace Seq2SeqConsole
             Logger.WriteLine($"Gradient Clip = '{options.GradClip}'");
             Logger.WriteLine($"Dropout Ratio = '{options.DropoutRatio}'");
             Logger.WriteLine($"Batch Size = '{options.BatchSize}'");
-            Logger.WriteLine($"Arch Type = '{options.ArchType}'");
+            Logger.WriteLine($"Processor Type = '{options.ProcessorType}'");
             Logger.WriteLine($"Encoder Type = '{options.EncoderType}'");
             Logger.WriteLine($"Device Ids = '{options.DeviceIds}'");
             Logger.WriteLine($"Maxmium Sentence Length = '{options.MaxSentLength}'");

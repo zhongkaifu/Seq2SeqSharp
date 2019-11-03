@@ -84,6 +84,11 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
+        public IWeightFactory GetWeightFactory()
+        {
+            return m_weightTensorFactory;
+        }
+
         public IComputeGraph CreateSubGraph(string name)
         {
             ComputeGraphTensor subGraph = new ComputeGraphTensor(m_weightTensorFactory, m_deviceId, m_needsBackprop, m_visNeuralNetwork, m_backprop);
@@ -129,10 +134,11 @@ namespace Seq2SeqSharp.Tools
 
         public void RunTopBackward()
         {
-            m_backprop[m_backprop.Count - 1]();
-
-            m_backprop.RemoveLastItem();
-
+            if (m_needsBackprop)
+            {
+                m_backprop[m_backprop.Count - 1]();
+                m_backprop.RemoveLastItem();
+            }
         }
 
         public IWeightTensor BuildPositionMatrix(int row, int column)
@@ -472,6 +478,21 @@ namespace Seq2SeqSharp.Tools
 
         public IWeightTensor Affine(IWeightTensor m1, IWeightTensor m2, IWeightTensor mbias)
         {
+            if (m1 == null)
+            {
+                throw new ArgumentNullException($"m1 tensor is null");
+            }
+
+            if (m2 == null)
+            {
+                throw new ArgumentNullException($"m2 tensor is null");
+            }
+
+            if (mbias == null)
+            {
+                throw new ArgumentNullException($"mbias tensor is null");
+            }
+
             WeightTensor t1 = m1 as WeightTensor;
             WeightTensor t2 = m2 as WeightTensor;
             WeightTensor t3 = mbias as WeightTensor;

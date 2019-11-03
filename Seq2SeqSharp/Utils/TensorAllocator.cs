@@ -15,13 +15,13 @@ namespace Seq2SeqSharp
         private static IAllocator[] allocator = null;
         private static TSCudaContext cudaContext = null;
         private static int[] deviceIds;
-        private static ArchTypeEnums m_archType;
+        private static ProcessorTypeEnums m_archType;
 
 
-        public static void InitDevices(ArchTypeEnums archType, int[] ids)
+        public static void InitDevices(ProcessorTypeEnums archType, int[] ids)
         {
             m_archType = archType;
-            if (m_archType == ArchTypeEnums.GPU)
+            if (m_archType == ProcessorTypeEnums.GPU)
             {
                 deviceIds = ids;
 
@@ -40,7 +40,7 @@ namespace Seq2SeqSharp
 
         public static IAllocator Allocator(int deviceId)
         {
-            if (m_archType == ArchTypeEnums.GPU)
+            if (m_archType == ProcessorTypeEnums.GPU)
             {
                 int idx = GetDeviceIdIndex(deviceId);
                 if (allocator[idx] == null)

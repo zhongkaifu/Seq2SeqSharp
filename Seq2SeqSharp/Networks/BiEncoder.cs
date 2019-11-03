@@ -18,9 +18,11 @@ namespace Seq2SeqSharp
         private List<LSTMCell> m_forwardEncoders;
         private List<LSTMCell> m_backwardEncoders;
 
-        private int m_hiddenDim;
-        private int m_inputDim;
-        private int m_depth;
+        string m_name;
+        int m_hiddenDim;
+        int m_inputDim;
+        int m_depth;
+        int m_deviceId;
 
         public BiEncoder(string name, int hiddenDim, int inputDim, int depth, int deviceId)
         {
@@ -38,9 +40,21 @@ namespace Seq2SeqSharp
                 m_backwardEncoders.Add(new LSTMCell($"{name}.Backward_LSTM_{i}", hiddenDim, hiddenDim * 2, deviceId));
             }
 
+            m_name = name;
             m_hiddenDim = hiddenDim;
             m_inputDim = inputDim;
             m_depth = depth;
+            m_deviceId = deviceId;
+        }
+
+        public int GetDeviceId()
+        {
+            return m_deviceId;
+        }
+
+        public INeuralUnit CloneToDeviceAt(int deviceId)
+        {
+            return new BiEncoder(m_name, m_hiddenDim, m_inputDim, m_depth, deviceId);
         }
 
         public void Reset(IWeightFactory weightFactory, int batchSize)

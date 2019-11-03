@@ -246,6 +246,20 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
+        public static List<List<string>> ConstructInputSentence(List<string> input)
+        {
+            List<string> inputSeq = new List<string>();
+            inputSeq.Add(Corpus.BOS);
+            if (input != null)
+            {
+                inputSeq.AddRange(input);
+            }
+            inputSeq.Add(Corpus.EOS);
+            var inputSeqs = new List<List<string>>() { inputSeq };
+
+            return inputSeqs;
+        }
+
         /// <summary>
         /// Pad given sentences to the same length and return their original length
         /// </summary>

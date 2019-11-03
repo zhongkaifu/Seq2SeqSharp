@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.Tools
 {
-    public interface IWeightTensor : IDisposable
+    public interface IWeightTensor : INeuralUnit, IDisposable
     {
         int Rows { get; set; }
         int Columns { get; set; }
@@ -17,18 +17,14 @@ namespace Seq2SeqSharp.Tools
 
         int DeviceId { get; set; }
 
-        void CleanCache();
+        void ZeroCache();
 
         float GetWeightAt(int offset);
         void SetWeightAt(float val, int offset);
 
         void CopyWeightsToGradients(IWeightTensor src);
 
-        //void SetGradientByWeight(IWeightTensor src);
-
         void SetWeightAtRow(int row, float[] val);
-
-        float[] ToWeightArray();
 
         List<int> GetTopNMaxWeightIdx(int topN);
 
@@ -37,13 +33,10 @@ namespace Seq2SeqSharp.Tools
         void ReleaseWeight();
         void ReleaseGradient();
 
-        void ClearGradient();
-        void ClearWeight();
+        void ZeroGradient();
+        void CleanWeight();
 
-        void Save(Stream stream);
-        void Load(Stream stream);
-
-        void CopyWeights(IWeightTensor src);
-        void AddGradient(IWeightTensor src);
+        void CopyWeightsFrom(IWeightTensor src);
+        void AddGradientFrom(IWeightTensor src);
     }
 }

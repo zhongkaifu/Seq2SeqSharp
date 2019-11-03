@@ -12,7 +12,7 @@ namespace Seq2SeqSharp.Tools
     {
         List<WeightTensor> weights = new List<WeightTensor>();
 
-        public WeightTensor BuildPositionWeightTensor(int row, int column, int deviceId, string name = "", bool isTrainable = false)
+        public WeightTensor BuildPositionWeightTensor(int row, int column, int deviceId,string name = "", bool isTrainable = false)
         {
             WeightTensor t = new WeightTensor(new long[2] { row, column }, deviceId, name: name, isTrainable: isTrainable);
 
@@ -42,7 +42,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor r = new WeightTensor(new long[2] { row, column }, deviceId, name: name, isTrainable: isTrainable);
             if (cleanWeights)
             {
-                r.ClearWeight();
+                r.CleanWeight();
             }
 
             weights.Add(r);
@@ -55,7 +55,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor r = new WeightTensor(sizes, deviceId, name);
             if (cleanWeights)
             {
-                r.ClearWeight();
+                r.CleanWeight();
             }
 
             weights.Add(r);

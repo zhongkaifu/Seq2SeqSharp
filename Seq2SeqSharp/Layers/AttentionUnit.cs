@@ -1,4 +1,5 @@
-﻿using Seq2SeqSharp.Tools;
+﻿using AdvUtils;
+using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -18,7 +19,7 @@ namespace Seq2SeqSharp
     }
 
     [Serializable]
-    public class AttentionUnit
+    public class AttentionUnit : INeuralUnit
     {
         IWeightTensor m_V;
         IWeightTensor m_Ua;
@@ -27,16 +28,29 @@ namespace Seq2SeqSharp
         IWeightTensor m_bWa;
 
         string m_name;
+        int m_hiddenDim;
+        int m_contextDim;
+        int m_deviceId;
 
-        public AttentionUnit(string name, int size, int context, int deviceId)
+        public AttentionUnit(string name, int hiddenDim, int contextDim, int deviceId)
         {
             m_name = name;
+            m_hiddenDim = hiddenDim;
+            m_contextDim = contextDim;
+            m_deviceId = deviceId;
 
-            m_Ua = new WeightTensor(new long[2] { context, size }, deviceId, normal: true, name: $"{name}.{nameof(m_Ua)}", isTrainable: true);
-            m_Wa = new WeightTensor(new long[2] { size, size }, deviceId, normal:true, name: $"{name}.{nameof(m_Wa)}", isTrainable: true);
-            m_bUa = new WeightTensor(new long[2] { 1, size }, 0, deviceId, name: $"{name}.{nameof(m_bUa)}", isTrainable: true);
-            m_bWa = new WeightTensor(new long[2] { 1, size }, 0, deviceId, name: $"{name}.{nameof(m_bWa)}", isTrainable: true);
-            m_V = new WeightTensor(new long[2] { size, 1 }, deviceId, normal:true, name: $"{name}.{nameof(m_V)}", isTrainable: true);
+            Logger.WriteLine($"Creating attention unit '{name}' HiddenDim = '{hiddenDim}', ContextDim = '{contextDim}', DeviceId = '{deviceId}'");
+
+            m_Ua = new WeightTensor(new long[2] { contextDim, hiddenDim }, deviceId, normal: true, name: $"{name}.{nameof(m_Ua)}", isTrainable: true);
+            m_Wa = new WeightTensor(new long[2] { hiddenDim, hiddenDim }, deviceId, normal:true, name: $"{name}.{nameof(m_Wa)}", isTrainable: true);
+            m_bUa = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(m_bUa)}", isTrainable: true);
+            m_bWa = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(m_bWa)}", isTrainable: true);
+            m_V = new WeightTensor(new long[2] { hiddenDim, 1 }, deviceId, normal:true, name: $"{name}.{nameof(m_V)}", isTrainable: true);
+        }
+
+        public int GetDeviceId()
+        {
+            return m_deviceId;
         }
 
         public AttentionPreProcessResult PreProcess(IWeightTensor inputs, int batchSize, IComputeGraph graph)
@@ -70,13 +84,11 @@ namespace Seq2SeqSharp
 
             IWeightTensor contexts = g.MulBatch(attenSoftmax, inputs2, batchSize);
 
-
             return contexts;
         }
 
-      
-
-        public virtual List<IWeightTensor> getParams()
+     
+        public virtual List<IWeightTensor> GetParams()
         {
             List<IWeightTensor> response = new List<IWeightTensor>();
 
@@ -106,6 +118,12 @@ namespace Seq2SeqSharp
             m_bUa.Load(stream);
             m_bWa.Load(stream);
             m_V.Load(stream);
+        }
+
+        public INeuralUnit CloneToDeviceAt(int deviceId)
+        {
+            AttentionUnit a = new AttentionUnit(m_name, m_hiddenDim, m_contextDim, deviceId);          
+            return a;
         }
     }
 }

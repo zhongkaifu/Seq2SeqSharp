@@ -14,18 +14,33 @@ namespace Seq2SeqSharp
         List<SelfAttention> m_encoders = new List<SelfAttention>();
         private int m_inputDim;
         private float m_dropoutRatio;
+        private string m_name;
+        private int m_multiHeadNum;
+        private int m_hiddenDim;
+        private int m_depth;
+        private int m_deviceId;
 
         public TransformerEncoder(string name, int multiHeadNum, int hiddenDim, int inputDim, int depth, float dropoutRatio, int deviceId)
         {
             Logger.WriteLine($"Creating transformer encoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', InputDim = '{inputDim}', Depth = '{depth}', MultiHeadNum = '{multiHeadNum}'");
 
+            m_name = name;
+            m_multiHeadNum = multiHeadNum;
+            m_hiddenDim = hiddenDim;
             m_inputDim = inputDim;
+            m_depth = depth;
             m_dropoutRatio = dropoutRatio;
+            m_deviceId = deviceId;
 
             for (int i = 0; i < depth; i++)
             {
                 m_encoders.Add(new SelfAttention($"{name}.SelfAttn_{i}", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId));
             }
+        }
+
+        public int GetDeviceId()
+        {
+            return m_deviceId;
         }
 
         public void Reset(IWeightFactory weightFactory, int batchSize)
@@ -69,7 +84,10 @@ namespace Seq2SeqSharp
             return rawInput;
         }
 
-
+        public INeuralUnit CloneToDeviceAt(int deviceId)
+        {
+            return new TransformerEncoder(m_name, m_multiHeadNum, m_hiddenDim, m_inputDim, m_depth, m_dropoutRatio, deviceId);
+        }
 
         public List<IWeightTensor> GetParams()
         {

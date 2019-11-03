@@ -46,13 +46,5 @@ namespace Seq2SeqSharp
             Ops.RMSProp(m.TWeight, m.TGradient, m.TCache, batchSize, step_size, clipval, regc, decay_rate, smooth_eps);
         }
 
-       
-        public void CleanCache(List<IWeightTensor> model)
-        {
-            foreach (var k in model)
-            {
-                k.CleanCache();
-            }
-        }
     }
 }

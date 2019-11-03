@@ -62,26 +62,33 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ArchEnums.cs" />
+    <Compile Include="IModelMetaData.cs" />
+    <Compile Include="IMultiProcessorNetworkWrapper.cs" />
+    <Compile Include="Tools\BaseSeq2SeqFramework.cs" />
+    <Compile Include="Utils\ArchEnums.cs" />
+    <Compile Include="Utils\BeamSearch.cs" />
     <Compile Include="ILearningRate.cs" />
+    <Compile Include="Tools\INeuralUnit.cs" />
     <Compile Include="Layers\AttentionUnit.cs" />
     <Compile Include="DecayLearningRate.cs" />
+    <Compile Include="Seq2SeqModelMetaData.cs" />
+    <Compile Include="MultiProcessorNetworkWrapper.cs" />
     <Compile Include="Networks\AttentionDecoder.cs" />
     <Compile Include="AttentionSeq2Seq.cs" />
     <Compile Include="Networks\BiEncoder.cs" />
-    <Compile Include="CostEventArg.cs" />
+    <Compile Include="Utils\CostEventArg.cs" />
     <Compile Include="Networks\Encoder.cs" />
-    <Compile Include="EncoderTypeEnums.cs" />
+    <Compile Include="Utils\EncoderTypeEnums.cs" />
     <Compile Include="Layers\FeedForwardLayer.cs" />
-    <Compile Include="IEncoder.cs" />
+    <Compile Include="Layers\IEncoder.cs" />
     <Compile Include="Layers\LayerNormalization.cs" />
     <Compile Include="Layers\LSTMCell.cs" />
     <Compile Include="Layers\LSTMAttentionDecoderCell.cs" />
-    <Compile Include="ModeEnums.cs" />
+    <Compile Include="Utils\ModeEnums.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Optimizer.cs" />
     <Compile Include="Layers\SelfAttention.cs" />
-    <Compile Include="TensorAllocator.cs" />
+    <Compile Include="Utils\TensorAllocator.cs" />
     <Compile Include="Tools\ComparableItem.cs" />
     <Compile Include="Tools\ComputeGraphTensor.cs" />
     <Compile Include="Tools\Corpus.cs" />
@@ -92,7 +99,7 @@
     <Compile Include="Tools\WeightTensor.cs" />
     <Compile Include="Tools\WeightTensorFactory.cs" />
     <Compile Include="Networks\TransformerEncoder.cs" />
-    <Compile Include="Vocab.cs" />
+    <Compile Include="Utils\Vocab.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

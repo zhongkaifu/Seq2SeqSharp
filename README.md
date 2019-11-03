@@ -45,7 +45,7 @@ Parameters:
 **-GradClip**: The clip gradients.  
 **-BatchSize**: Mini-batch size. Default is 1.  
 **-Dropout**: Dropout ratio. Defaul is 0.1  
-**-ArchType**: Architecture type: CPU or GPU  
+**-ProcessorType**: Processor type: CPU or GPU  
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
 **-MaxEpochNum**: Maxmium epoch number during training. Default is 100  
 **-MaxSentLength**: Maxmium sentence length  
@@ -54,7 +54,7 @@ Note that:
   1) if "-SrcVocab" and "-TgtVocab" are empty, vocabulary will be built from training corpus.  
   2) Txt2Vec for external embedding model building can get downloaded from https://github.com/zhongkaifu/Txt2Vec  
 
-Example: Seq2SeqConsole.exe -TaskName Train -WordVectorSize 512 -HiddenSize 512 -LearningRate 0.002 -ModelFilePath seq2seq.model -TrainCorpusPath .\corpus -SrcLang ENU -TgtLang CHS -BatchSize 256 -ArchType GPU -EncoderType Transformer -EncoderLayerDepth 6 -DecoderLayerDepth 2 -MultiHeadNum 8 -DeviceIds 0,1,2,3,4,5,6,7  
+Example: Seq2SeqConsole.exe -TaskName Train -WordVectorSize 512 -HiddenSize 512 -LearningRate 0.002 -ModelFilePath seq2seq.model -TrainCorpusPath .\corpus -SrcLang ENU -TgtLang CHS -BatchSize 256 -ProcessorType GPU -EncoderType Transformer -EncoderLayerDepth 6 -DecoderLayerDepth 2 -MultiHeadNum 8 -DeviceIds 0,1,2,3,4,5,6,7  
 
 During training, the iteration information will be printed out and logged as follows:  
 info,9/26/2019 3:38:24 PM Update = '15600' Epoch = '0' LR = '0.002000', Current Cost = '2.817434', Avg Cost = '3.551963', SentInTotal = '31948800', SentPerMin = '52153.52', WordPerSec = '39515.27'  
@@ -66,11 +66,11 @@ Parameters:
 **-InputTestFile**: The input file for test.  
 **-OutputTestFile**: The test result file.  
 **-ModelFilePath**: The trained model file path. 
-**-ArchType**: Architecture type: CPU or GPU 
+**-ProcessorType**: Architecture type: CPU or GPU 
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
 **-BeamSearch**: Beam search size. Default is 1  
 
-Example: Seq2SeqConsole.exe -TaskName Test -ModelFilePath seq2seq.model -InputTestFile test.txt -OutputTestFile result.txt -ArchType CPU -BeamSearch 5  
+Example: Seq2SeqConsole.exe -TaskName Test -ModelFilePath seq2seq.model -InputTestFile test.txt -OutputTestFile result.txt -ProcessorType CPU -BeamSearch 5  
 
 Here is the command line to visualize network  
 **Seq2SeqConsole.exe -TaskName VisualizeNetwork [parameters...]**  
@@ -95,8 +95,8 @@ So, train01.chs.snt has the corresponding translated sentences:
 孩子 们 挤 成 一 团 以 取暖 .  
 汽车 业 也 在 不断 地 变化 .  
 
-# Build Your Neural Networks  
-Benefit from automatic differentiation, tensor based compute graph and other features, you can easily build your neural network by a few code. The only thing you need to implment is forward part, and the framework will automatically build the corresponding backward part for you, and make the network could run on multi-GPUs or CPUs.  
+# Build Your Layers  
+Benefit from automatic differentiation, tensor based compute graph and other features, you can easily build your customized layers by a few code. The only thing you need to implment is forward part, and the framework will automatically build the corresponding backward part for you, and make the network could run on multi-GPUs or CPUs.  
 Here is an example about **attentioned based LSTM cells**.  
 ```c#
         /// <summary>
@@ -223,6 +223,84 @@ If the operations is for forward part only, you can completely ignore "backward"
             return res;
         }
 ```
+
+# Build Your Networks  
+Besides operations and layers, you can also build your customized networks by leveraging BaseSeq2SeqFramework. The built-in AttentionSeq2Seq is a good example to show you how to do it. Basically, it includes the follows steps:  
+1. Define model meta data, such as hidden layer dimension, embedding diemnsion, layer depth and so on. It should be inherited from IModelMetaData interface. You can look at Seq2SeqModelMetaData.cs as an example.  
+```c#
+ public class Seq2SeqModelMetaData : IModelMetaData
+ {
+        public int HiddenDim;
+        public int EmbeddingDim;
+        public int EncoderLayerDepth;
+        public int DecoderLayerDepth;
+        public int MultiHeadNum;
+        public EncoderTypeEnums EncoderType;
+        public Vocab Vocab;
+ }
+```
+2. Create the class for your network and make sure it is inherited from BaseSeq2SeqFramework class at first, and then define layers, tensors for your network. Seq2SeqSharp has some built-in layers, so you can just use them or create your customized layers by instruction in above. In order to support multi-GPUs, these layers and tensors should be wrapped by MultiProcessorNetworkWrapper class. Here is an example:  
+```c#
+        private MultiProcessorNetworkWrapper<IWeightTensor> m_srcEmbedding; //The embeddings over devices for target
+        private MultiProcessorNetworkWrapper<IWeightTensor> m_tgtEmbedding; //The embeddings over devices for source
+        private MultiProcessorNetworkWrapper<IEncoder> m_encoder; //The encoders over devices. It can be LSTM, BiLSTM or Transformer
+        private MultiProcessorNetworkWrapper<AttentionDecoder> m_decoder; //The LSTM decoders over devices        
+        private MultiProcessorNetworkWrapper<FeedForwardLayer> m_decoderFFLayer; //The feed forward layers over devices after LSTM layers in decoder
+```
+3. Initialize those layers and tensors your defined in above. You should pass variables you defined in model meta data to the constructors of layers and tensors. Here is an example in AttentionSeq2Seq.cs  
+```c#
+        private bool CreateTrainableParameters(IModelMetaData mmd)
+        {
+            Logger.WriteLine($"Creating encoders and decoders...");
+            Seq2SeqModelMetaData modelMetaData = mmd as Seq2SeqModelMetaData;
+            RoundArray<int> raDeviceIds = new RoundArray<int>(DeviceIds);
+
+            if (modelMetaData.EncoderType == EncoderTypeEnums.BiLSTM)
+            {
+                m_encoder = new MultiProcessorNetworkWrapper<IEncoder>(
+                    new BiEncoder("BiLSTMEncoder", modelMetaData.HiddenDim, modelMetaData.EmbeddingDim, modelMetaData.EncoderLayerDepth, raDeviceIds.GetNextItem()), DeviceIds);
+                m_decoder = new MultiProcessorNetworkWrapper<AttentionDecoder>(
+                    new AttentionDecoder("AttnLSTMDecoder", modelMetaData.HiddenDim, modelMetaData.EmbeddingDim, modelMetaData.HiddenDim * 2, modelMetaData.DecoderLayerDepth, raDeviceIds.GetNextItem()), DeviceIds);
+            }
+            else
+            {
+                m_encoder = new MultiProcessorNetworkWrapper<IEncoder>(
+                    new TransformerEncoder("TransformerEncoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.EmbeddingDim, modelMetaData.EncoderLayerDepth, m_dropoutRatio, raDeviceIds.GetNextItem()), DeviceIds);
+                m_decoder = new MultiProcessorNetworkWrapper<AttentionDecoder>(
+                    new AttentionDecoder("AttnLSTMDecoder", modelMetaData.HiddenDim, modelMetaData.EmbeddingDim, modelMetaData.HiddenDim, modelMetaData.DecoderLayerDepth, raDeviceIds.GetNextItem()), DeviceIds);
+            }
+            m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.SourceWordSize, modelMetaData.EmbeddingDim }, raDeviceIds.GetNextItem(), normal: true, name: "SrcEmbeddings", isTrainable: true), DeviceIds);
+            m_tgtEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.TargetWordSize, modelMetaData.EmbeddingDim }, raDeviceIds.GetNextItem(), normal: true, name: "TgtEmbeddings", isTrainable: true), DeviceIds);
+            m_decoderFFLayer = new MultiProcessorNetworkWrapper<FeedForwardLayer>(new FeedForwardLayer("FeedForward", modelMetaData.HiddenDim, modelMetaData.Vocab.TargetWordSize, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem()), DeviceIds);
+
+            return true;
+        }
+```
+4. Implement forward part only for your network and the BaseSeq2SeqFramework will handle all other things, such as backward propagation, parameters updates, memory management, computing graph managment, corpus shuffle & batching, saving/loading for model, logging & monitoring, checkpoints and so on. Here is an example in AttentionSeq2Seq.cs as well.  
+```c#
+        /// <summary>
+        /// Run forward part on given single device
+        /// </summary>
+        /// <param name="computeGraph">The computing graph for current device. It gets created and passed by the framework</param>
+        /// <param name="srcSnts">A batch of input tokenized sentences in source side</param>
+        /// <param name="tgtSnts">A batch of output tokenized sentences in target side</param>
+        /// <param name="deviceIdIdx">The index of current device</param>
+        /// <returns>The cost of forward part</returns>
+        private float RunForwardOnSingleDevice(IComputeGraph computeGraph, List<List<string>> srcSnts, List<List<string>> tgtSnts, int deviceIdIdx)
+        {   
+            (IEncoder encoder, AttentionDecoder decoder, IWeightTensor srcEmbedding, IWeightTensor tgtEmbedding, FeedForwardLayer decoderFFLayer) = GetNetworksOnDeviceAt(deviceIdIdx);
+
+            // Reset networks
+            encoder.Reset(computeGraph.GetWeightFactory(), srcSnts.Count);
+            decoder.Reset(computeGraph.GetWeightFactory(), tgtSnts.Count);
+
+            // Encoding input source sentences
+            IWeightTensor encodedWeightMatrix = Encode(computeGraph.CreateSubGraph("Encoder"), srcSnts, encoder, srcEmbedding);
+            // Generate output decoder sentences
+            return Decode(tgtSnts, computeGraph.CreateSubGraph("Decoder"), encodedWeightMatrix, decoder, decoderFFLayer, tgtEmbedding);
+        }
+```
+Now you already have your customized network and you can play it. See Progream.cs in Seq2SeqConsole project about how to load corpus and vocabulary, and create network for training.  
 
 # Todo List  
 If you are interested in below items, please let me know. Becuase African proverb says "If you want to go fast, go alone. If you want to go far, go together" :)  

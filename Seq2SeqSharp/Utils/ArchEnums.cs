@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Seq2SeqSharp
 {
-    public enum ArchTypeEnums
+    public enum ProcessorTypeEnums
     {
         GPU,
         CPU

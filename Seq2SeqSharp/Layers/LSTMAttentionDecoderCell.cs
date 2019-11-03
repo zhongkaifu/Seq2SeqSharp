@@ -1,4 +1,5 @@
-﻿using Seq2SeqSharp.Tools;
+﻿using AdvUtils;
+using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -15,8 +16,8 @@ namespace Seq2SeqSharp
         public IWeightTensor Hidden { get; set; }
         public IWeightTensor Cell { get; set; }
 
-        int m_hdim;
-        int m_dim;
+        int m_hiddenDim;
+        int m_inputDim;
         int m_deviceId;
         string m_name;
 
@@ -26,18 +27,20 @@ namespace Seq2SeqSharp
         LayerNormalization m_layerNorm1;
         LayerNormalization m_layerNorm2;
 
-        public LSTMAttentionDecoderCell(string name, int hdim, int dim, int contextSize, int deviceId)
+        public LSTMAttentionDecoderCell(string name, int hiddenDim, int inputDim, int contextDim, int deviceId)
         {
             m_name = name;
-            m_hdim = hdim;
-            m_dim = dim;
+            m_hiddenDim = hiddenDim;
+            m_inputDim = inputDim;
             m_deviceId = deviceId;
 
-            m_Wxhc = new WeightTensor(new long[2] { dim + hdim + contextSize, hdim * 4 }, deviceId, normal: true, name: $"{name}.{nameof(m_Wxhc)}", isTrainable: true);
-            m_b = new WeightTensor(new long[2] { 1, hdim * 4 }, 0, deviceId, name: $"{name}.{nameof(m_b)}", isTrainable: true);
+            Logger.WriteLine($"Create LSTM attention decoder cell '{name}' HiddemDim = '{hiddenDim}', InputDim = '{inputDim}', ContextDim = '{contextDim}', DeviceId = '{deviceId}'");
 
-            m_layerNorm1 = new LayerNormalization($"{name}.{nameof(m_layerNorm1)}", hdim * 4, deviceId);
-            m_layerNorm2 = new LayerNormalization($"{name}.{nameof(m_layerNorm2)}", hdim, deviceId);
+            m_Wxhc = new WeightTensor(new long[2] { inputDim + hiddenDim + contextDim, hiddenDim * 4 }, deviceId, normal: true, name: $"{name}.{nameof(m_Wxhc)}", isTrainable: true);
+            m_b = new WeightTensor(new long[2] { 1, hiddenDim * 4 }, 0, deviceId, name: $"{name}.{nameof(m_b)}", isTrainable: true);
+
+            m_layerNorm1 = new LayerNormalization($"{name}.{nameof(m_layerNorm1)}", hiddenDim * 4, deviceId);
+            m_layerNorm2 = new LayerNormalization($"{name}.{nameof(m_layerNorm2)}", hiddenDim, deviceId);
         }
 
         /// <summary>
@@ -58,11 +61,11 @@ namespace Seq2SeqSharp
             var hhSum = computeGraph.Affine(hxhc, m_Wxhc, m_b);
             var hhSum2 = m_layerNorm1.Norm(hhSum, computeGraph);
 
-            (var gates_raw, var cell_write_raw) = computeGraph.SplitColumns(hhSum2, m_hdim * 3, m_hdim);
+            (var gates_raw, var cell_write_raw) = computeGraph.SplitColumns(hhSum2, m_hiddenDim * 3, m_hiddenDim);
             var gates = computeGraph.Sigmoid(gates_raw);
             var cell_write = computeGraph.Tanh(cell_write_raw);
 
-            (var input_gate, var forget_gate, var output_gate) = computeGraph.SplitColumns(gates, m_hdim, m_hdim, m_hdim);
+            (var input_gate, var forget_gate, var output_gate) = computeGraph.SplitColumns(gates, m_hiddenDim, m_hiddenDim, m_hiddenDim);
 
             // compute new cell activation: ct = forget_gate * cell_prev + input_gate * cell_write
             Cell = computeGraph.EltMulMulAdd(forget_gate, cell_prev, input_gate, cell_write);
@@ -87,8 +90,8 @@ namespace Seq2SeqSharp
 
         public void Reset(IWeightFactory weightFactory, int batchSize)
         {
-            Hidden = weightFactory.CreateWeightTensor(batchSize, m_hdim, m_deviceId, true, name: $"{m_name}.{nameof(Hidden)}", isTrainable: true);
-            Cell = weightFactory.CreateWeightTensor(batchSize, m_hdim, m_deviceId, true, name: $"{m_name}.{nameof(Cell)}", isTrainable: true);
+            Hidden = weightFactory.CreateWeightTensor(batchSize, m_hiddenDim, m_deviceId, true, name: $"{m_name}.{nameof(Hidden)}", isTrainable: true);
+            Cell = weightFactory.CreateWeightTensor(batchSize, m_hiddenDim, m_deviceId, true, name: $"{m_name}.{nameof(Cell)}", isTrainable: true);
         }
 
         public void Save(Stream stream)
