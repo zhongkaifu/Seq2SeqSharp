@@ -120,6 +120,7 @@ namespace Seq2SeqSharp
         /// <param name="minFreq"></param>
         public Vocab(Corpus trainCorpus, int minFreq = 1)
         {
+            Logger.WriteLine($"Building vocabulary from given training corpus.");
             // count up all words
             Dictionary<string, int> s_d = new Dictionary<string, int>();
             Dictionary<string, int> t_d = new Dictionary<string, int>();

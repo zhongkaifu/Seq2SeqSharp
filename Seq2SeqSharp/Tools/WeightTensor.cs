@@ -94,29 +94,7 @@ namespace Seq2SeqSharp.Tools
                 m_TGradient = value;
             }
         }
-
-        private Tensor m_TCache;
-        public Tensor TCache
-        {
-            get
-            {
-                if (m_TCache == null)
-                {
-                    m_TCache = new Tensor(m_allocator, DType.Float32, Sizes);
-                    Ops.Fill(m_TCache, 0.0f);
-                }
-
-                return m_TCache;
-            }
-            set
-            {
-                ReleaseCache();
-                m_TCache = value;
-            }
-
-
-        }
-
+      
         public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, bool normal = false)
         {
             Name = name;
@@ -165,11 +143,6 @@ namespace Seq2SeqSharp.Tools
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
             return new WeightTensor(Sizes, deviceId, Name, IsTrainable);
-        }
-
-        public void ZeroCache()
-        {
-            Ops.Fill(TCache, 0.0f);
         }
 
         public void ZeroGradient()
@@ -358,7 +331,6 @@ namespace Seq2SeqSharp.Tools
         {
             ReleaseWeight();
             ReleaseGradient();
-            ReleaseCache();
         }
 
         public void ReleaseWeight()
@@ -378,17 +350,6 @@ namespace Seq2SeqSharp.Tools
                 m_TGradient = null;
             }
         }
-
-        private void ReleaseCache()
-        {
-            if (m_TCache != null)
-            {
-                m_TCache.Dispose();
-                m_TCache = null;
-            }
-
-        }
-
 
         public void Save(Stream stream)
         {

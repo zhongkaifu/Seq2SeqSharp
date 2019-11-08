@@ -9,6 +9,7 @@ namespace Seq2SeqSharp.Tools
 {
     public interface IWeightTensor : INeuralUnit, IDisposable
     {
+        long[] Sizes { get; set; }
         int Rows { get; set; }
         int Columns { get; set; }
         string Name { get; set; }
@@ -16,8 +17,6 @@ namespace Seq2SeqSharp.Tools
         bool IsTrainable { get; set; }
 
         int DeviceId { get; set; }
-
-        void ZeroCache();
 
         float GetWeightAt(int offset);
         void SetWeightAt(float val, int offset);

@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
+using Seq2SeqSharp.Metrics;
 
 namespace Seq2SeqSharp.Tools
 {
@@ -23,19 +24,15 @@ namespace Seq2SeqSharp.Tools
         public int[] DeviceIds => m_deviceIds;
 
         readonly string m_modelFilePath;
-        readonly float m_gradClip = 3.0f; // clip gradients at this value
         readonly IWeightFactory[] m_weightFactory;
-        readonly Corpus m_trainCorpus;
         float m_regc = 1e-10f; // L2 regularization strength
         int m_weightsUpdateCount = 0;
         double m_avgCostPerWordInTotalInLastEpoch = 100000.0;
         object locker = new object();
         SortedList<string, IMultiProcessorNetworkWrapper> name2network;
 
-        public BaseSeq2SeqFramework(Corpus trainCorpus, int[] deviceIds, float gradClip, ProcessorTypeEnums processorType, string modelFilePath)
+        public BaseSeq2SeqFramework(int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath)
         {
-            m_gradClip = gradClip;
-            m_trainCorpus = trainCorpus;
             m_deviceIds = deviceIds;
             m_modelFilePath = modelFilePath;
             m_weightFactory = new IWeightFactory[deviceIds.Length];
@@ -109,8 +106,8 @@ namespace Seq2SeqSharp.Tools
             return modelMetaData;
         }
 
-        public void TrainOneEpoch(int ep, ILearningRate learningRate, Optimizer solver, IModelMetaData modelMetaData,
-            Func<IComputeGraph, List<List<string>>, List<List<string>>, int, float> ForwardOnSingleDevice)
+        internal void TrainOneEpoch(int ep, Corpus trainCorpus, Corpus validCorpus, ILearningRate learningRate, Optimizer solver, List<IMetric> metrics, IModelMetaData modelMetaData,
+            Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice)
         {
             int processedLineInTotal = 0;
             DateTime startDateTime = DateTime.Now;
@@ -119,19 +116,16 @@ namespace Seq2SeqSharp.Tools
             long tgtWordCnts = 0;
             double avgCostPerWordInTotal = 0.0;
 
-            // Shuffle training corpus
-            m_trainCorpus.ShuffleAll(ep == 0);
-
             TensorAllocator.FreeMemoryAllDevices();
 
             //Clean caches of parameter optmization
-            Logger.WriteLine($"Cleaning cache of weights optmiazation.'");
-            CleanGradientCache();
+            Logger.WriteLine($"Cleaning cache of weights optmiazation.");
+            solver.Clear();
 
             Logger.WriteLine($"Start to process training corpus.");
             List<SntPairBatch> sntPairBatchs = new List<SntPairBatch>();
 
-            foreach (var sntPairBatch in m_trainCorpus)
+            foreach (var sntPairBatch in trainCorpus)
             {
                 sntPairBatchs.Add(sntPairBatch);
                 if (sntPairBatchs.Count == m_deviceIds.Length)
@@ -148,23 +142,23 @@ namespace Seq2SeqSharp.Tools
                     {
                         SntPairBatch sntPairBatch_i = sntPairBatchs[i];
                         // Construct sentences for encoding and decoding
-                        List<List<string>> srcSnts = new List<List<string>>();
-                        List<List<string>> tgtSnts = new List<List<string>>();
+                        List<List<string>> srcTkns = new List<List<string>>();
+                        List<List<string>> tgtTkns = new List<List<string>>();
                         var sLenInBatch = 0;
                         var tLenInBatch = 0;
                         for (int j = 0; j < sntPairBatch_i.BatchSize; j++)
                         {
-                            srcSnts.Add(sntPairBatch_i.SntPairs[j].SrcSnt.ToList());
+                            srcTkns.Add(sntPairBatch_i.SntPairs[j].SrcSnt.ToList());
                             sLenInBatch += sntPairBatch_i.SntPairs[j].SrcSnt.Length;
 
-                            tgtSnts.Add(sntPairBatch_i.SntPairs[j].TgtSnt.ToList());
+                            tgtTkns.Add(sntPairBatch_i.SntPairs[j].TgtSnt.ToList());
                             tLenInBatch += sntPairBatch_i.SntPairs[j].TgtSnt.Length;
                         }
 
                         // Create a new computing graph instance
                         IComputeGraph computeGraph_i = CreateComputGraph(i);
                         // Run forward part
-                        float lcost = ForwardOnSingleDevice(computeGraph_i, srcSnts, tgtSnts, i);
+                        float lcost = ForwardOnSingleDevice(computeGraph_i, srcTkns, tgtTkns, i, true);
                         // Run backward part and compute gradients
                         computeGraph_i.Backward();
 
@@ -185,7 +179,7 @@ namespace Seq2SeqSharp.Tools
                     //Optmize parameters
                     var lr = learningRate.GetCurrentLearningRate();
                     var models = GetParametersFromDefaultDevice();
-                    solver.UpdateWeights(models, processedLine, lr, m_regc, m_gradClip);
+                    solver.UpdateWeights(models, processedLine, lr, m_regc, m_weightsUpdateCount + 1);
 
                     //Clear gradient over all devices
                     ZeroGradientOnAllDevices();
@@ -212,6 +206,12 @@ namespace Seq2SeqSharp.Tools
                     if (m_weightsUpdateCount % 1000 == 0 && m_avgCostPerWordInTotalInLastEpoch > avgCostPerWordInTotal)
                     {
                         SaveModel(modelMetaData);
+                        if (validCorpus != null)
+                        {
+                            //Valid the quality of current model
+                            RunValid(validCorpus, ForwardOnSingleDevice, metrics);
+                        }
+
                         TensorAllocator.FreeMemoryAllDevices();
                     }
 
@@ -223,9 +223,73 @@ namespace Seq2SeqSharp.Tools
             if (m_avgCostPerWordInTotalInLastEpoch > avgCostPerWordInTotal)
             {
                 SaveModel(modelMetaData);
+                if (validCorpus != null)
+                {
+                    //Valid the quality of current model
+                    RunValid(validCorpus, ForwardOnSingleDevice, metrics);
+                }
             }
 
             m_avgCostPerWordInTotalInLastEpoch = avgCostPerWordInTotal;
+        }
+
+        internal void RunValid(Corpus validCorpus, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice, List<IMetric> metrics, bool outputToFile = false)
+        {
+            Logger.WriteLine($"Validing the quality of the model...");
+
+            List<string> srcSents = new List<string>();
+            List<string> refSents = new List<string>();
+            List<string> hypSents = new List<string>();
+
+            foreach (var sntPairBatch in validCorpus)
+            {
+                // Construct sentences for encoding and decoding
+                List<List<string>> srcTkns = new List<List<string>>();
+                List<List<string>> refTkns = new List<List<string>>();
+                for (int j = 0; j < sntPairBatch.BatchSize; j++)
+                {
+                    srcTkns.Add(sntPairBatch.SntPairs[j].SrcSnt.ToList());
+                    refTkns.Add(sntPairBatch.SntPairs[j].TgtSnt.ToList());
+                }
+
+                // Create a new computing graph instance
+                IComputeGraph computeGraph = CreateComputGraph(DeviceIds[0], needBack: false);
+
+                // Run forward part
+                List<List<string>> hypTkns = new List<List<string>>();
+                ForwardOnSingleDevice(computeGraph, srcTkns, hypTkns, DeviceIds[0], false);
+
+                for (int i = 0;i < hypTkns.Count;i++)
+                {
+                    foreach (var metric in metrics)
+                    {
+                        metric.Evaluate(new List<List<string>>() { refTkns[i] }, hypTkns[i]);
+                    }
+                }
+
+                if (outputToFile)
+                {
+                    for (int j = 0; j < sntPairBatch.BatchSize; j++)
+                    {
+                        srcSents.Add(String.Join(" ", srcTkns[j]));
+                        refSents.Add(String.Join(" ", refTkns[j]));
+                        hypSents.Add(String.Join(" ", hypTkns[j]));
+                    }
+                }
+            }
+
+            Logger.WriteLine($"Metrics result:");
+            foreach (IMetric metric in metrics)
+            {
+                Logger.WriteLine($"{metric.Name} = {metric.GetScore().ToString("F")}");
+            }
+
+            if (outputToFile)
+            {
+                File.WriteAllLines("valid_src.txt", srcSents);
+                File.WriteAllLines("valid_ref.txt", refSents);
+                File.WriteAllLines("valid_hyp.txt", hypSents);
+            }
         }
 
         internal void SaveParameters(Stream stream)
@@ -292,16 +356,6 @@ namespace Seq2SeqSharp.Tools
                 pair.Value.ZeroGradientsOnAllDevices();
             }
         }
-
-        internal void CleanGradientCache()
-        {
-            RegisterTrainableParameters(this);
-            foreach (var pair in name2network)
-            {
-                pair.Value.ZeroGradientCache();
-            }
-        }
-
 
         internal void RegisterTrainableParameters(object obj)
         {

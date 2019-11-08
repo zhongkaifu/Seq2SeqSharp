@@ -64,13 +64,16 @@
   <ItemGroup>
     <Compile Include="IModelMetaData.cs" />
     <Compile Include="IMultiProcessorNetworkWrapper.cs" />
+    <Compile Include="Metrics\BleuMetric.cs" />
+    <Compile Include="Metrics\LengthRatioMetric.cs" />
+    <Compile Include="Metrics\IMetric.cs" />
     <Compile Include="Tools\BaseSeq2SeqFramework.cs" />
     <Compile Include="Utils\ArchEnums.cs" />
     <Compile Include="Utils\BeamSearch.cs" />
-    <Compile Include="ILearningRate.cs" />
+    <Compile Include="LearningRate\ILearningRate.cs" />
     <Compile Include="Tools\INeuralUnit.cs" />
     <Compile Include="Layers\AttentionUnit.cs" />
-    <Compile Include="DecayLearningRate.cs" />
+    <Compile Include="LearningRate\DecayLearningRate.cs" />
     <Compile Include="Seq2SeqModelMetaData.cs" />
     <Compile Include="MultiProcessorNetworkWrapper.cs" />
     <Compile Include="Networks\AttentionDecoder.cs" />
@@ -86,7 +89,7 @@
     <Compile Include="Layers\LSTMAttentionDecoderCell.cs" />
     <Compile Include="Utils\ModeEnums.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Optimizer.cs" />
+    <Compile Include="Optimizer\Optimizer.cs" />
     <Compile Include="Layers\SelfAttention.cs" />
     <Compile Include="Utils\TensorAllocator.cs" />
     <Compile Include="Tools\ComparableItem.cs" />

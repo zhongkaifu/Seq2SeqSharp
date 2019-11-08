@@ -44,5 +44,7 @@ namespace Seq2SeqSharp
         void RunTopBackward();
         void VisualizeNeuralNetToFile(string neuralNetPicFilePath);
         IWeightFactory GetWeightFactory();
+
+        int[] Argmax(IWeightTensor w, int dim);
     }
 }

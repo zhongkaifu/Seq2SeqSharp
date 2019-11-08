@@ -9,6 +9,7 @@ using System.Numerics;
 using Seq2SeqSharp.Tools;
 using AdvUtils;
 using TensorSharp;
+using Seq2SeqSharp.Metrics;
 
 namespace Seq2SeqConsole
 {
@@ -45,6 +46,8 @@ namespace Seq2SeqConsole
 
         static void Main(string[] args)
         {
+            ShowOptions(args);
+
             Logger.LogFile = $"{nameof(Seq2SeqConsole)}_{GetTimeStamp(DateTime.Now)}.log";
 
             //Parse command line
@@ -56,52 +59,78 @@ namespace Seq2SeqConsole
             EncoderTypeEnums encoderType = (EncoderTypeEnums)Enum.Parse(typeof(EncoderTypeEnums), opts.EncoderType);
             ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.TaskName);
 
-
             //Parse device ids from options          
             int[] deviceIds = opts.DeviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
-
             if (mode == ModeEnums.Train)
             {
-                ShowOptions(args, opts);
-
-                // Load training corpus
+                // Load train corpus
                 Corpus trainCorpus = new Corpus(opts.TrainCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
+                // Load valid corpus
+                Corpus validCorpus = new Corpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
 
                 // Load or build vocabulary
                 Vocab vocab = null;
                 if (!String.IsNullOrEmpty(opts.SrcVocab) && !String.IsNullOrEmpty(opts.TgtVocab))
                 {
+                    // Vocabulary files are specified, so we load them
                     vocab = new Vocab(opts.SrcVocab, opts.TgtVocab);
                 }
                 else
                 {
+                    // We don't specify vocabulary, so we build it from train corpus
                     vocab = new Vocab(trainCorpus);
                 }
 
                 // Create learning rate
                 ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);
 
+                // Create optimizer
+                Optimizer optimizer = new Optimizer(opts.GradClip);
+
+                // Create metrics
+                List<IMetric> metrics = new List<IMetric>();
+                metrics.Add(new BleuMetric());
+                metrics.Add(new LengthRatioMetric());
+
                 if (File.Exists(opts.ModelFilePath) == false)
                 {
                     //New training
-                    ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth,                       
-                        srcEmbeddingFilePath: opts.SrcEmbeddingModelFilePath, tgtEmbeddingFilePath: opts.TgtEmbeddingModelFilePath,
-                         trainCorpus: trainCorpus, vocab: vocab, modelFilePath: opts.ModelFilePath, dropoutRatio: opts.DropoutRatio,
-                        processorType: processorType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, gradClip: opts.GradClip, encoderType: encoderType);
+                    ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth,
+                        srcEmbeddingFilePath: opts.SrcEmbeddingModelFilePath, tgtEmbeddingFilePath: opts.TgtEmbeddingModelFilePath, vocab: vocab, modelFilePath: opts.ModelFilePath, 
+                        dropoutRatio: opts.DropoutRatio, processorType: processorType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType);
                 }
                 else
                 {
                     //Incremental training
                     Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
-                    ss = new AttentionSeq2Seq(trainCorpus: trainCorpus, modelFilePath: opts.ModelFilePath, processorType: processorType, 
-                        dropoutRatio: opts.DropoutRatio, gradClip: opts.GradClip, deviceIds: deviceIds);
+                    ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, dropoutRatio: opts.DropoutRatio, deviceIds: deviceIds);
                 }
 
+                // Add event handler for monitoring
                 ss.IterationDone += ss_IterationDone;
-                ss.Train(opts.MaxEpochNum, learningRate);
+
+                // Kick off training
+                ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, metrics: metrics);
+            }
+            else if (mode == ModeEnums.Valid)
+            {
+                Logger.WriteLine($"Validing corpus '{opts.ValidCorpusPath}' by model '{opts.ModelFilePath}'");
+
+                // Create metrics
+                List<IMetric> metrics = new List<IMetric>();
+                metrics.Add(new BleuMetric());
+                metrics.Add(new LengthRatioMetric());
+
+                // Load valid corpus
+                Corpus validCorpus = new Corpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
+
+                ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds);
+                ss.Valid(validCorpus: validCorpus, metrics: metrics);
             }
             else if (mode == ModeEnums.Test)
             {
+                Logger.WriteLine($"Testing model '{opts.ModelFilePath}' by input corpus '{opts.InputTestFile}'");
+
                 //Test trained model
                 ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds);
 
@@ -117,12 +146,9 @@ namespace Seq2SeqConsole
             }
             else if (mode == ModeEnums.VisualizeNetwork)
             {
-                ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, 
-                    decoderLayerDepth: opts.DecoderLayerDepth,trainCorpus: null, vocab: new Vocab(),
-                    srcEmbeddingFilePath: null, tgtEmbeddingFilePath: null,
-                    modelFilePath: opts.ModelFilePath, dropoutRatio: opts.DropoutRatio,
-                    processorType: processorType, deviceIds: new int[1] { 0 }, multiHeadNum: opts.MultiHeadNum, 
-                    gradClip: opts.GradClip, encoderType: encoderType);
+                ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth, 
+                    vocab: new Vocab(), srcEmbeddingFilePath: null, tgtEmbeddingFilePath: null, modelFilePath: opts.ModelFilePath, dropoutRatio: opts.DropoutRatio,
+                    processorType: processorType, deviceIds: new int[1] { 0 }, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType);
 
                 ss.VisualizeNeuralNetwork(opts.VisualizeNNFilePath);
             }
@@ -132,30 +158,11 @@ namespace Seq2SeqConsole
             }
         }
 
-        private static void ShowOptions(string[] args, Options options)
+        private static void ShowOptions(string[] args)
         {
             string commandLine = String.Join(" ", args);
             Logger.WriteLine($"Seq2SeqSharp v2.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
-            Logger.WriteLine($"Command Line = '{commandLine}'");
-
-            Logger.WriteLine($"Source Language = '{options.SrcLang}'");
-            Logger.WriteLine($"Target Language = '{options.TgtLang}'");
-            Logger.WriteLine($"Processor counter = '{Environment.ProcessorCount}'");
-            Logger.WriteLine($"Hidden Size = '{options.HiddenSize}'");
-            Logger.WriteLine($"Word Vector Size = '{options.WordVectorSize}'");
-            Logger.WriteLine($"Learning Rate = '{options.StartLearningRate}'");
-            Logger.WriteLine($"Encoder Layer Depth = '{options.EncoderLayerDepth}'");
-            Logger.WriteLine($"Decoder Layer Depth = '{options.DecoderLayerDepth}'");
-            Logger.WriteLine($"Gradient Clip = '{options.GradClip}'");
-            Logger.WriteLine($"Dropout Ratio = '{options.DropoutRatio}'");
-            Logger.WriteLine($"Batch Size = '{options.BatchSize}'");
-            Logger.WriteLine($"Processor Type = '{options.ProcessorType}'");
-            Logger.WriteLine($"Encoder Type = '{options.EncoderType}'");
-            Logger.WriteLine($"Device Ids = '{options.DeviceIds}'");
-            Logger.WriteLine($"Maxmium Sentence Length = '{options.MaxSentLength}'");
-            Logger.WriteLine($"Maxmium Epoch Number = '{options.MaxEpochNum}'");
-            Logger.WriteLine($"Warming Up Steps = '{options.WarmUpSteps}'");
-            Logger.WriteLine($"Weights Updates Count = '{options.WeightsUpdateCount}'");
+            Logger.WriteLine($"Command Line = '{commandLine}'");      
         }
     }
 }

@@ -442,6 +442,11 @@ namespace TensorSharp.CUDA
         [RegisterOpStorageType("addlayernormgrad", typeof(CudaStorage))]
         public void AddLayerNormGrad(Tensor out1Grad, Tensor out2Grad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x1, Tensor x2, Tensor alpha, Tensor beta, float eps = 1e-09f) { advFuncKernels.AddLayerNormGrad(out1Grad, out2Grad, alphaGrad, betaGrad, inGrad, y, x1, x2, alpha, beta, eps); }
 
+        [RegisterOpStorageType("adam", typeof(CudaStorage))]
+        public Tensor Adam(Tensor weight, Tensor gradient, Tensor v, Tensor m, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
+        {
+            return advFuncKernels.Adam(weight, gradient, v, m, batchSize, step_size, clipval, regc, decay_rate_v, decay_rate_m, iter, eps);
+        }
 
 
         [RegisterOpStorageType("rmsprop", typeof(CudaStorage))]

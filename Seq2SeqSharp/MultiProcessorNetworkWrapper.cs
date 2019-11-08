@@ -93,15 +93,6 @@ namespace Seq2SeqSharp
             });
         }
 
-        public void ZeroGradientCache()
-        {
-            var tensors = m_networkOnDefaultDevice.GetParams();
-            foreach (var tensor in tensors)
-            {
-                tensor.ZeroCache();
-            }
-        }
-
         /// <summary>
         /// Save weights of the network on default device to given stream
         /// </summary>

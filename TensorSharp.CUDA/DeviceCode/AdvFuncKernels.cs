@@ -391,7 +391,48 @@ __global__ void gAddLayerNormalizationGrad(float* gradX1,
 
 
 
+__global__ void Adam(float* __restrict__ w, float* __restrict__ g, float* __restrict__ v, float* __restrict__ m, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
+{
+  for(int bid = 0; bid < rows; bid += gridDim.x) 
+  {
+    int j = bid + blockIdx.x;
+    if(j < rows) 
+    {
+      float* sw = w + j * cols;
+      float* sg = g + j * cols;
+      float* sv = v + j * cols;
+      float* sm = m + j * cols;
 
+      for(int tid = 0; tid < cols; tid += blockDim.x) 
+      {        
+        int i = tid + threadIdx.x;
+        if(i < cols && sg[i] != 0.0) 
+        {
+           float g = sg[i] / batchSize;
+           
+           if (g > clipval)
+           {
+               g = clipval;
+           }
+           if (g < -clipval)
+           {
+               g = -clipval;
+           }
+
+           sm[i] = sm[i] * decay_rate_m + (1.0 - decay_rate_m) * g;
+           sv[i] = sv[i] * decay_rate_v + (1.0 - decay_rate_v) * g * g;
+
+           float m_cap = sm[i] / (1.0 - powf(decay_rate_m, iter));
+           float v_cap = sv[i] / (1.0 - powf(decay_rate_v, iter));
+
+           sw[i] -= step_size * m_cap / (sqrtf(v_cap) + eps);
+
+           sg[i] = 0;
+        }
+      }
+    }
+  }
+}
 
 
 
@@ -758,6 +799,41 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             var srcPtr = CudaHelpers.GetBufferStart(src);
 
             Invoke(context, cudaContext, "gSoftmax", grid, threads, (uint)(threads.x * sizeof(float)), CUstream.NullStream, resultPtr, srcPtr, rows, cols);
+        }
+
+        private void Adam(TSCudaContext context, Tensor weight, Tensor gradient, Tensor v, Tensor m, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
+        {
+            var cudaContext = context.CudaContextForTensor(weight);
+
+            cudaContext.SetCurrent();
+
+            var rows = weight.Sizes[0];
+            var cols = weight.Sizes[1];
+
+            var ndim = weight.DimensionCount;
+            long num_rows = 1;
+            for (var dim = 0; dim < ndim - 1; dim++)
+            {
+                num_rows *= weight.Sizes[dim];
+            }
+
+            var threads = new dim3((uint)Math.Min(512, num_rows));
+            var grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
+
+            var weightPtr = CudaHelpers.GetBufferStart(weight);
+            var gradientPtr = CudaHelpers.GetBufferStart(gradient);
+            var vPtr = CudaHelpers.GetBufferStart(v);
+            var mPtr = CudaHelpers.GetBufferStart(m);
+
+            Invoke(context, cudaContext, "Adam", grid, threads, 0, CUstream.NullStream, weightPtr, gradientPtr, vPtr, mPtr, rows, cols, batchSize, step_size, clipval, regc, decay_rate_v, decay_rate_m, iter, eps);
+        }
+
+        public Tensor Adam(Tensor weight, Tensor gradient, Tensor v, Tensor m, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
+        {
+            var context = CudaHelpers.TSContextForTensor(weight);
+            Adam(context, weight, gradient, v, m, batchSize, step_size, clipval, regc, decay_rate_v, decay_rate_m, iter, eps);
+
+            return weight;
         }
 
         private void RMSProp(TSCudaContext context, Tensor weight, Tensor gradient, Tensor cache, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)

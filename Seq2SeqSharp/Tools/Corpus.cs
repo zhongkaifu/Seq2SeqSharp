@@ -35,9 +35,6 @@ namespace Seq2SeqSharp.Tools
         List<string> m_srcFileList;
         List<string> m_tgtFileList;
 
-        private const string m_srcShuffledFilePath = "shuffled.src.snt";
-        private const string m_tgtShuffledFilePath = "shuffled.tgt.snt";
-
         public int CorpusSize = 0;
 
         public int BatchSize { get { return m_batchSize; } }
@@ -77,15 +74,15 @@ namespace Seq2SeqSharp.Tools
             SortedDictionary<int, List<SntPair>> sdict = new SortedDictionary<int, List<SntPair>>(); //<The bucket size, sentence pair set>
             foreach (KeyValuePair<int, List<SntPair>> pair in dict)
             {
-                if (pair.Value.Count < m_batchSize)
-                {
-                    //If the bucket size is less than batch size, ignore it
-                    continue;
-                }
+                //if (pair.Value.Count < m_batchSize)
+                //{
+                //    //If the bucket size is less than batch size, ignore it
+                //    continue;
+                //}
 
-                //Align the bucket size to batch size
-                int externalItemCnt = pair.Value.Count % m_batchSize;
-                pair.Value.RemoveRange(pair.Value.Count - externalItemCnt, externalItemCnt);
+                ////Align the bucket size to batch size
+                //int externalItemCnt = pair.Value.Count % m_batchSize;
+                //pair.Value.RemoveRange(pair.Value.Count - externalItemCnt, externalItemCnt);
 
                 if (sdict.ContainsKey(pair.Value.Count) == false)
                 {
@@ -112,18 +109,15 @@ namespace Seq2SeqSharp.Tools
             
         }
 
-        public void ShuffleAll(bool notShulledForExistingFiles)
+        private (string, string) ShuffleAll()
         {
-            if (File.Exists(m_srcShuffledFilePath) && File.Exists(m_tgtShuffledFilePath) && notShulledForExistingFiles)
-            {
-                Logger.WriteLine($"Shuffled files '{m_srcShuffledFilePath}' and '{m_tgtShuffledFilePath}' exist, so skip it. If they are not correct files, please delete them and rerun the command.");
-                return;
-            }
+            string srcShuffledFilePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName());
+            string tgtShuffledFilePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName());
 
-            Logger.WriteLine("Shuffling training corpus...");
+            Logger.WriteLine("Shuffling corpus...");
 
-            StreamWriter swSrc = new StreamWriter(m_srcShuffledFilePath, false);
-            StreamWriter swTgt = new StreamWriter(m_tgtShuffledFilePath, false);
+            StreamWriter swSrc = new StreamWriter(srcShuffledFilePath, false);
+            StreamWriter swTgt = new StreamWriter(tgtShuffledFilePath, false);
 
             List<SntPair> sntPairs = new List<SntPair>();
             CorpusSize = 0;
@@ -157,7 +151,7 @@ namespace Seq2SeqSharp.Tools
                     CorpusSize++;
                     if (m_blockSize > 0 && sntPairs.Count >= m_blockSize)
                     {
-                        Logger.WriteLine($"Shuffle training corpus...");
+                        Logger.WriteLine($"Shuffle corpus...");
                         Shuffle(sntPairs);
                         foreach (var item in sntPairs)
                         {
@@ -174,7 +168,7 @@ namespace Seq2SeqSharp.Tools
 
             if (sntPairs.Count > 0)
             {
-                Logger.WriteLine($"Shuffle training corpus...");
+                Logger.WriteLine($"Shuffle corpus...");
                 Shuffle(sntPairs);
                 foreach (var item in sntPairs)
                 {
@@ -189,17 +183,19 @@ namespace Seq2SeqSharp.Tools
             swSrc.Close();
             swTgt.Close();
 
-            Logger.WriteLine($"Shuffled '{CorpusSize}' sentence pairs.");
+            Logger.WriteLine($"Shuffled '{CorpusSize}' sentence pairs to file '{srcShuffledFilePath}' and '{tgtShuffledFilePath}'.");
             Logger.WriteLine($"Found {tooLongSntCnt} sentences are longer than '{m_maxSentLength}' tokens, ignore them.");
-        }
 
+            return (srcShuffledFilePath, tgtShuffledFilePath);
+        }
+       
         public IEnumerator<SntPairBatch> GetEnumerator()
         {
-            ShuffleAll(true);
+            (string srcShuffledFilePath, string tgtShuffledFilePath) = ShuffleAll();
 
-            using (StreamReader srSrc = new StreamReader(m_srcShuffledFilePath))
+            using (StreamReader srSrc = new StreamReader(srcShuffledFilePath))
             {
-                using (StreamReader srTgt = new StreamReader(m_tgtShuffledFilePath))
+                using (StreamReader srTgt = new StreamReader(tgtShuffledFilePath))
                 {
                     int lastSrcSntLen = -1;
                     int maxOutputsSize = m_batchSize * 10000;
@@ -244,6 +240,9 @@ namespace Seq2SeqSharp.Tools
                     }
                 }
             }
+
+            File.Delete(srcShuffledFilePath);
+            File.Delete(tgtShuffledFilePath);
         }
 
         public static List<List<string>> ConstructInputSentence(List<string> input)
@@ -323,6 +322,7 @@ namespace Seq2SeqSharp.Tools
 
         public Corpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSentLength = 32)
         {
+            Logger.WriteLine($"Loading corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSentLength = '{maxSentLength}'");
             m_batchSize = batchSize;
             m_blockSize = shuffleBlockSize;
             m_maxSentLength = maxSentLength;

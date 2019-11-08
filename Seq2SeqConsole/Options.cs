@@ -10,7 +10,7 @@ namespace Seq2SeqConsole
 {
     class Options
     {
-        [Arg("Task name. It could be Train, Test, VisualizeNetwork or Help", "TaskName")]
+        [Arg("Task name. It could be Train, Valid, Test, VisualizeNetwork or Help", "TaskName")]
         public string TaskName = "Help";
 
         [Arg("The vector size of encoded source word.", "WordVectorSize")]
@@ -54,6 +54,9 @@ namespace Seq2SeqConsole
 
         [Arg("Training corpus folder path", "TrainCorpusPath")]
         public string TrainCorpusPath;
+
+        [Arg("Valid corpus folder path", "ValidCorpusPath")]
+        public string ValidCorpusPath;
 
         [Arg("The input file for test.", "InputTestFile")]
         public string InputTestFile;

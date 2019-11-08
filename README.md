@@ -9,12 +9,13 @@ Transformer encoder
 Graph based neural network  
 Automatic differentiation  
 Tensor based operations  
-Running on both CPU and GPU (CUDA)  
+Running on both CPUs and GPUs (CUDA)  
 Support multi-GPUs  
 Mini-batch  
 Dropout  
-RMSProp optmization  
-Embedding & Pre-trained model  
+RMSProp and Adam optmization  
+Embedding & Pre-trained model 
+Metrics, such as BLEU score, Length ratio and so on  
 Auto data shuffling  
 Auto vocabulary building  
 Beam search decoder  
@@ -41,6 +42,7 @@ Parameters:
 **-SrcLang**: Source language name.  
 **-TgtLang**: Target language name.  
 **-TrainCorpusPath**: training corpus folder path  
+**-ValidCorpusPath**: valid corpus folder path  
 **-ShuffleBlockSize**: The block size for corpus shuffle. The default value is -1 which means we shuffle entire corpus.  
 **-GradClip**: The clip gradients.  
 **-BatchSize**: Mini-batch size. Default is 1.  
@@ -54,11 +56,21 @@ Note that:
   1) if "-SrcVocab" and "-TgtVocab" are empty, vocabulary will be built from training corpus.  
   2) Txt2Vec for external embedding model building can get downloaded from https://github.com/zhongkaifu/Txt2Vec  
 
-Example: Seq2SeqConsole.exe -TaskName Train -WordVectorSize 512 -HiddenSize 512 -LearningRate 0.002 -ModelFilePath seq2seq.model -TrainCorpusPath .\corpus -SrcLang ENU -TgtLang CHS -BatchSize 256 -ProcessorType GPU -EncoderType Transformer -EncoderLayerDepth 6 -DecoderLayerDepth 2 -MultiHeadNum 8 -DeviceIds 0,1,2,3,4,5,6,7  
+Example: Seq2SeqConsole.exe -TaskName Train -WordVectorSize 512 -HiddenSize 512 -LearningRate 0.002 -ModelFilePath seq2seq.model -TrainCorpusPath .\corpus -ValidCorpusPath .\corpus_valid -SrcLang ENU -TgtLang CHS -BatchSize 256 -ProcessorType GPU -EncoderType Transformer -EncoderLayerDepth 6 -DecoderLayerDepth 2 -MultiHeadNum 8 -DeviceIds 0,1,2,3,4,5,6,7  
 
 During training, the iteration information will be printed out and logged as follows:  
 info,9/26/2019 3:38:24 PM Update = '15600' Epoch = '0' LR = '0.002000', Current Cost = '2.817434', Avg Cost = '3.551963', SentInTotal = '31948800', SentPerMin = '52153.52', WordPerSec = '39515.27'  
 info,9/26/2019 3:42:28 PM Update = '15700' Epoch = '0' LR = '0.002000', Current Cost = '2.800056', Avg Cost = '3.546863', SentInTotal = '32153600', SentPerMin = '52141.86', WordPerSec = '39523.83'  
+
+Here is the command line to valid models  
+**Seq2SeqConsole.exe -TaskName Valid [parameters...]**  
+Parameters:  
+**-ModelFilePath**: The trained model file path.  
+**-SrcLang**: Source language name.  
+**-TgtLang**: Target language name.  
+**-ValidCorpusPath**: valid corpus folder path  
+
+Example: Seq2SeqConsole.exe -TaskName Valid -ModelFilePath seq2seq.model -SrcLang ENU -TgtLang CHS -ValidCorpusPath .\corpus_valid  
 
 Here is the command line to test models  
 **Seq2SeqConsole.exe -TaskName Test [parameters...]**  
@@ -301,6 +313,59 @@ Besides operations and layers, you can also build your customized networks by le
         }
 ```
 Now you already have your customized network and you can play it. See Progream.cs in Seq2SeqConsole project about how to load corpus and vocabulary, and create network for training.  
+
+# How To Play Your Network  
+In Seq2SeqConsole project, it shows you how to initialize and play (train, valid or test) your network. Here are few steps about how to do it.  
+```c#
+                // Load train corpus
+                Corpus trainCorpus = new Corpus(opts.TrainCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
+                // Load valid corpus
+                Corpus validCorpus = new Corpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
+
+                // Load or build vocabulary
+                Vocab vocab = null;
+                if (!String.IsNullOrEmpty(opts.SrcVocab) && !String.IsNullOrEmpty(opts.TgtVocab))
+                {
+                    // Vocabulary files are specified, so we load them
+                    vocab = new Vocab(opts.SrcVocab, opts.TgtVocab);
+                }
+                else
+                {
+                    // We don't specify vocabulary, so we build it from train corpus
+                    vocab = new Vocab(trainCorpus);
+                }
+
+                // Create learning rate
+                ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);
+
+                // Create optimizer
+                Optimizer optimizer = new Optimizer(opts.GradClip);
+
+                // Create metrics
+                List<IMetric> metrics = new List<IMetric>();
+                metrics.Add(new BleuMetric());
+                metrics.Add(new LengthRatioMetric());
+
+                if (File.Exists(opts.ModelFilePath) == false)
+                {
+                    //New training
+                    ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth,
+                        srcEmbeddingFilePath: opts.SrcEmbeddingModelFilePath, tgtEmbeddingFilePath: opts.TgtEmbeddingModelFilePath, vocab: vocab, modelFilePath: opts.ModelFilePath, 
+                        dropoutRatio: opts.DropoutRatio, processorType: processorType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType);
+                }
+                else
+                {
+                    //Incremental training
+                    Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
+                    ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, dropoutRatio: opts.DropoutRatio, deviceIds: deviceIds);
+                }
+
+                // Add event handler for monitoring
+                ss.IterationDone += ss_IterationDone;
+
+                // Kick off training
+                ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, metrics: metrics);
+```
 
 # Todo List  
 If you are interested in below items, please let me know. Becuase African proverb says "If you want to go fast, go alone. If you want to go far, go together" :)  

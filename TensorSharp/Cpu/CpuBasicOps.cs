@@ -530,10 +530,6 @@ namespace TensorSharp.Cpu
             NativeWrapper.InvokeTypeMatch(addlayerNormGrad_func, writeTarget1, writeTarget2, gradGamma_, gradBeta_, adj_, y_, x1_, x2_, gamma_, beta_, (int)adj_.Sizes[0], (int)adj_.Sizes[1], eps);
         }
 
-
-
-
-
         private MethodInfo softmax_func = NativeWrapper.GetMethod("TS_Softmax");
         [RegisterOpStorageType("softmax", typeof(CpuStorage))]
         public Tensor Softmax(Tensor result, Tensor src)
@@ -561,6 +557,13 @@ namespace TensorSharp.Cpu
             return tw;
         }
 
+        private MethodInfo adam_func = NativeWrapper.GetMethod("TS_Adam");
+        [RegisterOpStorageType("adam", typeof(CpuStorage))]
+        public Tensor Adam(Tensor tw, Tensor tg, Tensor tv, Tensor tm, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
+        {
+            NativeWrapper.InvokeTypeMatch(adam_func, tw, tg, tv, tm, (int)tw.Sizes[0], (int)tw.Sizes[1], batchSize, step_size, clipval, regc, decay_rate_v, decay_rate_m, iter, eps);
+            return tw;
+        }
 
         private MethodInfo normall_func = NativeWrapper.GetMethod("TS_NormAll");
         [RegisterOpStorageType("normall", typeof(CpuStorage))]

@@ -560,6 +560,25 @@ namespace Seq2SeqSharp.Tools
 
             return res;
         }
+
+        public int[] Argmax(IWeightTensor w, int dim)
+        {
+            int[] idx = null;
+            WeightTensor m = w as WeightTensor;
+            using (var argMaxT = Ops.Argmax(null, m.TWeight, dim))
+            {
+                float[] res = new float[argMaxT.ElementCount()];
+                argMaxT.CopyToArray(res);
+
+                idx = new int[res.Length];
+                for (int i = 0; i < res.Length; i++)
+                {
+                    idx[i] = (int)res[i];
+                }
+            }
+
+            return idx;
+        }
      
         public IWeightTensor Softmax(IWeightTensor w, bool runGradients = true, bool inPlace = false)
         {
