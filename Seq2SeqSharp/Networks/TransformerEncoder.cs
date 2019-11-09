@@ -32,9 +32,15 @@ namespace Seq2SeqSharp
             m_dropoutRatio = dropoutRatio;
             m_deviceId = deviceId;
 
-            for (int i = 0; i < depth; i++)
+            if (hiddenDim != inputDim)
             {
-                m_encoders.Add(new SelfAttention($"{name}.SelfAttn_{i}", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId));
+                throw new ArgumentException($"hiddenDim is not equal to inputDim in TransformerEncoder.");
+            }
+
+            m_encoders.Add(new SelfAttention($"{name}.SelfAttn_0", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId));
+            for (int i = 1; i < depth; i++)
+            {
+                m_encoders.Add(new SelfAttention($"{name}.SelfAttn_{i}", multiHeadNum, hiddenDim, hiddenDim, m_dropoutRatio, deviceId));
             }
         }
 

@@ -9,7 +9,7 @@ namespace Seq2SeqSharp.Metrics
     public class LengthRatioMetric : IMetric
     {
         private double[] m_counts;
-        public string Name => "Length Ratio";
+        public string Name => "Length Ratio (Hyp:Ref)";
 
         public LengthRatioMetric()
         {
