@@ -10,6 +10,7 @@ using Seq2SeqSharp.Tools;
 using AdvUtils;
 using TensorSharp;
 using Seq2SeqSharp.Metrics;
+using Newtonsoft.Json;
 
 namespace Seq2SeqConsole
 {
@@ -53,6 +54,12 @@ namespace Seq2SeqConsole
             //Parse command line
             Options opts = new Options();
             ArgParser argParser = new ArgParser(args, opts);
+
+            if (String.IsNullOrEmpty(opts.ConfigFilePath) == false)
+            {
+                Logger.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
+                opts = JsonConvert.DeserializeObject<Options>(File.ReadAllText(opts.ConfigFilePath));
+            }
 
             AttentionSeq2Seq ss = null;
             ProcessorTypeEnums processorType = (ProcessorTypeEnums)Enum.Parse(typeof(ProcessorTypeEnums), opts.ProcessorType);

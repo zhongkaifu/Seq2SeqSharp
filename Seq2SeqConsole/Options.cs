@@ -102,5 +102,8 @@ namespace Seq2SeqConsole
 
         [Arg("The file path of dumped neural network (.png file)", "VisNNFile")]
         public string VisualizeNNFilePath;
+
+        [Arg("The file path of config file for parameters", "ConfigFilePath")]
+        public string ConfigFilePath = String.Empty;
     }
 }
