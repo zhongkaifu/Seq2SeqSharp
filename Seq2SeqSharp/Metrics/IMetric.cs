@@ -11,5 +11,7 @@ namespace Seq2SeqSharp.Metrics
         void Evaluate(List<List<string>> refTokens, List<string> hypTokens);
         double GetScore();
         string Name { get; }
+        void ClearStatus();
+
     }
 }

@@ -241,6 +241,13 @@ namespace Seq2SeqSharp.Tools
             List<string> refSents = new List<string>();
             List<string> hypSents = new List<string>();
 
+
+            // Clear inner status of each metrics
+            foreach (var metric in metrics)
+            {
+                metric.ClearStatus();
+            }
+
             foreach (var sntPairBatch in validCorpus)
             {
                 // Construct sentences for encoding and decoding

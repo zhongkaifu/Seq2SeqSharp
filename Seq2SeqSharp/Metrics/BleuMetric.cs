@@ -22,10 +22,14 @@ namespace Seq2SeqSharp.Metrics
         {
             m_ngramOrder = ngramOrder;
             m_caseInsensitive = caseInsensitive;
-
-            m_counts = new double[1 + 2 * m_ngramOrder];
-
             m_matchIndex = (int)RefHypIdx.HypIdx + m_ngramOrder;
+
+            ClearStatus();
+        }
+
+        public void ClearStatus()
+        {
+            m_counts = new double[1 + 2 * m_ngramOrder];
         }
 
         public void Evaluate(List<List<string>> refTokens, List<string> hypTokens)

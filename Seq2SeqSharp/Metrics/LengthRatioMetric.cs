@@ -13,6 +13,11 @@ namespace Seq2SeqSharp.Metrics
 
         public LengthRatioMetric()
         {
+            ClearStatus();
+        }
+
+        public void ClearStatus()
+        {
             m_counts = new double[2];
         }
 

@@ -73,7 +73,9 @@ void Adam(TensorRef* tw, TensorRef* tg, TensorRef* tv, TensorRef* tm, int rows, 
 				T m_cap = sm[i] / (1.0 - pow(decay_rate_m, iter));
 				T v_cap = sv[i] / (1.0 - pow(decay_rate_v, iter));
 
-				sw[i] -= step_size * m_cap / (sqrtf(v_cap) + eps);
+				sw[i] -= step_size * m_cap / (sqrt(v_cap) + eps);
+
+				sg[i] = 0;
 			}
 		}
 	}
