@@ -73,7 +73,7 @@ namespace Seq2SeqConsole
                 // Load train corpus
                 Corpus trainCorpus = new Corpus(opts.TrainCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
                 // Load valid corpus
-                Corpus validCorpus = new Corpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
+                Corpus validCorpus = String.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new Corpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
 
                 // Load or build vocabulary
                 Vocab vocab = null;

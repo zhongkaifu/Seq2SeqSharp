@@ -31,6 +31,7 @@ namespace Seq2SeqSharp.Tools
         int m_maxSentLength = 32;
         int m_blockSize = 1000000;
         int m_batchSize = 1;
+        bool m_addBOSEOS = true;
 
         List<string> m_srcFileList;
         List<string> m_tgtFileList;
@@ -74,16 +75,6 @@ namespace Seq2SeqSharp.Tools
             SortedDictionary<int, List<SntPair>> sdict = new SortedDictionary<int, List<SntPair>>(); //<The bucket size, sentence pair set>
             foreach (KeyValuePair<int, List<SntPair>> pair in dict)
             {
-                //if (pair.Value.Count < m_batchSize)
-                //{
-                //    //If the bucket size is less than batch size, ignore it
-                //    continue;
-                //}
-
-                ////Align the bucket size to batch size
-                //int externalItemCnt = pair.Value.Count % m_batchSize;
-                //pair.Value.RemoveRange(pair.Value.Count - externalItemCnt, externalItemCnt);
-
                 if (sdict.ContainsKey(pair.Value.Count) == false)
                 {
                     sdict.Add(pair.Value.Count, new List<SntPair>());
@@ -210,10 +201,19 @@ namespace Seq2SeqSharp.Tools
                             break;
                         }
 
-                        line = $"{BOS} {line.ToLower().Trim()} {EOS}";
+                        line = line.ToLower().Trim();
+                        if (m_addBOSEOS)
+                        {
+                            line = $"{BOS} {line} {EOS}";
+                        }
                         sntPair.SrcSnt = line.Split(' ');
 
-                        line = $"{srTgt.ReadLine().ToLower().Trim()} {EOS}";
+                        line = srTgt.ReadLine().ToLower().Trim();
+                        if (m_addBOSEOS)
+                        {
+                            line = $"{line} {EOS}";
+                            
+                        }
                         sntPair.TgtSnt = line.Split(' ');
 
                         if ((lastSrcSntLen > 0 && lastSrcSntLen != sntPair.SrcSnt.Length) || outputs.Count > maxOutputsSize)
@@ -320,12 +320,13 @@ namespace Seq2SeqSharp.Tools
             return GetEnumerator();
         }
 
-        public Corpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSentLength = 32)
+        public Corpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSentLength = 32, bool addBOSEOS = true)
         {
             Logger.WriteLine($"Loading corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSentLength = '{maxSentLength}'");
             m_batchSize = batchSize;
             m_blockSize = shuffleBlockSize;
             m_maxSentLength = maxSentLength;
+            m_addBOSEOS = addBOSEOS;
 
             m_srcFileList = new List<string>();
             m_tgtFileList = new List<string>();
