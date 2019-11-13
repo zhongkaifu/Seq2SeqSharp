@@ -67,6 +67,9 @@
     <Compile Include="Metrics\BleuMetric.cs" />
     <Compile Include="Metrics\LengthRatioMetric.cs" />
     <Compile Include="Metrics\IMetric.cs" />
+    <Compile Include="Metrics\SequenceLabelFscoreMetric.cs" />
+    <Compile Include="Networks\CRFDecoder.cs" />
+    <Compile Include="SequenceLabel.cs" />
     <Compile Include="Tools\BaseSeq2SeqFramework.cs" />
     <Compile Include="Utils\ArchEnums.cs" />
     <Compile Include="Utils\BeamSearch.cs" />
@@ -94,7 +97,7 @@
     <Compile Include="Utils\TensorAllocator.cs" />
     <Compile Include="Tools\ComparableItem.cs" />
     <Compile Include="Tools\ComputeGraphTensor.cs" />
-    <Compile Include="Tools\Corpus.cs" />
+    <Compile Include="Corpus\ParallelCorpus.cs" />
     <Compile Include="Tools\IComputeGraph.cs" />
     <Compile Include="Tools\IWeightFactory.cs" />
     <Compile Include="Tools\IWeightTensor.cs" />

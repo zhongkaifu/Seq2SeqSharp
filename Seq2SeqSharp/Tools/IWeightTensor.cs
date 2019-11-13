@@ -37,5 +37,8 @@ namespace Seq2SeqSharp.Tools
 
         void CopyWeightsFrom(IWeightTensor src);
         void AddGradientFrom(IWeightTensor src);
+
+        float[] ToWeightArray();
+
     }
 }

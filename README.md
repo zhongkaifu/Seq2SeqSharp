@@ -3,9 +3,10 @@ Seq2SeqSharp is a tensor based fast & flexible encoder-decoder deep neural netwo
 
 # Features  
 Pure C# framework   
-Deep bi-directional LSTM encoder  
-Deep attention based LSTM decoder  
+Bi-directional LSTM encoder  
+Attention based LSTM decoder  
 Transformer encoder  
+Built-in several networks for sequence-to-sequence task and sequence-labeling task  
 Graph based neural network  
 Automatic differentiation  
 Tensor based operations  
@@ -15,16 +16,24 @@ Mini-batch
 Dropout  
 RMSProp and Adam optmization  
 Embedding & Pre-trained model 
-Metrics, such as BLEU score, Length ratio and so on  
+Metrics, such as BLEU score, Length ratio, F1 score and so on  
 Auto data shuffling  
 Auto vocabulary building  
 Beam search decoder  
 Visualize neural network  
 
-# Usage  
-You can use Seq2SeqConsole tool to train, test and visualize models.  
+# Architecture  
+Here is the architecture of Seq2SeqSharp  
+![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Overview.png)
 
-Here is the command line to train a model:
+Seq2SeqSharp provides the unified tensor operations, which means all tensor operations running on CPUs and GPUs are completely same and they can get switched on different device types without any modification.  
+Seq2SeqSharp is also a framework that neural networks can run on multi-GPUs in parallel. It can automatically distribute/sync weights/gradients over devices, manage resources and models and so on, so developers are able to totally focus on how to design and implment networks for their tasks.  
+
+# Usage  
+Seq2SeqSharp provides two console tools that you can run for sequence-to-sequence task (**Seq2SeqConsole.exe**) and sequence-labeling task (**SeqLabelConsole.exe**).  
+
+You can use Seq2SeqConsole tool to train, test and visualize models.  
+Here is the command line to train a model:  
 **Seq2SeqConsole.exe -TaskName Train [parameters...]**  
 Parameters:  
 **-WordVectorSize**: The vector size of encoded source word.  
@@ -97,6 +106,8 @@ Example: Seq2SeqConsole.exe -TaskName VisualizeNetwork -VisNNFile abc.png -Encod
 Then it will visualize the network looks like below:  
 ![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/NetworkViz.png)
 
+The usage of **SeqLabelConsole.exe** is similar as **Seq2SeqConsole.exe** in above, you can just type it in the console and it will show you usage.  
+
 # Data Format  
 The corpus contains each sentence per line. The file name pattern is "mainfilename.{source language name}.snt" and "mainfilename.{target language name}.snt".    
 For example: Let's use three letters name CHS for Chinese and ENU for English in Chinese-English parallel corpus, so we could have these corpus files: train01.enu.snt, train01.chs.snt, train02.enu.snt and train02.chs.snt.  
@@ -106,6 +117,15 @@ the car business is constantly changing .
 So, train01.chs.snt has the corresponding translated sentences:  
 孩子 们 挤 成 一 团 以 取暖 .  
 汽车 业 也 在 不断 地 变化 .  
+
+For sequence-labeling task, the corpus format is the same as above. The target corpus contains labels for the corresponding sentences in the source corpus.  
+For example:  
+In train01.word.snt, assume we have below two sentences:  
+Microsoft is located in Redmond .  
+Zhongkai Fu is the author of Seq2SeqSharp .  
+In train01.label.snt, we will have the following label sequences:  
+S_ORG S_NOR S_NOR S_NOR S_LOC S_NOR  
+B_PER E_PER S_NOR S_NOR S_NOR S_NOR S_NOR S_NOR  
 
 # Build Your Layers  
 Benefit from automatic differentiation, tensor based compute graph and other features, you can easily build your customized layers by a few code. The only thing you need to implment is forward part, and the framework will automatically build the corresponding backward part for you, and make the network could run on multi-GPUs or CPUs.  

@@ -9,7 +9,7 @@ namespace Seq2SeqSharp.Metrics
     public interface IMetric
     {
         void Evaluate(List<List<string>> refTokens, List<string> hypTokens);
-        double GetScore();
+        string GetScore();
         string Name { get; }
         void ClearStatus();
 

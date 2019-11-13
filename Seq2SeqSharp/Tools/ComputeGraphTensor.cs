@@ -52,6 +52,16 @@ namespace Seq2SeqSharp.Tools
         {
             System.Threading.Interlocked.Decrement(ref count);
         }
+
+        object locker = new object();
+        public void Clear()
+        {
+            lock (locker)
+            {
+                count = 0;
+                array = new T[MaxSize];
+            }
+        }
     }
 
     public class ComputeGraphTensor : IComputeGraph
@@ -61,21 +71,24 @@ namespace Seq2SeqSharp.Tools
         bool m_needsBackprop;
         bool m_visNeuralNetwork;
         int m_deviceId;
+        bool m_isSubGraph;
 
         // Visualization for neural network
         Microsoft.Msagl.Drawing.Graph m_opsViz;
         HashSet<string> m_setEdges;
         Microsoft.Msagl.Drawing.Subgraph m_subGraph = null;
-        Dictionary<string, Microsoft.Msagl.Drawing.Subgraph> name2SubGraph = new Dictionary<string, Subgraph>();
+        Dictionary<string, Microsoft.Msagl.Drawing.Subgraph> m_name2SubGraph = null;
 
-        public ComputeGraphTensor(IWeightFactory weightFactory, int deviceId, bool needBack = true, bool visNetwork = false, ConcurrentList<Action> backprop = null)
+        public ComputeGraphTensor(IWeightFactory weightFactory, int deviceId, bool needBack = true, bool visNetwork = false, ConcurrentList<Action> backprop = null, bool isSubGraph = false)
         {
             m_backprop = backprop != null ? backprop : new ConcurrentList<Action>();
             m_weightTensorFactory = weightFactory as WeightTensorFactory;
             m_needsBackprop = needBack;
             m_deviceId = deviceId;
             m_visNeuralNetwork = visNetwork;
+            m_isSubGraph = isSubGraph;
 
+            m_name2SubGraph = new Dictionary<string, Subgraph>();
             if (m_visNeuralNetwork)
             {
                 // Initialize parameters for neural network visualization
@@ -91,20 +104,20 @@ namespace Seq2SeqSharp.Tools
 
         public IComputeGraph CreateSubGraph(string name)
         {
-            ComputeGraphTensor subGraph = new ComputeGraphTensor(m_weightTensorFactory, m_deviceId, m_needsBackprop, m_visNeuralNetwork, m_backprop);
+            ComputeGraphTensor subGraph = new ComputeGraphTensor(m_weightTensorFactory, m_deviceId, m_needsBackprop, m_visNeuralNetwork, m_backprop, isSubGraph: true);
             if (m_visNeuralNetwork)
             {
                 // Create parameters for neural network visualization
                 subGraph.m_opsViz = m_opsViz;
                 subGraph.m_setEdges = m_setEdges;
-                subGraph.name2SubGraph = name2SubGraph;
-                if (name2SubGraph.ContainsKey(name) == false)
+                subGraph.m_name2SubGraph = m_name2SubGraph;
+                if (m_name2SubGraph.ContainsKey(name) == false)
                 {
                     int index = name.LastIndexOf(".");
                     subGraph.m_subGraph = new Subgraph(name);
                     subGraph.m_subGraph.LabelText = name.Substring(index + 1);
 
-                    name2SubGraph.Add(name, subGraph.m_subGraph);
+                    m_name2SubGraph.Add(name, subGraph.m_subGraph);
 
                     if (m_subGraph == null)
                     {
@@ -117,7 +130,7 @@ namespace Seq2SeqSharp.Tools
                 }
                 else
                 {
-                    subGraph.m_subGraph = name2SubGraph[name];
+                    subGraph.m_subGraph = m_name2SubGraph[name];
                 }
             }
 
@@ -1184,6 +1197,33 @@ namespace Seq2SeqSharp.Tools
             }
 
             return res;
+        }
+
+        public void Dispose()
+        {
+            // We only dispose root computing graph, For sub graph, we don't do it.
+            if (m_isSubGraph == false)
+            {
+                if (m_backprop != null)
+                {
+                    m_backprop.Clear();
+                }
+
+                if (m_weightTensorFactory != null)
+                {
+                    m_weightTensorFactory.Dispose();
+                }
+
+                if (m_setEdges != null)
+                {
+                    m_setEdges.Clear();
+                }
+
+                if (m_name2SubGraph != null)
+                {
+                    m_name2SubGraph.Clear();
+                }
+            }
         }
     }
 }

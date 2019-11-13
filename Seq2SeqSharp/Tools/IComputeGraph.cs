@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Seq2SeqSharp
 {
-    public interface IComputeGraph
+    public interface IComputeGraph : IDisposable
     {
         IComputeGraph CreateSubGraph(string name);
 

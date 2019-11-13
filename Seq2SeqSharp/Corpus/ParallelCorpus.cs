@@ -26,7 +26,7 @@ namespace Seq2SeqSharp.Tools
         }
     }
 
-    public class Corpus : IEnumerable<SntPairBatch>
+    public class ParallelCorpus : IEnumerable<SntPairBatch>
     {
         int m_maxSentLength = 32;
         int m_blockSize = 1000000;
@@ -211,8 +211,7 @@ namespace Seq2SeqSharp.Tools
                         line = srTgt.ReadLine().ToLower().Trim();
                         if (m_addBOSEOS)
                         {
-                            line = $"{line} {EOS}";
-                            
+                            line = $"{line} {EOS}";                            
                         }
                         sntPair.TgtSnt = line.Split(' ');
 
@@ -245,15 +244,25 @@ namespace Seq2SeqSharp.Tools
             File.Delete(tgtShuffledFilePath);
         }
 
-        public static List<List<string>> ConstructInputSentence(List<string> input)
+        public static List<List<string>> ConstructInputTokens(List<string> input, bool addBOSEOS = true)
         {
             List<string> inputSeq = new List<string>();
-            inputSeq.Add(Corpus.BOS);
+
+            if (addBOSEOS)
+            {
+                inputSeq.Add(ParallelCorpus.BOS);
+            }
+
             if (input != null)
             {
                 inputSeq.AddRange(input);
             }
-            inputSeq.Add(Corpus.EOS);
+
+            if (addBOSEOS)
+            {
+                inputSeq.Add(ParallelCorpus.EOS);
+            }
+
             var inputSeqs = new List<List<string>>() { inputSeq };
 
             return inputSeqs;
@@ -284,7 +293,7 @@ namespace Seq2SeqSharp.Tools
 
                 for (int j = 0; j < maxLen - count; j++)
                 {
-                    s[i].Add(Corpus.EOS);
+                    s[i].Add(ParallelCorpus.EOS);
                 }
             }
 
@@ -320,9 +329,9 @@ namespace Seq2SeqSharp.Tools
             return GetEnumerator();
         }
 
-        public Corpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSentLength = 32, bool addBOSEOS = true)
+        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSentLength = 32, bool addBOSEOS = true)
         {
-            Logger.WriteLine($"Loading corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSentLength = '{maxSentLength}'");
+            Logger.WriteLine($"Loading corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSentLength = '{maxSentLength}', addBOSEOS = '{addBOSEOS}'");
             m_batchSize = batchSize;
             m_blockSize = shuffleBlockSize;
             m_maxSentLength = maxSentLength;

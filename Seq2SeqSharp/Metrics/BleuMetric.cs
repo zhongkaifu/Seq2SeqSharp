@@ -85,12 +85,12 @@ namespace Seq2SeqSharp.Metrics
             }
         }
 
-        public double GetScore()
+        public string GetScore()
         {
             double precision = Precision();
             double bp = BrevityPenalty();
 
-            return 100.0 * precision * bp;
+            return (100.0 * precision * bp).ToString("F");
         }
 
        

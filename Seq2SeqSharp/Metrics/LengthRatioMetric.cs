@@ -27,10 +27,10 @@ namespace Seq2SeqSharp.Metrics
             m_counts[1] += BleuMetric.GetClosestRefLength(refTokens, hypTokens);
         }
 
-        public double GetScore()
+        public string GetScore()
         {
             double lr = m_counts[0] / m_counts[1];
-            return 100.0 * lr;
+            return (100.0 * lr).ToString("F");
         }
     }
 }

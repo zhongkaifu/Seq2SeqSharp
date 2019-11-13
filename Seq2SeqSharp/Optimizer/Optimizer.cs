@@ -17,8 +17,8 @@ namespace Seq2SeqSharp
     public class Optimizer
     {
         static float decay_rate_m = 0.9f;
-        static float decay_rate_v = 0.999f;
-        static float smooth_eps = 1e-10f;
+        static float decay_rate_v = 0.98f;
+        static float smooth_eps = 1e-9f;
 
         ConcurrentDictionary<string, Tensor> m_cacheName2V;
         ConcurrentDictionary<string, Tensor> m_cacheName2M;
@@ -34,18 +34,18 @@ namespace Seq2SeqSharp
             m_clipval = clipval;
         }
 
-        public void Clear()
-        {
-            foreach (var pair in m_cacheName2V)
-            {
-                Ops.Fill(pair.Value, 0.0f);
-            }
+        //public void Clear()
+        //{
+        //    foreach (var pair in m_cacheName2V)
+        //    {
+        //        Ops.Fill(pair.Value, 0.0f);
+        //    }
 
-            foreach (var pair in m_cacheName2M)
-            {
-                Ops.Fill(pair.Value, 0.0f);
-            }
-        }
+        //    foreach (var pair in m_cacheName2M)
+        //    {
+        //        Ops.Fill(pair.Value, 0.0f);
+        //    }
+        //}
 
         public void UpdateWeights(List<IWeightTensor> model, int batchSize, float step_size, float regc, int iter)
         {

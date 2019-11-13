@@ -203,7 +203,7 @@ namespace Seq2SeqSharp.Tools
             }           
         }
 
-        private float[] ToWeightArray()
+        public float[] ToWeightArray()
         {
             return TWeight.GetElementsAsFloat(Rows * Columns);
         }

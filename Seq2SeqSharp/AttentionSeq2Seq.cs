@@ -134,7 +134,7 @@ namespace Seq2SeqSharp
             }
         }
 
-        public void Train(int maxTrainingEpoch, Corpus trainCorpus, Corpus validCorpus, ILearningRate learningRate, List<IMetric> metrics, Optimizer optimizer)
+        public void Train(int maxTrainingEpoch, ParallelCorpus trainCorpus, ParallelCorpus validCorpus, ILearningRate learningRate, List<IMetric> metrics, Optimizer optimizer)
         {
             Logger.WriteLine("Start to train...");
             for (int i = 0; i < maxTrainingEpoch; i++)
@@ -145,9 +145,14 @@ namespace Seq2SeqSharp
             }
         }
 
-        public void Valid(Corpus validCorpus, List<IMetric> metrics)
+        public void Valid(ParallelCorpus validCorpus, List<IMetric> metrics)
         {
             RunValid(validCorpus, RunForwardOnSingleDevice, metrics, true);
+        }
+
+        public List<List<string>> Test(List<List<string>> inputTokens)
+        {
+            return RunTest(inputTokens, RunForwardOnSingleDevice);
         }
 
         /// <summary>
@@ -194,7 +199,7 @@ namespace Seq2SeqSharp
         /// <returns></returns>
         private IWeightTensor Encode(IComputeGraph g, List<List<string>> inputSentences, IEncoder encoder, IWeightTensor Embedding)
         {
-            Corpus.PadSentences(inputSentences);
+            ParallelCorpus.PadSentences(inputSentences);
             int seqLen = inputSentences[0].Count;
             int batchSize = inputSentences.Count;
 
@@ -232,7 +237,7 @@ namespace Seq2SeqSharp
             }
 
             // Initialize variables accoridng to current mode
-            var originalOutputLengths = isTraining ? Corpus.PadSentences(outputSentences) : null;
+            var originalOutputLengths = isTraining ? ParallelCorpus.PadSentences(outputSentences) : null;
             int seqLen = isTraining ? outputSentences[0].Count : 64;
             var dropoutRatio = isTraining ? m_dropoutRatio : 0.0f;
             HashSet<int> setEndSentId = isTraining ? null : new HashSet<int>();
@@ -299,7 +304,7 @@ namespace Seq2SeqSharp
                             {
                                 outputSentences[j].Add(targetWords[j]);
 
-                                if (targetWords[j] == Corpus.EOS)
+                                if (targetWords[j] == ParallelCorpus.EOS)
                                 {
                                     setEndSentId.Add(j);
                                 }
@@ -342,7 +347,7 @@ namespace Seq2SeqSharp
         public List<List<string>> Predict(List<string> input, int beamSearchSize = 1, int maxOutputLength = 100)
         {
             (IEncoder encoder, AttentionDecoder decoder, IWeightTensor srcEmbedding, IWeightTensor tgtEmbedding, FeedForwardLayer decoderFFLayer) = GetNetworksOnDeviceAt(-1);
-            var inputSeqs = Corpus.ConstructInputSentence(input);
+            var inputSeqs = ParallelCorpus.ConstructInputTokens(input);
             int batchSize = 1; // For predict with beam search, we currently only supports one sentence per call
 
             var g = CreateComputGraph(m_defaultDeviceId, needBack: false);
@@ -430,7 +435,7 @@ namespace Seq2SeqSharp
         {
             (IEncoder encoder, AttentionDecoder decoder, IWeightTensor srcEmbedding, IWeightTensor tgtEmbedding, FeedForwardLayer decoderFFLayer) = GetNetworksOnDeviceAt(-1);
             // Build input sentence
-            var inputSeqs = Corpus.ConstructInputSentence(null);
+            var inputSeqs = ParallelCorpus.ConstructInputTokens(null);
             int batchSize = inputSeqs.Count;
             var g = CreateComputGraph(m_defaultDeviceId, needBack: false, visNetwork: true);
 

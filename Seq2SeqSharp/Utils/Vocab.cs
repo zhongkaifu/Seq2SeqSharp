@@ -32,6 +32,15 @@ namespace Seq2SeqSharp
         public int SourceWordSize => m_srcIndexToWord.Count;
         public int TargetWordSize => m_tgtIndexToWord.Count;
 
+        public List<string> SrcVocab
+        {
+            get { return m_srcVocab.GetRange(3, m_srcVocab.Count - 3); }
+        }
+
+        public List<string> TgtVocab
+        {
+            get { return m_tgtVocab.GetRange(3, m_tgtVocab.Count - 3); }
+        }
 
         public Vocab()
         {
@@ -48,29 +57,29 @@ namespace Seq2SeqSharp
             m_tgtIndexToWord = new ConcurrentDictionary<int, string>();
             m_tgtVocab = new List<string>();
 
-            m_srcVocab.Add(Corpus.EOS);
-            m_srcVocab.Add(Corpus.BOS);
-            m_srcVocab.Add(Corpus.UNK);
+            m_srcVocab.Add(ParallelCorpus.EOS);
+            m_srcVocab.Add(ParallelCorpus.BOS);
+            m_srcVocab.Add(ParallelCorpus.UNK);
 
-            SrcWordToIndex[Corpus.EOS] = (int)SENTTAGS.END;
-            SrcWordToIndex[Corpus.BOS] = (int)SENTTAGS.START;
-            SrcWordToIndex[Corpus.UNK] = (int)SENTTAGS.UNK;
+            SrcWordToIndex[ParallelCorpus.EOS] = (int)SENTTAGS.END;
+            SrcWordToIndex[ParallelCorpus.BOS] = (int)SENTTAGS.START;
+            SrcWordToIndex[ParallelCorpus.UNK] = (int)SENTTAGS.UNK;
 
-            m_srcIndexToWord[(int)SENTTAGS.END] = Corpus.EOS;
-            m_srcIndexToWord[(int)SENTTAGS.START] = Corpus.BOS;
-            m_srcIndexToWord[(int)SENTTAGS.UNK] = Corpus.UNK;
+            m_srcIndexToWord[(int)SENTTAGS.END] = ParallelCorpus.EOS;
+            m_srcIndexToWord[(int)SENTTAGS.START] = ParallelCorpus.BOS;
+            m_srcIndexToWord[(int)SENTTAGS.UNK] = ParallelCorpus.UNK;
 
-            m_tgtVocab.Add(Corpus.EOS);
-            m_tgtVocab.Add(Corpus.BOS);
-            m_tgtVocab.Add(Corpus.UNK);
+            m_tgtVocab.Add(ParallelCorpus.EOS);
+            m_tgtVocab.Add(ParallelCorpus.BOS);
+            m_tgtVocab.Add(ParallelCorpus.UNK);
 
-            TgtWordToIndex[Corpus.EOS] = (int)SENTTAGS.END;
-            TgtWordToIndex[Corpus.BOS] = (int)SENTTAGS.START;
-            TgtWordToIndex[Corpus.UNK] = (int)SENTTAGS.UNK;
+            TgtWordToIndex[ParallelCorpus.EOS] = (int)SENTTAGS.END;
+            TgtWordToIndex[ParallelCorpus.BOS] = (int)SENTTAGS.START;
+            TgtWordToIndex[ParallelCorpus.UNK] = (int)SENTTAGS.UNK;
 
-            m_tgtIndexToWord[(int)SENTTAGS.END] = Corpus.EOS;
-            m_tgtIndexToWord[(int)SENTTAGS.START] = Corpus.BOS;
-            m_tgtIndexToWord[(int)SENTTAGS.UNK] = Corpus.UNK;
+            m_tgtIndexToWord[(int)SENTTAGS.END] = ParallelCorpus.EOS;
+            m_tgtIndexToWord[(int)SENTTAGS.START] = ParallelCorpus.BOS;
+            m_tgtIndexToWord[(int)SENTTAGS.UNK] = ParallelCorpus.UNK;
         }
 
         /// <summary>
@@ -118,7 +127,7 @@ namespace Seq2SeqSharp
         /// </summary>
         /// <param name="trainCorpus"></param>
         /// <param name="minFreq"></param>
-        public Vocab(Corpus trainCorpus, int minFreq = 1)
+        public Vocab(ParallelCorpus trainCorpus, int minFreq = 1)
         {
             Logger.WriteLine($"Building vocabulary from given training corpus.");
             // count up all words
@@ -189,7 +198,7 @@ namespace Seq2SeqSharp
             List<string> result = new List<string>();
             foreach (var idx in idxs)
             {
-                var letter = Corpus.UNK;
+                var letter = ParallelCorpus.UNK;
                 if (m_tgtIndexToWord.ContainsKey(idx))
                 {
                     letter = m_tgtIndexToWord[idx];
