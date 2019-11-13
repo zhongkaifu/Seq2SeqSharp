@@ -49,3 +49,9 @@
 /CpuOps/Release
 /CpuOps/Debug
 /CpuOps/bin/x64/Release
+/CpuOps/x64/Debug
+/CpuOps/bin/x64/Debug
+/SeqLabelConsole/obj/Release
+/SeqLabelConsole/bin/Release
+/TensorSharp.CUDA/bin/x64/Release
+/TensorSharp.CUDA/bin/x64/Debug
