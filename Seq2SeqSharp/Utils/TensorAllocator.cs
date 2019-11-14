@@ -12,9 +12,9 @@ namespace Seq2SeqSharp
 {
     public static class TensorAllocator
     {
-        private static IAllocator[] allocator = null;
-        private static TSCudaContext cudaContext = null;
-        private static int[] deviceIds;
+        private static IAllocator[] m_allocator = null;
+        private static TSCudaContext m_cudaContext = null;
+        private static int[] m_deviceIds;
         private static ProcessorTypeEnums m_archType;
 
 
@@ -23,18 +23,22 @@ namespace Seq2SeqSharp
             m_archType = archType;
             if (m_archType == ProcessorTypeEnums.GPU)
             {
-                deviceIds = ids;
+                m_deviceIds = ids;
 
-                foreach (var id in deviceIds)
+                foreach (var id in m_deviceIds)
                 {
                     Logger.WriteLine($"Initialize device '{id}'");
                 }
 
-                cudaContext = new TSCudaContext(deviceIds);
-                cudaContext.Precompile(Console.Write);
-                cudaContext.CleanUnusedPTX();
+                m_cudaContext = new TSCudaContext(m_deviceIds);
+                m_cudaContext.Precompile(Console.Write);
+                m_cudaContext.CleanUnusedPTX();
 
-                allocator = new IAllocator[deviceIds.Length];
+                m_allocator = new IAllocator[m_deviceIds.Length];
+            }
+            else
+            {
+                m_allocator = new IAllocator[1];
             }
         }
 
@@ -43,24 +47,29 @@ namespace Seq2SeqSharp
             if (m_archType == ProcessorTypeEnums.GPU)
             {
                 int idx = GetDeviceIdIndex(deviceId);
-                if (allocator[idx] == null)
+                if (m_allocator[idx] == null)
                 {
-                    allocator[idx] = new CudaAllocator(cudaContext, deviceId);
+                    m_allocator[idx] = new CudaAllocator(m_cudaContext, deviceId);
                 }
 
-                return allocator[idx];
+                return m_allocator[idx];
             }
             else
             {
-                return new CpuAllocator();
+                if (m_allocator[0] == null)
+                {
+                    m_allocator[0] = new CpuAllocator();
+                }
+
+                return m_allocator[0];
             }
         }
 
         private static int GetDeviceIdIndex(int id)
         {
-            for (int i = 0; i < deviceIds.Length; i++)
+            for (int i = 0; i < m_deviceIds.Length; i++)
             {
-                if (deviceIds[i] == id)
+                if (m_deviceIds[i] == id)
                 {
                     return i;
                 }
@@ -72,9 +81,9 @@ namespace Seq2SeqSharp
         public static void FreeMemoryAllDevices(bool callGC = false)
         {
             GC.Collect();
-            if (cudaContext != null)
+            if (m_cudaContext != null)
             {
-                cudaContext.FreeMemoryAllDevices(callGC);
+                m_cudaContext.FreeMemoryAllDevices(callGC);
             }
         }
     }
