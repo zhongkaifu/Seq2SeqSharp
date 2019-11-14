@@ -1,5 +1,5 @@
 ﻿# Seq2SeqSharp  
-Seq2SeqSharp is a tensor based fast & flexible encoder-decoder deep neural network framework written by .NET (C#). It can run on both CPU and GPU  
+Seq2SeqSharp is a tensor based fast & flexible encoder-decoder deep neural network framework written by .NET (C#). It can be used for sequence-to-sequence task, sequence-labeling task and sequence-classification task and other NLP tasks. Seq2SeqSharp supports both CPUs and GPUs.  
 
 # Features  
 Pure C# framework   
@@ -24,7 +24,7 @@ Visualize neural network
 
 # Architecture  
 Here is the architecture of Seq2SeqSharp  
-![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Overview.png)
+![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Overview.jpg)
 
 Seq2SeqSharp provides the unified tensor operations, which means all tensor operations running on CPUs and GPUs are completely same and they can get switched on different device types without any modification.  
 Seq2SeqSharp is also a framework that neural networks can run on multi-GPUs in parallel. It can automatically distribute/sync weights/gradients over devices, manage resources and models and so on, so developers are able to totally focus on how to design and implment networks for their tasks.  
