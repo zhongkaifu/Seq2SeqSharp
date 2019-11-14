@@ -11,7 +11,7 @@ namespace Seq2SeqSharp.Metrics
         private double[] m_count;
         private string m_classLabel;
 
-        public string Name => "SequenceLabelFscore";
+        public string Name => $"SequenceLabelFscore ({m_classLabel})";
 
         public SequenceLabelFscoreMetric(string classLabel)
         {
@@ -46,7 +46,7 @@ namespace Seq2SeqSharp.Metrics
             }
         }
 
-        public string GetScore()
+        public string GetScoreStr()
         {
             double precision = m_count[0] / m_count[1];
             double recall = m_count[0] / m_count[2];
@@ -56,7 +56,20 @@ namespace Seq2SeqSharp.Metrics
                 objective = 2.0 * (precision * recall) / (precision + recall);
             }
 
-            return $"{m_classLabel}: F-score = '{(100.0 * objective).ToString("F")}' Precision = '{(100.0 * precision).ToString("F")}' Recall = '{(100.0 * recall).ToString("F")}'";
+            return $"F-score = '{(100.0 * objective).ToString("F")}' Precision = '{(100.0 * precision).ToString("F")}' Recall = '{(100.0 * recall).ToString("F")}'";
+        }
+
+        public double GetPrimaryScore()
+        {
+            double precision = m_count[0] / m_count[1];
+            double recall = m_count[0] / m_count[2];
+            double objective = 0.0;
+            if (precision > 0.0 && recall > 0.0)
+            {
+                objective = 2.0 * (precision * recall) / (precision + recall);
+            }
+
+            return 100.0 * objective;
         }
     }
 }

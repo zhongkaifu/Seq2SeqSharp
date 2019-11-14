@@ -126,7 +126,7 @@ namespace SeqLabelConsole
             }
             else if (mode == ModeEnums.Valid)
             {
-                Logger.WriteLine($"Validing corpus '{opts.ValidCorpusPath}' by model '{opts.ModelFilePath}'");
+                Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPath}'");
 
                 // Load valid corpus
                 ParallelCorpus validCorpus = new ParallelCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength, false);
@@ -144,7 +144,7 @@ namespace SeqLabelConsole
             }
             else if (mode == ModeEnums.Test)
             {
-                Logger.WriteLine($"Testing model '{opts.ModelFilePath}' by input corpus '{opts.InputTestFile}'");
+                Logger.WriteLine($"Test model '{opts.ModelFilePath}' by input corpus '{opts.InputTestFile}'");
 
                 //Test trained model
                 sl = new SequenceLabel(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds);

@@ -142,7 +142,6 @@ namespace Seq2SeqSharp.Tools
                     CorpusSize++;
                     if (m_blockSize > 0 && sntPairs.Count >= m_blockSize)
                     {
-                        Logger.WriteLine($"Shuffle corpus...");
                         Shuffle(sntPairs);
                         foreach (var item in sntPairs)
                         {
@@ -159,7 +158,6 @@ namespace Seq2SeqSharp.Tools
 
             if (sntPairs.Count > 0)
             {
-                Logger.WriteLine($"Shuffle corpus...");
                 Shuffle(sntPairs);
                 foreach (var item in sntPairs)
                 {
@@ -175,7 +173,11 @@ namespace Seq2SeqSharp.Tools
             swTgt.Close();
 
             Logger.WriteLine($"Shuffled '{CorpusSize}' sentence pairs to file '{srcShuffledFilePath}' and '{tgtShuffledFilePath}'.");
-            Logger.WriteLine($"Found {tooLongSntCnt} sentences are longer than '{m_maxSentLength}' tokens, ignore them.");
+
+            if (tooLongSntCnt > 0)
+            {
+                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Found {tooLongSntCnt} sentences are longer than '{m_maxSentLength}' tokens, ignore them.");
+            }
 
             return (srcShuffledFilePath, tgtShuffledFilePath);
         }

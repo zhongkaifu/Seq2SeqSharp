@@ -121,7 +121,7 @@ namespace Seq2SeqConsole
             }
             else if (mode == ModeEnums.Valid)
             {
-                Logger.WriteLine($"Validing corpus '{opts.ValidCorpusPath}' by model '{opts.ModelFilePath}'");
+                Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPath}'");
 
                 // Create metrics
                 List<IMetric> metrics = new List<IMetric>();
@@ -136,7 +136,7 @@ namespace Seq2SeqConsole
             }
             else if (mode == ModeEnums.Test)
             {
-                Logger.WriteLine($"Testing model '{opts.ModelFilePath}' by input corpus '{opts.InputTestFile}'");
+                Logger.WriteLine($"Test model '{opts.ModelFilePath}' by input corpus '{opts.InputTestFile}'");
 
                 //Test trained model
                 ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds);

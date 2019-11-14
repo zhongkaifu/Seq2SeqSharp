@@ -85,15 +85,19 @@ namespace Seq2SeqSharp.Metrics
             }
         }
 
-        public string GetScore()
+        public string GetScoreStr()
+        {
+            return GetPrimaryScore().ToString("F");
+        }
+
+        public double GetPrimaryScore()
         {
             double precision = Precision();
             double bp = BrevityPenalty();
 
-            return (100.0 * precision * bp).ToString("F");
+            return 100.0 * precision * bp;
         }
 
-       
         internal static double GetClosestRefLength(List<List<string>> refTokens, List<string> hypTokens)
         {
             int closestIndex = -1;

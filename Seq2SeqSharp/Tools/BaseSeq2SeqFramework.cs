@@ -26,7 +26,8 @@ namespace Seq2SeqSharp.Tools
         readonly string m_modelFilePath;
         float m_regc = 1e-10f; // L2 regularization strength
         int m_weightsUpdateCount = 0;
-        double m_avgCostPerWordInTotalInLastEpoch = 100000.0;
+        double m_avgCostPerWordInTotalInLastEpoch = 10000.0;
+        double m_bestPrimaryScore = 0.0f;
         object locker = new object();
         SortedList<string, IMultiProcessorNetworkWrapper> name2network;
 
@@ -102,6 +103,7 @@ namespace Seq2SeqSharp.Tools
         {
             int processedLineInTotal = 0;
             DateTime startDateTime = DateTime.Now;
+            DateTime lastCheckPointDateTime = DateTime.Now;
             double costInTotal = 0.0;
             long srcWordCnts = 0;
             long tgtWordCnts = 0;
@@ -192,35 +194,45 @@ namespace Seq2SeqSharp.Tools
                         });
                     }
 
-                    //Save model for each 10000 steps
-                    if (m_weightsUpdateCount % 1000 == 0 && m_avgCostPerWordInTotalInLastEpoch > avgCostPerWordInTotal)
+                    // Evaluate model every hour and save it if we could get a better one.
+                    TimeSpan ts = DateTime.Now - lastCheckPointDateTime;
+                    if (ts.TotalHours > 1.0)
                     {
-                        SaveModel(modelMetaData);
-                        if (validCorpus != null)
+                        if (CreateCheckPoint(validCorpus, metrics, modelMetaData, ForwardOnSingleDevice, avgCostPerWordInTotal))
                         {
-                            //Valid the quality of current model
-                            RunValid(validCorpus, ForwardOnSingleDevice, metrics);
+                            lastCheckPointDateTime = DateTime.Now;
                         }
-
-                        TensorAllocator.FreeMemoryAllDevices();
                     }
 
                     sntPairBatchs.Clear();
                 }
             }
 
-            Logger.WriteLine($"Epoch '{ep}' took '{DateTime.Now - startDateTime}' time to finish. AvgCost = {avgCostPerWordInTotal.ToString("F6")}, AvgCostInLastEpoch = {m_avgCostPerWordInTotalInLastEpoch.ToString("F6")}");
-            if (m_avgCostPerWordInTotalInLastEpoch > avgCostPerWordInTotal)
+            Logger.WriteLine(Logger.Level.info, ConsoleColor.Green, $"Epoch '{ep}' took '{DateTime.Now - startDateTime}' time to finish. AvgCost = {avgCostPerWordInTotal.ToString("F6")}, AvgCostInLastEpoch = {m_avgCostPerWordInTotalInLastEpoch.ToString("F6")}");
+
+            CreateCheckPoint(validCorpus, metrics, modelMetaData, ForwardOnSingleDevice, avgCostPerWordInTotal);
+            m_avgCostPerWordInTotalInLastEpoch = avgCostPerWordInTotal;
+        }
+
+        private bool CreateCheckPoint(ParallelCorpus validCorpus, List<IMetric> metrics, IModelMetaData modelMetaData, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice, double avgCostPerWordInTotal)
+        {
+            if (validCorpus != null)
             {
-                SaveModel(modelMetaData);
-                if (validCorpus != null)
+                // The valid corpus is provided, so evaluate the model.
+                if (RunValid(validCorpus, ForwardOnSingleDevice, metrics) == true)
                 {
-                    //Valid the quality of current model
-                    RunValid(validCorpus, ForwardOnSingleDevice, metrics);
+                    SaveModel(modelMetaData);
+                    return true;
                 }
             }
+            else if (m_avgCostPerWordInTotalInLastEpoch > avgCostPerWordInTotal)
+            {
+                // We don't have valid corpus, so if we could have lower cost, save the model
+                SaveModel(modelMetaData);
+                return true;
+            }
 
-            m_avgCostPerWordInTotalInLastEpoch = avgCostPerWordInTotal;
+            return false;
         }
 
         internal List<List<string>> RunTest(List<List<string>> inputTokens, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice)
@@ -237,15 +249,21 @@ namespace Seq2SeqSharp.Tools
             return hypTkns;
         }
 
-
-        internal void RunValid(ParallelCorpus validCorpus, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice, List<IMetric> metrics, bool outputToFile = false)
+        /// <summary>
+        /// Evaluate the quality of model on valid corpus.
+        /// </summary>
+        /// <param name="validCorpus">valid corpus to measure the quality of model</param>
+        /// <param name="RunNetwork">The network to run on specific device</param>
+        /// <param name="metrics">A set of metrics. The first one is the primary metric</param>
+        /// <param name="outputToFile">It indicates if valid corpus and results should be dumped to files</param>
+        /// <returns>true if we get a better result on primary metric, otherwise, false</returns>
+        internal bool RunValid(ParallelCorpus validCorpus, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> RunNetwork, List<IMetric> metrics, bool outputToFile = false)
         {
-            Logger.WriteLine($"Validing the quality of the model...");
+            Logger.WriteLine(Logger.Level.info, ConsoleColor.Gray, $"Start to Evaluate model...");
 
             List<string> srcSents = new List<string>();
             List<string> refSents = new List<string>();
             List<string> hypSents = new List<string>();
-
 
             // Clear inner status of each metrics
             foreach (var metric in metrics)
@@ -270,7 +288,7 @@ namespace Seq2SeqSharp.Tools
                 using (IComputeGraph computeGraph = CreateComputGraph(DeviceIds[0], needBack: false))
                 {
                     // Run forward part
-                    ForwardOnSingleDevice(computeGraph, srcTkns, hypTkns, DeviceIds[0], false);
+                    RunNetwork(computeGraph, srcTkns, hypTkns, DeviceIds[0], false);
                 }
 
                 for (int i = 0;i < hypTkns.Count;i++)
@@ -295,7 +313,7 @@ namespace Seq2SeqSharp.Tools
             Logger.WriteLine($"Metrics result:");
             foreach (IMetric metric in metrics)
             {
-                Logger.WriteLine($"{metric.Name} = {metric.GetScore()}");
+                Logger.WriteLine(Logger.Level.info, ConsoleColor.DarkGreen,$"{metric.Name} = {metric.GetScoreStr()}");
             }
 
             if (outputToFile)
@@ -304,6 +322,19 @@ namespace Seq2SeqSharp.Tools
                 File.WriteAllLines("valid_ref.txt", refSents);
                 File.WriteAllLines("valid_hyp.txt", hypSents);
             }
+
+            if (metrics.Count > 0)
+            {
+                if (metrics[0].GetPrimaryScore() > m_bestPrimaryScore)
+                {
+                    Logger.WriteLine(Logger.Level.info, ConsoleColor.Green, $"We got a better score '{metrics[0].GetPrimaryScore().ToString("F")}' on primary metric '{metrics[0].Name}'. The previous score is '{m_bestPrimaryScore.ToString("F")}'");
+                    //We have a better primary score on valid set
+                    m_bestPrimaryScore = metrics[0].GetPrimaryScore();
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         internal virtual void SaveParameters(Stream stream)
