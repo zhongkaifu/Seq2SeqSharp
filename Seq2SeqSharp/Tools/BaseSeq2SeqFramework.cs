@@ -198,10 +198,8 @@ namespace Seq2SeqSharp.Tools
                     TimeSpan ts = DateTime.Now - lastCheckPointDateTime;
                     if (ts.TotalHours > 1.0)
                     {
-                        if (CreateCheckPoint(validCorpus, metrics, modelMetaData, ForwardOnSingleDevice, avgCostPerWordInTotal))
-                        {
-                            lastCheckPointDateTime = DateTime.Now;
-                        }
+                        CreateCheckPoint(validCorpus, metrics, modelMetaData, ForwardOnSingleDevice, avgCostPerWordInTotal);
+                        lastCheckPointDateTime = DateTime.Now;
                     }
 
                     sntPairBatchs.Clear();
@@ -214,7 +212,7 @@ namespace Seq2SeqSharp.Tools
             m_avgCostPerWordInTotalInLastEpoch = avgCostPerWordInTotal;
         }
 
-        private bool CreateCheckPoint(ParallelCorpus validCorpus, List<IMetric> metrics, IModelMetaData modelMetaData, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice, double avgCostPerWordInTotal)
+        private void CreateCheckPoint(ParallelCorpus validCorpus, List<IMetric> metrics, IModelMetaData modelMetaData, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice, double avgCostPerWordInTotal)
         {
             if (validCorpus != null)
             {
@@ -222,17 +220,15 @@ namespace Seq2SeqSharp.Tools
                 if (RunValid(validCorpus, ForwardOnSingleDevice, metrics) == true)
                 {
                     SaveModel(modelMetaData);
-                    return true;
                 }
             }
             else if (m_avgCostPerWordInTotalInLastEpoch > avgCostPerWordInTotal)
             {
                 // We don't have valid corpus, so if we could have lower cost, save the model
                 SaveModel(modelMetaData);
-                return true;
             }
 
-            return false;
+            TensorAllocator.FreeMemoryAllDevices();
         }
 
         internal List<List<string>> RunTest(List<List<string>> inputTokens, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice)

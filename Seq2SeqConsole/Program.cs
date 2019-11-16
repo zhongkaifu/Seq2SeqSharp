@@ -47,9 +47,8 @@ namespace Seq2SeqConsole
 
         static void Main(string[] args)
         {
-            ShowOptions(args);
-
             Logger.LogFile = $"{nameof(Seq2SeqConsole)}_{GetTimeStamp(DateTime.Now)}.log";
+            ShowOptions(args);
 
             //Parse command line
             Options opts = new Options();
