@@ -66,7 +66,7 @@ namespace Seq2SeqSharp
             return true;
         }
 
-        public void Train(int maxTrainingEpoch, ParallelCorpus trainCorpus, ParallelCorpus validCorpus, ILearningRate learningRate, List<IMetric> metrics, Optimizer optimizer)
+        public void Train(int maxTrainingEpoch, ParallelCorpus trainCorpus, ParallelCorpus validCorpus, ILearningRate learningRate, List<IMetric> metrics, AdamOptimizer optimizer)
         {
             Logger.WriteLine("Start to train...");
             for (int i = 0; i < maxTrainingEpoch; i++)

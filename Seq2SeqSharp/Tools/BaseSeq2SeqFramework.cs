@@ -98,7 +98,7 @@ namespace Seq2SeqSharp.Tools
             return modelMetaData;
         }
 
-        internal void TrainOneEpoch(int ep, ParallelCorpus trainCorpus, ParallelCorpus validCorpus, ILearningRate learningRate, Optimizer solver, List<IMetric> metrics, IModelMetaData modelMetaData,
+        internal void TrainOneEpoch(int ep, ParallelCorpus trainCorpus, ParallelCorpus validCorpus, ILearningRate learningRate, AdamOptimizer solver, List<IMetric> metrics, IModelMetaData modelMetaData,
             Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice)
         {
             int processedLineInTotal = 0;

@@ -92,7 +92,7 @@
     <Compile Include="Layers\LSTMAttentionDecoderCell.cs" />
     <Compile Include="Utils\ModeEnums.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Optimizer\Optimizer.cs" />
+    <Compile Include="Optimizer\AdamOptimizer.cs" />
     <Compile Include="Layers\SelfAttention.cs" />
     <Compile Include="Utils\TensorAllocator.cs" />
     <Compile Include="Tools\ComparableItem.cs" />

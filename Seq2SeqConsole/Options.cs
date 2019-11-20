@@ -105,5 +105,11 @@ namespace Seq2SeqConsole
 
         [Arg("The file path of config file for parameters", "ConfigFilePath")]
         public string ConfigFilePath = String.Empty;
+
+        [Arg("The beta1 for optimizer", "Beta1")]
+        public float Beta1 = 0.9f;
+
+        [Arg("The beta2 for optimizer", "Beta2")]
+        public float Beta2 = 0.999f;
     }
 }

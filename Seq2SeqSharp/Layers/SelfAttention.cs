@@ -71,10 +71,13 @@ namespace Seq2SeqSharp
 
             var seqLen = input.Rows / batchSize;
 
+
+            var nInput = layerNorm1.Norm(input, g);
+
             //Input projections
-            var allQ = g.View(g.Affine(input, Q, Qb), batchSize, seqLen, m_multiHeadNum, m_d);
-            var allK = g.View(g.Affine(input, K, Kb), batchSize, seqLen, m_multiHeadNum, m_d);
-            var allV = g.View(g.Affine(input, V, Vb), batchSize, seqLen, m_multiHeadNum, m_d);
+            var allQ = g.View(g.Affine(nInput, Q, Qb), batchSize, seqLen, m_multiHeadNum, m_d);
+            var allK = g.View(g.Affine(nInput, K, Kb), batchSize, seqLen, m_multiHeadNum, m_d);
+            var allV = g.View(g.Affine(nInput, V, Vb), batchSize, seqLen, m_multiHeadNum, m_d);
 
             //Multi-head attentions
             var Qs = g.View(g.Permute(allQ, 2, 0, 1, 3), m_multiHeadNum * batchSize, seqLen, m_d);
@@ -95,10 +98,10 @@ namespace Seq2SeqSharp
             var finalAttResults = g.Dropout(g.Affine(W, W0, b0), batchSize, m_dropoutRatio, inPlace: true);
 
             //Skip connection and layer normaliztion
-            //var addedAttResult = g.Add(finalAttResults, input);
-            //var normAddedAttResult = layerNorm1.Norm(addedAttResult, g);
+            var addedAttResult = g.Add(finalAttResults, input);
+            var normAddedAttResult = layerNorm2.Norm(addedAttResult, g);
 
-            var normAddedAttResult = layerNorm1.AddNorm(finalAttResults, input, g);
+            //var normAddedAttResult = layerNorm1.AddNorm(finalAttResults, input, g);
 
             //Feed forward
             var ffnResult = feedForwardLayer1.Process(normAddedAttResult, batchSize, g);
@@ -106,12 +109,15 @@ namespace Seq2SeqSharp
             var ffn2Result = feedForwardLayer2.Process(reluFFNResult, batchSize, g);
 
             //Skip connection and layer normaliztion
-            //var addFFNResult = g.Add(ffn2Result, normAddedAttResult);
+            var addFFNResult = g.Add(ffn2Result, normAddedAttResult);
+
+            return addFFNResult;
+
             //var normAddFFNResult = layerNorm2.Norm(addFFNResult, g);
 
-            var normAddFFNResult = layerNorm2.AddNorm(ffn2Result, normAddedAttResult, g);
+            //// var normAddFFNResult = layerNorm2.AddNorm(ffn2Result, normAddedAttResult, g);
 
-            return normAddFFNResult;
+            //return normAddFFNResult;
         }
 
 

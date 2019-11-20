@@ -106,6 +106,45 @@ Example: Seq2SeqConsole.exe -TaskName VisualizeNetwork -VisNNFile abc.png -Encod
 Then it will visualize the network looks like below:  
 ![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/NetworkViz.png)
 
+You can also keep all parameters into a json file and run Seq2SeqConsole.exe -ConfigFilePath <config_file_path> Here is an example for training.  
+```json
+{
+"TaskName":"Train",
+"WordVectorSize":1024,
+"HiddenSize":1024,
+"StartLearningRate":0.001,
+"WeightsUpdateCount":0,
+"EncoderLayerDepth":6,
+"DecoderLayerDepth":6,
+"ModelFilePath":"seq2seq.model",
+"SrcVocab":"corpus\\vocab.enu",
+"TgtVocab":"corpus\\vocab.chs",
+"SrcEmbeddingModelFilePath":null,
+"TgtEmbeddingModelFilePath":null,
+"SrcLang":"ENU",
+"TgtLang":"CHS",
+"TrainCorpusPath":"corpus",
+"ValidCorpusPath":"corpus_valid",
+"InputTestFile":null,
+"OutputTestFile":null,
+"ShuffleBlockSize":-1,
+"GradClip":3.0,
+"BatchSize":128,
+"DropoutRatio":0.1,
+"ProcessorType":"GPU",
+"EncoderType":"Transformer",
+"MultiHeadNum":16,
+"DeviceIds":"0,1,2,3",
+"BeamSearch":1,
+"MaxEpochNum":100,
+"MaxSentLength":64,
+"WarmUpSteps":8000,
+"VisualizeNNFilePath":null,
+"Beta1":0.9,
+"Beta2":0.98
+}
+```
+
 The usage of **SeqLabelConsole.exe** is similar as **Seq2SeqConsole.exe** in above, you can just type it in the console and it will show you usage.  
 
 # Data Format  
