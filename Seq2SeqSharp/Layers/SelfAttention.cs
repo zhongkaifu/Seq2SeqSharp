@@ -68,10 +68,7 @@ namespace Seq2SeqSharp
         public IWeightTensor Perform(IWeightTensor input, int batchSize, IComputeGraph graph)
         {
             IComputeGraph g = graph.CreateSubGraph(m_name);
-
             var seqLen = input.Rows / batchSize;
-
-
             var nInput = layerNorm1.Norm(input, g);
 
             //Input projections
@@ -98,10 +95,7 @@ namespace Seq2SeqSharp
             var finalAttResults = g.Dropout(g.Affine(W, W0, b0), batchSize, m_dropoutRatio, inPlace: true);
 
             //Skip connection and layer normaliztion
-            var addedAttResult = g.Add(finalAttResults, input);
-            var normAddedAttResult = layerNorm2.Norm(addedAttResult, g);
-
-            //var normAddedAttResult = layerNorm1.AddNorm(finalAttResults, input, g);
+            var normAddedAttResult = layerNorm2.AddNorm(finalAttResults, input, g);
 
             //Feed forward
             var ffnResult = feedForwardLayer1.Process(normAddedAttResult, batchSize, g);
@@ -112,12 +106,6 @@ namespace Seq2SeqSharp
             var addFFNResult = g.Add(ffn2Result, normAddedAttResult);
 
             return addFFNResult;
-
-            //var normAddFFNResult = layerNorm2.Norm(addFFNResult, g);
-
-            //// var normAddFFNResult = layerNorm2.AddNorm(ffn2Result, normAddedAttResult, g);
-
-            //return normAddFFNResult;
         }
 
 

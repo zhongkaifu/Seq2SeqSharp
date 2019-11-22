@@ -68,9 +68,6 @@ namespace Seq2SeqSharp
             // Transpose to batch-first based sequence
             var inputs = g.TransposeBatch(rawInput, batchSize);
 
-            //inputs = g.Mul(inputs, (float)Math.Sqrt(m_inputDim));
-            //inputs = g.Add(inputs, posEmbeddingRepeat, runGradient1: true, runGradient2: false);
-
             inputs = g.AddMul(posEmbeddingRepeat, inputs, (float)Math.Sqrt(m_inputDim), runGradientW1: false, runGradientW2: true);
 
             // We don't update position embedding, so dispose it now to save memory.
