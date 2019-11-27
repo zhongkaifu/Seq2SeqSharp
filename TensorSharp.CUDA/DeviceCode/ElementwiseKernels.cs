@@ -62,15 +62,15 @@ namespace TensorSharp.CUDA.DeviceCode
 
             result.AddApplyTTT("atan2", "*a = atan2f(*b, *c);");
 
-            result.AddApplyTS("t1_pow", "*a = powf(*a, b);");
-            result.AddApplyTTS("t2_pow", "*a = powf(*b, c);");
-            result.AddApplyTS("t1_tpow", "*a = powf(b, *a);");
-            result.AddApplyTTS("t2_tpow", "*a = powf(c, *b);");
+            //result.AddApplyTS("t1_pow", "*a = powf(*a, b);");
+            //result.AddApplyTTS("t2_pow", "*a = powf(*b, c);");
+            //result.AddApplyTS("t1_tpow", "*a = powf(b, *a);");
+            //result.AddApplyTTS("t2_tpow", "*a = powf(c, *b);");
 
             result.AddApplyTTTS("lerp", "*a = Lerp(*b, *c, d);");
 
-            result.AddApplyTSS("t1_clamp", "*a = Clamp(*a, b, c);");
-            result.AddApplyTTSS("t2_clamp", "*a = Clamp(*b, c, d);");
+            //result.AddApplyTSS("t1_clamp", "*a = Clamp(*a, b, c);");
+            //result.AddApplyTTSS("t2_clamp", "*a = Clamp(*b, c, d);");
 
             AppendTTSFunc(result, "add", "add_op");
             AppendTTSFunc(result, "sub", "sub_op");

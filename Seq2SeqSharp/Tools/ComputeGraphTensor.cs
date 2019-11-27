@@ -398,6 +398,7 @@ namespace Seq2SeqSharp.Tools
             {
                 Action backward = () =>
                 {
+                    res.ReleaseWeight();
                     Ops.AddReluD(m.TGradient, m.TGradient, m.TWeight, res.TGradient);
                     res.Dispose();
                 };

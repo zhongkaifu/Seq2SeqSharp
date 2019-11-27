@@ -43,12 +43,16 @@ namespace Seq2SeqSharp
         { 
             return (float)(Math.Floor(  random.NextDouble() * (b - a) + a)); 
         }
+        ////public static float NormalRandom(float mu, float std)
+        ////{
+        ////    return mu + GaussRandom() * std;
+        ////}
+
         public static float NormalRandom(float mu, float std)
         {
-            return mu + GaussRandom() * std;
+            return mu + floatRandom(-1.0f, 1.0f) * std;
         }
 
-            
 
     }
      

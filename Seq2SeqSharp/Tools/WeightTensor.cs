@@ -108,12 +108,7 @@ namespace Seq2SeqSharp.Tools
                 var n = Rows * Columns;
                 float[] weight = new float[n];
 
-
-                var scale = (float)Math.Sqrt(1.0 / (Rows * Columns));
-                if (normal)
-                {
-                    scale = 0.08f;
-                }
+                var scale = (float)Math.Sqrt(2.0 / Rows);
                 for (int i = 0; i < n; i++)
                 {
                     weight[i] = RandomGenerator.NormalRandom(0.0f, scale);
