@@ -29,7 +29,7 @@ namespace Seq2SeqSharp
             m_dropoutRatio = dropoutRatio;
             m_deviceId = deviceId;
 
-            m_Whd = new WeightTensor(new long[2] { inputDim, outputDim }, deviceId, name: $"{name}.{nameof(m_Whd)}", isTrainable: true);
+            m_Whd = new WeightTensor(new long[2] { inputDim, outputDim }, deviceId, name: $"{name}.{nameof(m_Whd)}", isTrainable: true, normal: true);
             m_Bd = new WeightTensor(new long[2] { 1, outputDim }, 0, deviceId, name: $"{name}.{nameof(m_Bd)}", isTrainable: true);
         }
 

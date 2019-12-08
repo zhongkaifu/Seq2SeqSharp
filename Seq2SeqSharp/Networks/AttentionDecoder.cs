@@ -16,30 +16,39 @@ namespace Seq2SeqSharp
     public class AttentionDecoder : INeuralUnit
     {
         List<LSTMAttentionDecoderCell> m_decoders = new List<LSTMAttentionDecoderCell>();
+        FeedForwardLayer m_decoderFFLayer;
+
         int m_hdim;
-        int m_dim;
+        int m_embDim;
+        int m_outputDim;
+        float m_dropoutRatio;
         int m_depth;
         int m_context;
         int m_deviceId;
         AttentionUnit m_attentionLayer;
         string m_name;
 
-        public AttentionDecoder(string name, int hiddenDim, int embeddingDim, int contextDim, int depth, int deviceId)
+        public AttentionDecoder(string name, int hiddenDim, int embeddingDim, int contextDim, int outputDim, float dropoutRatio, int depth, int deviceId)
         {
             m_attentionLayer = new AttentionUnit($"{name}.AttnUnit", hiddenDim, contextDim, deviceId);
 
             m_name = name;
             m_hdim = hiddenDim;
-            m_dim = embeddingDim;
+            m_embDim = embeddingDim;
             m_context = contextDim;
             m_depth = depth;
             m_deviceId = deviceId;
+            m_outputDim = outputDim;
+            m_dropoutRatio = dropoutRatio;
 
             m_decoders.Add(new LSTMAttentionDecoderCell($"{name}.LSTMAttn_0", hiddenDim, embeddingDim, contextDim, deviceId));
             for (int i = 1; i < depth; i++)
             {
                 m_decoders.Add(new LSTMAttentionDecoderCell($"{name}.LSTMAttn_{i}", hiddenDim, hiddenDim, contextDim, deviceId));
             }
+
+            m_decoderFFLayer = new FeedForwardLayer($"{name}.FeedForward", hiddenDim, outputDim, 0.0f, deviceId: deviceId);
+
         }
 
         public int GetDeviceId()
@@ -49,7 +58,7 @@ namespace Seq2SeqSharp
 
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
-            return new AttentionDecoder(m_name, m_hdim, m_dim, m_context, m_depth, deviceId);
+            return new AttentionDecoder(m_name, m_hdim, m_embDim, m_context, m_outputDim, m_dropoutRatio,  m_depth, deviceId);
         }
 
 
@@ -80,7 +89,10 @@ namespace Seq2SeqSharp
                 V = e;
             }
 
-            return V;
+            var eOutput = g.Dropout(V, batchSize, m_dropoutRatio, true);
+            eOutput = m_decoderFFLayer.Process(eOutput, batchSize, g);
+
+            return eOutput;
         }
 
         public List<IWeightTensor> GetCTs()
@@ -130,6 +142,7 @@ namespace Seq2SeqSharp
                 response.AddRange(item.getParams());
             }
             response.AddRange(m_attentionLayer.GetParams());
+            response.AddRange(m_decoderFFLayer.GetParams());
 
             return response;
         }
@@ -141,6 +154,8 @@ namespace Seq2SeqSharp
             {
                 item.Save(stream);
             }
+
+            m_decoderFFLayer.Save(stream);
         }
 
         public void Load(Stream stream)
@@ -150,6 +165,8 @@ namespace Seq2SeqSharp
             {
                 item.Load(stream);
             }
+
+            m_decoderFFLayer.Load(stream);
         }
     }
 }

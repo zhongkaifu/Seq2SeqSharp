@@ -139,10 +139,12 @@ namespace Seq2SeqSharp.Tools
 
         public void Backward()
         {
-            for (var i = this.m_backprop.Count - 1; i >= 0; i--)
+            for (var i = m_backprop.Count - 1; i >= 0; i--)
             {
-                this.m_backprop[i](); // tick!
+                m_backprop[i](); // tick!
             }
+
+            m_backprop.Clear();
         }
 
         public void RunTopBackward()
@@ -245,7 +247,7 @@ namespace Seq2SeqSharp.Tools
 
             Ops.AddMulV(res.TWeight, m1.TWeight, m2.TWeight, v);
 
-            if (m_needsBackprop)
+            if (m_needsBackprop && (runGradientW1 || runGradientW2))
             {
                 Action backward = () =>
                 {
@@ -638,7 +640,7 @@ namespace Seq2SeqSharp.Tools
 
             VisualizeNodes(w, res);
 
-            if (m_needsBackprop)
+            if (m_needsBackprop && runGradients)
             {
                 Action backward = () =>
                 {

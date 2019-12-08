@@ -371,7 +371,14 @@ namespace Seq2SeqSharp.Tools
 
         public List<IWeightTensor> GetParams()
         {
-            return new List<IWeightTensor>() { this };
+            if (IsTrainable)
+            {
+                return new List<IWeightTensor>() { this };
+            }
+            else
+            {
+                return new List<IWeightTensor>();
+            }
         }
     }
 }
