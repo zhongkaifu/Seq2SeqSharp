@@ -56,7 +56,7 @@ template<typename T> INLINE_FUNC T Lerp(T a, T b, T weight) {
 }
 
 template<typename T> INLINE_FUNC T Sigmoid(T x) {
-	return T(1) / (T(1) + __expf(-x));
+	return T(1) / (T(1) + expf(-x));
 }
 
 template<typename T> INLINE_FUNC T AddSigmoidD(T t, T resW, T resG) {

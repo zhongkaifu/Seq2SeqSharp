@@ -105,16 +105,11 @@ namespace Seq2SeqSharp.Tools
 
             if (normal)
             {
-                var n = Rows * Columns;
-                float[] weight = new float[n];
 
-                var scale = (float)Math.Sqrt(2.0 / Rows);
-                for (int i = 0; i < n; i++)
-                {
-                    weight[i] = RandomGenerator.NormalRandom(0.0f, scale);
-                }
+                var scale = (float)Math.Sqrt(6.0 / (Rows + Columns));
 
-                TWeight = Tensor.FromArray(m_allocator, weight).View(Sizes);
+                SeedSource seedSource = new SeedSource(DateTime.Now.Millisecond);
+                Ops.RandomUniform(TWeight, seedSource, -scale, scale);
             }
         }
 

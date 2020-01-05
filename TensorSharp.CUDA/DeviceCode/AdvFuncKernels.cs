@@ -568,7 +568,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols) {         
-          float ex = __expf(sp[i] - max);
+          float ex = expf(sp[i] - max);
           so[i] = ex;
           _sum[threadIdx.x] += ex;
         }

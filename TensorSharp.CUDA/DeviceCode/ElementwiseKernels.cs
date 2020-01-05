@@ -25,7 +25,7 @@ namespace TensorSharp.CUDA.DeviceCode
             AppendTTFunc(result, "sqrt", "sqrtf");
             AppendTTFunc(result, "rsqrt", "rsqrtf");
 
-            AppendTTFunc(result, "exp", "__expf");
+            AppendTTFunc(result, "exp", "expf");
             AppendTTFunc(result, "log", "logf");
             AppendTTFunc(result, "log1p", "log1p");
             AppendTTFunc(result, "floor", "floor");

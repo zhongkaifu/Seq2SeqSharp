@@ -282,23 +282,23 @@ namespace Seq2SeqSharp
                 {
                     if (isTraining)
                     {
-                                //Calculate loss for each word in the batch
-                                for (int k = 0; k < batchSize; k++)
+                        //Calculate loss for each word in the batch
+                        for (int k = 0; k < batchSize; k++)
+                        {
+                            using (var probs_k = g.PeekRow(probs, k, runGradients: false))
+                            {
+                                var ix_targets_k = m_modelMetaData.Vocab.GetTargetWordIndex(outputSentences[k][i]);
+                                var score_k = probs_k.GetWeightAt(ix_targets_k);
+                                if (i < originalOutputLengths[k])
                                 {
-                                    using (var probs_k = g.PeekRow(probs, k, runGradients: false))
-                                    {
-                                        var ix_targets_k = m_modelMetaData.Vocab.GetTargetWordIndex(outputSentences[k][i]);
-                                        var score_k = probs_k.GetWeightAt(ix_targets_k);
-                                        if (i < originalOutputLengths[k])
-                                        {
-                                            cost += (float)-Math.Log(score_k);
-                                        }
-
-                                        probs_k.SetWeightAt(score_k - 1, ix_targets_k);
-                                        ix_inputs[k] = ix_targets_k;
-                                    }
+                                    cost += (float)-Math.Log(score_k);
                                 }
-                                eOutput.CopyWeightsToGradients(probs);
+
+                                probs_k.SetWeightAt(score_k - 1, ix_targets_k);
+                                ix_inputs[k] = ix_targets_k;
+                            }
+                        }
+                        eOutput.CopyWeightsToGradients(probs);
                     }
                     else
                     {
