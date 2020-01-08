@@ -44,6 +44,12 @@ namespace Seq2SeqSharp.Tools
         public const string BOS = "<START>";
         public const string UNK = "<UNK>";
 
+
+        public static bool IsPreDefinedToken(string str)
+        {
+            return str == EOS || str == BOS || str == UNK;
+        }
+
         Random rnd = new Random(DateTime.Now.Millisecond);
 
         void Shuffle(List<SntPair> sntPairs)

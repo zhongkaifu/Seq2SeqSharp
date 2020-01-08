@@ -1,16 +1,12 @@
-﻿using Seq2SeqSharp;
+﻿using AdvUtils;
+using Newtonsoft.Json;
+using Seq2SeqSharp;
+using Seq2SeqSharp.Metrics;
+using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Numerics;
-using Seq2SeqSharp.Tools;
-using AdvUtils;
-using TensorSharp;
-using Seq2SeqSharp.Metrics;
-using Newtonsoft.Json;
 
 namespace Seq2SeqConsole
 {
@@ -102,7 +98,7 @@ namespace Seq2SeqConsole
                 {
                     //New training
                     ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth,
-                        srcEmbeddingFilePath: opts.SrcEmbeddingModelFilePath, tgtEmbeddingFilePath: opts.TgtEmbeddingModelFilePath, vocab: vocab, modelFilePath: opts.ModelFilePath, 
+                        srcEmbeddingFilePath: opts.SrcEmbeddingModelFilePath, tgtEmbeddingFilePath: opts.TgtEmbeddingModelFilePath, vocab: vocab, modelFilePath: opts.ModelFilePath,
                         dropoutRatio: opts.DropoutRatio, processorType: processorType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType);
                 }
                 else
@@ -156,7 +152,7 @@ namespace Seq2SeqConsole
             }
             else if (mode == ModeEnums.VisualizeNetwork)
             {
-                ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth, 
+                ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth,
                     vocab: new Vocab(), srcEmbeddingFilePath: null, tgtEmbeddingFilePath: null, modelFilePath: opts.ModelFilePath, dropoutRatio: opts.DropoutRatio,
                     processorType: processorType, deviceIds: new int[1] { 0 }, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType);
 
@@ -172,7 +168,7 @@ namespace Seq2SeqConsole
         {
             string commandLine = String.Join(" ", args);
             Logger.WriteLine($"Seq2SeqSharp v2.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
-            Logger.WriteLine($"Command Line = '{commandLine}'");      
+            Logger.WriteLine($"Command Line = '{commandLine}'");
         }
     }
 }

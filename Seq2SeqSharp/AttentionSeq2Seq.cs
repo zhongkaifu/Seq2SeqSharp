@@ -383,7 +383,11 @@ namespace Seq2SeqSharp
                 for (int i = 0; i < bssList.Count; i++)
                 {
                     bss = bssList[i];
-                    if (bss.OutputIds[bss.OutputIds.Count - 1] == (int)SENTTAGS.END || bss.OutputIds.Count > maxOutputLength)
+                    if (bss.OutputIds[bss.OutputIds.Count - 1] == (int)SENTTAGS.END)
+                    {
+                        newBSSList.Add(bss);
+                    }
+                    else if (bss.OutputIds.Count > maxOutputLength)
                     {
                         newBSSList.Add(bss);
                     }

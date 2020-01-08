@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Numerics;
 using Seq2SeqSharp.Tools;
 using AdvUtils;
 using Seq2SeqSharp.Metrics;

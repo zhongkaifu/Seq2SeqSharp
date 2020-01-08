@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Seq2SeqSharp;
-using AdvUtils;
+﻿using AdvUtils;
+using System;
 
 namespace Seq2SeqConsole
 {

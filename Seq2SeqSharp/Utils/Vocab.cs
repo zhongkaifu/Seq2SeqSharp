@@ -162,7 +162,7 @@ namespace Seq2SeqSharp
             var q = 3;
             foreach (var ch in s_d)
             {
-                if (ch.Value >= minFreq)
+                if (ch.Value >= minFreq && ParallelCorpus.IsPreDefinedToken(ch.Key) == false)
                 {
                     // add word to vocab
                     SrcWordToIndex[ch.Key] = q;
@@ -178,7 +178,7 @@ namespace Seq2SeqSharp
             q = 3;
             foreach (var ch in t_d)
             {
-                if (ch.Value >= minFreq)
+                if (ch.Value >= minFreq && ParallelCorpus.IsPreDefinedToken(ch.Key) == false)
                 {
                     // add word to vocab
                     TgtWordToIndex[ch.Key] = q;
@@ -190,6 +190,30 @@ namespace Seq2SeqSharp
             }
 
             Logger.WriteLine($"Target language Max term id = '{q}'");
+        }
+
+
+        public void DumpTargetVocab(string fileName)
+        {
+            List<string> lines = new List<string>();
+            foreach (var pair in m_tgtIndexToWord)
+            {
+                lines.Add($"{pair.Key}\t{pair.Value}");
+            }
+
+            File.WriteAllLines(fileName, lines);
+        }
+
+
+        public void DumpSourceVocab(string fileName)
+        {
+            List<string> lines = new List<string>();
+            foreach (var pair in m_srcIndexToWord)
+            {
+                lines.Add($"{pair.Key}\t{pair.Value}");
+            }
+
+            File.WriteAllLines(fileName, lines);
         }
 
 

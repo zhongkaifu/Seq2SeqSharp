@@ -257,6 +257,8 @@ namespace Seq2SeqSharp.Tools
         {
             Logger.WriteLine(Logger.Level.info, ConsoleColor.Gray, $"Start to Evaluate model...");
 
+
+
             List<string> srcSents = new List<string>();
             List<string> refSents = new List<string>();
             List<string> hypSents = new List<string>();
@@ -267,43 +269,64 @@ namespace Seq2SeqSharp.Tools
                 metric.ClearStatus();
             }
 
-            foreach (var sntPairBatch in validCorpus)
+
+            List<SntPairBatch> sntPairBatchs = new List<SntPairBatch>();
+            foreach (var item in validCorpus)
             {
-                // Construct sentences for encoding and decoding
-                List<List<string>> srcTkns = new List<List<string>>();
-                List<List<string>> refTkns = new List<List<string>>();
-                for (int j = 0; j < sntPairBatch.BatchSize; j++)
+                sntPairBatchs.Add(item);
+                if (sntPairBatchs.Count == DeviceIds.Length)
                 {
-                    srcTkns.Add(sntPairBatch.SntPairs[j].SrcSnt.ToList());
-                    refTkns.Add(sntPairBatch.SntPairs[j].TgtSnt.ToList());
-                }
-
-                List<List<string>> hypTkns = new List<List<string>>();
-
-                // Create a new computing graph instance
-                using (IComputeGraph computeGraph = CreateComputGraph(DeviceIds[0], needBack: false))
-                {
-                    // Run forward part
-                    RunNetwork(computeGraph, srcTkns, hypTkns, DeviceIds[0], false);
-                }
-
-                for (int i = 0;i < hypTkns.Count;i++)
-                {
-                    foreach (var metric in metrics)
+                    // Run forward on all available processors
+                    Parallel.For(0, m_deviceIds.Length, i =>
                     {
-                        metric.Evaluate(new List<List<string>>() { refTkns[i] }, hypTkns[i]);
-                    }
+                        var sntPairBatch = sntPairBatchs[i];
+
+                        // Construct sentences for encoding and decoding
+                        List<List<string>> srcTkns = new List<List<string>>();
+                        List<List<string>> refTkns = new List<List<string>>();
+                        for (int j = 0; j < sntPairBatch.BatchSize; j++)
+                        {
+                            srcTkns.Add(sntPairBatch.SntPairs[j].SrcSnt.ToList());
+                            refTkns.Add(sntPairBatch.SntPairs[j].TgtSnt.ToList());
+                        }
+
+                        List<List<string>> hypTkns = new List<List<string>>();
+
+                        // Create a new computing graph instance
+                        using (IComputeGraph computeGraph = CreateComputGraph(DeviceIds[i], needBack: false))
+                        {
+                            // Run forward part
+                            RunNetwork(computeGraph, srcTkns, hypTkns, DeviceIds[i], false);
+                        }
+
+                        lock (locker)
+                        {
+
+                            for (int j = 0; j < hypTkns.Count; j++)
+                            {
+                                foreach (var metric in metrics)
+                                {
+                                    metric.Evaluate(new List<List<string>>() { refTkns[j] }, hypTkns[j]);
+                                }
+                            }
+
+                            if (outputToFile)
+                            {
+                                for (int j = 0; j < sntPairBatch.BatchSize; j++)
+                                {
+                                    srcSents.Add(String.Join(" ", srcTkns[j]));
+                                    refSents.Add(String.Join(" ", refTkns[j]));
+                                    hypSents.Add(String.Join(" ", hypTkns[j]));
+                                }
+                            }
+                        }
+
+                    });
+
+                        sntPairBatchs.Clear();
                 }
 
-                if (outputToFile)
-                {
-                    for (int j = 0; j < sntPairBatch.BatchSize; j++)
-                    {
-                        srcSents.Add(String.Join(" ", srcTkns[j]));
-                        refSents.Add(String.Join(" ", refTkns[j]));
-                        hypSents.Add(String.Join(" ", hypTkns[j]));
-                    }
-                }
+                
             }
 
             Logger.WriteLine($"Metrics result:");
