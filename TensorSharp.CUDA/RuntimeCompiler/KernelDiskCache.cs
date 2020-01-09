@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -30,21 +29,20 @@ namespace TensorSharp.CUDA.RuntimeCompiler
         /// </summary>
         public void CleanUnused()
         {
-            foreach (var file in Directory.GetFiles(cacheDir))
+            foreach (string file in Directory.GetFiles(cacheDir))
             {
-                var key = KeyFromFilePath(file);
+                string key = KeyFromFilePath(file);
                 if (!memoryCachedKernels.ContainsKey(key))
                 {
                     File.Delete(file);
                 }
             }
         }
-        
+
         public byte[] Get(string fullSourceCode, Func<string, byte[]> compile)
         {
-            var key = KeyFromSource(fullSourceCode);
-            byte[] ptx;
-            if (memoryCachedKernels.TryGetValue(key, out ptx))
+            string key = KeyFromSource(fullSourceCode);
+            if (memoryCachedKernels.TryGetValue(key, out byte[] ptx))
             {
                 return ptx;
             }
@@ -65,13 +63,13 @@ namespace TensorSharp.CUDA.RuntimeCompiler
 
         private void WriteToFile(string key, byte[] ptx)
         {
-            var filePath = FilePathFromKey(key);
+            string filePath = FilePathFromKey(key);
             System.IO.File.WriteAllBytes(filePath, ptx);
         }
 
         private bool TryGetFromFile(string key, out byte[] ptx)
         {
-            var filePath = FilePathFromKey(key);
+            string filePath = FilePathFromKey(key);
             if (!System.IO.File.Exists(filePath))
             {
                 ptx = null;
@@ -94,9 +92,9 @@ namespace TensorSharp.CUDA.RuntimeCompiler
 
         private static string KeyFromSource(string fullSource)
         {
-            var fullKey = fullSource.Length.ToString() + fullSource;
+            string fullKey = fullSource.Length.ToString() + fullSource;
 
-            using (var sha1 = new SHA1Managed())
+            using (SHA1Managed sha1 = new SHA1Managed())
             {
                 return BitConverter.ToString(sha1.ComputeHash(Encoding.UTF8.GetBytes(fullKey)))
                     .Replace("-", "");

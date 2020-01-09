@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
 
 namespace TensorSharp
 {
@@ -18,7 +16,7 @@ namespace TensorSharp
 
         public RegisterOp(string opName)
         {
-            this.OpName = opName;
+            OpName = opName;
         }
 
         public abstract void DoRegister(object instance, MethodInfo method, IEnumerable<OpConstraint> paramConstraints);
@@ -36,7 +34,7 @@ namespace TensorSharp
 
         public override void DoRegister(object instance, MethodInfo method, IEnumerable<OpConstraint> paramConstraints)
         {
-            var constraints = new List<OpConstraint>();
+            List<OpConstraint> constraints = new List<OpConstraint>();
             constraints.AddRange(paramConstraints);
             constraints.Add(new ArgCountConstraint(method.GetParameters().Length));
 
@@ -44,7 +42,7 @@ namespace TensorSharp
         }
     }
 
-    
+
     [AttributeUsage(AttributeTargets.Method)]
     public class RegisterOpStorageType : RegisterOp
     {
@@ -57,12 +55,12 @@ namespace TensorSharp
 
         public override void DoRegister(object instance, MethodInfo method, IEnumerable<OpConstraint> paramConstraints)
         {
-            var constraints = new List<OpConstraint>();
+            List<OpConstraint> constraints = new List<OpConstraint>();
             constraints.AddRange(paramConstraints);
             constraints.Add(new ArgCountConstraint(method.GetParameters().Length));
 
-            var methodParams = method.GetParameters();
-            for(int i = 0; i < methodParams.Length; ++i)
+            ParameterInfo[] methodParams = method.GetParameters();
+            for (int i = 0; i < methodParams.Length; ++i)
             {
                 if (methodParams[i].ParameterType == typeof(Tensor))
                 {

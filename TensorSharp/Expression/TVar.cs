@@ -212,7 +212,7 @@
 //        {
 //            return new TVar(new ToDeviceExpression(this.Expression, device));
 //        }
-        
+
 //        public Tensor Evaluate()
 //        {
 //            return expression.Evaluate(null);

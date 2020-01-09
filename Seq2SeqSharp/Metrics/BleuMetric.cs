@@ -12,12 +12,12 @@ namespace Seq2SeqSharp.Metrics
     public class BleuMetric : IMetric
     {
         private double[] m_counts;
-        private int m_matchIndex;
+        private readonly int m_matchIndex;
 
-        bool m_caseInsensitive { get; }
-        int m_ngramOrder { get; }
+        private bool m_caseInsensitive { get; }
+        private int m_ngramOrder { get; }
         public string Name => "BLEU";
-       
+
         public BleuMetric(int ngramOrder = 4, bool caseInsensitive = true)
         {
             m_ngramOrder = ngramOrder;
@@ -52,7 +52,7 @@ namespace Seq2SeqSharp.Metrics
                 List<Dictionary<string, int>> counts = GetNgramCounts(r);
                 for (int n = 0; n < m_ngramOrder; n++)
                 {
-                    foreach (var e in counts[n])
+                    foreach (KeyValuePair<string, int> e in counts[n])
                     {
                         string ngram = e.Key;
                         int count = e.Value;
@@ -70,12 +70,11 @@ namespace Seq2SeqSharp.Metrics
             for (int j = 0; j < m_ngramOrder; j++)
             {
                 int overlap = 0;
-                foreach (var e in hypCounts[j])
+                foreach (KeyValuePair<string, int> e in hypCounts[j])
                 {
                     string ngram = e.Key;
                     int hypCount = e.Value;
-                    int refCount = 0;
-                    if (refCounts[j].TryGetValue(ngram, out refCount))
+                    if (refCounts[j].TryGetValue(ngram, out int refCount))
                     {
                         overlap += Math.Min(hypCount, refCount);
                     }
@@ -135,7 +134,7 @@ namespace Seq2SeqSharp.Metrics
                 Dictionary<string, int> counts = new Dictionary<string, int>();
                 for (int i = 0; i < tokens.Count - n; i++)
                 {
-                    string ngram = String.Join(" ", tokens.ToArray(), i, n + 1);                  
+                    string ngram = string.Join(" ", tokens.ToArray(), i, n + 1);
                     if (!counts.ContainsKey(ngram))
                     {
                         counts[ngram] = 1;
@@ -156,7 +155,7 @@ namespace Seq2SeqSharp.Metrics
             for (int i = 0; i < m_ngramOrder; i++)
             {
                 double x = m_counts[m_matchIndex + i] / (m_counts[(int)RefHypIdx.HypIdx + i] + 0.001);
-                prec *= Math.Pow(x, 1.0 / (double)m_ngramOrder);
+                prec *= Math.Pow(x, 1.0 / m_ngramOrder);
             }
             return prec;
         }

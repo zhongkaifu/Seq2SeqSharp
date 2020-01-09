@@ -3,10 +3,6 @@ using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TensorSharp;
 
 namespace Seq2SeqSharp
 {
@@ -16,16 +12,14 @@ namespace Seq2SeqSharp
         public IWeightTensor Hidden { get; set; }
         public IWeightTensor Cell { get; set; }
 
-        int m_hiddenDim;
-        int m_inputDim;
-        int m_deviceId;
-        string m_name;
-
-        IWeightTensor m_Wxhc;
-        IWeightTensor m_b;
-
-        LayerNormalization m_layerNorm1;
-        LayerNormalization m_layerNorm2;
+        private readonly int m_hiddenDim;
+        private readonly int m_inputDim;
+        private readonly int m_deviceId;
+        private readonly string m_name;
+        private readonly IWeightTensor m_Wxhc;
+        private readonly IWeightTensor m_b;
+        private readonly LayerNormalization m_layerNorm1;
+        private readonly LayerNormalization m_layerNorm2;
 
         public LSTMAttentionDecoderCell(string name, int hiddenDim, int inputDim, int contextDim, int deviceId)
         {
@@ -52,24 +46,24 @@ namespace Seq2SeqSharp
         /// <returns>Update hidden weights</returns>
         public IWeightTensor Step(IWeightTensor context, IWeightTensor input, IComputeGraph g)
         {
-            var computeGraph = g.CreateSubGraph(m_name);
+            IComputeGraph computeGraph = g.CreateSubGraph(m_name);
 
-            var cell_prev = Cell;
-            var hidden_prev = Hidden;
+            IWeightTensor cell_prev = Cell;
+            IWeightTensor hidden_prev = Hidden;
 
-            var hxhc = computeGraph.ConcatColumns(input, hidden_prev, context);
-            var hhSum = computeGraph.Affine(hxhc, m_Wxhc, m_b);
-            var hhSum2 = m_layerNorm1.Norm(hhSum, computeGraph);
+            IWeightTensor hxhc = computeGraph.ConcatColumns(input, hidden_prev, context);
+            IWeightTensor hhSum = computeGraph.Affine(hxhc, m_Wxhc, m_b);
+            IWeightTensor hhSum2 = m_layerNorm1.Norm(hhSum, computeGraph);
 
-            (var gates_raw, var cell_write_raw) = computeGraph.SplitColumns(hhSum2, m_hiddenDim * 3, m_hiddenDim);
-            var gates = computeGraph.Sigmoid(gates_raw);
-            var cell_write = computeGraph.Tanh(cell_write_raw);
+            (IWeightTensor gates_raw, IWeightTensor cell_write_raw) = computeGraph.SplitColumns(hhSum2, m_hiddenDim * 3, m_hiddenDim);
+            IWeightTensor gates = computeGraph.Sigmoid(gates_raw);
+            IWeightTensor cell_write = computeGraph.Tanh(cell_write_raw);
 
-            (var input_gate, var forget_gate, var output_gate) = computeGraph.SplitColumns(gates, m_hiddenDim, m_hiddenDim, m_hiddenDim);
+            (IWeightTensor input_gate, IWeightTensor forget_gate, IWeightTensor output_gate) = computeGraph.SplitColumns(gates, m_hiddenDim, m_hiddenDim, m_hiddenDim);
 
             // compute new cell activation: ct = forget_gate * cell_prev + input_gate * cell_write
             Cell = computeGraph.EltMulMulAdd(forget_gate, cell_prev, input_gate, cell_write);
-            var ct2 = m_layerNorm2.Norm(Cell, computeGraph);
+            IWeightTensor ct2 = m_layerNorm2.Norm(Cell, computeGraph);
 
             Hidden = computeGraph.EltMul(output_gate, computeGraph.Tanh(ct2));
 
@@ -78,9 +72,11 @@ namespace Seq2SeqSharp
 
         public List<IWeightTensor> getParams()
         {
-            List<IWeightTensor> response = new List<IWeightTensor>();
-            response.Add(m_Wxhc);
-            response.Add(m_b);
+            List<IWeightTensor> response = new List<IWeightTensor>
+            {
+                m_Wxhc,
+                m_b
+            };
 
             response.AddRange(m_layerNorm1.getParams());
             response.AddRange(m_layerNorm2.getParams());

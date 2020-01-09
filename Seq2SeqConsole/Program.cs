@@ -10,9 +10,9 @@ using System.Linq;
 
 namespace Seq2SeqConsole
 {
-    class Program
+    internal class Program
     {
-        static void ss_IterationDone(object sender, EventArgs e)
+        private static void ss_IterationDone(object sender, EventArgs e)
         {
             CostEventArg ep = e as CostEventArg;
 
@@ -36,12 +36,12 @@ namespace Seq2SeqConsole
 
         }
 
-        public static String GetTimeStamp(DateTime timeStamp)
+        public static string GetTimeStamp(DateTime timeStamp)
         {
-            return String.Format("{0:yyyy}_{0:MM}_{0:dd}_{0:HH}h_{0:mm}m_{0:ss}s", timeStamp);
+            return string.Format("{0:yyyy}_{0:MM}_{0:dd}_{0:HH}h_{0:mm}m_{0:ss}s", timeStamp);
         }
 
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             Logger.LogFile = $"{nameof(Seq2SeqConsole)}_{GetTimeStamp(DateTime.Now)}.log";
             ShowOptions(args);
@@ -50,7 +50,7 @@ namespace Seq2SeqConsole
             Options opts = new Options();
             ArgParser argParser = new ArgParser(args, opts);
 
-            if (String.IsNullOrEmpty(opts.ConfigFilePath) == false)
+            if (string.IsNullOrEmpty(opts.ConfigFilePath) == false)
             {
                 Logger.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
                 opts = JsonConvert.DeserializeObject<Options>(File.ReadAllText(opts.ConfigFilePath));
@@ -68,11 +68,11 @@ namespace Seq2SeqConsole
                 // Load train corpus
                 ParallelCorpus trainCorpus = new ParallelCorpus(opts.TrainCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
                 // Load valid corpus
-                ParallelCorpus validCorpus = String.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new ParallelCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
+                ParallelCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new ParallelCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
 
                 // Load or build vocabulary
                 Vocab vocab = null;
-                if (!String.IsNullOrEmpty(opts.SrcVocab) && !String.IsNullOrEmpty(opts.TgtVocab))
+                if (!string.IsNullOrEmpty(opts.SrcVocab) && !string.IsNullOrEmpty(opts.TgtVocab))
                 {
                     // Vocabulary files are specified, so we load them
                     vocab = new Vocab(opts.SrcVocab, opts.TgtVocab);
@@ -90,9 +90,11 @@ namespace Seq2SeqConsole
                 AdamOptimizer optimizer = new AdamOptimizer(opts.GradClip, opts.Beta1, opts.Beta2);
 
                 // Create metrics
-                List<IMetric> metrics = new List<IMetric>();
-                metrics.Add(new BleuMetric());
-                metrics.Add(new LengthRatioMetric());
+                List<IMetric> metrics = new List<IMetric>
+                {
+                    new BleuMetric(),
+                    new LengthRatioMetric()
+                };
 
                 if (File.Exists(opts.ModelFilePath) == false)
                 {
@@ -119,9 +121,11 @@ namespace Seq2SeqConsole
                 Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPath}'");
 
                 // Create metrics
-                List<IMetric> metrics = new List<IMetric>();
-                metrics.Add(new BleuMetric());
-                metrics.Add(new LengthRatioMetric());
+                List<IMetric> metrics = new List<IMetric>
+                {
+                    new BleuMetric(),
+                    new LengthRatioMetric()
+                };
 
                 // Load valid corpus
                 ParallelCorpus validCorpus = new ParallelCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
@@ -137,12 +141,12 @@ namespace Seq2SeqConsole
                 ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds);
 
                 List<string> outputLines = new List<string>();
-                var data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
+                string[] data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
                 foreach (string line in data_sents_raw1)
                 {
                     // Below support beam search
                     List<List<string>> outputWordsList = ss.Predict(line.ToLower().Trim().Split(' ').ToList(), opts.BeamSearch);
-                    outputLines.AddRange(outputWordsList.Select(x => String.Join(" ", x)));
+                    outputLines.AddRange(outputWordsList.Select(x => string.Join(" ", x)));
 
                     //var outputTokensBatch = ss.Test(ParallelCorpus.ConstructInputTokens(line.ToLower().Trim().Split(' ').ToList()));
                     //outputLines.AddRange(outputTokensBatch.Select(x => String.Join(" ", x)));
@@ -166,7 +170,7 @@ namespace Seq2SeqConsole
 
         private static void ShowOptions(string[] args)
         {
-            string commandLine = String.Join(" ", args);
+            string commandLine = string.Join(" ", args);
             Logger.WriteLine($"Seq2SeqSharp v2.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
             Logger.WriteLine($"Command Line = '{commandLine}'");
         }

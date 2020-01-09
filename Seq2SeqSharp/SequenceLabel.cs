@@ -1,13 +1,9 @@
 ﻿using AdvUtils;
 using Seq2SeqSharp.Metrics;
-using Seq2SeqSharp.Networks;
 using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Seq2SeqSharp
 {
@@ -16,11 +12,10 @@ namespace Seq2SeqSharp
         private MultiProcessorNetworkWrapper<IWeightTensor> m_srcEmbedding; //The embeddings over devices for target
         private MultiProcessorNetworkWrapper<IEncoder> m_encoder; //The encoders over devices. It can be LSTM, BiLSTM or Transformer
         private MultiProcessorNetworkWrapper<FeedForwardLayer> m_decoderFFLayer; //The feed forward layers over devices after LSTM layers in decoder
-      //  private CRFDecoder m_crfDecoder;
-        private float m_dropoutRatio;
-
-        Seq2SeqModelMetaData m_modelMetaData;
-        private object locker = new object();
+                                                                                 //  private CRFDecoder m_crfDecoder;
+        private readonly float m_dropoutRatio;
+        private readonly Seq2SeqModelMetaData m_modelMetaData;
+        private readonly object locker = new object();
 
         public SequenceLabel(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType,
             float dropoutRatio, Vocab vocab, int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath) :
@@ -34,7 +29,7 @@ namespace Seq2SeqSharp
         }
 
         public SequenceLabel(string modelFilePath, ProcessorTypeEnums processorType, int[] deviceIds, float dropoutRatio = 0.0f)
-            :base(deviceIds, processorType, modelFilePath)
+            : base(deviceIds, processorType, modelFilePath)
         {
             m_dropoutRatio = dropoutRatio;
             m_modelMetaData = LoadModel(CreateTrainableParameters) as Seq2SeqModelMetaData;
@@ -60,8 +55,8 @@ namespace Seq2SeqSharp
                 m_decoderFFLayer = new MultiProcessorNetworkWrapper<FeedForwardLayer>(new FeedForwardLayer("FeedForward", modelMetaData.HiddenDim, modelMetaData.Vocab.TargetWordSize, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem()), DeviceIds);
             }
 
-            m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.SourceWordSize, modelMetaData.EmbeddingDim }, raDeviceIds.GetNextItem(), normal: true, name: "SrcEmbeddings", isTrainable: true), DeviceIds);           
-      //      m_crfDecoder = new CRFDecoder(modelMetaData.Vocab.TargetWordSize);
+            m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.SourceWordSize, modelMetaData.EmbeddingDim }, raDeviceIds.GetNextItem(), normal: true, name: "SrcEmbeddings", isTrainable: true), DeviceIds);
+            //      m_crfDecoder = new CRFDecoder(modelMetaData.Vocab.TargetWordSize);
 
             return true;
         }
@@ -135,7 +130,7 @@ namespace Seq2SeqSharp
             //    Logger.WriteLine("1");
 
             float cost = 0.0f;
-            using (var probs = g.Softmax(ffLayerBatch, runGradients: false, inPlace: true))
+            using (IWeightTensor probs = g.Softmax(ffLayerBatch, runGradients: false, inPlace: true))
             {
                 if (isTraining)
                 {
@@ -144,10 +139,10 @@ namespace Seq2SeqSharp
                     {
                         for (int j = 0; j < seqLen; j++)
                         {
-                            using (var probs_k_j = g.PeekRow(probs, k * seqLen + j, runGradients: false))
+                            using (IWeightTensor probs_k_j = g.PeekRow(probs, k * seqLen + j, runGradients: false))
                             {
-                                var ix_targets_k_j = m_modelMetaData.Vocab.GetTargetWordIndex(tgtSnts[k][j]);
-                                var score_k = probs_k_j.GetWeightAt(ix_targets_k_j);
+                                int ix_targets_k_j = m_modelMetaData.Vocab.GetTargetWordIndex(tgtSnts[k][j]);
+                                float score_k = probs_k_j.GetWeightAt(ix_targets_k_j);
                                 cost += (float)-Math.Log(score_k);
 
                                 probs_k_j.SetWeightAt(score_k - 1, ix_targets_k_j);
@@ -191,8 +186,8 @@ namespace Seq2SeqSharp
 
 
                     // Output "i"th target word
-                    var targetIdx = g.Argmax(probs, 1);
-                    var targetWords = m_modelMetaData.Vocab.ConvertTargetIdsToString(targetIdx.ToList());
+                    int[] targetIdx = g.Argmax(probs, 1);
+                    List<string> targetWords = m_modelMetaData.Vocab.ConvertTargetIdsToString(targetIdx.ToList());
 
                     for (int k = 0; k < batchSize; k++)
                     {

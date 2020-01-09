@@ -5,9 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TensorSharp;
 
 namespace Seq2SeqSharp
 {
@@ -15,14 +12,13 @@ namespace Seq2SeqSharp
     [Serializable]
     public class BiEncoder : IEncoder
     {
-        private List<LSTMCell> m_forwardEncoders;
-        private List<LSTMCell> m_backwardEncoders;
-
-        string m_name;
-        int m_hiddenDim;
-        int m_inputDim;
-        int m_depth;
-        int m_deviceId;
+        private readonly List<LSTMCell> m_forwardEncoders;
+        private readonly List<LSTMCell> m_backwardEncoders;
+        private readonly string m_name;
+        private readonly int m_hiddenDim;
+        private readonly int m_inputDim;
+        private readonly int m_depth;
+        private readonly int m_deviceId;
 
         public BiEncoder(string name, int hiddenDim, int inputDim, int depth, int deviceId)
         {
@@ -59,12 +55,12 @@ namespace Seq2SeqSharp
 
         public void Reset(IWeightFactory weightFactory, int batchSize)
         {
-            foreach (var item in m_forwardEncoders)
+            foreach (LSTMCell item in m_forwardEncoders)
             {
                 item.Reset(weightFactory, batchSize);
             }
 
-            foreach (var item in m_backwardEncoders)
+            foreach (LSTMCell item in m_backwardEncoders)
             {
                 item.Reset(weightFactory, batchSize);
             }
@@ -77,7 +73,7 @@ namespace Seq2SeqSharp
             List<IWeightTensor> inputs = new List<IWeightTensor>();
             for (int i = 0; i < seqLen; i++)
             {
-                var emb_i = g.PeekRow(rawInputs, i * batchSize, batchSize);
+                IWeightTensor emb_i = g.PeekRow(rawInputs, i * batchSize, batchSize);
                 inputs.Add(emb_i);
             }
 
@@ -89,10 +85,10 @@ namespace Seq2SeqSharp
             {
                 for (int j = 0; j < seqLen; j++)
                 {
-                    var forwardOutput = m_forwardEncoders[i].Step(layerOutputs[j], g);
+                    IWeightTensor forwardOutput = m_forwardEncoders[i].Step(layerOutputs[j], g);
                     forwardOutputs.Add(forwardOutput);
 
-                    var backwardOutput = m_backwardEncoders[i].Step(layerOutputs[inputs.Count - j - 1], g);
+                    IWeightTensor backwardOutput = m_backwardEncoders[i].Step(layerOutputs[inputs.Count - j - 1], g);
                     backwardOutputs.Add(backwardOutput);
                 }
 
@@ -100,7 +96,7 @@ namespace Seq2SeqSharp
                 layerOutputs.Clear();
                 for (int j = 0; j < seqLen; j++)
                 {
-                    var concatW = g.ConcatColumns(forwardOutputs[j], backwardOutputs[j]);
+                    IWeightTensor concatW = g.ConcatColumns(forwardOutputs[j], backwardOutputs[j]);
                     layerOutputs.Add(concatW);
                 }
 
@@ -114,13 +110,13 @@ namespace Seq2SeqSharp
         {
             List<IWeightTensor> response = new List<IWeightTensor>();
 
-            foreach (var item in m_forwardEncoders)
+            foreach (LSTMCell item in m_forwardEncoders)
             {
                 response.AddRange(item.getParams());
             }
 
 
-            foreach (var item in m_backwardEncoders)
+            foreach (LSTMCell item in m_backwardEncoders)
             {
                 response.AddRange(item.getParams());
             }
@@ -130,12 +126,12 @@ namespace Seq2SeqSharp
 
         public void Save(Stream stream)
         {
-            foreach (var item in m_forwardEncoders)
+            foreach (LSTMCell item in m_forwardEncoders)
             {
                 item.Save(stream);
             }
 
-            foreach (var item in m_backwardEncoders)
+            foreach (LSTMCell item in m_backwardEncoders)
             {
                 item.Save(stream);
             }
@@ -143,12 +139,12 @@ namespace Seq2SeqSharp
 
         public void Load(Stream stream)
         {
-            foreach (var item in m_forwardEncoders)
+            foreach (LSTMCell item in m_forwardEncoders)
             {
                 item.Load(stream);
             }
 
-            foreach (var item in m_backwardEncoders)
+            foreach (LSTMCell item in m_backwardEncoders)
             {
                 item.Load(stream);
             }

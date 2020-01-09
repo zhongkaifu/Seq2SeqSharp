@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using TensorSharp.Core;
 
 namespace TensorSharp.Cpu
@@ -19,21 +16,49 @@ namespace TensorSharp.Cpu
         public static Tensor Dot(Tensor result, Tensor lhs, Tensor rhs)
         {
             if (lhs.ElementType != rhs.ElementType || (result != null && result.ElementType != lhs.ElementType))
+            {
                 throw new InvalidOperationException("All tensors must have the same element type");
-            if (result != null && !(result.Storage is CpuStorage)) throw new ArgumentException("result must be a CPU tensor", "result");
-            if (!(lhs.Storage is CpuStorage)) throw new ArgumentException("lhs must be a CPU tensor", "lhs");
-            if (!(rhs.Storage is CpuStorage)) throw new ArgumentException("rhs must be a CPU tensor", "rhs");
+            }
 
-            if (lhs.DimensionCount != 1) throw new ArgumentException("lhs must have 1 dimension (ie. be a vector)", "lhs");
-            if (rhs.DimensionCount != 1) throw new ArgumentException("rhs must have 1 dimension (ie. be a vector)", "rhs");
+            if (result != null && !(result.Storage is CpuStorage))
+            {
+                throw new ArgumentException("result must be a CPU tensor", "result");
+            }
 
+            if (!(lhs.Storage is CpuStorage))
+            {
+                throw new ArgumentException("lhs must be a CPU tensor", "lhs");
+            }
 
-            var writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, 1);
+            if (!(rhs.Storage is CpuStorage))
+            {
+                throw new ArgumentException("rhs must be a CPU tensor", "rhs");
+            }
 
-            if(writeTarget.ElementType == DType.Float32) Run_Dot_float(writeTarget, lhs, rhs);
-            else if (writeTarget.ElementType == DType.Float64) Run_Dot_double(writeTarget, lhs, rhs);
+            if (lhs.DimensionCount != 1)
+            {
+                throw new ArgumentException("lhs must have 1 dimension (ie. be a vector)", "lhs");
+            }
+
+            if (rhs.DimensionCount != 1)
+            {
+                throw new ArgumentException("rhs must have 1 dimension (ie. be a vector)", "rhs");
+            }
+
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, 1);
+
+            if (writeTarget.ElementType == DType.Float32)
+            {
+                Run_Dot_float(writeTarget, lhs, rhs);
+            }
+            else if (writeTarget.ElementType == DType.Float64)
+            {
+                Run_Dot_double(writeTarget, lhs, rhs);
+            }
             else
+            {
                 throw new NotSupportedException("CPU vector dot product with element type " + result.ElementType + " not supported");
+            }
 
             return writeTarget;
         }
@@ -42,9 +67,9 @@ namespace TensorSharp.Cpu
         {
             unsafe
             {
-                var resultPtr = (float*)CpuNativeHelpers.GetBufferStart(result);
-                var lhsPtr = (float*)CpuNativeHelpers.GetBufferStart(lhs);
-                var rhsPtr = (float*)CpuNativeHelpers.GetBufferStart(rhs);
+                float* resultPtr = (float*)CpuNativeHelpers.GetBufferStart(result);
+                float* lhsPtr = (float*)CpuNativeHelpers.GetBufferStart(lhs);
+                float* rhsPtr = (float*)CpuNativeHelpers.GetBufferStart(rhs);
 
                 int n = (int)lhs.Sizes[0];
                 int incx = (int)lhs.Strides[0];
@@ -57,9 +82,9 @@ namespace TensorSharp.Cpu
         {
             unsafe
             {
-                var resultPtr = (double*)CpuNativeHelpers.GetBufferStart(result);
-                var lhsPtr = (double*)CpuNativeHelpers.GetBufferStart(lhs);
-                var rhsPtr = (double*)CpuNativeHelpers.GetBufferStart(rhs);
+                double* resultPtr = (double*)CpuNativeHelpers.GetBufferStart(result);
+                double* lhsPtr = (double*)CpuNativeHelpers.GetBufferStart(lhs);
+                double* rhsPtr = (double*)CpuNativeHelpers.GetBufferStart(rhs);
 
                 int n = (int)lhs.Sizes[0];
                 int incx = (int)lhs.Strides[0];
@@ -71,13 +96,34 @@ namespace TensorSharp.Cpu
         public static Tensor Mul_M_V(Tensor result, Tensor lhs, Tensor rhs)
         {
             if (lhs.ElementType != rhs.ElementType || (result != null && result.ElementType != lhs.ElementType))
+            {
                 throw new InvalidOperationException("All tensors must have the same element type");
-            if (result != null && (result.Storage is CpuStorage)) throw new ArgumentException("result must be a CPU tensor", "result");
-            if (!(lhs.Storage is CpuStorage)) throw new ArgumentException("lhs must be a CPU tensor", "lhs");
-            if (!(rhs.Storage is CpuStorage)) throw new ArgumentException("rhs must be a CPU tensor", "rhs");
+            }
 
-            if (lhs.DimensionCount != 2) throw new ArgumentException("lhs must have 2 dimensions", "lhs");
-            if (rhs.DimensionCount != 1) throw new ArgumentException("rhs must have 1 dimension (ie. be a vector)", "rhs");
+            if (result != null && (result.Storage is CpuStorage))
+            {
+                throw new ArgumentException("result must be a CPU tensor", "result");
+            }
+
+            if (!(lhs.Storage is CpuStorage))
+            {
+                throw new ArgumentException("lhs must be a CPU tensor", "lhs");
+            }
+
+            if (!(rhs.Storage is CpuStorage))
+            {
+                throw new ArgumentException("rhs must be a CPU tensor", "rhs");
+            }
+
+            if (lhs.DimensionCount != 2)
+            {
+                throw new ArgumentException("lhs must have 2 dimensions", "lhs");
+            }
+
+            if (rhs.DimensionCount != 1)
+            {
+                throw new ArgumentException("rhs must have 1 dimension (ie. be a vector)", "rhs");
+            }
 
             Tensor lhsClone;
             if (lhs.Strides[1] == 1) // If lhs is already row-major, do nothing
@@ -93,14 +139,22 @@ namespace TensorSharp.Cpu
                 lhsClone = Ops.NewContiguous(lhs);
             }
 
-            var writeTarget = TensorResultBuilder.GetWriteTarget(result, rhs, false, lhs.Sizes[0]);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, rhs, false, lhs.Sizes[0]);
 
             try
             {
-                if (writeTarget.ElementType == DType.Float32) Run_M_V_float(writeTarget, lhsClone, rhs);
-                else if (writeTarget.ElementType == DType.Float64) Run_M_V_double(writeTarget, lhsClone, rhs);
+                if (writeTarget.ElementType == DType.Float32)
+                {
+                    Run_M_V_float(writeTarget, lhsClone, rhs);
+                }
+                else if (writeTarget.ElementType == DType.Float64)
+                {
+                    Run_M_V_double(writeTarget, lhsClone, rhs);
+                }
                 else
+                {
                     throw new NotSupportedException("CPU Matrix-Vector multiplication with element type " + result.ElementType + " not supported");
+                }
             }
             finally
             {
@@ -113,13 +167,16 @@ namespace TensorSharp.Cpu
         private static void Run_M_V_float(Tensor result, Tensor mat, Tensor vec)
         {
             // Require lhs to be row-major. This means we must tell BLAS to transpose it (BLAS expects column-major matrices)
-            if (mat.Strides[1] != 1) throw new ArgumentException("lhs must be contiguous in the last dimension");
+            if (mat.Strides[1] != 1)
+            {
+                throw new ArgumentException("lhs must be contiguous in the last dimension");
+            }
 
             unsafe
             {
-                var yPtr = (float*)CpuNativeHelpers.GetBufferStart(result);
-                var aPtr = (float*)CpuNativeHelpers.GetBufferStart(mat);
-                var xPtr = (float*)CpuNativeHelpers.GetBufferStart(vec);
+                float* yPtr = (float*)CpuNativeHelpers.GetBufferStart(result);
+                float* aPtr = (float*)CpuNativeHelpers.GetBufferStart(mat);
+                float* xPtr = (float*)CpuNativeHelpers.GetBufferStart(vec);
 
                 byte trans = (byte)'t';
                 int m = (int)mat.Sizes[1];
@@ -136,13 +193,16 @@ namespace TensorSharp.Cpu
         private static void Run_M_V_double(Tensor result, Tensor lhs, Tensor rhs)
         {
             // Require lhs to be row-major. This means we must tell BLAS to transpose it (BLAS expects column-major matrices)
-            if (lhs.Strides[1] != 1) throw new ArgumentException("lhs must be contiguous in the last dimension");
+            if (lhs.Strides[1] != 1)
+            {
+                throw new ArgumentException("lhs must be contiguous in the last dimension");
+            }
 
             unsafe
             {
-                var resultPtr = (double*)CpuNativeHelpers.GetBufferStart(result);
-                var lhsPtr = (double*)CpuNativeHelpers.GetBufferStart(lhs);
-                var rhsPtr = (double*)CpuNativeHelpers.GetBufferStart(rhs);
+                double* resultPtr = (double*)CpuNativeHelpers.GetBufferStart(result);
+                double* lhsPtr = (double*)CpuNativeHelpers.GetBufferStart(lhs);
+                double* rhsPtr = (double*)CpuNativeHelpers.GetBufferStart(rhs);
 
                 byte trans = (byte)'t';
                 int m = (int)rhs.Sizes[1];
@@ -161,15 +221,29 @@ namespace TensorSharp.Cpu
         public static Tensor Mul_M_M(Tensor result, Tensor lhs, Tensor rhs)
         {
             if (lhs.ElementType != rhs.ElementType || (result != null && result.ElementType != lhs.ElementType))
+            {
                 throw new InvalidOperationException("All tensors must have the same element type");
-            if (result != null && !(result.Storage is CpuStorage)) throw new ArgumentException("result must be a CPU tensor", "result");
-            if (!(lhs.Storage is CpuStorage)) throw new ArgumentException("lhs must be a CPU tensor", "lhs");
-            if (!(rhs.Storage is CpuStorage)) throw new ArgumentException("rhs must be a CPU tensor", "rhs");
+            }
 
-            var writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, lhs.Sizes[0], rhs.Sizes[1]);
-            
+            if (result != null && !(result.Storage is CpuStorage))
+            {
+                throw new ArgumentException("result must be a CPU tensor", "result");
+            }
+
+            if (!(lhs.Storage is CpuStorage))
+            {
+                throw new ArgumentException("lhs must be a CPU tensor", "lhs");
+            }
+
+            if (!(rhs.Storage is CpuStorage))
+            {
+                throw new ArgumentException("rhs must be a CPU tensor", "rhs");
+            }
+
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, lhs.Sizes[0], rhs.Sizes[1]);
+
             Gemm(1, lhs, rhs, 0, writeTarget);
-            
+
 
             return writeTarget;
         }
@@ -289,7 +363,9 @@ namespace TensorSharp.Cpu
         public static void Gemm(float alpha, Tensor a, Tensor b, float beta, Tensor c)
         {
             if (a.Sizes[0] != c.Sizes[0] || b.Sizes[1] != c.Sizes[1] || a.Sizes[1] != b.Sizes[0])
+            {
                 throw new InvalidOperationException("Size mismatch");
+            }
 
             BlasOp aOp = default(BlasOp);
             BlasOp bOp = default(BlasOp);
@@ -322,7 +398,7 @@ namespace TensorSharp.Cpu
             }
             else
             {
-                var cNew = new Tensor(c.Allocator, c.ElementType, c.Sizes[1], c.Sizes[0]);
+                Tensor cNew = new Tensor(c.Allocator, c.ElementType, c.Sizes[1], c.Sizes[0]);
                 cClone = cNew.Transpose();
                 Ops.Copy(cClone, c);
                 cNew.Dispose();
@@ -344,14 +420,14 @@ namespace TensorSharp.Cpu
                     aClone.Strides[0] != 0 && aClone.Strides[0] != 1)
                 {
                     aOp = BlasOp.Transpose;
-                    var aNew = aClone.Transpose();
+                    Tensor aNew = aClone.Transpose();
                     aClone.Dispose();
                     aClone = aNew;
                 }
                 else
                 {
-                    var aNew = new Tensor(aClone.Allocator, aClone.ElementType, aClone.Sizes[1], aClone.Sizes[0]);
-                    var aClone2 = aNew.Transpose();
+                    Tensor aNew = new Tensor(aClone.Allocator, aClone.ElementType, aClone.Sizes[1], aClone.Sizes[0]);
+                    Tensor aClone2 = aNew.Transpose();
                     Ops.Copy(aClone2, aClone);
                     aClone.Dispose();
                     aClone = aClone2;
@@ -370,14 +446,14 @@ namespace TensorSharp.Cpu
                     bClone.Strides[0] != 0 && bClone.Strides[0] != 1)
                 {
                     bOp = BlasOp.Transpose;
-                    var bNew = bClone.Transpose();
+                    Tensor bNew = bClone.Transpose();
                     bClone.Dispose();
                     bClone = bNew;
                 }
                 else
                 {
-                    var bNew = new Tensor(bClone.Allocator, bClone.ElementType, bClone.Sizes[1], bClone.Sizes[0]);
-                    var bClone2 = bNew.Transpose();
+                    Tensor bNew = new Tensor(bClone.Allocator, bClone.ElementType, bClone.Sizes[1], bClone.Sizes[0]);
+                    Tensor bClone2 = bNew.Transpose();
                     Ops.Copy(bClone2, bClone);
                     bClone.Dispose();
                     bClone = bClone2;
@@ -404,9 +480,20 @@ namespace TensorSharp.Cpu
 
         private static void GemmOp(BlasOp transA, BlasOp transB, float alpha, Tensor a, Tensor b, float beta, Tensor c)
         {
-            if (a.Strides[0] != 1) throw new ArgumentException("a must be contiguous in the first dimension (column major / fortran order)");
-            if (b.Strides[0] != 1) throw new ArgumentException("b must be contiguous in the first dimension (column major / fortran order)");
-            if (c.Strides[0] != 1) throw new ArgumentException("c must be contiguous in the first dimension (column major / fortran order)");
+            if (a.Strides[0] != 1)
+            {
+                throw new ArgumentException("a must be contiguous in the first dimension (column major / fortran order)");
+            }
+
+            if (b.Strides[0] != 1)
+            {
+                throw new ArgumentException("b must be contiguous in the first dimension (column major / fortran order)");
+            }
+
+            if (c.Strides[0] != 1)
+            {
+                throw new ArgumentException("c must be contiguous in the first dimension (column major / fortran order)");
+            }
 
             unsafe
             {
@@ -424,19 +511,19 @@ namespace TensorSharp.Cpu
 
                 if (c.ElementType == DType.Float32)
                 {
-                    var aPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(a);
-                    var bPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(b);
-                    var cPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(c);
+                    float* aPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(a);
+                    float* bPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(b);
+                    float* cPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(c);
 
                     OpenBlasNative.sgemm_(&transa, &transb, &m, &n, &k, &alpha, aPtrSingle, &lda, bPtrSingle, &ldb, &beta, cPtrSingle, &ldc);
                 }
                 else if (c.ElementType == DType.Float64)
                 {
-                    var aPtrDouble = (double*)CpuNativeHelpers.GetBufferStart(a);
-                    var bPtrDouble = (double*)CpuNativeHelpers.GetBufferStart(b);
-                    var cPtrDouble = (double*)CpuNativeHelpers.GetBufferStart(c);
-                    var alphaDouble = (double)alpha;
-                    var betaDouble = (double)beta;
+                    double* aPtrDouble = (double*)CpuNativeHelpers.GetBufferStart(a);
+                    double* bPtrDouble = (double*)CpuNativeHelpers.GetBufferStart(b);
+                    double* cPtrDouble = (double*)CpuNativeHelpers.GetBufferStart(c);
+                    double alphaDouble = alpha;
+                    double betaDouble = beta;
                     OpenBlasNative.dgemm_(&transa, &transb, &m, &n, &k, &alphaDouble, aPtrDouble, &lda, bPtrDouble, &ldb, &betaDouble, cPtrDouble, &ldc);
                 }
                 else

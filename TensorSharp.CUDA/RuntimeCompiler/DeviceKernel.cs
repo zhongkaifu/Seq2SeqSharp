@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace TensorSharp.CUDA.RuntimeCompiler
+﻿namespace TensorSharp.CUDA.RuntimeCompiler
 {
     public class DeviceKernel
     {

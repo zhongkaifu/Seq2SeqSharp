@@ -20,21 +20,15 @@ namespace Seq2SeqSharp.Tools
 {
     public class ConcurrentList<T>
     {
-        const int MaxSize = 1024000;
-        T[] array;
-        int count = 0;
+        private const int MaxSize = 1024000;
+        private T[] array;
+        private int count = 0;
         public int Count => count;
 
         public T this[int key]
         {
-            get
-            {
-                return array[key];
-            }
-            set
-            {
-                array[key] = value;
-            }
+            get => array[key];
+            set => array[key] = value;
         }
 
         public ConcurrentList()
@@ -53,7 +47,7 @@ namespace Seq2SeqSharp.Tools
             System.Threading.Interlocked.Decrement(ref count);
         }
 
-        object locker = new object();
+        private readonly object locker = new object();
         public void Clear()
         {
             lock (locker)
@@ -66,18 +60,18 @@ namespace Seq2SeqSharp.Tools
 
     public class ComputeGraphTensor : IComputeGraph
     {
-        WeightTensorFactory m_weightTensorFactory;
-        ConcurrentList<Action> m_backprop;
-        bool m_needsBackprop;
-        bool m_visNeuralNetwork;
-        int m_deviceId;
-        bool m_isSubGraph;
+        private readonly WeightTensorFactory m_weightTensorFactory;
+        private readonly ConcurrentList<Action> m_backprop;
+        private readonly bool m_needsBackprop;
+        private readonly bool m_visNeuralNetwork;
+        private readonly int m_deviceId;
+        private readonly bool m_isSubGraph;
 
         // Visualization for neural network
-        Microsoft.Msagl.Drawing.Graph m_opsViz;
-        HashSet<string> m_setEdges;
-        Microsoft.Msagl.Drawing.Subgraph m_subGraph = null;
-        Dictionary<string, Microsoft.Msagl.Drawing.Subgraph> m_name2SubGraph = null;
+        private Microsoft.Msagl.Drawing.Graph m_opsViz;
+        private HashSet<string> m_setEdges;
+        private Microsoft.Msagl.Drawing.Subgraph m_subGraph = null;
+        private Dictionary<string, Microsoft.Msagl.Drawing.Subgraph> m_name2SubGraph = null;
 
         public ComputeGraphTensor(IWeightFactory weightFactory, int deviceId, bool needBack = true, bool visNetwork = false, ConcurrentList<Action> backprop = null, bool isSubGraph = false)
         {
@@ -114,8 +108,10 @@ namespace Seq2SeqSharp.Tools
                 if (m_name2SubGraph.ContainsKey(name) == false)
                 {
                     int index = name.LastIndexOf(".");
-                    subGraph.m_subGraph = new Subgraph(name);
-                    subGraph.m_subGraph.LabelText = name.Substring(index + 1);
+                    subGraph.m_subGraph = new Subgraph(name)
+                    {
+                        LabelText = name.Substring(index + 1)
+                    };
 
                     m_name2SubGraph.Add(name, subGraph.m_subGraph);
 
@@ -139,7 +135,7 @@ namespace Seq2SeqSharp.Tools
 
         public void Backward()
         {
-            for (var i = m_backprop.Count - 1; i >= 0; i--)
+            for (int i = m_backprop.Count - 1; i >= 0; i--)
             {
                 m_backprop[i](); // tick!
             }
@@ -158,15 +154,15 @@ namespace Seq2SeqSharp.Tools
 
         public IWeightTensor BuildPositionMatrix(int row, int column)
         {
-            var res = m_weightTensorFactory.BuildPositionWeightTensor(row, column, m_deviceId, name: "PositionEmbeddings", isTrainable: true);
+            WeightTensor res = m_weightTensorFactory.BuildPositionWeightTensor(row, column, m_deviceId, name: "PositionEmbeddings", isTrainable: true);
 
             return res;
         }
 
         public IWeightTensor Sigmoid(IWeightTensor w)
         {
-            var m = w as WeightTensor;
-            var res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Sigmoid");
+            WeightTensor m = w as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Sigmoid");
             VisualizeNodes(w, res);
 
             Ops.Sigmoid(res.TWeight, m.TWeight);
@@ -178,18 +174,18 @@ namespace Seq2SeqSharp.Tools
                     m.AddSigmoidGradient(res);
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
             return res;
         }
-      
-            
+
+
         public IWeightTensor AddTanh(IWeightTensor w1, IWeightTensor w2)
         {
-            var m1 = w1 as WeightTensor;
-            var m2 = w2 as WeightTensor;
-            var res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.AddTanh");
+            WeightTensor m1 = w1 as WeightTensor;
+            WeightTensor m2 = w2 as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.AddTanh");
             VisualizeNodes(new IWeightTensor[] { w1, w2 }, res);
 
             Ops.AddTanh(res.TWeight, m1.TWeight, m2.TWeight);
@@ -201,7 +197,7 @@ namespace Seq2SeqSharp.Tools
                     m2.AddTanhGradient(res);
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
             return res;
@@ -210,8 +206,8 @@ namespace Seq2SeqSharp.Tools
 
         public IWeightTensor Mul(IWeightTensor w, float v)
         {
-            var m = w as WeightTensor;
-            var res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.MulV");
+            WeightTensor m = w as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.MulV");
             VisualizeNodes(w, res);
 
             Ops.Mul(res.TWeight, m.TWeight, v);
@@ -223,7 +219,7 @@ namespace Seq2SeqSharp.Tools
                     Ops.AddMulV(m.TGradient, m.TGradient, res.TGradient, v);
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
             return res;
@@ -239,10 +235,10 @@ namespace Seq2SeqSharp.Tools
         /// <returns></returns>
         public IWeightTensor AddMul(IWeightTensor w1, IWeightTensor w2, float v, bool runGradientW1 = true, bool runGradientW2 = true)
         {
-            var m1 = w1 as WeightTensor;
-            var m2 = w2 as WeightTensor;
+            WeightTensor m1 = w1 as WeightTensor;
+            WeightTensor m2 = w2 as WeightTensor;
 
-            var res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.AddMulV");
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.AddMulV");
             VisualizeNodes(new IWeightTensor[] { w1, w2 }, res);
 
             Ops.AddMulV(res.TWeight, m1.TWeight, m2.TWeight, v);
@@ -265,12 +261,12 @@ namespace Seq2SeqSharp.Tools
 
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
             return res;
         }
-		
+
         /// <summary>
         /// Result = w1 * w2 + w3 * w4
         /// </summary>
@@ -281,12 +277,12 @@ namespace Seq2SeqSharp.Tools
         /// <returns></returns>
         public IWeightTensor EltMulMulAdd(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3, IWeightTensor w4)
         {
-            var m1 = w1 as WeightTensor;
-            var m2 = w2 as WeightTensor;
-            var m3 = w3 as WeightTensor;
-            var m4 = w4 as WeightTensor;
+            WeightTensor m1 = w1 as WeightTensor;
+            WeightTensor m2 = w2 as WeightTensor;
+            WeightTensor m3 = w3 as WeightTensor;
+            WeightTensor m4 = w4 as WeightTensor;
 
-            var res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name, w3.Name, w4.Name)}.EltMulMulAdd");
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name, w3.Name, w4.Name)}.EltMulMulAdd");
             VisualizeNodes(new IWeightTensor[] { w1, w2, w3, w4 }, res);
 
             Ops.MulMulAdd(res.TWeight, m1.TWeight, m2.TWeight, m3.TWeight, m4.TWeight);
@@ -304,17 +300,17 @@ namespace Seq2SeqSharp.Tools
 
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
             return res;
         }
-       
+
         public IWeightTensor EltMul(IWeightTensor w1, IWeightTensor w2)
         {
-            var m1 = w1 as WeightTensor;
-            var m2 = w2 as WeightTensor;
-            var res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.EltMul");
+            WeightTensor m1 = w1 as WeightTensor;
+            WeightTensor m2 = w2 as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.EltMul");
             VisualizeNodes(new IWeightTensor[] { w1, w2 }, res);
 
             Ops.Mul(res.TWeight, m1.TWeight, m2.TWeight);
@@ -329,7 +325,7 @@ namespace Seq2SeqSharp.Tools
 
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
             return res;
@@ -337,9 +333,9 @@ namespace Seq2SeqSharp.Tools
 
         public IWeightTensor Add(IWeightTensor w1, IWeightTensor w2, bool runGradient1 = true, bool runGradient2 = true)
         {
-            var m1 = w1 as WeightTensor;
-            var m2 = w2 as WeightTensor;          
-            var res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.Add");
+            WeightTensor m1 = w1 as WeightTensor;
+            WeightTensor m2 = w2 as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.Add");
             VisualizeNodes(new IWeightTensor[] { w1, w2 }, res);
 
             Ops.Add(res.TWeight, m1.TWeight, m2.TWeight);
@@ -362,7 +358,7 @@ namespace Seq2SeqSharp.Tools
 
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
             return res;
@@ -370,8 +366,8 @@ namespace Seq2SeqSharp.Tools
 
         public IWeightTensor Tanh(IWeightTensor w)
         {
-            var m = w as WeightTensor;
-            var res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Tanh");
+            WeightTensor m = w as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Tanh");
             VisualizeNodes(w, res);
 
             Ops.Tanh(res.TWeight, m.TWeight);
@@ -382,7 +378,7 @@ namespace Seq2SeqSharp.Tools
                     m.AddTanhGradient(res);
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
             return res;
@@ -391,8 +387,8 @@ namespace Seq2SeqSharp.Tools
 
         public IWeightTensor Relu(IWeightTensor w)
         {
-            var m = w as WeightTensor;
-            var res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Relu");
+            WeightTensor m = w as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Relu");
             VisualizeNodes(w, res);
 
             Ops.Relu(res.TWeight, m.TWeight);
@@ -404,7 +400,7 @@ namespace Seq2SeqSharp.Tools
                     Ops.AddReluD(m.TGradient, m.TGradient, m.TWeight, res.TGradient);
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
             return res;
         }
@@ -433,24 +429,24 @@ namespace Seq2SeqSharp.Tools
                     {
                         using (Tensor t1G = t1.TGradient.View(t1.TWeight.Sizes[0], t1.TWeight.Sizes[1], t1.TWeight.Sizes[2]))
                         {
-                            using (var tW2 = t2W.Transpose(1, 2))
+                            using (Tensor tW2 = t2W.Transpose(1, 2))
                             {
                                 Ops.AddmmBatch(t1G, 1.0f, t1G, 1.0f, rG, tW2);
                             }
                         }
                         using (Tensor t2G = t2.TGradient.View(t2.TWeight.Sizes[0], t2.TWeight.Sizes[1], t2.TWeight.Sizes[2]))
                         {
-                            using (var tW1 = t1W.Transpose(1, 2))
+                            using (Tensor tW1 = t1W.Transpose(1, 2))
                             {
                                 Ops.AddmmBatch(t2G, 1.0f, t2G, 1.0f, tW1, rG);
                             }
                         }
                     }
-                              
+
                     res.Dispose();
 
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
             return res;
@@ -460,8 +456,8 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor t1 = m1 as WeightTensor;
             WeightTensor t2 = m2 as WeightTensor;
-            var n = t1.Rows;
-            var d = t2.Columns;
+            int n = t1.Rows;
+            int d = t2.Columns;
             WeightTensor res;
 
             res = m_weightTensorFactory.CreateWeightTensor(n, d, m_deviceId, name: $"{GetHashString(m1.Name, m2.Name)}.Mul");
@@ -474,19 +470,19 @@ namespace Seq2SeqSharp.Tools
                 {
                     res.ReleaseWeight();
 
-                    using (var tW2 = t2.TWeight.Transpose())
+                    using (Tensor tW2 = t2.TWeight.Transpose())
                     {
                         Ops.Addmm(t1.TGradient, 1.0f, t1.TGradient, 1.0f, res.TGradient, tW2);
                     }
 
-                    using (var tW1 = t1.TWeight.Transpose())
+                    using (Tensor tW1 = t1.TWeight.Transpose())
                     {
                         Ops.Addmm(t2.TGradient, 1.0f, t2.TGradient, 1.0f, tW1, res.TGradient);
                     }
 
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
             return res;
@@ -513,12 +509,12 @@ namespace Seq2SeqSharp.Tools
             WeightTensor t2 = m2 as WeightTensor;
             WeightTensor t3 = mbias as WeightTensor;
 
-            var n = t1.Rows;
-            var d = t2.Columns;
+            int n = t1.Rows;
+            int d = t2.Columns;
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(n, d, m_deviceId, name: $"{GetHashString(m1.Name, m2.Name, mbias.Name)}.Affine");
             VisualizeNodes(new IWeightTensor[] { m1, m2, mbias }, res);
 
-            using (var t3WExp = t3.TWeight.Expand(n, d))
+            using (Tensor t3WExp = t3.TWeight.Expand(n, d))
             {
                 Ops.Addmm(res.TWeight, 1.0f, t3WExp, 1.0f, t1.TWeight, t2.TWeight);
             }
@@ -529,34 +525,34 @@ namespace Seq2SeqSharp.Tools
                 {
                     res.ReleaseWeight();
 
-                    using (var t3G = t3.TGradient.Expand(n, d))
+                    using (Tensor t3G = t3.TGradient.Expand(n, d))
                     {
                         Ops.Add(t3G, t3G, res.TGradient);
                     }
 
-                    using (var tW2 = t2.TWeight.Transpose())
+                    using (Tensor tW2 = t2.TWeight.Transpose())
                     {
                         Ops.Addmm(t1.TGradient, 1.0f, t1.TGradient, 1.0f, res.TGradient, tW2);
                     }
 
-                    using (var tW1 = t1.TWeight.Transpose())
+                    using (Tensor tW1 = t1.TWeight.Transpose())
                     {
                         Ops.Addmm(t2.TGradient, 1.0f, t2.TGradient, 1.0f, tW1, res.TGradient);
                     }
 
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
             return res;
 
         }
-      
+
         public IWeightTensor Transpose(IWeightTensor w)
         {
             WeightTensor m = w as WeightTensor;
-            var res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Transpose");
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Transpose");
             VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.Transpose();
@@ -564,14 +560,14 @@ namespace Seq2SeqSharp.Tools
             {
                 Action backward = () =>
                 {
-                    using (var gT = res.TGradient.Transpose())
+                    using (Tensor gT = res.TGradient.Transpose())
                     {
                         m.CopyOrAddGradient(gT);
                     }
 
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
             return res;
@@ -581,7 +577,7 @@ namespace Seq2SeqSharp.Tools
         {
             int[] idx = null;
             WeightTensor m = w as WeightTensor;
-            using (var argMaxT = Ops.Argmax(null, m.TWeight, dim))
+            using (Tensor argMaxT = Ops.Argmax(null, m.TWeight, dim))
             {
                 float[] res = new float[argMaxT.ElementCount()];
                 argMaxT.CopyToArray(res);
@@ -595,7 +591,7 @@ namespace Seq2SeqSharp.Tools
 
             return idx;
         }
-     
+
         public IWeightTensor Softmax(IWeightTensor w, bool runGradients = true, bool inPlace = false)
         {
             WeightTensor m = w as WeightTensor;
@@ -625,7 +621,7 @@ namespace Seq2SeqSharp.Tools
                     m.AddSoftmaxGradient(res, inPlace);
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
             return res;
@@ -634,7 +630,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor PeekRow(IWeightTensor w, int ix, int num = 1, bool runGradients = true)
         {
             WeightTensor m = w as WeightTensor;
-            var res = m_weightTensorFactory.CreateWeightTensor(num, m.Columns, m_deviceId, name: $"{GetHashString(w.Name)}.PeekRow");
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(num, m.Columns, m_deviceId, name: $"{GetHashString(w.Name)}.PeekRow");
             res.TWeight = m.TWeight.Narrow(0, ix, num);
             res.TGradient = runGradients ? m.TGradient.Narrow(0, ix, num) : null;
 
@@ -646,12 +642,12 @@ namespace Seq2SeqSharp.Tools
                 {
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
             return res;
         }
-          
+
         private byte[] GetHash(string inputString)
         {
             HashAlgorithm algorithm = SHA256.Create();
@@ -662,16 +658,18 @@ namespace Seq2SeqSharp.Tools
         {
             if (m_visNeuralNetwork)
             {
-                string inputString = String.Join("_", inputStrings);
+                string inputString = string.Join("_", inputStrings);
                 StringBuilder sb = new StringBuilder();
                 foreach (byte b in GetHash(inputString))
+                {
                     sb.Append(b.ToString("X2"));
+                }
 
                 return sb.ToString();
             }
-            return String.Empty;
+            return string.Empty;
         }
-      
+
         private void VisualizeNodes(IWeightTensor sourceNode, IWeightTensor targetNode)
         {
             VisualizeNodes(new IWeightTensor[] { sourceNode }, targetNode);
@@ -701,9 +699,9 @@ namespace Seq2SeqSharp.Tools
             }
 
             // Create edges for each source node and target node
-            foreach (var sourceNode in sourceNodes)
+            foreach (IWeightTensor sourceNode in sourceNodes)
             {
-                if (!String.IsNullOrEmpty(sourceNode.Name) && !String.IsNullOrEmpty(targetNode.Name))
+                if (!string.IsNullOrEmpty(sourceNode.Name) && !string.IsNullOrEmpty(targetNode.Name))
                 {
                     string key = $"{sourceNode.Name}->{targetNode.Name}";
                     if (m_setEdges.Contains(key))
@@ -724,7 +722,7 @@ namespace Seq2SeqSharp.Tools
                         }
                     }
 
-                    var edge = m_opsViz.AddEdge(sourceNode.Name, targetNode.Name);
+                    Edge edge = m_opsViz.AddEdge(sourceNode.Name, targetNode.Name);
 
                     m_setEdges.Add(key);
                 }
@@ -733,31 +731,35 @@ namespace Seq2SeqSharp.Tools
 
         public void VisualizeNeuralNetToFile(string neuralNetPicFilePath)
         {
-            var fastSettings = new FastIncrementalLayoutSettings();
-            fastSettings.AvoidOverlaps = true;
-            fastSettings.NodeSeparation = 30;
-            fastSettings.RouteEdges = true;
+            FastIncrementalLayoutSettings fastSettings = new FastIncrementalLayoutSettings
+            {
+                AvoidOverlaps = true,
+                NodeSeparation = 30,
+                RouteEdges = true
+            };
 
-            var settings = new SugiyamaLayoutSettings();
-            settings.FallbackLayoutSettings = fastSettings;
+            SugiyamaLayoutSettings settings = new SugiyamaLayoutSettings
+            {
+                FallbackLayoutSettings = fastSettings
+            };
 
             m_opsViz.LayoutAlgorithmSettings = settings;
 
-            var renderer = new Microsoft.Msagl.GraphViewerGdi.GraphRenderer(m_opsViz);
+            Microsoft.Msagl.GraphViewerGdi.GraphRenderer renderer = new Microsoft.Msagl.GraphViewerGdi.GraphRenderer(m_opsViz);
             renderer.CalculateLayout();
 
-            var bitmap = new System.Drawing.Bitmap((int)m_opsViz.Width, (int)m_opsViz.Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            System.Drawing.Bitmap bitmap = new System.Drawing.Bitmap((int)m_opsViz.Width, (int)m_opsViz.Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
             renderer.Render(bitmap);
 
             bitmap.Save(neuralNetPicFilePath);
 
             bitmap.Dispose();
         }
-      
+
         public IWeightTensor RepeatRows(IWeightTensor w, int n, bool runGradient = true)
         {
-            var m = w as WeightTensor;
-            var res = m_weightTensorFactory.CreateWeightTensor(m.Rows * n, m.Columns, m_deviceId, name: $"{GetHashString(w.Name)}.RepeatRows");
+            WeightTensor m = w as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Rows * n, m.Columns, m_deviceId, name: $"{GetHashString(w.Name)}.RepeatRows");
             VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.RepeatTensor(n, 1);
@@ -770,7 +772,7 @@ namespace Seq2SeqSharp.Tools
                         res.ReleaseWeight();
                         for (int i = 0; i < n; i++)
                         {
-                            using (var resG_i = res.TGradient.Narrow(0, m.Rows * i, m.Rows))
+                            using (Tensor resG_i = res.TGradient.Narrow(0, m.Rows * i, m.Rows))
                             {
                                 m.CopyOrAddGradient(resG_i);
                             }
@@ -778,7 +780,7 @@ namespace Seq2SeqSharp.Tools
                     }
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
 
@@ -807,8 +809,8 @@ namespace Seq2SeqSharp.Tools
                 wlNameList.Add(item.Name);
             }
 
-            var wlName = String.Join("_", wlNameList);
-            var res = m_weightTensorFactory.CreateWeightTensor(sx, sy, m_deviceId, name: $"{GetHashString(wlName)}.ConcatRows");
+            string wlName = string.Join("_", wlNameList);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sx, sy, m_deviceId, name: $"{GetHashString(wlName)}.ConcatRows");
             VisualizeNodes(wl, res);
 
             Ops.Concat(res.TWeight, 0, twl.ToArray());
@@ -823,7 +825,7 @@ namespace Seq2SeqSharp.Tools
                     foreach (IWeightTensor item in wl)
                     {
                         WeightTensor m = item as WeightTensor;
-                        using (var tTmp = res.TGradient.Narrow(0, sx, m.Rows))
+                        using (Tensor tTmp = res.TGradient.Narrow(0, sx, m.Rows))
                         {
                             m.CopyOrAddGradient(tTmp);
                             sx += m.Rows;
@@ -832,23 +834,23 @@ namespace Seq2SeqSharp.Tools
 
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
             return res;
         }
-      
+
         public IWeightTensor TransposeBatch(IWeightTensor m, int batchSize)
         {
             WeightTensor t = m as WeightTensor;
-            var res = m_weightTensorFactory.CreateWeightTensor(t.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.TransposeBatch");
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(t.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.TransposeBatch");
             VisualizeNodes(m, res);
 
             int sizeEveryBatch = m.Rows / batchSize;
-            using (var tWView = t.TWeight.View(sizeEveryBatch, batchSize, m.Columns))
+            using (Tensor tWView = t.TWeight.View(sizeEveryBatch, batchSize, m.Columns))
             {
-                using (var tWViewPermute = tWView.Permute(1, 0, 2))
+                using (Tensor tWViewPermute = tWView.Permute(1, 0, 2))
                 {
-                    using (var tW2 = Ops.AsContiguous(tWViewPermute))
+                    using (Tensor tW2 = Ops.AsContiguous(tWViewPermute))
                     {
                         res.TWeight = tW2.View(m.Rows, m.Columns);
                     }
@@ -861,11 +863,11 @@ namespace Seq2SeqSharp.Tools
                 {
                     res.ReleaseWeight();
 
-                    using (var g = t.TGradient.View(sizeEveryBatch, batchSize, m.Columns))
+                    using (Tensor g = t.TGradient.View(sizeEveryBatch, batchSize, m.Columns))
                     {
-                        using (var t2 = res.TGradient.View(batchSize, sizeEveryBatch, m.Columns))
+                        using (Tensor t2 = res.TGradient.View(batchSize, sizeEveryBatch, m.Columns))
                         {
-                            using (var t2Permute = t2.Permute(1, 0, 2))
+                            using (Tensor t2Permute = t2.Permute(1, 0, 2))
                             {
                                 Ops.Add(g, g, t2Permute);
                             }
@@ -874,7 +876,7 @@ namespace Seq2SeqSharp.Tools
 
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
 
@@ -903,8 +905,8 @@ namespace Seq2SeqSharp.Tools
                 srcNameList.Add(item.Name);
             }
 
-            string srcNames = String.Join("_", srcNameList);
-            var res = m_weightTensorFactory.CreateWeightTensor(sx, sy, m_deviceId, name: $"{GetHashString(srcNames)}.ConcatColumns");
+            string srcNames = string.Join("_", srcNameList);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sx, sy, m_deviceId, name: $"{GetHashString(srcNames)}.ConcatColumns");
             VisualizeNodes(wl, res);
 
             Ops.Concat(res.TWeight, 1, twl.ToArray());
@@ -927,14 +929,14 @@ namespace Seq2SeqSharp.Tools
 
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
             return res;
         }
 
         public List<IWeightTensor> SplitColumns2(IWeightTensor w, params int[] sizes)
         {
-            var m = w as WeightTensor;
+            WeightTensor m = w as WeightTensor;
             List<IWeightTensor> resList = new List<IWeightTensor>();
 
             int x = 0;
@@ -956,10 +958,10 @@ namespace Seq2SeqSharp.Tools
                 {
                     x = 0;
                     int i = 0;
-                    foreach (var item in resList)
+                    foreach (IWeightTensor item in resList)
                     {
-                        var item_i = item as WeightTensor;
-                        using (var mG = m.TGradient.Narrow(1, x, sizes[i]))
+                        WeightTensor item_i = item as WeightTensor;
+                        using (Tensor mG = m.TGradient.Narrow(1, x, sizes[i]))
                         {
                             Ops.Add(mG, mG, item_i.TGradient);
                         }
@@ -970,7 +972,7 @@ namespace Seq2SeqSharp.Tools
                         i++;
                     }
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
 
@@ -979,11 +981,11 @@ namespace Seq2SeqSharp.Tools
 
         public IWeightTensor Permute(IWeightTensor w, params int[] dims)
         {
-            var m = w as WeightTensor;
+            WeightTensor m = w as WeightTensor;
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Permute");
             VisualizeNodes(w, res);
 
-            using (var tWPremute = m.TWeight.Permute(dims))
+            using (Tensor tWPremute = m.TWeight.Permute(dims))
             {
                 res.TWeight = Ops.AsContiguous(tWPremute);
             }
@@ -992,13 +994,13 @@ namespace Seq2SeqSharp.Tools
             {
                 Action backward = () =>
                 {
-                    using (var gT = m.TGradient.Permute(dims))
+                    using (Tensor gT = m.TGradient.Permute(dims))
                     {
                         Ops.Add(gT, gT, res.TGradient);
                     }
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
             return res;
@@ -1007,22 +1009,22 @@ namespace Seq2SeqSharp.Tools
 
         public IWeightTensor View(IWeightTensor w, params long[] dims)
         {
-            var m = w as WeightTensor;
+            WeightTensor m = w as WeightTensor;
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(dims, m_deviceId, name: w.Name);
-          //  VisualizeNodes(w, res);
+            //  VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.View(dims);
             if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
-                    using (var resG = res.TGradient.View(m.TWeight.Sizes))
+                    using (Tensor resG = res.TGradient.View(m.TWeight.Sizes))
                     {
                         m.CopyOrAddGradient(resG);
                     }
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
 
@@ -1031,19 +1033,19 @@ namespace Seq2SeqSharp.Tools
 
         public (IWeightTensor r1, IWeightTensor r2) SplitColumns(IWeightTensor w, int size1, int size2)
         {
-            var res = SplitColumns2(w, size1, size2);
+            List<IWeightTensor> res = SplitColumns2(w, size1, size2);
 
             return (res[0], res[1]);
         }
 
         public (IWeightTensor r1, IWeightTensor r2, IWeightTensor r3) SplitColumns(IWeightTensor w, int size1, int size2, int size3)
         {
-            var res = SplitColumns2(w, size1, size2, size3);
+            List<IWeightTensor> res = SplitColumns2(w, size1, size2, size3);
 
             return (res[0], res[1], res[2]);
         }
-       
-        SeedSource seedSource = new SeedSource(DateTime.Now.Millisecond);
+
+        private readonly SeedSource seedSource = new SeedSource(DateTime.Now.Millisecond);
         private Tensor BuildRandomTensor(int rows, int columns, int batchSize, float prob)
         {
             using (Tensor noise = new Tensor(TensorAllocator.Allocator(m_deviceId), DType.Float32, rows / batchSize, columns))
@@ -1063,14 +1065,14 @@ namespace Seq2SeqSharp.Tools
 
         public IWeightTensor LayerNorm(IWeightTensor src, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-09f)
         {
-            var srcT = src as WeightTensor;
-            var alphaT = alpha as WeightTensor;
-            var betaT = beta as WeightTensor;
+            WeightTensor srcT = src as WeightTensor;
+            WeightTensor alphaT = alpha as WeightTensor;
+            WeightTensor betaT = beta as WeightTensor;
 
-            var alphaTWExp = alphaT.TWeight.Expand(src.Rows, src.Columns);
-            var betaTWExp = betaT.TWeight.Expand(src.Rows, src.Columns);
+            Tensor alphaTWExp = alphaT.TWeight.Expand(src.Rows, src.Columns);
+            Tensor betaTWExp = betaT.TWeight.Expand(src.Rows, src.Columns);
 
-            var res = m_weightTensorFactory.CreateWeightTensor(srcT.Sizes, m_deviceId, name:$"{GetHashString(src.Name, alpha.Name, beta.Name)}.LayerNorm");
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(srcT.Sizes, m_deviceId, name: $"{GetHashString(src.Name, alpha.Name, beta.Name)}.LayerNorm");
             VisualizeNodes(new IWeightTensor[] { src, alpha, beta }, res);
 
             Ops.LayerNorm(res.TWeight, srcT.TWeight, alphaTWExp, betaTWExp, eps);
@@ -1078,9 +1080,9 @@ namespace Seq2SeqSharp.Tools
             {
                 Action backward = () =>
                 {
-                    using (var alphaTGExp = alphaT.TGradient.Expand(src.Rows, src.Columns))
+                    using (Tensor alphaTGExp = alphaT.TGradient.Expand(src.Rows, src.Columns))
                     {
-                        using (var betaTGExp = betaT.TGradient.Expand(src.Rows, src.Columns))
+                        using (Tensor betaTGExp = betaT.TGradient.Expand(src.Rows, src.Columns))
                         {
                             Ops.LayerNormGrad(srcT.TGradient, alphaTGExp, betaTGExp, res.TGradient, res.TWeight, srcT.TWeight, alphaTWExp, betaTWExp, eps);
                         }
@@ -1091,7 +1093,7 @@ namespace Seq2SeqSharp.Tools
 
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
             else
             {
@@ -1115,15 +1117,15 @@ namespace Seq2SeqSharp.Tools
         /// <returns></returns>
         public IWeightTensor AddLayerNorm(IWeightTensor src1, IWeightTensor src2, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-09f)
         {
-            var src1T = src1 as WeightTensor;
-            var src2T = src2 as WeightTensor;
-            var alphaT = alpha as WeightTensor;
-            var betaT = beta as WeightTensor;
+            WeightTensor src1T = src1 as WeightTensor;
+            WeightTensor src2T = src2 as WeightTensor;
+            WeightTensor alphaT = alpha as WeightTensor;
+            WeightTensor betaT = beta as WeightTensor;
 
-            var alphaTWExp = alphaT.TWeight.Expand(src1.Rows, src1.Columns);
-            var betaTWExp = betaT.TWeight.Expand(src1.Rows, src1.Columns);
+            Tensor alphaTWExp = alphaT.TWeight.Expand(src1.Rows, src1.Columns);
+            Tensor betaTWExp = betaT.TWeight.Expand(src1.Rows, src1.Columns);
 
-            var res = m_weightTensorFactory.CreateWeightTensor(src1T.Sizes, m_deviceId, name: $"{GetHashString(src1.Name, src2.Name, alpha.Name, beta.Name)}.AddLayerNorm");
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(src1T.Sizes, m_deviceId, name: $"{GetHashString(src1.Name, src2.Name, alpha.Name, beta.Name)}.AddLayerNorm");
             VisualizeNodes(new IWeightTensor[] { src1, src2, alpha, beta }, res);
 
             Ops.AddLayerNorm(res.TWeight, src1T.TWeight, src2T.TWeight, alphaTWExp, betaTWExp, eps);
@@ -1131,9 +1133,9 @@ namespace Seq2SeqSharp.Tools
             {
                 Action backward = () =>
                 {
-                    using (var alphaTGExp = alphaT.TGradient.Expand(src1.Rows, src1.Columns))
+                    using (Tensor alphaTGExp = alphaT.TGradient.Expand(src1.Rows, src1.Columns))
                     {
-                        using (var betaTGExp = betaT.TGradient.Expand(src1.Rows, src1.Columns))
+                        using (Tensor betaTGExp = betaT.TGradient.Expand(src1.Rows, src1.Columns))
                         {
                             Ops.AddLayerNormGrad(src1T.TGradient, src2T.TGradient, alphaTGExp, betaTGExp, res.TGradient, res.TWeight, src1T.TWeight, src2T.TWeight, alphaTWExp, betaTWExp, eps);
                         }
@@ -1144,7 +1146,7 @@ namespace Seq2SeqSharp.Tools
 
                     res.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
             else
             {
@@ -1154,7 +1156,7 @@ namespace Seq2SeqSharp.Tools
 
             return res;
         }
-  
+
 
         public IWeightTensor Dropout(IWeightTensor V, int batchSize, float drop_prob, bool inPlace = false)
         {
@@ -1167,7 +1169,7 @@ namespace Seq2SeqSharp.Tools
             float p = 1.0f - drop_prob;
             Tensor noise = BuildRandomTensor(V.Rows, V.Columns, batchSize, p);
 
-            var w = V as WeightTensor;
+            WeightTensor w = V as WeightTensor;
             WeightTensor res = null;
             if (inPlace)
             {
@@ -1196,7 +1198,7 @@ namespace Seq2SeqSharp.Tools
                     res.Dispose();
                     noise.Dispose();
                 };
-                this.m_backprop.Add(backward);
+                m_backprop.Add(backward);
             }
 
             return res;

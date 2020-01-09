@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace TensorSharp.CUDA.DeviceCode
+﻿namespace TensorSharp.CUDA.DeviceCode
 {
     [Precompile]
     public class FillCopyKernels : CudaCode
@@ -15,7 +10,7 @@ namespace TensorSharp.CUDA.DeviceCode
 
         private static string GetFullCode()
         {
-            var result = new PermutationGenerator();
+            PermutationGenerator result = new PermutationGenerator();
             result.AddApplyTS("fill", "*a = b;");
 
             result.AddApplyTT("copy", "*a = *b;");

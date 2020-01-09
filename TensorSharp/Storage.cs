@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 
 namespace TensorSharp
 {
@@ -11,9 +7,9 @@ namespace TensorSharp
     {
         public Storage(IAllocator allocator, DType elementType, long elementCount)
         {
-            this.Allocator = allocator;
-            this.ElementType = elementType;
-            this.ElementCount = elementCount;
+            Allocator = allocator;
+            ElementType = elementType;
+            ElementCount = elementCount;
         }
 
         /// <summary>
@@ -24,11 +20,11 @@ namespace TensorSharp
         public DType ElementType { get; private set; }
         public long ElementCount { get; private set; }
 
-        public long ByteLength { get { return ElementCount * ElementType.Size(); } }
+        public long ByteLength => ElementCount * ElementType.Size();
 
         public bool IsOwnerExclusive()
         {
-            return this.GetCurrentRefCount() == 1;
+            return GetCurrentRefCount() == 1;
         }
 
 

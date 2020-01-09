@@ -1,24 +1,18 @@
 ﻿using ManagedCuda;
-using ManagedCuda.BasicTypes;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 
 namespace TensorSharp.CUDA.RuntimeCompiler
 {
     public static class ConvertTensorArgs
     {
-        unsafe private struct TensorInfoIndex64
+        private unsafe struct TensorInfoIndex64
         {
             public ulong data;
             public fixed ulong sizes[TSCudaContext.MaxDims];
             public fixed ulong strides[TSCudaContext.MaxDims];
             public int dims;
         }
-        
-        unsafe private struct TensorInfoIndex32
+
+        private unsafe struct TensorInfoIndex32
         {
             public ulong data;
             public fixed uint sizes[TSCudaContext.MaxDims];
@@ -38,15 +32,17 @@ namespace TensorSharp.CUDA.RuntimeCompiler
             }
         }
 
-        
 
-        unsafe public static object MakeTensorInfo(CudaContext context, Tensor tensor, bool index32, int flattenDim = -1)
+
+        public static unsafe object MakeTensorInfo(CudaContext context, Tensor tensor, bool index32, int flattenDim = -1)
         {
             if (index32)
             {
-                var ti = new TensorInfoIndex32();
-                ti.data = CudaHelpers.GetBufferStart(tensor);
-                ti.dims = tensor.DimensionCount;
+                TensorInfoIndex32 ti = new TensorInfoIndex32
+                {
+                    data = CudaHelpers.GetBufferStart(tensor),
+                    dims = tensor.DimensionCount
+                };
                 for (int i = 0; i < tensor.DimensionCount; ++i)
                 {
                     ti.sizes[i] = (uint)tensor.Sizes[i];
@@ -62,9 +58,11 @@ namespace TensorSharp.CUDA.RuntimeCompiler
             }
             else
             {
-                var ti = new TensorInfoIndex64();
-                ti.data = CudaHelpers.GetBufferStart(tensor);
-                ti.dims = tensor.DimensionCount;
+                TensorInfoIndex64 ti = new TensorInfoIndex64
+                {
+                    data = CudaHelpers.GetBufferStart(tensor),
+                    dims = tensor.DimensionCount
+                };
                 for (int i = 0; i < tensor.DimensionCount; ++i)
                 {
                     ti.sizes[i] = (ulong)tensor.Sizes[i];

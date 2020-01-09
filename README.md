@@ -4,7 +4,7 @@ Seq2SeqSharp is a tensor based fast & flexible encoder-decoder deep neural netwo
 # Features  
 Pure C# framework   
 Bi-directional LSTM encoder  
-Attention based LSTM decoder  
+Attention based LSTM decoder with coverage model  
 Transformer encoder  
 Built-in several networks for sequence-to-sequence task and sequence-labeling task  
 Graph based neural network  

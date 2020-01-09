@@ -68,7 +68,6 @@
     <Compile Include="Metrics\LengthRatioMetric.cs" />
     <Compile Include="Metrics\IMetric.cs" />
     <Compile Include="Metrics\SequenceLabelFscoreMetric.cs" />
-    <Compile Include="Networks\CRFDecoder.cs" />
     <Compile Include="SequenceLabel.cs" />
     <Compile Include="Tools\BaseSeq2SeqFramework.cs" />
     <Compile Include="Utils\ArchEnums.cs" />

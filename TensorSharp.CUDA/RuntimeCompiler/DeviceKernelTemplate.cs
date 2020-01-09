@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace TensorSharp.CUDA.RuntimeCompiler
 {
@@ -21,7 +20,7 @@ namespace TensorSharp.CUDA.RuntimeCompiler
 
         public void AddConfigArgs(params string[] args)
         {
-            foreach(var item in args)
+            foreach (string item in args)
             {
                 requiredConfigArgs.Add(item);
             }
@@ -34,31 +33,30 @@ namespace TensorSharp.CUDA.RuntimeCompiler
 
         public byte[] PtxForConfig(CudaCompiler compiler, KernelConfig config)
         {
-            byte[] cachedResult;
-            if (ptxCache.TryGetValue(config, out cachedResult))
+            if (ptxCache.TryGetValue(config, out byte[] cachedResult))
             {
                 return cachedResult;
             }
 
-            if(!requiredConfigArgs.All(config.ContainsKey))
+            if (!requiredConfigArgs.All(config.ContainsKey))
             {
-                var allRequired = string.Join(", ", requiredConfigArgs);
+                string allRequired = string.Join(", ", requiredConfigArgs);
                 throw new InvalidOperationException("All config arguments must be provided. Required: " + allRequired);
             }
 
             // Checking this ensures that there is only one config argument that can evaluate to the same code,
             // which ensures that the ptx cacheing does not generate unnecessary combinations. Also, a mismatch
             // occurring here probably indicates a bug somewhere else.
-            if(!config.Keys.All(requiredConfigArgs.Contains))
+            if (!config.Keys.All(requiredConfigArgs.Contains))
             {
-                var allRequired = string.Join(", ", requiredConfigArgs);
+                string allRequired = string.Join(", ", requiredConfigArgs);
                 throw new InvalidOperationException("Config provides some unnecessary arguments. Required: " + allRequired);
             }
 
             //return new DeviceKernelCode(config.ApplyToTemplate(templateCode), requiredHeaders.ToArray());
-            var finalCode = config.ApplyToTemplate(templateCode);
+            string finalCode = config.ApplyToTemplate(templateCode);
 
-            var result = compiler.CompileToPtx(finalCode, requiredHeaders.ToArray());
+            byte[] result = compiler.CompileToPtx(finalCode, requiredHeaders.ToArray());
             ptxCache.Add(config, result);
             return result;
         }

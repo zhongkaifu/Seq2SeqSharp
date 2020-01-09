@@ -1,16 +1,11 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TensorSharp;
 
 namespace Seq2SeqSharp.Tools
 {
     public class WeightTensorFactory : IWeightFactory
     {
-        List<WeightTensor> weights = new List<WeightTensor>();
+        private readonly List<WeightTensor> weights = new List<WeightTensor>();
 
         public WeightTensor BuildPositionWeightTensor(int row, int column, int deviceId, string name = "", bool isTrainable = false)
         {
@@ -65,7 +60,7 @@ namespace Seq2SeqSharp.Tools
 
         public void Dispose()
         {
-            foreach (var item in weights)
+            foreach (WeightTensor item in weights)
             {
                 item.Dispose();
             }

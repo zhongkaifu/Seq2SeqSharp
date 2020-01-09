@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace TensorSharp.Expression
 {
@@ -11,7 +8,7 @@ namespace TensorSharp.Expression
 
         public TExpression(bool isValidLvalue = false)
         {
-            this.IsValidLvalue = isValidLvalue;
+            IsValidLvalue = isValidLvalue;
         }
 
         public abstract Tensor Evaluate(Tensor writeTarget);
@@ -31,9 +28,12 @@ namespace TensorSharp.Expression
 
         public override Tensor Evaluate(Tensor writeTarget)
         {
-            if (writeTarget != null) throw new InvalidOperationException("Cannot Select directly into another tensor");
+            if (writeTarget != null)
+            {
+                throw new InvalidOperationException("Cannot Select directly into another tensor");
+            }
 
-            using (var s = src.Evaluate(null))
+            using (Tensor s = src.Evaluate(null))
             {
                 return evaluate(s);
             }
@@ -79,7 +79,7 @@ namespace TensorSharp.Expression
 
         public override Tensor Evaluate(Tensor writeTarget)
         {
-            using (var srcVal = src.Evaluate(null))
+            using (Tensor srcVal = src.Evaluate(null))
             {
                 if (writeTarget == null)
                 {
@@ -105,7 +105,7 @@ namespace TensorSharp.Expression
 
         public override Tensor Evaluate(Tensor writeTarget)
         {
-            using (var srcVal = src.Evaluate(null))
+            using (Tensor srcVal = src.Evaluate(null))
             {
                 if (writeTarget == null)
                 {
@@ -136,8 +136,8 @@ namespace TensorSharp.Expression
 
         public override Tensor Evaluate(Tensor writeTarget)
         {
-            using (var s = src.Evaluate(null))
-            using (var i = indices.Evaluate(null))
+            using (Tensor s = src.Evaluate(null))
+            using (Tensor i = indices.Evaluate(null))
             {
                 if (!writeTarget.Equals(s))
                 {
@@ -169,7 +169,9 @@ namespace TensorSharp.Expression
         public override Tensor Evaluate(Tensor writeTarget)
         {
             if (writeTarget == null)
+            {
                 writeTarget = new Tensor(allocator, elementType, sizes);
+            }
 
             fillAction(writeTarget);
 
@@ -193,9 +195,9 @@ namespace TensorSharp.Expression
 
         public override Tensor Evaluate(Tensor writeTarget)
         {
-            using (var s = src.Evaluate(null))
-            using (var m1Val = m1.Evaluate(null))
-            using (var m2Val = m2.Evaluate(null))
+            using (Tensor s = src.Evaluate(null))
+            using (Tensor m1Val = m1.Evaluate(null))
+            using (Tensor m2Val = m2.Evaluate(null))
             {
                 return Ops.Addmm(writeTarget, beta, s, alpha, m1Val, m2Val);
             }
@@ -216,7 +218,9 @@ namespace TensorSharp.Expression
         public override Tensor Evaluate(Tensor writeTarget)
         {
             if (writeTarget == null)
+            {
                 return value.CopyRef();
+            }
             else
             {
                 Ops.Copy(writeTarget, value);
@@ -239,8 +243,8 @@ namespace TensorSharp.Expression
 
         public override Tensor Evaluate(Tensor writeTarget)
         {
-            using (var lhs = left.Evaluate(null))
-            using (var rhs = right.Evaluate(null))
+            using (Tensor lhs = left.Evaluate(null))
+            using (Tensor rhs = right.Evaluate(null))
             {
                 return evaluate(writeTarget, lhs, rhs);
             }
@@ -260,7 +264,7 @@ namespace TensorSharp.Expression
 
         public override Tensor Evaluate(Tensor writeTarget)
         {
-            using (var s = src.Evaluate(null))
+            using (Tensor s = src.Evaluate(null))
             {
                 return evaluate(writeTarget, s);
             }
@@ -282,7 +286,7 @@ namespace TensorSharp.Expression
 
         public override Tensor Evaluate(Tensor writeTarget)
         {
-            using (var rhs = right.Evaluate(null))
+            using (Tensor rhs = right.Evaluate(null))
             {
                 return evaluate(writeTarget, left.Evaluate(), rhs);
             }
@@ -304,7 +308,7 @@ namespace TensorSharp.Expression
 
         public override Tensor Evaluate(Tensor writeTarget)
         {
-            using (var lhs = left.Evaluate(null))
+            using (Tensor lhs = left.Evaluate(null))
             {
                 return evaluate(writeTarget, lhs, right.Evaluate());
             }

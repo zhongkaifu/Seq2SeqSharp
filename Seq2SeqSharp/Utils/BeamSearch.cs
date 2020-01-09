@@ -1,10 +1,7 @@
 ﻿using AdvUtils;
 using Seq2SeqSharp.Tools;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Seq2SeqSharp
 {
@@ -28,7 +25,7 @@ namespace Seq2SeqSharp
 
     public class BeamSearch
     {
-        static public List<BeamSearchStatus> GetTopNBSS(List<BeamSearchStatus> bssList, int topN)
+        public static List<BeamSearchStatus> GetTopNBSS(List<BeamSearchStatus> bssList, int topN)
         {
             FixedSizePriorityQueue<ComparableItem<BeamSearchStatus>> q = new FixedSizePriorityQueue<ComparableItem<BeamSearchStatus>>(topN, new ComparableItemComparer<BeamSearchStatus>(false));
 

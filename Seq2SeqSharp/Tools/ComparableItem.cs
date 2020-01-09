@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.Tools
 {
@@ -30,7 +27,10 @@ namespace Seq2SeqSharp.Tools
         {
             int iSign = Math.Sign(x.Score - y.Score);
             if (!m_fAscending)
+            {
                 iSign = -iSign;
+            }
+
             return iSign;
         }
 

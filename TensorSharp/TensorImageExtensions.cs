@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.Linq;
-using System.Text;
 
 namespace TensorSharp
 {
@@ -25,49 +22,59 @@ namespace TensorSharp
         public static Bitmap ToBitmap(this Tensor tensor)
         {
             if (tensor.DimensionCount != 2 && tensor.DimensionCount != 3)
+            {
                 throw new InvalidOperationException("tensor must have 2 or 3 dimensions");
+            }
 
             if (tensor.DimensionCount == 3 &&
                 (tensor.Sizes[0] != 1 && tensor.Sizes[0] != 3 && tensor.Sizes[0] != 4))
+            {
                 throw new InvalidOperationException("3D tensor's first dimension (color channels) must be of length 1, 3 or 4");
+            }
 
             Tensor src;
             if (tensor.DimensionCount == 2)
+            {
                 src = tensor.RepeatTensor(3, 1, 1);
+            }
             else if (tensor.DimensionCount == 3 && tensor.Sizes[0] == 1)
+            {
                 src = tensor.RepeatTensor(3, 1, 1);
+            }
             else
+            {
                 src = tensor.CopyRef();
+            }
 
-            var cpuAllocator = new Cpu.CpuAllocator();
-            var bytesPerPixel = src.Sizes[0];
+            Cpu.CpuAllocator cpuAllocator = new Cpu.CpuAllocator();
+            long bytesPerPixel = src.Sizes[0];
 
             try
             {
-                using (var cpuFloatTensor = new Tensor(cpuAllocator, DType.Float32, src.Sizes))
-                using (var permutedFloatTensor = cpuFloatTensor.Permute(1, 2, 0))
+                using (Tensor cpuFloatTensor = new Tensor(cpuAllocator, DType.Float32, src.Sizes))
+                using (Tensor permutedFloatTensor = cpuFloatTensor.Permute(1, 2, 0))
                 {
                     Ops.Copy(cpuFloatTensor, src);
                     Ops.Mul(cpuFloatTensor, cpuFloatTensor, 255);
 
-                    var resultFormat = bytesPerPixel == 3 ? PixelFormat.Format24bppRgb : PixelFormat.Format32bppArgb;
-                    var result = new Bitmap((int)src.Sizes[2], (int)src.Sizes[1], resultFormat);
+                    PixelFormat resultFormat = bytesPerPixel == 3 ? PixelFormat.Format24bppRgb : PixelFormat.Format32bppArgb;
+                    Bitmap result = new Bitmap((int)src.Sizes[2], (int)src.Sizes[1], resultFormat);
 
 
 
-                    var lockData = result.LockBits(
+                    BitmapData lockData = result.LockBits(
                         new Rectangle(0, 0, result.Width, result.Height),
                         ImageLockMode.WriteOnly,
                         result.PixelFormat);
 
-                    var sizes = new long[] { result.Height, result.Width, bytesPerPixel };
-                    var strides = new long[] { lockData.Stride, bytesPerPixel, 1 };
-                    var resultTensor = new Tensor(cpuAllocator, DType.UInt8, sizes, strides);
+                    long[] sizes = new long[] { result.Height, result.Width, bytesPerPixel };
+                    long[] strides = new long[] { lockData.Stride, bytesPerPixel, 1 };
+                    Tensor resultTensor = new Tensor(cpuAllocator, DType.UInt8, sizes, strides);
 
                     // Re-order tensor and convert to bytes
                     Ops.Copy(resultTensor, permutedFloatTensor);
 
-                    var byteLength = lockData.Stride * lockData.Height;
+                    int byteLength = lockData.Stride * lockData.Height;
                     resultTensor.Storage.CopyFromStorage(lockData.Scan0, resultTensor.StorageOffset, byteLength);
 
                     result.UnlockBits(lockData);

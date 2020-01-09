@@ -2,35 +2,32 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Seq2SeqSharp
 {
-    class SelfAttention
+    internal class SelfAttention
     {
-        private IWeightTensor W0;
-        private IWeightTensor b0;
+        private readonly IWeightTensor W0;
+        private readonly IWeightTensor b0;
 
-        private IWeightTensor Q;
-        private IWeightTensor K;
-        private IWeightTensor V;
+        private readonly IWeightTensor Q;
+        private readonly IWeightTensor K;
+        private readonly IWeightTensor V;
 
-        private IWeightTensor Qb;
-        private IWeightTensor Kb;
-        private IWeightTensor Vb;
+        private readonly IWeightTensor Qb;
+        private readonly IWeightTensor Kb;
+        private readonly IWeightTensor Vb;
 
-        private LayerNormalization layerNorm1;
-        private LayerNormalization layerNorm2;
-        private FeedForwardLayer feedForwardLayer1;
-        private FeedForwardLayer feedForwardLayer2;
+        private readonly LayerNormalization layerNorm1;
+        private readonly LayerNormalization layerNorm2;
+        private readonly FeedForwardLayer feedForwardLayer1;
+        private readonly FeedForwardLayer feedForwardLayer2;
 
-        private int m_hiddenDim;
-        private int m_d;
-        private int m_multiHeadNum;
-        private string m_name;
-        private float m_dropoutRatio;
+        private readonly int m_hiddenDim;
+        private readonly int m_d;
+        private readonly int m_multiHeadNum;
+        private readonly string m_name;
+        private readonly float m_dropoutRatio;
 
         public SelfAttention(string name, int multiHeadNum, int hiddenDim, int inputDim, float dropoutRatio, int deviceId)
         {
@@ -57,7 +54,7 @@ namespace Seq2SeqSharp
             layerNorm2 = new LayerNormalization($"{name}.{nameof(layerNorm2)}", hiddenDim, deviceId);
             feedForwardLayer1 = new FeedForwardLayer($"{name}.{nameof(feedForwardLayer1)}", hiddenDim, hiddenDim * 4, m_dropoutRatio, deviceId);
             feedForwardLayer2 = new FeedForwardLayer($"{name}.{nameof(feedForwardLayer2)}", hiddenDim * 4, hiddenDim, m_dropoutRatio, deviceId);
-        }       
+        }
 
         /// <summary>
         /// Scaled multi-heads attention component with skip connectioned feed forward layers
@@ -68,42 +65,42 @@ namespace Seq2SeqSharp
         public IWeightTensor Perform(IWeightTensor input, int batchSize, IComputeGraph graph)
         {
             IComputeGraph g = graph.CreateSubGraph(m_name);
-            var seqLen = input.Rows / batchSize;
-            var nInput = layerNorm1.Norm(input, g);
+            int seqLen = input.Rows / batchSize;
+            IWeightTensor nInput = layerNorm1.Norm(input, g);
 
             //Input projections
-            var allQ = g.View(g.Affine(nInput, Q, Qb), batchSize, seqLen, m_multiHeadNum, m_d);
-            var allK = g.View(g.Affine(nInput, K, Kb), batchSize, seqLen, m_multiHeadNum, m_d);
-            var allV = g.View(g.Affine(nInput, V, Vb), batchSize, seqLen, m_multiHeadNum, m_d);
+            IWeightTensor allQ = g.View(g.Affine(nInput, Q, Qb), batchSize, seqLen, m_multiHeadNum, m_d);
+            IWeightTensor allK = g.View(g.Affine(nInput, K, Kb), batchSize, seqLen, m_multiHeadNum, m_d);
+            IWeightTensor allV = g.View(g.Affine(nInput, V, Vb), batchSize, seqLen, m_multiHeadNum, m_d);
 
             //Multi-head attentions
-            var Qs = g.View(g.Permute(allQ, 2, 0, 1, 3), m_multiHeadNum * batchSize, seqLen, m_d);
-            var Ks = g.View(g.Permute(allK, 2, 0, 3, 1), m_multiHeadNum * batchSize, m_d, seqLen);
-            var Vs = g.View(g.Permute(allV, 2, 0, 1, 3), m_multiHeadNum * batchSize, seqLen, m_d);
+            IWeightTensor Qs = g.View(g.Permute(allQ, 2, 0, 1, 3), m_multiHeadNum * batchSize, seqLen, m_d);
+            IWeightTensor Ks = g.View(g.Permute(allK, 2, 0, 3, 1), m_multiHeadNum * batchSize, m_d, seqLen);
+            IWeightTensor Vs = g.View(g.Permute(allV, 2, 0, 1, 3), m_multiHeadNum * batchSize, seqLen, m_d);
 
             // Scaled softmax
             float scale = 1.0f / (float)Math.Sqrt(m_d);
-            var attn = g.MulBatch(Qs, Ks, m_multiHeadNum * batchSize, scale);
-            var attn2 = g.View(attn, m_multiHeadNum * batchSize * seqLen, seqLen);
+            IWeightTensor attn = g.MulBatch(Qs, Ks, m_multiHeadNum * batchSize, scale);
+            IWeightTensor attn2 = g.View(attn, m_multiHeadNum * batchSize * seqLen, seqLen);
 
-            var softmax = g.Softmax(attn2, inPlace: true);
-            var softmax2 = g.View(softmax, m_multiHeadNum * batchSize, seqLen, seqLen);
-            var o = g.View(g.MulBatch(softmax2, Vs, m_multiHeadNum * batchSize), m_multiHeadNum, batchSize, seqLen, m_d);
-            var W = g.View(g.Permute(o, 1, 2, 0, 3), batchSize * seqLen, m_multiHeadNum * m_d);
+            IWeightTensor softmax = g.Softmax(attn2, inPlace: true);
+            IWeightTensor softmax2 = g.View(softmax, m_multiHeadNum * batchSize, seqLen, seqLen);
+            IWeightTensor o = g.View(g.MulBatch(softmax2, Vs, m_multiHeadNum * batchSize), m_multiHeadNum, batchSize, seqLen, m_d);
+            IWeightTensor W = g.View(g.Permute(o, 1, 2, 0, 3), batchSize * seqLen, m_multiHeadNum * m_d);
 
             // Output projection
-            var finalAttResults = g.Dropout(g.Affine(W, W0, b0), batchSize, m_dropoutRatio, inPlace: true);
+            IWeightTensor finalAttResults = g.Dropout(g.Affine(W, W0, b0), batchSize, m_dropoutRatio, inPlace: true);
 
             //Skip connection and layer normaliztion
-            var normAddedAttResult = layerNorm2.AddNorm(finalAttResults, input, g);
+            IWeightTensor normAddedAttResult = layerNorm2.AddNorm(finalAttResults, input, g);
 
             //Feed forward
-            var ffnResult = feedForwardLayer1.Process(normAddedAttResult, batchSize, g);
-            var reluFFNResult = g.Relu(ffnResult);
-            var ffn2Result = feedForwardLayer2.Process(reluFFNResult, batchSize, g);
+            IWeightTensor ffnResult = feedForwardLayer1.Process(normAddedAttResult, batchSize, g);
+            IWeightTensor reluFFNResult = g.Relu(ffnResult);
+            IWeightTensor ffn2Result = feedForwardLayer2.Process(reluFFNResult, batchSize, g);
 
             //Skip connection and layer normaliztion
-            var addFFNResult = g.Add(ffn2Result, normAddedAttResult);
+            IWeightTensor addFFNResult = g.Add(ffn2Result, normAddedAttResult);
 
             return addFFNResult;
         }
@@ -111,19 +108,20 @@ namespace Seq2SeqSharp
 
         public virtual List<IWeightTensor> getParams()
         {
-            List<IWeightTensor> response = new List<IWeightTensor>();
+            List<IWeightTensor> response = new List<IWeightTensor>
+            {
+                Q,
+                Qb,
 
-            response.Add(Q);
-            response.Add(Qb);
+                K,
+                Kb,
 
-            response.Add(K);
-            response.Add(Kb);
+                V,
+                Vb,
 
-            response.Add(V);
-            response.Add(Vb);
-
-            response.Add(W0);
-            response.Add(b0);
+                W0,
+                b0
+            };
 
             response.AddRange(layerNorm1.getParams());
             response.AddRange(layerNorm2.getParams());

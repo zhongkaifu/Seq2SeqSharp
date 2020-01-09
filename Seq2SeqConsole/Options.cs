@@ -1,9 +1,8 @@
 ﻿using AdvUtils;
-using System;
 
 namespace Seq2SeqConsole
 {
-    class Options
+    internal class Options
     {
         [Arg("Task name. It could be Train, Valid, Test, VisualizeNetwork or Help", "TaskName")]
         public string TaskName = "Help";
@@ -99,7 +98,7 @@ namespace Seq2SeqConsole
         public string VisualizeNNFilePath;
 
         [Arg("The file path of config file for parameters", "ConfigFilePath")]
-        public string ConfigFilePath = String.Empty;
+        public string ConfigFilePath = string.Empty;
 
         [Arg("The beta1 for optimizer", "Beta1")]
         public float Beta1 = 0.9f;

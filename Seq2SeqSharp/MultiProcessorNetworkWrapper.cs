@@ -1,19 +1,15 @@
-﻿using AdvUtils;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Seq2SeqSharp
 {
     public class MultiProcessorNetworkWrapper<T> : IMultiProcessorNetworkWrapper where T : INeuralUnit
     {
-        T[] m_networks;
-        int m_defaultDeviceId;
-        int[] m_deviceIds;
-        T m_networkOnDefaultDevice;
+        private readonly T[] m_networks;
+        private readonly int m_defaultDeviceId;
+        private readonly int[] m_deviceIds;
+        private readonly T m_networkOnDefaultDevice;
 
         public MultiProcessorNetworkWrapper(T networkOnDefaultDevice, int[] deviceIds)
         {
@@ -32,7 +28,7 @@ namespace Seq2SeqSharp
                 {
                     m_networks[i] = (T)networkOnDefaultDevice.CloneToDeviceAt(deviceIds[i]);
                 }
-            }          
+            }
         }
 
         /// <summary>
@@ -40,12 +36,12 @@ namespace Seq2SeqSharp
         /// </summary>
         public void SyncWeights()
         {
-            var tensorsOnDefaultDevice = m_networkOnDefaultDevice.GetParams();
+            List<Tools.IWeightTensor> tensorsOnDefaultDevice = m_networkOnDefaultDevice.GetParams();
             Parallel.ForEach(m_networks, network =>
             {
                 if (network.Equals(m_networkOnDefaultDevice) == false)
                 {
-                    var tensors = network.GetParams();
+                    List<Tools.IWeightTensor> tensors = network.GetParams();
 
                     for (int j = 0; j < tensors.Count; j++)
                     {
@@ -61,12 +57,12 @@ namespace Seq2SeqSharp
         /// </summary>
         public void SumGradientsToNetworkOnDefaultDevice()
         {
-            var tensorsOnDefaultDevice = m_networkOnDefaultDevice.GetParams();
+            List<Tools.IWeightTensor> tensorsOnDefaultDevice = m_networkOnDefaultDevice.GetParams();
             Parallel.ForEach(m_networks, network =>
             {
                 if (network.Equals(m_networkOnDefaultDevice) == false)
                 {
-                    var tensors = network.GetParams();
+                    List<Tools.IWeightTensor> tensors = network.GetParams();
 
                     for (int j = 0; j < tensors.Count; j++)
                     {
@@ -85,7 +81,7 @@ namespace Seq2SeqSharp
         {
             Parallel.ForEach(m_networks, network =>
             {
-                var tensors = network.GetParams();
+                List<Tools.IWeightTensor> tensors = network.GetParams();
                 for (int j = 0; j < tensors.Count; j++)
                 {
                     tensors[j].ZeroGradient();

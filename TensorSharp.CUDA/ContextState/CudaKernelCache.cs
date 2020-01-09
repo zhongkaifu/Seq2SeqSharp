@@ -1,44 +1,41 @@
 ﻿using ManagedCuda;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace TensorSharp.CUDA.ContextState
 {
     [Serializable]
     public class CudaKernelCache : IDisposable
     {
-        private Dictionary<Tuple<CudaContext, byte[], string>, CudaKernel> activeKernels = new Dictionary<Tuple<CudaContext, byte[], string>, CudaKernel>();
+        private readonly Dictionary<Tuple<CudaContext, byte[], string>, CudaKernel> activeKernels = new Dictionary<Tuple<CudaContext, byte[], string>, CudaKernel>();
 
         public CudaKernelCache()
         {
         }
 
-        private object locker = new object();
+        private readonly object locker = new object();
 
         public void Dispose()
         {
             lock (locker)
             {
-                foreach (var kvp in activeKernels)
+                foreach (KeyValuePair<Tuple<CudaContext, byte[], string>, CudaKernel> kvp in activeKernels)
                 {
-                    var ctx = kvp.Key.Item1;
-                    var kernel = kvp.Value;
+                    CudaContext ctx = kvp.Key.Item1;
+                    CudaKernel kernel = kvp.Value;
 
                     ctx.UnloadKernel(kernel);
                 }
             }
         }
 
-      
+
 
         public CudaKernel Get(CudaContext context, byte[] ptx, string kernelName)
         {
             lock (locker)
             {
-                CudaKernel value;
-                if (activeKernels.TryGetValue(Tuple.Create(context, ptx, kernelName), out value))
+                if (activeKernels.TryGetValue(Tuple.Create(context, ptx, kernelName), out CudaKernel value))
                 {
                     return value;
                 }

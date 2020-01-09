@@ -2,28 +2,24 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TensorSharp;
 
 namespace Seq2SeqSharp
 {
     [Serializable]
-    public class LSTMCell 
+    public class LSTMCell
     {
-        IWeightTensor m_Wxh;
-        IWeightTensor m_b;
-        IWeightTensor m_hidden;
-        IWeightTensor m_cell;
+        private readonly IWeightTensor m_Wxh;
+        private readonly IWeightTensor m_b;
+        private IWeightTensor m_hidden;
+        private IWeightTensor m_cell;
+        private readonly int m_hdim;
+        private readonly int m_dim;
+        private readonly int m_deviceId;
+        private readonly string m_name;
+        private readonly LayerNormalization m_layerNorm1;
+        private readonly LayerNormalization m_layerNorm2;
 
-        int m_hdim;
-        int m_dim;
-        int m_deviceId;
-        string m_name;
-
-        LayerNormalization m_layerNorm1;
-        LayerNormalization m_layerNorm2;
+        public IWeightTensor Hidden => m_hidden;
 
         public LSTMCell(string name, int hdim, int dim, int deviceId)
         {
@@ -42,24 +38,24 @@ namespace Seq2SeqSharp
 
         public IWeightTensor Step(IWeightTensor input, IComputeGraph g)
         {
-            var innerGraph = g.CreateSubGraph(m_name);
+            IComputeGraph innerGraph = g.CreateSubGraph(m_name);
 
-            var hidden_prev = m_hidden;
-            var cell_prev = m_cell;
-        
-            var inputs = innerGraph.ConcatColumns(input, hidden_prev);
-            var hhSum = innerGraph.Affine(inputs, m_Wxh, m_b);
-            var hhSum2 = m_layerNorm1.Norm(hhSum, innerGraph);
+            IWeightTensor hidden_prev = m_hidden;
+            IWeightTensor cell_prev = m_cell;
 
-            (var gates_raw, var cell_write_raw) = innerGraph.SplitColumns(hhSum2, m_hdim * 3, m_hdim);
-            var gates = innerGraph.Sigmoid(gates_raw);
-            var cell_write = innerGraph.Tanh(cell_write_raw);
+            IWeightTensor inputs = innerGraph.ConcatColumns(input, hidden_prev);
+            IWeightTensor hhSum = innerGraph.Affine(inputs, m_Wxh, m_b);
+            IWeightTensor hhSum2 = m_layerNorm1.Norm(hhSum, innerGraph);
 
-            (var input_gate, var forget_gate, var output_gate) = innerGraph.SplitColumns(gates, m_hdim, m_hdim, m_hdim);
+            (IWeightTensor gates_raw, IWeightTensor cell_write_raw) = innerGraph.SplitColumns(hhSum2, m_hdim * 3, m_hdim);
+            IWeightTensor gates = innerGraph.Sigmoid(gates_raw);
+            IWeightTensor cell_write = innerGraph.Tanh(cell_write_raw);
+
+            (IWeightTensor input_gate, IWeightTensor forget_gate, IWeightTensor output_gate) = innerGraph.SplitColumns(gates, m_hdim, m_hdim, m_hdim);
 
             // compute new cell activation: ct = forget_gate * cell_prev + input_gate * cell_write
             m_cell = innerGraph.EltMulMulAdd(forget_gate, cell_prev, input_gate, cell_write);
-            var ct2 = m_layerNorm2.Norm(m_cell, innerGraph);
+            IWeightTensor ct2 = m_layerNorm2.Norm(m_cell, innerGraph);
 
             // compute hidden state as gated, saturated cell activations
             m_hidden = innerGraph.EltMul(output_gate, innerGraph.Tanh(ct2));
@@ -69,9 +65,11 @@ namespace Seq2SeqSharp
 
         public virtual List<IWeightTensor> getParams()
         {
-            List<IWeightTensor> response = new List<IWeightTensor>();
-            response.Add(m_Wxh);
-            response.Add(m_b);
+            List<IWeightTensor> response = new List<IWeightTensor>
+            {
+                m_Wxh,
+                m_b
+            };
 
             response.AddRange(m_layerNorm1.getParams());
             response.AddRange(m_layerNorm2.getParams());
@@ -82,7 +80,7 @@ namespace Seq2SeqSharp
         public void Reset(IWeightFactory weightFactory, int batchSize)
         {
             if (m_hidden != null)
-            {               
+            {
                 m_hidden.Dispose();
                 m_hidden = null;
             }
@@ -117,5 +115,5 @@ namespace Seq2SeqSharp
             m_layerNorm2.Load(stream);
         }
     }
-     
+
 }

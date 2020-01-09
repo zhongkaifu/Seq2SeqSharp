@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace TensorSharp.CUDA.Util
 {
@@ -14,7 +12,10 @@ namespace TensorSharp.CUDA.Util
 
         public PooledObject(T value, Action<PooledObject<T>> onDispose)
         {
-            if (onDispose == null) throw new ArgumentNullException("onDispose");
+            if (onDispose == null)
+            {
+                throw new ArgumentNullException("onDispose");
+            }
 
             this.onDispose = onDispose;
             this.value = value;
@@ -24,7 +25,11 @@ namespace TensorSharp.CUDA.Util
         {
             get
             {
-                if (disposed) throw new ObjectDisposedException(this.ToString());
+                if (disposed)
+                {
+                    throw new ObjectDisposedException(ToString());
+                }
+
                 return value;
             }
         }
@@ -38,7 +43,7 @@ namespace TensorSharp.CUDA.Util
             }
             else
             {
-                throw new ObjectDisposedException(this.ToString());
+                throw new ObjectDisposedException(ToString());
             }
         }
     }
@@ -53,13 +58,20 @@ namespace TensorSharp.CUDA.Util
 
         public ObjectPool(int initialSize, Func<T> constructor, Action<T> destructor)
         {
-            if (constructor == null) throw new ArgumentNullException("constructor");
-            if (destructor == null) throw new ArgumentNullException("destructor");
+            if (constructor == null)
+            {
+                throw new ArgumentNullException("constructor");
+            }
+
+            if (destructor == null)
+            {
+                throw new ArgumentNullException("destructor");
+            }
 
             this.constructor = constructor;
             this.destructor = destructor;
 
-            for(int i = 0; i < initialSize; ++i)
+            for (int i = 0; i < initialSize; ++i)
             {
                 freeList.Push(constructor());
             }
@@ -70,7 +82,7 @@ namespace TensorSharp.CUDA.Util
             if (!disposed)
             {
                 disposed = true;
-                foreach (var item in freeList)
+                foreach (T item in freeList)
                 {
                     destructor(item);
                 }

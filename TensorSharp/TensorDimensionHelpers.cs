@@ -1,20 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace TensorSharp
+﻿namespace TensorSharp
 {
     public static class TensorDimensionHelpers
     {
         public static long ElementCount(long[] sizes)
         {
             if (sizes.Length == 0)
+            {
                 return 0;
+            }
 
-            var total = 1L;
+            long total = 1L;
             for (int i = 0; i < sizes.Length; ++i)
+            {
                 total *= sizes[i];
+            }
+
             return total;
         }
 
@@ -34,7 +34,7 @@ namespace TensorSharp
         public static long[] GetContiguousStride(long[] dims)
         {
             long acc = 1;
-            var stride = new long[dims.Length];
+            long[] stride = new long[dims.Length];
 
             for (int i = dims.Length - 1; i >= 0; --i)
             {

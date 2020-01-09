@@ -3,22 +3,19 @@ using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Seq2SeqSharp
 {
-    class TransformerEncoder : IEncoder
+    internal class TransformerEncoder : IEncoder
     {
-        List<SelfAttention> m_encoders = new List<SelfAttention>();
-        private int m_inputDim;
-        private float m_dropoutRatio;
-        private string m_name;
-        private int m_multiHeadNum;
-        private int m_hiddenDim;
-        private int m_depth;
-        private int m_deviceId;
+        private readonly List<SelfAttention> m_encoders = new List<SelfAttention>();
+        private readonly int m_inputDim;
+        private readonly float m_dropoutRatio;
+        private readonly string m_name;
+        private readonly int m_multiHeadNum;
+        private readonly int m_hiddenDim;
+        private readonly int m_depth;
+        private readonly int m_deviceId;
 
         public TransformerEncoder(string name, int multiHeadNum, int hiddenDim, int inputDim, int depth, float dropoutRatio, int deviceId)
         {
@@ -60,13 +57,13 @@ namespace Seq2SeqSharp
         /// <param name="g"></param>
         /// <returns></returns>
         public IWeightTensor Encode(IWeightTensor rawInput, int batchSize, IComputeGraph g)
-        {        
+        {
             int seqLen = rawInput.Rows / batchSize;
-            var posEmbedding = g.BuildPositionMatrix(seqLen, m_inputDim);
-            var posEmbeddingRepeat = g.RepeatRows(posEmbedding, batchSize, runGradient: false);
+            IWeightTensor posEmbedding = g.BuildPositionMatrix(seqLen, m_inputDim);
+            IWeightTensor posEmbeddingRepeat = g.RepeatRows(posEmbedding, batchSize, runGradient: false);
 
             // Transpose to batch-first based sequence
-            var inputs = g.TransposeBatch(rawInput, batchSize);
+            IWeightTensor inputs = g.TransposeBatch(rawInput, batchSize);
 
             inputs = g.AddMul(posEmbeddingRepeat, inputs, (float)Math.Sqrt(m_inputDim), runGradientW1: false, runGradientW2: true);
 
@@ -96,7 +93,7 @@ namespace Seq2SeqSharp
         {
             List<IWeightTensor> response = new List<IWeightTensor>();
 
-            foreach (var item in m_encoders)
+            foreach (SelfAttention item in m_encoders)
             {
                 response.AddRange(item.getParams());
             }
@@ -106,7 +103,7 @@ namespace Seq2SeqSharp
 
         public void Save(Stream stream)
         {
-            foreach (var item in m_encoders)
+            foreach (SelfAttention item in m_encoders)
             {
                 item.Save(stream);
             }
@@ -114,7 +111,7 @@ namespace Seq2SeqSharp
 
         public void Load(Stream stream)
         {
-            foreach (var item in m_encoders)
+            foreach (SelfAttention item in m_encoders)
             {
                 item.Load(stream);
             }

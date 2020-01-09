@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace Seq2SeqSharp.Metrics
 {
     public class SequenceLabelFscoreMetric : IMetric
     {
         private double[] m_count;
-        private string m_classLabel;
+        private readonly string m_classLabel;
 
         public string Name => $"SequenceLabelFscore ({m_classLabel})";
 

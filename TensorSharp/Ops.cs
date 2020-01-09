@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using TensorSharp.Core;
 
 namespace TensorSharp
@@ -10,7 +7,7 @@ namespace TensorSharp
     {
         public static Tensor NewContiguous(Tensor src)
         {
-            var result = new Tensor(src.Allocator, src.ElementType, (long[])src.Sizes.Clone());
+            Tensor result = new Tensor(src.Allocator, src.ElementType, (long[])src.Sizes.Clone());
             Copy(result, src);
             return result;
         }
@@ -18,9 +15,13 @@ namespace TensorSharp
         public static Tensor AsContiguous(Tensor src)
         {
             if (src.IsContiguous())
+            {
                 return src.CopyRef();
+            }
             else
+            {
                 return NewContiguous(src);
+            }
         }
 
         public static Tensor Concat(Tensor result, int dimension, params Tensor[] inputs)
@@ -38,8 +39,8 @@ namespace TensorSharp
             {
                 //If the result is not on the CPU, it is much faster to build the tensor on the CPU and then copy
                 //An alternative to this would be building a specific GPU kernel for this operation
-                var cpuAlloc = new Cpu.CpuAllocator();
-                using (var cpuResult = new Tensor(cpuAlloc, result.ElementType, result.Sizes))
+                Cpu.CpuAllocator cpuAlloc = new Cpu.CpuAllocator();
+                using (Tensor cpuResult = new Tensor(cpuAlloc, result.ElementType, result.Sizes))
                 {
                     DoFillOneHot(cpuResult, labelCount, labels);
                     Ops.Copy(result, cpuResult);
@@ -49,15 +50,28 @@ namespace TensorSharp
 
         private static void DoFillOneHot(Tensor result, int labelCount, int[] labels)
         {
-            if (result.DimensionCount != 2) throw new InvalidOperationException("result must be a 2D tensor");
-            if (result.Sizes[0] != labels.Length) throw new InvalidOperationException("first dimension of result must equal the number of samples");
-            if (result.Sizes[1] > labelCount) throw new InvalidOperationException("second dimension of result must be at least as large as labelCount");
+            if (result.DimensionCount != 2)
+            {
+                throw new InvalidOperationException("result must be a 2D tensor");
+            }
+
+            if (result.Sizes[0] != labels.Length)
+            {
+                throw new InvalidOperationException("first dimension of result must equal the number of samples");
+            }
+
+            if (result.Sizes[1] > labelCount)
+            {
+                throw new InvalidOperationException("second dimension of result must be at least as large as labelCount");
+            }
 
             Ops.Fill(result, 0);
             for (int i = 0; i < labels.Length; ++i)
             {
                 if (labels[i] < 0 || labels[i] >= labelCount)
+                {
                     throw new InvalidOperationException("label at index " + i + " is out of range 0 <= x < labelCount");
+                }
 
                 result.SetElementAsFloat(1.0f, i, labels[i]);
             }
@@ -214,15 +228,15 @@ namespace TensorSharp
         public static Tensor VarAll(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("varall", result, src); }
 
 
-        public static float SumAll(Tensor src) { using (var resultTensor = SumAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
-        public static float ProdAll(Tensor src) { using (var resultTensor = ProdAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
-        public static float MinAll(Tensor src) { using (var resultTensor = MinAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
-        public static float MaxAll(Tensor src) { using (var resultTensor = MaxAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
+        public static float SumAll(Tensor src) { using (Tensor resultTensor = SumAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
+        public static float ProdAll(Tensor src) { using (Tensor resultTensor = ProdAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
+        public static float MinAll(Tensor src) { using (Tensor resultTensor = MinAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
+        public static float MaxAll(Tensor src) { using (Tensor resultTensor = MaxAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
 
-        public static float MeanAll(Tensor src) { using (var resultTensor = MeanAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
-        public static float VarAll(Tensor src) { using (var resultTensor = VarAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
-        public static float StdAll(Tensor src) { using (var resultTensor = StdAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
-        public static float NormAll(Tensor src, float value) { using (var resultTensor = NormAll(null, src, value)) { return resultTensor.GetElementAsFloat(0); } }
+        public static float MeanAll(Tensor src) { using (Tensor resultTensor = MeanAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
+        public static float VarAll(Tensor src) { using (Tensor resultTensor = VarAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
+        public static float StdAll(Tensor src) { using (Tensor resultTensor = StdAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
+        public static float NormAll(Tensor src, float value) { using (Tensor resultTensor = NormAll(null, src, value)) { return resultTensor.GetElementAsFloat(0); } }
 
 
         public static Tensor IndexSelect(Tensor result, Tensor src, int dim, Tensor indices) { return (Tensor)OpRegistry.Invoke("index_select", result, src, dim, indices); }

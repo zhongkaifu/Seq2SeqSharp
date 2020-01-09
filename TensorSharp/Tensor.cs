@@ -12,8 +12,8 @@ namespace TensorSharp
     {
         private long[] sizes;
         private long[] strides;
-        private Storage storage;
-        private long storageOffset;
+        private readonly Storage storage;
+        private readonly long storageOffset;
 
         private bool isDisposed = false;
 
@@ -34,8 +34,8 @@ namespace TensorSharp
         {
             this.sizes = sizes;
             this.strides = strides;
-            this.storageOffset = 0;
-            this.storage = allocator.Allocate(elementType, TensorDimensionHelpers.GetStorageSize(sizes, strides));
+            storageOffset = 0;
+            storage = allocator.Allocate(elementType, TensorDimensionHelpers.GetStorageSize(sizes, strides));
         }
 
         public Tensor(long[] sizes, long[] strides, Storage storage, long storageOffset)
@@ -66,7 +66,7 @@ namespace TensorSharp
             if (!isDisposed)
             {
                 isDisposed = true;
-                this.storage.Release();
+                storage.Release();
             }
             else
             {
@@ -76,14 +76,17 @@ namespace TensorSharp
 
         public override bool Equals(object obj)
         {
-            var o = obj as Tensor;
-            if (o == null) return false;
+            Tensor o = obj as Tensor;
+            if (o == null)
+            {
+                return false;
+            }
 
             return
-                Object.ReferenceEquals(this.storage, o.storage) &&
-                this.storageOffset == o.storageOffset &&
-                TensorResultBuilder.ArrayEqual(this.sizes, o.sizes) &&
-                TensorResultBuilder.ArrayEqual(this.strides, o.strides);
+                Object.ReferenceEquals(storage, o.storage) &&
+                storageOffset == o.storageOffset &&
+                TensorResultBuilder.ArrayEqual(sizes, o.sizes) &&
+                TensorResultBuilder.ArrayEqual(strides, o.strides);
         }
 
         public override int GetHashCode()
@@ -95,14 +98,14 @@ namespace TensorSharp
                 strides.Aggregate(0, (acc, item) => acc ^ item.GetHashCode());
         }
 
-        public DType ElementType { get { return storage.ElementType; } }
-        public long[] Sizes { get { return sizes; } }
-        public long[] Strides { get { return strides; } }
-        public Storage Storage { get { return storage; } }
-        public long StorageOffset { get { return storageOffset; } }
-        public IAllocator Allocator { get { return storage.Allocator; } }
+        public DType ElementType => storage.ElementType;
+        public long[] Sizes => sizes;
+        public long[] Strides => strides;
+        public Storage Storage => storage;
+        public long StorageOffset => storageOffset;
+        public IAllocator Allocator => storage.Allocator;
 
-        public int DimensionCount { get { return sizes.Length; } }
+        public int DimensionCount => sizes.Length;
 
 
         /// <summary>
@@ -123,7 +126,9 @@ namespace TensorSharp
         public long ElementCount()
         {
             if (elementCount.HasValue)
+            {
                 return elementCount.Value;
+            }
 
             elementCount = TensorDimensionHelpers.ElementCount(sizes);
             return elementCount.Value;
@@ -137,9 +142,13 @@ namespace TensorSharp
                 if (sizes[d] != 1)
                 {
                     if (strides[d] == z)
+                    {
                         z *= sizes[d];
+                    }
                     else
+                    {
                         return false;
+                    }
                 }
             }
             return true;
@@ -148,7 +157,7 @@ namespace TensorSharp
 
         public bool IsSameSizeAs(Tensor other)
         {
-            return Core.TensorResultBuilder.ArrayEqual(this.sizes, other.sizes);
+            return Core.TensorResultBuilder.ArrayEqual(sizes, other.sizes);
         }
 
         /// <summary>
@@ -158,11 +167,17 @@ namespace TensorSharp
         /// <returns></returns>
         public float GetElementAsFloat(params long[] indices)
         {
-            if (indices.Length != DimensionCount) throw new ArgumentException("Number of indices must equal number of tensor dimensions");
+            if (indices.Length != DimensionCount)
+            {
+                throw new ArgumentException("Number of indices must equal number of tensor dimensions");
+            }
+
             for (int i = 0; i < indices.Length; ++i)
             {
                 if (indices[i] < 0 || indices[i] >= Sizes[i])
+                {
                     throw new ArgumentException("Index " + i + " with value " + indices[i] + " is out of range");
+                }
             }
 
             long offset = 0;
@@ -186,11 +201,17 @@ namespace TensorSharp
         /// <returns></returns>
         public void SetElementAsFloat(float value, params long[] indices)
         {
-            if (indices.Length != DimensionCount) throw new ArgumentException("Number of indices must equal number of tensor dimensions");
+            if (indices.Length != DimensionCount)
+            {
+                throw new ArgumentException("Number of indices must equal number of tensor dimensions");
+            }
+
             for (int i = 0; i < indices.Length; ++i)
             {
                 if (indices[i] < 0 || indices[i] >= Sizes[i])
+                {
                     throw new ArgumentException("Index " + i + " with value " + indices[i] + " is out of range");
+                }
             }
 
             long offset = 0;
@@ -209,11 +230,17 @@ namespace TensorSharp
 
         public void SetElementsAsFloat(float[] value, params long[] indices)
         {
-            if (indices.Length != DimensionCount) throw new ArgumentException("Number of indices must equal number of tensor dimensions");
+            if (indices.Length != DimensionCount)
+            {
+                throw new ArgumentException("Number of indices must equal number of tensor dimensions");
+            }
+
             for (int i = 0; i < indices.Length; ++i)
             {
                 if (indices[i] < 0 || indices[i] >= Sizes[i])
+                {
                     throw new ArgumentException("Index " + i + " with value " + indices[i] + " is out of range");
+                }
             }
 
             long offset = 0;
@@ -229,7 +256,7 @@ namespace TensorSharp
         private string PrintSizes(long[] sizes)
         {
             StringBuilder sb = new StringBuilder();
-            foreach (var size in sizes)
+            foreach (long size in sizes)
             {
                 sb.Append(size);
                 sb.Append(" ");
@@ -240,29 +267,38 @@ namespace TensorSharp
 
         public Tensor View(params long[] sizes)
         {
-            if (!this.IsContiguous()) throw new InvalidOperationException("Cannot use View on a non-contiguous tensor");
+            if (!IsContiguous())
+            {
+                throw new InvalidOperationException("Cannot use View on a non-contiguous tensor");
+            }
 
-            if (this.ElementCount() != TensorDimensionHelpers.ElementCount(sizes))
+            if (ElementCount() != TensorDimensionHelpers.ElementCount(sizes))
             {
                 throw new InvalidOperationException($"Output tensor must have the same number of elements as the input. Size = {PrintSizes(this.sizes)}, New Size = {PrintSizes(sizes)}");
             }
 
-            return new Tensor(sizes, TensorDimensionHelpers.GetContiguousStride(sizes), this.storage, this.storageOffset);
+            return new Tensor(sizes, TensorDimensionHelpers.GetContiguousStride(sizes), storage, storageOffset);
         }
 
         public Tensor Narrow(int dimension, long startIndex, long size)
         {
             if (dimension < 0 || dimension >= DimensionCount)
+            {
                 throw new ArgumentOutOfRangeException("dimension");
+            }
 
             if (startIndex < 0 || startIndex >= sizes[dimension])
+            {
                 throw new ArgumentOutOfRangeException("startIndex", $"startIndex = '{startIndex}', sizes[dimension] = '{sizes[dimension]}', dimension = '{dimension}', size = '{size}'");
+            }
 
             if (size <= 0 || startIndex + size > sizes[dimension])
+            {
                 throw new ArgumentOutOfRangeException("size");
+            }
 
-            var newOffset = storageOffset + startIndex * strides[dimension];
-            var newSizes = (long[])sizes.Clone();
+            long newOffset = storageOffset + startIndex * strides[dimension];
+            long[] newSizes = (long[])sizes.Clone();
             newSizes[dimension] = size;
 
             return new Tensor(newSizes, strides, storage, newOffset);
@@ -270,11 +306,22 @@ namespace TensorSharp
 
         public Tensor Select(int dimension, long index)
         {
-            if (DimensionCount == 1) throw new InvalidOperationException("Select requires 2 or more dimensions");
-            if (dimension < 0 || dimension >= DimensionCount) throw new ArgumentOutOfRangeException("dimension");
-            if (index < 0 || index >= sizes[dimension]) throw new ArgumentOutOfRangeException("index");
+            if (DimensionCount == 1)
+            {
+                throw new InvalidOperationException("Select requires 2 or more dimensions");
+            }
 
-            var result = Narrow(dimension, index, 1);
+            if (dimension < 0 || dimension >= DimensionCount)
+            {
+                throw new ArgumentOutOfRangeException("dimension");
+            }
+
+            if (index < 0 || index >= sizes[dimension])
+            {
+                throw new ArgumentOutOfRangeException("index");
+            }
+
+            Tensor result = Narrow(dimension, index, 1);
             result.sizes = ArrayRemove(sizes, dimension);
             result.strides = ArrayRemove(strides, dimension);
 
@@ -284,14 +331,25 @@ namespace TensorSharp
 
         public Tensor Transpose()
         {
-            if (DimensionCount != 2) throw new InvalidOperationException("Parameterless Transpose is only valid on 2d tensors");
+            if (DimensionCount != 2)
+            {
+                throw new InvalidOperationException("Parameterless Transpose is only valid on 2d tensors");
+            }
+
             return Transpose(0, 1);
         }
 
         public Tensor Transpose(int dimension1, int dimension2)
         {
-            if (dimension1 < 0 || dimension1 >= DimensionCount) throw new ArgumentOutOfRangeException("dimension1");
-            if (dimension2 < 0 || dimension2 >= DimensionCount) throw new ArgumentOutOfRangeException("dimension2");
+            if (dimension1 < 0 || dimension1 >= DimensionCount)
+            {
+                throw new ArgumentOutOfRangeException("dimension1");
+            }
+
+            if (dimension2 < 0 || dimension2 >= DimensionCount)
+            {
+                throw new ArgumentOutOfRangeException("dimension2");
+            }
 
             if (dimension1 == dimension2)
             {
@@ -299,8 +357,8 @@ namespace TensorSharp
                 return this;
             }
 
-            var newSizes = (long[])sizes.Clone();
-            var newStrides = (long[])strides.Clone();
+            long[] newSizes = (long[])sizes.Clone();
+            long[] newStrides = (long[])strides.Clone();
             ArraySwap(newSizes, dimension1, dimension2);
             ArraySwap(newStrides, dimension1, dimension2);
             return new Tensor(newSizes, newStrides, storage, storageOffset);
@@ -308,13 +366,15 @@ namespace TensorSharp
 
         public Tensor Permute(params int[] dims)
         {
-            if (dims.Length != this.DimensionCount)
-                throw new InvalidOperationException("The number of permutation indices must equal the number of tensor dimensions");
-
-            var result = this.CopyRef();
-            foreach (var swap in SwapsForPermutation(dims))
+            if (dims.Length != DimensionCount)
             {
-                var resultOld = result;
+                throw new InvalidOperationException("The number of permutation indices must equal the number of tensor dimensions");
+            }
+
+            Tensor result = CopyRef();
+            foreach (Tuple<int, int> swap in SwapsForPermutation(dims))
+            {
+                Tensor resultOld = result;
                 result = result.Transpose(swap.Item1, swap.Item2);
                 resultOld.Dispose();
             }
@@ -331,21 +391,25 @@ namespace TensorSharp
         public Tensor Expand(params long[] newSizes)
         {
             if (newSizes.Length != DimensionCount)
+            {
                 throw new InvalidOperationException("number of elements of newSizes must match the dimension count of tensor");
+            }
 
-            var newStrides = (long[])strides.Clone();
+            long[] newStrides = (long[])strides.Clone();
             for (int i = 0; i < newSizes.Length; ++i)
             {
                 if (newSizes[i] != Sizes[i])
                 {
                     if (Sizes[i] != 1)
+                    {
                         throw new InvalidOperationException("Can only expand singleton dimensions (dimensions of size 1)");
+                    }
 
                     newStrides[i] = 0;
                 }
             }
 
-            return new Tensor(newSizes, newStrides, this.storage, this.storageOffset);
+            return new Tensor(newSizes, newStrides, storage, storageOffset);
         }
 
 
@@ -356,12 +420,12 @@ namespace TensorSharp
         /// <returns></returns>
         public Tensor Squeeze()
         {
-            var newSizeStrides = sizes.Zip(strides, Tuple.Create)
+            Tuple<long, long>[] newSizeStrides = sizes.Zip(strides, Tuple.Create)
                 .Where(x => x.Item1 != 1)
                 .ToArray();
 
-            var newSizes = newSizeStrides.Select(x => x.Item1).ToArray();
-            var newStrides = newSizeStrides.Select(x => x.Item2).ToArray();
+            long[] newSizes = newSizeStrides.Select(x => x.Item1).ToArray();
+            long[] newStrides = newSizeStrides.Select(x => x.Item2).ToArray();
 
             return new Tensor(newSizes, newStrides, storage, storageOffset);
         }
@@ -374,11 +438,18 @@ namespace TensorSharp
         /// <returns></returns>
         public Tensor Squeeze(int dimension)
         {
-            if (DimensionCount == 1) throw new InvalidOperationException("Squeeze requires 2 or more dimensions");
-            if (dimension < 0 || dimension >= DimensionCount) throw new ArgumentOutOfRangeException("dimension");
+            if (DimensionCount == 1)
+            {
+                throw new InvalidOperationException("Squeeze requires 2 or more dimensions");
+            }
 
-            var newSizes = ArrayRemove(sizes, dimension);
-            var newStrides = ArrayRemove(strides, dimension);
+            if (dimension < 0 || dimension >= DimensionCount)
+            {
+                throw new ArgumentOutOfRangeException("dimension");
+            }
+
+            long[] newSizes = ArrayRemove(sizes, dimension);
+            long[] newStrides = ArrayRemove(strides, dimension);
 
             return new Tensor(newSizes, newStrides, storage, storageOffset);
         }
@@ -396,30 +467,45 @@ namespace TensorSharp
         /// <returns></returns>
         public Tensor Unfold(int dimension, long size, long step)
         {
-            if (DimensionCount == 0) throw new InvalidOperationException("Cannot unfold an empty tensor");
-            if (dimension < 0 || dimension >= DimensionCount) throw new ArgumentOutOfRangeException("dimension is out of range", "dimension");
-            if (size > sizes[dimension]) throw new ArgumentOutOfRangeException("size cannot be larger than the size of dimension", "size");
-            if (step <= 0) throw new ArgumentOutOfRangeException("step must be at least 1", "step");
+            if (DimensionCount == 0)
+            {
+                throw new InvalidOperationException("Cannot unfold an empty tensor");
+            }
 
-            var newSize = new long[DimensionCount + 1];
-            var newStrides = new long[DimensionCount + 1];
+            if (dimension < 0 || dimension >= DimensionCount)
+            {
+                throw new ArgumentOutOfRangeException("dimension is out of range", "dimension");
+            }
+
+            if (size > sizes[dimension])
+            {
+                throw new ArgumentOutOfRangeException("size cannot be larger than the size of dimension", "size");
+            }
+
+            if (step <= 0)
+            {
+                throw new ArgumentOutOfRangeException("step must be at least 1", "step");
+            }
+
+            long[] newSize = new long[DimensionCount + 1];
+            long[] newStrides = new long[DimensionCount + 1];
             Array.Copy(sizes, newSize, DimensionCount);
             Array.Copy(strides, newStrides, DimensionCount);
 
             newSize[DimensionCount] = size;
-            newStrides[DimensionCount] = this.strides[dimension];
+            newStrides[DimensionCount] = strides[dimension];
 
-            newSize[dimension] = (this.sizes[dimension] - size) / step + 1;
-            newStrides[dimension] = step * this.strides[dimension];
+            newSize[dimension] = (sizes[dimension] - size) / step + 1;
+            newStrides[dimension] = step * strides[dimension];
 
-            return new Tensor(newSize, newStrides, this.Storage, this.StorageOffset);
+            return new Tensor(newSize, newStrides, Storage, StorageOffset);
         }
 
 
         // Pad array by prepending with 1 until its length equals newSize
         private static long[] Pad1Prepend(long[] array, int newSize)
         {
-            var result = new long[newSize];
+            long[] result = new long[newSize];
 
             // Fill new extra elements with 1
             for (int i = 0; i < newSize - array.Length; ++i)
@@ -436,35 +522,41 @@ namespace TensorSharp
         // Prepend singleton dimensions until DimensionCount equals newDimCount
         private Tensor PadToDimCount(int newDimCount)
         {
-            var newSizes = Pad1Prepend(this.sizes, newDimCount);
+            long[] newSizes = Pad1Prepend(sizes, newDimCount);
 
-            var newStrides = TensorDimensionHelpers.GetContiguousStride(newSizes);
-            Array.Copy(this.strides, 0, newStrides, newStrides.Length - this.strides.Length, this.strides.Length);
+            long[] newStrides = TensorDimensionHelpers.GetContiguousStride(newSizes);
+            Array.Copy(strides, 0, newStrides, newStrides.Length - strides.Length, strides.Length);
 
-            return new Tensor(newSizes, newStrides, this.storage, this.storageOffset);
+            return new Tensor(newSizes, newStrides, storage, storageOffset);
         }
 
         public Tensor RepeatTensor(params long[] repetitions)
         {
-            if (repetitions.Length < this.DimensionCount)
+            if (repetitions.Length < DimensionCount)
+            {
                 throw new InvalidOperationException("repetitions must be at least the same length as the number of tensor dimensions");
-            if (repetitions.Any(x => x < 1)) throw new InvalidOperationException("All dimensions must be repeated at least once");
+            }
 
-            var paddedSrc = this.PadToDimCount(repetitions.Length);
-            var resultSize = paddedSrc.Sizes.Zip(repetitions, (s, r) => s * r).ToArray();
+            if (repetitions.Any(x => x < 1))
+            {
+                throw new InvalidOperationException("All dimensions must be repeated at least once");
+            }
 
-            var result = new Tensor(this.Allocator, this.ElementType, resultSize);
+            Tensor paddedSrc = PadToDimCount(repetitions.Length);
+            long[] resultSize = paddedSrc.Sizes.Zip(repetitions, (s, r) => s * r).ToArray();
 
-            var urTensor = result.CopyRef();
+            Tensor result = new Tensor(Allocator, ElementType, resultSize);
+
+            Tensor urTensor = result.CopyRef();
             for (int i = 0; i < paddedSrc.DimensionCount; ++i)
             {
-                var oldUrTensor = urTensor;
+                Tensor oldUrTensor = urTensor;
                 urTensor = urTensor.Unfold(i, paddedSrc.Sizes[i], paddedSrc.Sizes[i]);
                 oldUrTensor.Dispose();
             }
 
-            var paddedSrc2 = paddedSrc.PadToDimCount(urTensor.DimensionCount);
-            var expandedSrc = paddedSrc2.Expand(urTensor.Sizes);
+            Tensor paddedSrc2 = paddedSrc.PadToDimCount(urTensor.DimensionCount);
+            Tensor expandedSrc = paddedSrc2.Expand(urTensor.Sizes);
             Ops.Copy(urTensor, expandedSrc);
 
             paddedSrc.Dispose();
@@ -510,17 +602,28 @@ namespace TensorSharp
 
         public void CopyFrom(Array array)
         {
-            var elementType = DTypeBuilder.FromCLRType(array.GetType().GetElementType());
+            DType elementType = DTypeBuilder.FromCLRType(array.GetType().GetElementType());
 
-            if (!this.IsContiguous()) throw new InvalidOperationException("Tensor must be contiguous to copy from CLR array");
-            if (this.ElementCount() != array.LongLength) throw new InvalidOperationException("Tensor and array must have the same number of elements");
-            if (this.ElementType != elementType) throw new InvalidOperationException("Tensor and array must have the same element types");
+            if (!IsContiguous())
+            {
+                throw new InvalidOperationException("Tensor must be contiguous to copy from CLR array");
+            }
 
-            var handle = GCHandle.Alloc(array, GCHandleType.Pinned);
+            if (ElementCount() != array.LongLength)
+            {
+                throw new InvalidOperationException("Tensor and array must have the same number of elements");
+            }
+
+            if (ElementType != elementType)
+            {
+                throw new InvalidOperationException("Tensor and array must have the same element types");
+            }
+
+            GCHandle handle = GCHandle.Alloc(array, GCHandleType.Pinned);
             try
             {
-                var length = Buffer.ByteLength(array);
-                this.Storage.CopyToStorage(this.StorageOffset, handle.AddrOfPinnedObject(), length);
+                int length = Buffer.ByteLength(array);
+                Storage.CopyToStorage(StorageOffset, handle.AddrOfPinnedObject(), length);
             }
             finally
             {
@@ -531,17 +634,28 @@ namespace TensorSharp
 
         public void CopyToArray(Array array)
         {
-            var elementType = DTypeBuilder.FromCLRType(array.GetType().GetElementType());
+            DType elementType = DTypeBuilder.FromCLRType(array.GetType().GetElementType());
 
-            if (!this.IsContiguous()) throw new InvalidOperationException("Tensor must be contiguous to copy from CLR array");
-            if (this.ElementCount() != array.LongLength) throw new InvalidOperationException("Tensor and array must have the same number of elements");
-            if (this.ElementType != elementType) throw new InvalidOperationException("Tensor and array must have the same element types");
+            if (!IsContiguous())
+            {
+                throw new InvalidOperationException("Tensor must be contiguous to copy from CLR array");
+            }
 
-            var handle = GCHandle.Alloc(array, GCHandleType.Pinned);
+            if (ElementCount() != array.LongLength)
+            {
+                throw new InvalidOperationException("Tensor and array must have the same number of elements");
+            }
+
+            if (ElementType != elementType)
+            {
+                throw new InvalidOperationException("Tensor and array must have the same element types");
+            }
+
+            GCHandle handle = GCHandle.Alloc(array, GCHandleType.Pinned);
             try
             {
-                var length = Buffer.ByteLength(array);
-                this.Storage.CopyFromStorage(handle.AddrOfPinnedObject(), this.StorageOffset, length);
+                int length = Buffer.ByteLength(array);
+                Storage.CopyFromStorage(handle.AddrOfPinnedObject(), StorageOffset, length);
             }
             finally
             {
@@ -561,14 +675,14 @@ namespace TensorSharp
             // 'platform-specific padding'. This appears to be a reasonable assumption on both CLR and Mono.
             // Assuming no platform-specific padding allows us to use memcpy instead of iterating and copying each element
 
-            var elementType = DTypeBuilder.FromCLRType(array.GetType().GetElementType());
+            DType elementType = DTypeBuilder.FromCLRType(array.GetType().GetElementType());
 
-            var dimSizes =
+            long[] dimSizes =
                 Enumerable.Range(0, array.Rank)
                 .Select(x => (long)array.GetLength(x))
                 .ToArray();
 
-            var result = new Tensor(allocator, elementType, dimSizes);
+            Tensor result = new Tensor(allocator, elementType, dimSizes);
             result.CopyFrom(array);
             return result;
         }
@@ -576,7 +690,7 @@ namespace TensorSharp
 
         private static void ArraySwap<T>(T[] array, int index1, int index2)
         {
-            var temp = array[index1];
+            T temp = array[index1];
             array[index1] = array[index2];
             array[index2] = temp;
         }
@@ -584,7 +698,7 @@ namespace TensorSharp
         // Return a copy of an array, but with the item at index removed
         private static T[] ArrayRemove<T>(T[] source, long index)
         {
-            var result = new T[source.Length - 1];
+            T[] result = new T[source.Length - 1];
             for (int i = 0; i < result.Length; ++i)
             {
                 if (i < index)
@@ -608,19 +722,21 @@ namespace TensorSharp
             int j;
             for (int i = 0; i < perm.Length; ++i)
             {
-                var p = perm[i];
+                int p = perm[i];
                 if (p != i && p != -1)
                 {
                     j = i;
                     do
                     {
                         if (perm[j] < 0 || perm[j] >= perm.Length)
+                        {
                             throw new InvalidOperationException("Invalid permutation");
+                        }
 
                         yield return Tuple.Create(j, perm[j]);
 
 
-                        var jOld = j;
+                        int jOld = j;
                         j = perm[j];
                         perm[jOld] = -1;
                     } while (perm[j] != i);

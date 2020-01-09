@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using TensorSharp.CUDA.ContextState;
 using TensorSharp.CUDA.Util;
 
@@ -25,7 +24,7 @@ namespace TensorSharp.CUDA
         private const string CacheDir = @"cuda_cache\general";
 
 
-      //  private readonly int deviceCount;
+        //  private readonly int deviceCount;
         private readonly DeviceState[] devices;
         private readonly bool[,] p2pAccess;
         private readonly int[] deviceIds;
@@ -34,7 +33,7 @@ namespace TensorSharp.CUDA
 
         private readonly RuntimeCompiler.CudaCompiler compiler;
         private readonly CudaKernelCache kernelCache = new CudaKernelCache();
-        
+
 
         public TSCudaContext(int[] deviceIds)
         {
@@ -57,17 +56,17 @@ namespace TensorSharp.CUDA
             }
 
 
-       //     if (deviceCount > 0)
-         //   {
-                p2pAccess = EnablePeerAccess(devices.Select(x => x.CudaContext).ToArray(), devices[0].CudaContext);
+            //     if (deviceCount > 0)
+            //   {
+            p2pAccess = EnablePeerAccess(devices.Select(x => x.CudaContext).ToArray(), devices[0].CudaContext);
             //}
             //else
             //{
             //    p2pAccess = new bool[0, 0];
             //}
 
-            this.diskCache = new RuntimeCompiler.KernelDiskCache(Path.Combine(Environment.CurrentDirectory, CacheDir));
-            this.compiler = new RuntimeCompiler.CudaCompiler(diskCache);
+            diskCache = new RuntimeCompiler.KernelDiskCache(Path.Combine(Environment.CurrentDirectory, CacheDir));
+            compiler = new RuntimeCompiler.CudaCompiler(diskCache);
 
             OpRegistry.RegisterAssembly(Assembly.GetExecutingAssembly());
         }
@@ -86,14 +85,14 @@ namespace TensorSharp.CUDA
         }
 
 
-        public RuntimeCompiler.CudaCompiler Compiler { get { return compiler; } }
-        public CudaKernelCache KernelCache { get { return kernelCache; } }
-      //  public int DeviceCount { get { return deviceCount; } }
+        public RuntimeCompiler.CudaCompiler Compiler => compiler;
+        public CudaKernelCache KernelCache => kernelCache;
+        //  public int DeviceCount { get { return deviceCount; } }
 
 
         public void FreeMemoryAllDevices(bool callGC = false)
         {
-            foreach (var device in devices)
+            foreach (DeviceState device in devices)
             {
                 device.FreeMemory(callGC);
             }
@@ -103,7 +102,7 @@ namespace TensorSharp.CUDA
         {
             kernelCache.Dispose();
 
-            foreach (var device in devices)
+            foreach (DeviceState device in devices)
             {
                 device.Dispose();
             }
@@ -117,7 +116,7 @@ namespace TensorSharp.CUDA
 
         public void SynchronizeAll()
         {
-            foreach (var device in devices)
+            foreach (DeviceState device in devices)
             {
                 device.CudaContext.Synchronize();
             }
@@ -170,12 +169,12 @@ namespace TensorSharp.CUDA
             return devices[idx].DeviceInfo;
         }
 
-        
+
 
         // Returns a matrix of [i, j] values where [i, j] is true iff device i can access device j
         private static bool[,] EnablePeerAccess(CudaContext[] cudaContexts, CudaContext restoreCurrent)
         {
-            var result = new bool[cudaContexts.Length, cudaContexts.Length];
+            bool[,] result = new bool[cudaContexts.Length, cudaContexts.Length];
 
             for (int i = 0; i < cudaContexts.Length; ++i)
             {
@@ -199,7 +198,9 @@ namespace TensorSharp.CUDA
         private static bool EnablePeers(CudaContext src, CudaContext target)
         {
             if (!src.DeviceCanAccessPeer(target))
+            {
                 return false;
+            }
 
             src.SetCurrent();
 
@@ -222,12 +223,12 @@ namespace TensorSharp.CUDA
 
         public void Precompile(Action<string> precompileProgressWriter)
         {
-            var assembly = Assembly.GetExecutingAssembly();
-            foreach (var applyType in assembly.TypesWithAttribute<PrecompileAttribute>(true).Where(x => !x.Item1.IsAbstract))
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            foreach (Tuple<Type, IEnumerable<PrecompileAttribute>> applyType in assembly.TypesWithAttribute<PrecompileAttribute>(true).Where(x => !x.Item1.IsAbstract))
             {
                 precompileProgressWriter("Precompiling " + applyType.Item1.Name + "\n");
 
-                var instance = (IPrecompilable)Activator.CreateInstance(applyType.Item1);
+                IPrecompilable instance = (IPrecompilable)Activator.CreateInstance(applyType.Item1);
                 instance.Precompile(Compiler);
             }
         }

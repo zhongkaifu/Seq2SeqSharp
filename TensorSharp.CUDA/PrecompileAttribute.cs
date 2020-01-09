@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
 using TensorSharp.CUDA.RuntimeCompiler;
 
 namespace TensorSharp.CUDA
 {
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple =false, Inherited =false)]
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class PrecompileAttribute : Attribute
     {
         public PrecompileAttribute()
@@ -24,13 +21,13 @@ namespace TensorSharp.CUDA
     {
         public static void PrecompileAllFields(object instance, CudaCompiler compiler)
         {
-            var type = instance.GetType();
+            Type type = instance.GetType();
 
-            foreach (var field in type.GetFields())
+            foreach (FieldInfo field in type.GetFields())
             {
                 if (typeof(IPrecompilable).IsAssignableFrom(field.FieldType))
                 {
-                    var precompilableField = (IPrecompilable)field.GetValue(instance);
+                    IPrecompilable precompilableField = (IPrecompilable)field.GetValue(instance);
                     Console.WriteLine("Compiling field " + field.Name);
                     precompilableField.Precompile(compiler);
                 }

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using TensorSharp.CUDA.DeviceCode;
+﻿using TensorSharp.CUDA.DeviceCode;
 
 namespace TensorSharp.CUDA
 {

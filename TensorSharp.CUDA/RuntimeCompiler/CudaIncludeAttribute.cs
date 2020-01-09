@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace TensorSharp.CUDA.RuntimeCompiler
 {
@@ -13,8 +10,8 @@ namespace TensorSharp.CUDA.RuntimeCompiler
 
         public CudaIncludeAttribute(string fieldName, string includeName)
         {
-            this.FieldName = fieldName;
-            this.IncludeName = includeName;
+            FieldName = fieldName;
+            IncludeName = includeName;
         }
     }
 }

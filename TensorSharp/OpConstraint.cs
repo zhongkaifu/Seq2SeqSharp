@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace TensorSharp
 {
@@ -13,7 +10,7 @@ namespace TensorSharp
     public class ArgCountConstraint : OpConstraint
     {
         private readonly int argCount;
-        
+
         public ArgCountConstraint(int argCount) { this.argCount = argCount; }
 
         public override bool SatisfiedFor(object[] args)
@@ -55,11 +52,15 @@ namespace TensorSharp
         public override bool SatisfiedFor(object[] args)
         {
             if (allowNull && args[argIndex] == null)
+            {
                 return true;
+            }
             else if (!allowNull && args[argIndex] == null)
+            {
                 return false;
+            }
 
-            var argStorage = ((Tensor)args[argIndex]).Storage;
+            Storage argStorage = ((Tensor)args[argIndex]).Storage;
             return requiredType.IsAssignableFrom(argStorage.GetType());
         }
     }

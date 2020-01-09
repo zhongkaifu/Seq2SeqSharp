@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 
 namespace TensorSharp
@@ -10,7 +7,7 @@ namespace TensorSharp
     /// Provides a thread safe reference counting implementation. Inheritors need only implement the Destroy() method,
     /// which will be called when the reference count reaches zero. The reference count automatically starts at 1.
     /// </summary>
-  
+
     [Serializable]
     public abstract class RefCounted
     {
@@ -69,14 +66,22 @@ namespace TensorSharp
         {
             int curRefCount;
             int original;
-            var spin = new SpinWait();
+            SpinWait spin = new SpinWait();
             while (true)
             {
                 curRefCount = refCount;
-                if (curRefCount == 0) throw new InvalidOperationException("Cannot AddRef - object has already been destroyed");
-                var desiredRefCount = curRefCount + 1;
+                if (curRefCount == 0)
+                {
+                    throw new InvalidOperationException("Cannot AddRef - object has already been destroyed");
+                }
+
+                int desiredRefCount = curRefCount + 1;
                 original = Interlocked.CompareExchange(ref refCount, desiredRefCount, curRefCount);
-                if (original == curRefCount) break;
+                if (original == curRefCount)
+                {
+                    break;
+                }
+
                 spin.SpinOnce();
             }
         }
@@ -89,19 +94,29 @@ namespace TensorSharp
         {
             int original;
             int curRefCount;
-            var spin = new SpinWait();
+            SpinWait spin = new SpinWait();
             while (true)
             {
                 curRefCount = refCount;
-                if (curRefCount == 0) throw new InvalidOperationException("Cannot release object - object has already been destroyed");
-                var desiredRefCount = refCount - 1;
+                if (curRefCount == 0)
+                {
+                    throw new InvalidOperationException("Cannot release object - object has already been destroyed");
+                }
+
+                int desiredRefCount = refCount - 1;
                 original = Interlocked.CompareExchange(ref refCount, desiredRefCount, curRefCount);
-                if (original == curRefCount) break;
+                if (original == curRefCount)
+                {
+                    break;
+                }
+
                 spin.SpinOnce();
             }
 
             if (refCount <= 0)
+            {
                 Destroy();
+            }
         }
     }
 }

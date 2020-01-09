@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using TensorSharp.CUDA.RuntimeCompiler;
 
 namespace TensorSharp.CUDA
@@ -25,20 +24,23 @@ namespace TensorSharp.CUDA
         {
             if (tensors.All(ApplyUtils.CanUse32BitIndexMath))
             {
-                this.Use32BitIndices = true;
+                Use32BitIndices = true;
 
                 // Specialize each tensor dimenionality independently
-                this.TensorDims = tensors.Select(tensor =>
+                TensorDims = tensors.Select(tensor =>
                 {
                     if (tensor.IsContiguous())
+                    {
                         return -2;
+                    }
+
                     return tensor.DimensionCount > 3 ? -1 : tensor.DimensionCount;
                 })
                 .ToArray();
             }
             else
             {
-                this.Use32BitIndices = false;
+                Use32BitIndices = false;
                 // For 64-bit index case (ie. large tensors), only specalize on totally contiguous
                 // or totally generic
                 if (tensors.All(x => x.IsContiguous()))
@@ -57,22 +59,22 @@ namespace TensorSharp.CUDA
 
         public ApplySpecialization(bool use32BitIndices, params int[] tensorDims)
         {
-            this.Use32BitIndices = use32BitIndices;
-            this.TensorDims = tensorDims;
+            Use32BitIndices = use32BitIndices;
+            TensorDims = tensorDims;
         }
 
-        
+
 
         public KernelConfig GetConfig()
         {
-            var result = new KernelConfig();
+            KernelConfig result = new KernelConfig();
 
             result.Set("INDEX_TYPE", Use32BitIndices ? IndexType32 : IndexType64);
 
             for (int i = 0; i < TensorDims.Length; ++i)
             {
-                var tensorName = (char)('A' + i);
-                result.Set("DIMS" + tensorName, this.TensorDims[i].ToString());
+                char tensorName = (char)('A' + i);
+                result.Set("DIMS" + tensorName, TensorDims[i].ToString());
             }
 
             return result;
@@ -83,7 +85,7 @@ namespace TensorSharp.CUDA
             yield return new ApplySpecialization(false, Enumerable.Repeat(-2, tensorCount).ToArray());
             yield return new ApplySpecialization(false, Enumerable.Repeat(-1, tensorCount).ToArray());
 
-            foreach (var combination in CombinationsOf(All32BitTensorDims, tensorCount))
+            foreach (int[] combination in CombinationsOf(All32BitTensorDims, tensorCount))
             {
                 yield return new ApplySpecialization(true, combination);
             }
@@ -93,23 +95,26 @@ namespace TensorSharp.CUDA
 
         private static IEnumerable<T[]> CombinationsOf<T>(T[] possibleValues, int count)
         {
-            if (count < 1) throw new ArgumentOutOfRangeException("count");
+            if (count < 1)
+            {
+                throw new ArgumentOutOfRangeException("count");
+            }
 
             if (count == 1)
             {
-                foreach (var item in possibleValues)
+                foreach (T item in possibleValues)
                 {
                     yield return new T[] { item };
                 }
             }
             else
             {
-                foreach (var item in possibleValues)
+                foreach (T item in possibleValues)
                 {
-                    var restCombinations = CombinationsOf(possibleValues, count - 1);
-                    foreach (var restItems in restCombinations)
+                    IEnumerable<T[]> restCombinations = CombinationsOf(possibleValues, count - 1);
+                    foreach (T[] restItems in restCombinations)
                     {
-                        var result = new List<T>(count);
+                        List<T> result = new List<T>(count);
                         result.AddRange(restItems);
                         result.Add(item);
                         yield return result.ToArray();

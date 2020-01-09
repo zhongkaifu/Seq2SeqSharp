@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26430.14
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29613.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Seq2SeqSharp", "Seq2SeqSharp\Seq2SeqSharp.csproj", "{6B096832-E138-4C53-8930-2BB6F78C57F6}"
 EndProject
@@ -26,6 +26,10 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CpuOps", "CpuOps\CpuOps.vcxproj", "{920E488B-9DDE-4AC0-863D-448645F9A15D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeqLabelConsole", "SeqLabelConsole\SeqLabelConsole.csproj", "{D54B896D-B353-4D1D-8449-83A38F0097AD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{9DE0D6D0-CFDF-4F32-8B32-4DB59D01CD27}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Seq2SeqWebApp", "Seq2SeqWebApp\Seq2SeqWebApp.csproj", "{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -163,12 +167,31 @@ Global
 		{D54B896D-B353-4D1D-8449-83A38F0097AD}.ReleaseCpuOnly|x64.Build.0 = Release|Any CPU
 		{D54B896D-B353-4D1D-8449-83A38F0097AD}.ReleaseCpuOnly|x86.ActiveCfg = Release|Any CPU
 		{D54B896D-B353-4D1D-8449-83A38F0097AD}.ReleaseCpuOnly|x86.Build.0 = Release|Any CPU
+		{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0}.Debug|x64.Build.0 = Debug|Any CPU
+		{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0}.Debug|x86.Build.0 = Debug|Any CPU
+		{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0}.Release|x64.ActiveCfg = Release|Any CPU
+		{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0}.Release|x64.Build.0 = Release|Any CPU
+		{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0}.Release|x86.ActiveCfg = Release|Any CPU
+		{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0}.Release|x86.Build.0 = Release|Any CPU
+		{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0}.ReleaseCpuOnly|Any CPU.ActiveCfg = Release|Any CPU
+		{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0}.ReleaseCpuOnly|Any CPU.Build.0 = Release|Any CPU
+		{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0}.ReleaseCpuOnly|x64.ActiveCfg = Release|Any CPU
+		{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0}.ReleaseCpuOnly|x64.Build.0 = Release|Any CPU
+		{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0}.ReleaseCpuOnly|x86.ActiveCfg = Release|Any CPU
+		{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0}.ReleaseCpuOnly|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{380E44E6-D5AD-4D65-9740-289CA0A6698D} = {573CFFE4-D095-44B0-BE2B-EC64AD881044}
+		{2CCB8F91-53D7-4DE8-B124-7BDC49AC50E0} = {9DE0D6D0-CFDF-4F32-8B32-4DB59D01CD27}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CAE1535E-6AF4-4CD0-8E90-EBACD99D865A}

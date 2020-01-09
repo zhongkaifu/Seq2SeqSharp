@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Text;
 
 namespace TensorSharp.CUDA.RuntimeCompiler
@@ -14,7 +12,7 @@ namespace TensorSharp.CUDA.RuntimeCompiler
         {
         }
 
-        public IEnumerable<string> Keys { get { return values.Keys; } }
+        public IEnumerable<string> Keys => values.Keys;
 
         public IEnumerable<KeyValuePair<string, string>> AllValues()
         {
@@ -23,18 +21,25 @@ namespace TensorSharp.CUDA.RuntimeCompiler
 
         public override bool Equals(object obj)
         {
-            var o = obj as KernelConfig;
-            if (o == null) return false;
-
-            if (values.Count != o.values.Count) return false;
-
-            foreach (var kvp in values)
+            KernelConfig o = obj as KernelConfig;
+            if (o == null)
             {
-                string oValue;
-                if (values.TryGetValue(kvp.Key, out oValue))
+                return false;
+            }
+
+            if (values.Count != o.values.Count)
+            {
+                return false;
+            }
+
+            foreach (KeyValuePair<string, string> kvp in values)
+            {
+                if (values.TryGetValue(kvp.Key, out string oValue))
                 {
                     if (!kvp.Value.Equals(oValue))
+                    {
                         return false;
+                    }
                 }
                 else
                 {
@@ -48,7 +53,7 @@ namespace TensorSharp.CUDA.RuntimeCompiler
         public override int GetHashCode()
         {
             int result = 0;
-            foreach (var kvp in values)
+            foreach (KeyValuePair<string, string> kvp in values)
             {
                 result ^= kvp.Key.GetHashCode();
                 result ^= kvp.Value.GetHashCode();
@@ -68,8 +73,8 @@ namespace TensorSharp.CUDA.RuntimeCompiler
 
         public string ApplyToTemplate(string templateCode)
         {
-            var fullCode = new StringBuilder();
-            foreach (var item in values)
+            StringBuilder fullCode = new StringBuilder();
+            foreach (KeyValuePair<string, string> item in values)
             {
                 fullCode.AppendFormat("#define {0} {1}\n", item.Key, item.Value);
             }

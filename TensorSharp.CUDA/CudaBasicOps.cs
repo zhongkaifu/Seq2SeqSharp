@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using TensorSharp.Core;
 using TensorSharp.CUDA.DeviceCode;
 using TensorSharp.CUDA.KernelOps;
 using TensorSharp.CUDA.MatrixMul;
-using TensorSharp.CUDA.RuntimeCompiler;
 
 namespace TensorSharp.CUDA
 {
@@ -28,7 +24,7 @@ namespace TensorSharp.CUDA
 
         public CudaBasicOps()
         {
-            this.copyOps = new CopyOps(fillCopyKernels);
+            copyOps = new CopyOps(fillCopyKernels);
         }
 
 
@@ -72,12 +68,17 @@ namespace TensorSharp.CUDA
             [OpArgStorageType(typeof(CudaStorage))] Tensor result,
             [OpArgStorageType(typeof(CudaStorage))] Tensor src)
         {
-            var totalElements = result.ElementCount();
+            long totalElements = result.ElementCount();
             if (totalElements != src.ElementCount())
+            {
                 throw new InvalidOperationException("Tensors must have equal numbers of elements");
+            }
 
-            if (src.DimensionCount == 0) return;
-            
+            if (src.DimensionCount == 0)
+            {
+                return;
+            }
+
             copyOps.CopyGpu(result, src, totalElements);
         }
 
@@ -86,11 +87,16 @@ namespace TensorSharp.CUDA
             [OpArgStorageType(typeof(CudaStorage))] Tensor result,
             [OpArgStorageType(typeof(Cpu.CpuStorage))] Tensor src)
         {
-            var totalElements = result.ElementCount();
+            long totalElements = result.ElementCount();
             if (totalElements != src.ElementCount())
+            {
                 throw new InvalidOperationException("Tensors must have equal numbers of elements");
+            }
 
-            if (src.DimensionCount == 0) return;
+            if (src.DimensionCount == 0)
+            {
+                return;
+            }
 
             copyOps.CopyCpuToGpu(result, src, totalElements);
         }
@@ -100,11 +106,16 @@ namespace TensorSharp.CUDA
             [OpArgStorageType(typeof(Cpu.CpuStorage))] Tensor result,
             [OpArgStorageType(typeof(CudaStorage))] Tensor src)
         {
-            var totalElements = result.ElementCount();
+            long totalElements = result.ElementCount();
             if (totalElements != src.ElementCount())
+            {
                 throw new InvalidOperationException("Tensors must have equal numbers of elements");
+            }
 
-            if (src.DimensionCount == 0) return;
+            if (src.DimensionCount == 0)
+            {
+                return;
+            }
 
             copyOps.CopyGpuToCpu(result, src, totalElements);
         }
@@ -120,7 +131,7 @@ namespace TensorSharp.CUDA
         [RegisterOpStorageType("dot", typeof(CudaStorage))]
         public Tensor Dot(Tensor result, Tensor lhs, Tensor rhs)
         {
-            var context = CudaHelpers.TSContextForTensor(lhs);
+            TSCudaContext context = CudaHelpers.TSContextForTensor(lhs);
             if (lhs.DimensionCount == 1 && rhs.DimensionCount == 1)
             {
                 return CudaMatrixMulDot.Dot(context, result, lhs, rhs);
@@ -142,29 +153,56 @@ namespace TensorSharp.CUDA
         [RegisterOpStorageType("addmm", typeof(CudaStorage))]
         public Tensor Addmm(Tensor result, float beta, Tensor src, float alpha, Tensor m1, Tensor m2)
         {
-            var context = CudaHelpers.TSContextForTensor(src);
+            TSCudaContext context = CudaHelpers.TSContextForTensor(src);
             if (src.ElementType != m1.ElementType || src.ElementType != m2.ElementType || (result != null && result.ElementType != src.ElementType))
+            {
                 throw new InvalidOperationException("All tensors must have the same element type");
-            if (result != null && !(result.Storage is CudaStorage)) throw new ArgumentException("result must be a CUDA tensor", "result");
-            if (!(m1.Storage is CudaStorage)) throw new ArgumentException("m1 must be a CUDA tensor", "m1");
-            if (!(m2.Storage is CudaStorage)) throw new ArgumentException("m2 must be a CUDA tensor", "m2");
+            }
 
-            if (src.DimensionCount != 2) throw new ArgumentException("src must be a matrix", "src");
-            if (m1.DimensionCount != 2) throw new ArgumentException("m1 must be a matrix", "m1");
-            if (m2.DimensionCount != 2) throw new ArgumentException("m2 must be a matrix", "m2");
+            if (result != null && !(result.Storage is CudaStorage))
+            {
+                throw new ArgumentException("result must be a CUDA tensor", "result");
+            }
+
+            if (!(m1.Storage is CudaStorage))
+            {
+                throw new ArgumentException("m1 must be a CUDA tensor", "m1");
+            }
+
+            if (!(m2.Storage is CudaStorage))
+            {
+                throw new ArgumentException("m2 must be a CUDA tensor", "m2");
+            }
+
+            if (src.DimensionCount != 2)
+            {
+                throw new ArgumentException("src must be a matrix", "src");
+            }
+
+            if (m1.DimensionCount != 2)
+            {
+                throw new ArgumentException("m1 must be a matrix", "m1");
+            }
+
+            if (m2.DimensionCount != 2)
+            {
+                throw new ArgumentException("m2 must be a matrix", "m2");
+            }
 
             if (src.Sizes[0] != m1.Sizes[0] || src.Sizes[1] != m2.Sizes[1] || m1.Sizes[1] != m2.Sizes[0])
+            {
                 throw new InvalidOperationException($"Size mismatch, srcSize0 = {src.Sizes[0]}, m1Size0 = {m1.Sizes[0]}, srcSize1 = {src.Sizes[1]}, m2Size1 = {m2.Sizes[1]}, m1Size1 = '{m1.Sizes[1]}', m2Size0 = '{m2.Sizes[0]}'");
+            }
 
-            var writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
 
             if (writeTarget != src)
             {
                 Ops.Copy(writeTarget, src);
             }
-            
+
             CudaMatrixMulMM.Gemm(context, alpha, m1, m2, beta, writeTarget);
-           
+
 
             return writeTarget;
         }
@@ -174,21 +212,48 @@ namespace TensorSharp.CUDA
         [RegisterOpStorageType("addmmbatch", typeof(CudaStorage))]
         public Tensor AddmmBatch(Tensor result, float beta, Tensor src, float alpha, Tensor m1, Tensor m2)
         {
-            var context = CudaHelpers.TSContextForTensor(src);
+            TSCudaContext context = CudaHelpers.TSContextForTensor(src);
             if (src.ElementType != m1.ElementType || src.ElementType != m2.ElementType || (result != null && result.ElementType != src.ElementType))
+            {
                 throw new InvalidOperationException("All tensors must have the same element type");
-            if (result != null && !(result.Storage is CudaStorage)) throw new ArgumentException("result must be a CUDA tensor", "result");
-            if (!(m1.Storage is CudaStorage)) throw new ArgumentException("m1 must be a CUDA tensor", "m1");
-            if (!(m2.Storage is CudaStorage)) throw new ArgumentException("m2 must be a CUDA tensor", "m2");
+            }
 
-            if (src.DimensionCount != 3) throw new ArgumentException("src must be a matrix", "src");
-            if (m1.DimensionCount != 3) throw new ArgumentException("m1 must be a matrix", "m1");
-            if (m2.DimensionCount != 3) throw new ArgumentException("m2 must be a matrix", "m2");
+            if (result != null && !(result.Storage is CudaStorage))
+            {
+                throw new ArgumentException("result must be a CUDA tensor", "result");
+            }
+
+            if (!(m1.Storage is CudaStorage))
+            {
+                throw new ArgumentException("m1 must be a CUDA tensor", "m1");
+            }
+
+            if (!(m2.Storage is CudaStorage))
+            {
+                throw new ArgumentException("m2 must be a CUDA tensor", "m2");
+            }
+
+            if (src.DimensionCount != 3)
+            {
+                throw new ArgumentException("src must be a matrix", "src");
+            }
+
+            if (m1.DimensionCount != 3)
+            {
+                throw new ArgumentException("m1 must be a matrix", "m1");
+            }
+
+            if (m2.DimensionCount != 3)
+            {
+                throw new ArgumentException("m2 must be a matrix", "m2");
+            }
 
             if (src.Sizes[1] != m1.Sizes[1] || src.Sizes[2] != m2.Sizes[2] || m1.Sizes[2] != m2.Sizes[1])
+            {
                 throw new InvalidOperationException($"Size mismatch, srcSize0 = {src.Sizes[0]}, m1Size0 = {m1.Sizes[0]}, srcSize1 = {src.Sizes[1]}, m2Size1 = {m2.Sizes[1]}, m1Size1 = '{m1.Sizes[1]}', m2Size0 = '{m2.Sizes[0]}'");
+            }
 
-            var writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
 
             if (writeTarget != src)
             {
@@ -384,9 +449,9 @@ namespace TensorSharp.CUDA
         [RegisterOpStorageType("mean", typeof(CudaStorage))]
         public Tensor Mean(Tensor result, Tensor src, int dimension)
         {
-            var requiredOutputSize = (long[])src.Sizes.Clone();
+            long[] requiredOutputSize = (long[])src.Sizes.Clone();
             requiredOutputSize[dimension] = 1;
-            var writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, requiredOutputSize);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, requiredOutputSize);
 
             Sum(writeTarget, src, dimension);
             Div(writeTarget, writeTarget, src.Sizes[dimension]);
@@ -406,13 +471,13 @@ namespace TensorSharp.CUDA
             }
             else if (value == 2)
             {
-                var writeTarget = ReductionOp.Invoke(cudaReduceKernels, "e2_norm", 0.0f, ReduceInitType.GivenValue, result, src, dimension);
+                Tensor writeTarget = ReductionOp.Invoke(cudaReduceKernels, "e2_norm", 0.0f, ReduceInitType.GivenValue, result, src, dimension);
                 Pow(writeTarget, writeTarget, 0.5f);
                 return writeTarget;
             }
             else
             {
-                var writeTarget = ReductionOp.Invoke(cudaReduceKernels, "en_norm", 0.0f, ReduceInitType.GivenValue, result, src, dimension, value);
+                Tensor writeTarget = ReductionOp.Invoke(cudaReduceKernels, "en_norm", 0.0f, ReduceInitType.GivenValue, result, src, dimension, value);
                 Pow(writeTarget, writeTarget, 1.0f / value);
                 return writeTarget;
             }
@@ -432,9 +497,9 @@ namespace TensorSharp.CUDA
         public Tensor SoftmaxGrad(Tensor grad, Tensor adj, Tensor val, bool addGrad = true) { return advFuncKernels.SoftmaxGrad(grad, adj, val, addGrad); }
 
         [RegisterOpStorageType("layernorm", typeof(CudaStorage))]
-        public Tensor LayerNorm(Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-09f) { return advFuncKernels.LayerNorm(result, src, alpha, beta, eps);  }
+        public Tensor LayerNorm(Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-09f) { return advFuncKernels.LayerNorm(result, src, alpha, beta, eps); }
         [RegisterOpStorageType("layernormgrad", typeof(CudaStorage))]
-        public Tensor LayerNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps=1e-09f) { return advFuncKernels.LayerNormGrad(outGrad, alphaGrad, betaGrad, inGrad, y, x, alpha, beta, eps); }
+        public Tensor LayerNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps = 1e-09f) { return advFuncKernels.LayerNormGrad(outGrad, alphaGrad, betaGrad, inGrad, y, x, alpha, beta, eps); }
 
 
         [RegisterOpStorageType("addlayernorm", typeof(CudaStorage))]
@@ -484,8 +549,12 @@ namespace TensorSharp.CUDA
         [RegisterOpStorageType("meanall", typeof(CudaStorage))]
         public Tensor MeanAll(Tensor result, Tensor src)
         {
-            if (src.DimensionCount == 0 || src.ElementCount() == 0) throw new ArgumentException("src must be a non-empty tensor");
-            var writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, 1);
+            if (src.DimensionCount == 0 || src.ElementCount() == 0)
+            {
+                throw new ArgumentException("src must be a non-empty tensor");
+            }
+
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, 1);
             SumAll(writeTarget, src);
             Div(writeTarget, writeTarget, src.ElementCount());
             return writeTarget;
@@ -504,13 +573,13 @@ namespace TensorSharp.CUDA
             }
             else if (value == 2)
             {
-                var writeTarget = ReduceAllOp.Invoke(cudaReduceAllKernels, 0.0f, ReduceInitType.GivenValue, "e2_norm", result, src);
+                Tensor writeTarget = ReduceAllOp.Invoke(cudaReduceAllKernels, 0.0f, ReduceInitType.GivenValue, "e2_norm", result, src);
                 Pow(writeTarget, writeTarget, 0.5f);
                 return writeTarget;
             }
             else
             {
-                var writeTarget = ReduceAllOp.Invoke(cudaReduceAllKernels, 0.0f, ReduceInitType.GivenValue, "en_norm", result, src, value);
+                Tensor writeTarget = ReduceAllOp.Invoke(cudaReduceAllKernels, 0.0f, ReduceInitType.GivenValue, "en_norm", result, src, value);
                 Pow(writeTarget, writeTarget, 1.0f / value);
                 return writeTarget;
             }
@@ -520,10 +589,13 @@ namespace TensorSharp.CUDA
         [RegisterOpStorageType("varall", typeof(CudaStorage))]
         public Tensor VarAll(Tensor result, Tensor src)
         {
-            if (src.DimensionCount == 0 || src.ElementCount() == 0) throw new ArgumentException("src must be a non-empty tensor");
+            if (src.DimensionCount == 0 || src.ElementCount() == 0)
+            {
+                throw new ArgumentException("src must be a non-empty tensor");
+            }
 
-            var mean = Ops.MeanAll(src);
-            var writeTarget = ReduceAllOp.Invoke(cudaReduceAllKernels, 0.0f, ReduceInitType.GivenValue, "en_norm", result, src, mean);
+            float mean = Ops.MeanAll(src);
+            Tensor writeTarget = ReduceAllOp.Invoke(cudaReduceAllKernels, 0.0f, ReduceInitType.GivenValue, "en_norm", result, src, mean);
             Div(writeTarget, writeTarget, src.ElementCount() - 1);
             return writeTarget;
         }
@@ -531,7 +603,7 @@ namespace TensorSharp.CUDA
         [RegisterOpStorageType("stdall", typeof(CudaStorage))]
         public Tensor StdAll(Tensor result, Tensor src)
         {
-            var writeTarget = VarAll(result, src);
+            Tensor writeTarget = VarAll(result, src);
             Pow(writeTarget, writeTarget, 0.5f);
             return writeTarget;
         }

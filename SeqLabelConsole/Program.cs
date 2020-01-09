@@ -1,20 +1,18 @@
-﻿using Seq2SeqSharp;
+﻿using AdvUtils;
+using Newtonsoft.Json;
+using Seq2SeqSharp;
+using Seq2SeqSharp.Metrics;
+using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Seq2SeqSharp.Tools;
-using AdvUtils;
-using Seq2SeqSharp.Metrics;
-using Newtonsoft.Json;
 
 namespace SeqLabelConsole
 {
-    class Program
+    internal class Program
     {
-        static void ss_IterationDone(object sender, EventArgs e)
+        private static void ss_IterationDone(object sender, EventArgs e)
         {
             CostEventArg ep = e as CostEventArg;
 
@@ -38,12 +36,12 @@ namespace SeqLabelConsole
 
         }
 
-        public static String GetTimeStamp(DateTime timeStamp)
+        public static string GetTimeStamp(DateTime timeStamp)
         {
-            return String.Format("{0:yyyy}_{0:MM}_{0:dd}_{0:HH}h_{0:mm}m_{0:ss}s", timeStamp);
+            return string.Format("{0:yyyy}_{0:MM}_{0:dd}_{0:HH}h_{0:mm}m_{0:ss}s", timeStamp);
         }
 
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             ShowOptions(args);
 
@@ -53,7 +51,7 @@ namespace SeqLabelConsole
             Options opts = new Options();
             ArgParser argParser = new ArgParser(args, opts);
 
-            if (String.IsNullOrEmpty(opts.ConfigFilePath) == false)
+            if (string.IsNullOrEmpty(opts.ConfigFilePath) == false)
             {
                 Logger.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
                 opts = JsonConvert.DeserializeObject<Options>(File.ReadAllText(opts.ConfigFilePath));
@@ -73,11 +71,11 @@ namespace SeqLabelConsole
                 ParallelCorpus trainCorpus = new ParallelCorpus(opts.TrainCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength, addBOSEOS: false);
 
                 // Load valid corpus
-                ParallelCorpus validCorpus = String.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new ParallelCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength, addBOSEOS: false);
+                ParallelCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new ParallelCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength, addBOSEOS: false);
 
                 // Load or build vocabulary
                 Vocab vocab = null;
-                if (!String.IsNullOrEmpty(opts.SrcVocab) && !String.IsNullOrEmpty(opts.TgtVocab))
+                if (!string.IsNullOrEmpty(opts.SrcVocab) && !string.IsNullOrEmpty(opts.TgtVocab))
                 {
                     // Vocabulary files are specified, so we load them
                     vocab = new Vocab(opts.SrcVocab, opts.TgtVocab);
@@ -96,7 +94,7 @@ namespace SeqLabelConsole
 
                 // Create metrics
                 List<IMetric> metrics = new List<IMetric>();
-                foreach (var word in vocab.TgtVocab)
+                foreach (string word in vocab.TgtVocab)
                 {
                     metrics.Add(new SequenceLabelFscoreMetric(word));
                 }
@@ -133,7 +131,7 @@ namespace SeqLabelConsole
                 Vocab vocab = new Vocab(validCorpus);
                 // Create metrics
                 List<IMetric> metrics = new List<IMetric>();
-                foreach (var word in vocab.TgtVocab)
+                foreach (string word in vocab.TgtVocab)
                 {
                     metrics.Add(new SequenceLabelFscoreMetric(word));
                 }
@@ -149,11 +147,11 @@ namespace SeqLabelConsole
                 sl = new SequenceLabel(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds);
 
                 List<string> outputLines = new List<string>();
-                var data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
+                string[] data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
                 foreach (string line in data_sents_raw1)
                 {
-                    var outputTokensBatch = sl.Test(ParallelCorpus.ConstructInputTokens(line.ToLower().Trim().Split(' ').ToList(), false));
-                    outputLines.AddRange(outputTokensBatch.Select(x => String.Join(" ", x)));
+                    List<List<string>> outputTokensBatch = sl.Test(ParallelCorpus.ConstructInputTokens(line.ToLower().Trim().Split(' ').ToList(), false));
+                    outputLines.AddRange(outputTokensBatch.Select(x => string.Join(" ", x)));
                 }
 
                 File.WriteAllLines(opts.OutputTestFile, outputLines);
@@ -174,7 +172,7 @@ namespace SeqLabelConsole
 
         private static void ShowOptions(string[] args)
         {
-            string commandLine = String.Join(" ", args);
+            string commandLine = string.Join(" ", args);
             Logger.WriteLine($"Seq2SeqSharp v2.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
             Logger.WriteLine($"Command Line = '{commandLine}'");
         }

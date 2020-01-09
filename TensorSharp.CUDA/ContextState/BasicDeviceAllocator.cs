@@ -1,9 +1,6 @@
 ﻿using ManagedCuda;
 using ManagedCuda.BasicTypes;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace TensorSharp.CUDA.ContextState
 {
@@ -17,7 +14,7 @@ namespace TensorSharp.CUDA.ContextState
 
         public BasicDeviceAllocator(CudaContext cudaContext)
         {
-            this.context = cudaContext;
+            context = cudaContext;
         }
 
         public void Dispose()
@@ -27,7 +24,7 @@ namespace TensorSharp.CUDA.ContextState
 
         public IDeviceMemory Allocate(long byteCount)
         {
-            var buffer = context.AllocateMemory(byteCount);
+            CUdeviceptr buffer = context.AllocateMemory(byteCount);
             return new BasicDeviceMemory(buffer, () => context.FreeMemory(buffer));
         }
 
@@ -42,7 +39,7 @@ namespace TensorSharp.CUDA.ContextState
         private readonly CUdeviceptr pointer;
         private readonly Action freeHandler;
 
-        public CUdeviceptr Pointer { get { return pointer; } }
+        public CUdeviceptr Pointer => pointer;
 
 
         public BasicDeviceMemory(CUdeviceptr pointer, Action freeHandler)

@@ -2,18 +2,15 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Seq2SeqSharp
 {
     [Serializable]
-    class LayerNormalization
+    internal class LayerNormalization
     {
-        IWeightTensor m_alpha;
-        IWeightTensor m_beta;
-        string m_name;
+        private readonly IWeightTensor m_alpha;
+        private readonly IWeightTensor m_beta;
+        private readonly string m_name;
 
         public LayerNormalization(string name, int dim, int deviceId)
         {
@@ -24,7 +21,7 @@ namespace Seq2SeqSharp
 
         public IWeightTensor Norm(IWeightTensor input, IComputeGraph g)
         {
-            var innerGraph = g.CreateSubGraph(m_name);
+            IComputeGraph innerGraph = g.CreateSubGraph(m_name);
             return innerGraph.LayerNorm(input, m_alpha, m_beta);
         }
 
@@ -37,15 +34,17 @@ namespace Seq2SeqSharp
         /// <returns></returns>
         public IWeightTensor AddNorm(IWeightTensor input1, IWeightTensor input2, IComputeGraph g)
         {
-            var innerGraph = g.CreateSubGraph(m_name);
+            IComputeGraph innerGraph = g.CreateSubGraph(m_name);
             return innerGraph.AddLayerNorm(input1, input2, m_alpha, m_beta);
         }
 
         public virtual List<IWeightTensor> getParams()
         {
-            List<IWeightTensor> response = new List<IWeightTensor>();
-            response.Add(m_alpha);
-            response.Add(m_beta);
+            List<IWeightTensor> response = new List<IWeightTensor>
+            {
+                m_alpha,
+                m_beta
+            };
 
             return response;
         }

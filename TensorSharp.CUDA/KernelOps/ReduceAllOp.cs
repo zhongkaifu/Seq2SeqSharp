@@ -1,9 +1,6 @@
 ﻿using ManagedCuda;
 using ManagedCuda.VectorTypes;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using TensorSharp.Core;
 using TensorSharp.CUDA.DeviceCode;
 using TensorSharp.CUDA.RuntimeCompiler;
@@ -15,48 +12,53 @@ namespace TensorSharp.CUDA.KernelOps
         private const long ReduceAllBlockSize = 1024;
         private const long TwoPassReductionSize = 2048;
 
-        
+
         public static Tensor Invoke(CudaReduceAllKernels reduceAllKernels, float init, ReduceInitType initType, string kernelName, Tensor result, Tensor src, object extraArg = null)
         {
-            var deviceId = CudaHelpers.GetDeviceId(src);
-            var context = CudaHelpers.TSContextForTensor(src);
-            var cudaContext = context.CudaContextForDevice(deviceId);
+            int deviceId = CudaHelpers.GetDeviceId(src);
+            TSCudaContext context = CudaHelpers.TSContextForTensor(src);
+            CudaContext cudaContext = context.CudaContextForDevice(deviceId);
 
             if (src.DimensionCount > TSCudaContext.MaxDims)
+            {
                 throw new InvalidOperationException("Tensors with dimension count > " + TSCudaContext.MaxDims + " are not supported");
+            }
 
-            var writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, 1);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, 1);
 
             if (src.DimensionCount == 0)
             {
                 return result;
             }
 
-            var totalElements = src.ElementCount();
-            var config = new ApplySpecialization(src);
+            long totalElements = src.ElementCount();
+            ApplySpecialization config = new ApplySpecialization(src);
             object totalElementsTyped = config.Use32BitIndices ? (uint)totalElements : (ulong)totalElements;
             object initValueTyped = ReduceInitConverter.GetInitValue(init, initType, src.ElementType);
 
             dim3 grid;
             dim3 block;
 
-            var ptx = reduceAllKernels.GetPtx(context.Compiler);
-            var fullKernelName = PermutationGenerator.GetMangledName(kernelName, config);
+            byte[] ptx = reduceAllKernels.GetPtx(context.Compiler);
+            string fullKernelName = PermutationGenerator.GetMangledName(kernelName, config);
 
-            var outputDevicePtr = CudaHelpers.GetBufferStart(writeTarget);
+            ManagedCuda.BasicTypes.CUdeviceptr outputDevicePtr = CudaHelpers.GetBufferStart(writeTarget);
 
             if (isTwoPassReductionSize(totalElements))
             {
                 getPass1ReduceBlockGrid(context, deviceId, totalElements, out grid, out block);
                 uint smemSize = block.x * sizeof(float);
 
-                var scratchSpace = context.ScratchSpaceForDevice(deviceId).buffer;
+                ManagedCuda.BasicTypes.CUdeviceptr scratchSpace = context.ScratchSpaceForDevice(deviceId).buffer;
 
-                if(extraArg == null)
+                if (extraArg == null)
+                {
                     InvokeReduceAll(context, cudaContext, ptx, "twoPassA_" + fullKernelName, grid, block, smemSize, config, src, totalElementsTyped, initValueTyped, scratchSpace);
+                }
                 else
+                {
                     InvokeReduceAll(context, cudaContext, ptx, "twoPassA_" + fullKernelName, grid, block, smemSize, config, src, totalElementsTyped, initValueTyped, scratchSpace, extraArg);
-
+                }
 
                 uint numPass1Blocks = grid.x;
                 getPass2ReduceBlockGrid(context, deviceId, totalElements, out grid, out block);
@@ -65,14 +67,19 @@ namespace TensorSharp.CUDA.KernelOps
                 InvokeReduceAllPass2(context, cudaContext, ptx, "twoPassB_" + fullKernelName, grid, block, smemSize, config.Use32BitIndices, numPass1Blocks, initValueTyped, scratchSpace, outputDevicePtr);
 
             }
-            else {
+            else
+            {
                 getSinglePassReduceBlockGrid(totalElements, out grid, out block);
                 uint smemSize = block.x * sizeof(float);
 
-                if(extraArg == null)
+                if (extraArg == null)
+                {
                     InvokeReduceAll(context, cudaContext, ptx, "onePass_" + fullKernelName, grid, block, smemSize, config, src, totalElementsTyped, initValueTyped, outputDevicePtr);
+                }
                 else
+                {
                     InvokeReduceAll(context, cudaContext, ptx, "onePass_" + fullKernelName, grid, block, smemSize, config, src, totalElementsTyped, initValueTyped, outputDevicePtr, extraArg);
+                }
             }
 
             return writeTarget;
@@ -80,30 +87,30 @@ namespace TensorSharp.CUDA.KernelOps
 
         public static void InvokeReduceAllPass2(TSCudaContext context, CudaContext cudaContext, byte[] ptx, string kernelName, dim3 grid, dim3 block, uint smemSize, bool index32, params object[] args)
         {
-            var config = new ApplySpecialization(index32).GetConfig();
+            KernelConfig config = new ApplySpecialization(index32).GetConfig();
 
-            
-            var kernel = context.KernelCache.Get(cudaContext, ptx, kernelName);
 
-            kernel.GridDimensions = grid;
-            kernel.BlockDimensions = block;
-            kernel.DynamicSharedMemory = smemSize;
-
-            kernel.Run(args);            
-        }
-
-        public static void InvokeReduceAll(TSCudaContext context, CudaContext cudaContext, byte[] ptx, string kernelName, dim3 grid, dim3 block, uint smemSize, ApplySpecialization spec, params object[] args)
-        {
-            ConvertTensorArgs.Convert(cudaContext, spec.Use32BitIndices, args);
-            
-            var kernel = context.KernelCache.Get(cudaContext, ptx, kernelName);
+            CudaKernel kernel = context.KernelCache.Get(cudaContext, ptx, kernelName);
 
             kernel.GridDimensions = grid;
             kernel.BlockDimensions = block;
             kernel.DynamicSharedMemory = smemSize;
 
             kernel.Run(args);
-            
+        }
+
+        public static void InvokeReduceAll(TSCudaContext context, CudaContext cudaContext, byte[] ptx, string kernelName, dim3 grid, dim3 block, uint smemSize, ApplySpecialization spec, params object[] args)
+        {
+            ConvertTensorArgs.Convert(cudaContext, spec.Use32BitIndices, args);
+
+            CudaKernel kernel = context.KernelCache.Get(cudaContext, ptx, kernelName);
+
+            kernel.GridDimensions = grid;
+            kernel.BlockDimensions = block;
+            kernel.DynamicSharedMemory = smemSize;
+
+            kernel.Run(args);
+
         }
 
 
@@ -120,7 +127,9 @@ namespace TensorSharp.CUDA.KernelOps
             long scratchSpace =
               context.ScratchSpaceForDevice(deviceId).size / sizeof(float);
             if (scratchSpace <= 0)
+            {
                 throw new ApplicationException("Device id " + deviceId + " has no scratch space");
+            }
 
             if (numBlocks > scratchSpace)
             {

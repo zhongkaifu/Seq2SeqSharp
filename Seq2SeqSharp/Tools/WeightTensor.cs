@@ -1,61 +1,45 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using AdvUtils;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization;
-using System.Security.Permissions;
-using System.Text;
-using System.Threading.Tasks;
 using TensorSharp;
-using AdvUtils;
 
 namespace Seq2SeqSharp.Tools
 {
     [Serializable]
-    public class WeightTensor : IWeightTensor,  IDisposable
+    public class WeightTensor : IWeightTensor, IDisposable
     {
         public long[] Sizes { get; set; }
 
         public int Rows
         {
-            get
-            {
-                return (int)Sizes[0];
-            }
-            set
-            {
-                Sizes[0] = value;
-            }
+            get => (int)Sizes[0];
+            set => Sizes[0] = value;
         }
         public int Columns
         {
-            get
-            {
-                return (int)Sizes[1];
-            }
-            set
-            {
-                Sizes[1] = value;
-            }
+            get => (int)Sizes[1];
+            set => Sizes[1] = value;
         }
 
         public string Name { get; set; }
         public bool IsTrainable { get; set; }
 
         public int DeviceId { get; set; }
-        IAllocator m_allocator;
+
+        private IAllocator m_allocator;
 
         private Tensor m_TWeight = null;
         private Tensor m_TGradient = null;
-        private static object locker = new object();
+        private static readonly object locker = new object();
 
         public Tensor TWeight
         {
             get
             {
                 if (m_TWeight == null)
-                {                    
+                {
                     m_TWeight = new Tensor(m_allocator, DType.Float32, Sizes);
                 }
 
@@ -94,7 +78,7 @@ namespace Seq2SeqSharp.Tools
                 m_TGradient = value;
             }
         }
-      
+
         public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, bool normal = false)
         {
             Name = name;
@@ -106,7 +90,7 @@ namespace Seq2SeqSharp.Tools
             if (normal)
             {
 
-                var scale = (float)Math.Sqrt(6.0 / (Rows + Columns));
+                float scale = (float)Math.Sqrt(6.0 / (Rows + Columns));
 
                 SeedSource seedSource = new SeedSource(DateTime.Now.Millisecond);
                 Ops.RandomUniform(TWeight, seedSource, -scale, scale);
@@ -190,7 +174,7 @@ namespace Seq2SeqSharp.Tools
                 Ops.Add(TGradient, TGradient, t);
 
                 t.Dispose();
-            }           
+            }
         }
 
         public float[] ToWeightArray()
@@ -302,7 +286,7 @@ namespace Seq2SeqSharp.Tools
             }
 
             return q.Select(x => x.Value).ToList();
-        }        
+        }
 
         public void SetWeightArray(float[] v)
         {
@@ -311,8 +295,10 @@ namespace Seq2SeqSharp.Tools
 
         public WeightTensor CopyWeightsRef(string name)
         {
-            WeightTensor result = new WeightTensor(Sizes, DeviceId, name);
-            result.m_TWeight = m_TWeight.CopyRef();
+            WeightTensor result = new WeightTensor(Sizes, DeviceId, name)
+            {
+                m_TWeight = m_TWeight.CopyRef()
+            };
 
             return result;
         }
@@ -343,10 +329,10 @@ namespace Seq2SeqSharp.Tools
 
         public void Save(Stream stream)
         {
-            var floatArray1 = ToWeightArray();
+            float[] floatArray1 = ToWeightArray();
 
             // create a byte array and copy the floats into it...
-            var byteArray = new byte[floatArray1.Length * 4];
+            byte[] byteArray = new byte[floatArray1.Length * 4];
             Buffer.BlockCopy(floatArray1, 0, byteArray, 0, byteArray.Length);
 
             stream.Write(byteArray, 0, byteArray.Length);
@@ -355,10 +341,10 @@ namespace Seq2SeqSharp.Tools
         public void Load(Stream stream)
         {
             int size = Rows * Columns;
-            var byteArray = new byte[size * 4];
+            byte[] byteArray = new byte[size * 4];
             stream.Read(byteArray, 0, byteArray.Length);
 
-            var floatArray2 = new float[byteArray.Length / 4];
+            float[] floatArray2 = new float[byteArray.Length / 4];
             Buffer.BlockCopy(byteArray, 0, floatArray2, 0, byteArray.Length);
 
             SetWeightArray(floatArray2);

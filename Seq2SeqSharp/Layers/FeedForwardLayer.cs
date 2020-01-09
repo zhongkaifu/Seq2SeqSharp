@@ -1,23 +1,19 @@
 ﻿using AdvUtils;
 using Seq2SeqSharp.Tools;
-using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Seq2SeqSharp
 {
-    class FeedForwardLayer : INeuralUnit
+    internal class FeedForwardLayer : INeuralUnit
     {
-        private IWeightTensor m_Whd;
-        private IWeightTensor m_Bd;
-        private string m_name;
-        private float m_dropoutRatio;
-        private int m_inputDim;
-        private int m_outputDim;
-        private int m_deviceId;
+        private readonly IWeightTensor m_Whd;
+        private readonly IWeightTensor m_Bd;
+        private readonly string m_name;
+        private readonly float m_dropoutRatio;
+        private readonly int m_inputDim;
+        private readonly int m_outputDim;
+        private readonly int m_deviceId;
 
         public FeedForwardLayer(string name, int inputDim, int outputDim, float dropoutRatio, int deviceId)
         {
@@ -40,16 +36,18 @@ namespace Seq2SeqSharp
 
         public IWeightTensor Process(IWeightTensor inputT, int batchSize, IComputeGraph graph)
         {
-            var g = graph.CreateSubGraph(m_name);
-            var res = g.Affine(inputT, m_Whd, m_Bd);
+            IComputeGraph g = graph.CreateSubGraph(m_name);
+            IWeightTensor res = g.Affine(inputT, m_Whd, m_Bd);
             return g.Dropout(res, batchSize, m_dropoutRatio, inPlace: true);
         }
 
         public virtual List<IWeightTensor> GetParams()
         {
-            List<IWeightTensor> response = new List<IWeightTensor>();
-            response.Add(m_Whd);
-            response.Add(m_Bd);
+            List<IWeightTensor> response = new List<IWeightTensor>
+            {
+                m_Whd,
+                m_Bd
+            };
 
             return response;
         }

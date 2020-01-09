@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace TensorSharp.CUDA
 {
@@ -17,8 +14,8 @@ namespace TensorSharp.CUDA
             this.deviceId = deviceId;
         }
 
-        public TSCudaContext Context { get { return context; } }
-        public int DeviceId { get { return deviceId; } }
+        public TSCudaContext Context => context;
+        public int DeviceId => deviceId;
 
         public Storage Allocate(DType elementType, long elementCount)
         {

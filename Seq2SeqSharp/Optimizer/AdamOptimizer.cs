@@ -3,26 +3,21 @@ using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Tasks;
 using TensorSharp;
-using TensorSharp.CUDA;
 
 namespace Seq2SeqSharp
 {
 
     public class AdamOptimizer
     {
-        static float m_beta1 = 0.9f;
-        static float m_beta2 = 0.98f;
-        static float m_smoothEps = 1e-9f;
-
-        ConcurrentDictionary<string, Tensor> m_cacheName2V;
-        ConcurrentDictionary<string, Tensor> m_cacheName2M;
-        float m_clipval;
+        private static float m_beta1 = 0.9f;
+        private static float m_beta2 = 0.98f;
+        private static readonly float m_smoothEps = 1e-9f;
+        private readonly ConcurrentDictionary<string, Tensor> m_cacheName2V;
+        private readonly ConcurrentDictionary<string, Tensor> m_cacheName2M;
+        private readonly float m_clipval;
 
         public AdamOptimizer(float clipval, float beta1 = 0.9f, float beta2 = 0.999f)
         {
@@ -40,7 +35,7 @@ namespace Seq2SeqSharp
         {
             Dictionary<int, List<IWeightTensor>> id2Models = new Dictionary<int, List<IWeightTensor>>();
             HashSet<string> setWeightsName = new HashSet<string>();
-            foreach (var item in model)
+            foreach (IWeightTensor item in model)
             {
                 if (setWeightsName.Contains(item.Name))
                 {
@@ -56,7 +51,7 @@ namespace Seq2SeqSharp
 
                 if (m_cacheName2V.ContainsKey(item.Name) == false)
                 {
-                    var allocator = TensorAllocator.Allocator(item.DeviceId);
+                    IAllocator allocator = TensorAllocator.Allocator(item.DeviceId);
                     m_cacheName2V[item.Name] = new Tensor(allocator, DType.Float32, item.Sizes);
                     Ops.Fill(m_cacheName2V[item.Name], 0.0f);
 
@@ -67,16 +62,16 @@ namespace Seq2SeqSharp
                 }
             }
 
-            Parallel.ForEach(id2Models, kv => 
+            Parallel.ForEach(id2Models, kv =>
             {
-                foreach (var item in kv.Value)
+                foreach (IWeightTensor item in kv.Value)
                 {
-                    var m = item as WeightTensor;
+                    WeightTensor m = item as WeightTensor;
                     UpdateWeightsTensor(m, batchSize, step_size, m_clipval, regc, iter);
                 }
             });
         }
-        
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void UpdateWeightsTensor(WeightTensor m, int batchSize, float step_size, float clipval, float regc, int iter)
         {

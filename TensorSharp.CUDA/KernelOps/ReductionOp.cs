@@ -1,10 +1,6 @@
 ﻿using ManagedCuda;
 using ManagedCuda.VectorTypes;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 using TensorSharp.Core;
 using TensorSharp.CUDA.DeviceCode;
 using TensorSharp.CUDA.RuntimeCompiler;
@@ -16,62 +12,72 @@ namespace TensorSharp.CUDA.KernelOps
         public static Tensor Invoke(CudaReduceKernels reduceKernels, string kernelName, float init, ReduceInitType initType, Tensor result, Tensor src, int dim, object extraArg = null)
         {
             if (src.DimensionCount == 0)
+            {
                 return result;
+            }
 
-            var context = CudaHelpers.TSContextForTensor(src);
-            var cudaContext = context.CudaContextForTensor(src);
+            TSCudaContext context = CudaHelpers.TSContextForTensor(src);
+            CudaContext cudaContext = context.CudaContextForTensor(src);
 
-            var requiredOutputSize = (long[])src.Sizes.Clone();
+            long[] requiredOutputSize = (long[])src.Sizes.Clone();
             requiredOutputSize[dim] = 1;
-            var writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, requiredOutputSize);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, requiredOutputSize);
             ThrowIfAnyTensorInvalid(writeTarget, src);
 
-            var inElements = src.ElementCount();
-            var reductionSize = src.Sizes[dim];
-            var reductionStride = src.Strides[dim];
-            var outElements = inElements / reductionSize;
-            var contigReduction = reductionStride == 1;
+            long inElements = src.ElementCount();
+            long reductionSize = src.Sizes[dim];
+            long reductionStride = src.Strides[dim];
+            long outElements = inElements / reductionSize;
+            bool contigReduction = reductionStride == 1;
 
 
             // We must make sure that when the tensor is passed to the kernel, src.Sizes[dim] is set to 1
             // This includes for the purposes of determining which tensor specializations to use (changing
             // the dimension size to 1 may make the tensor non-contiguous
-            var newSizes = (long[])src.Sizes.Clone();
+            long[] newSizes = (long[])src.Sizes.Clone();
             newSizes[dim] = 1;
-            var srcSlim = new Tensor(newSizes, src.Strides, src.Storage, src.StorageOffset);
+            Tensor srcSlim = new Tensor(newSizes, src.Strides, src.Storage, src.StorageOffset);
 
-            var config = new ApplySpecialization(writeTarget, srcSlim);
+            ApplySpecialization config = new ApplySpecialization(writeTarget, srcSlim);
             object totalSlices = config.Use32BitIndices ? (uint)outElements : (ulong)outElements;
             object reductionSizeTyped = config.Use32BitIndices ? (uint)reductionSize : (ulong)reductionSize;
             object reductionStrideTyped = config.Use32BitIndices ? (uint)reductionStride : (ulong)reductionStride;
             object initValueTyped = ReduceInitConverter.GetInitValue(init, initType, src.ElementType);
 
-            var ptx = reduceKernels.GetPtx(context.Compiler);
+            byte[] ptx = reduceKernels.GetPtx(context.Compiler);
 
             if (contigReduction)
             {
-                var block = GetContigReduceBlock(cudaContext, outElements, reductionSize);
-                var grid = GetContigReduceGrid(outElements);
+                dim3 block = GetContigReduceBlock(cudaContext, outElements, reductionSize);
+                dim3 grid = GetContigReduceGrid(outElements);
                 uint smemSize = (uint)src.ElementType.Size() * block.x;
 
-                var fullName = "contig_" + PermutationGenerator.GetMangledName(kernelName, config);
-                if(extraArg == null)
+                string fullName = "contig_" + PermutationGenerator.GetMangledName(kernelName, config);
+                if (extraArg == null)
+                {
                     InvokeReduce(context, cudaContext, ptx, fullName, grid, block, smemSize, config, writeTarget, srcSlim, reductionSizeTyped, totalSlices, initValueTyped);
+                }
                 else
+                {
                     InvokeReduce(context, cudaContext, ptx, fullName, grid, block, smemSize, config, writeTarget, srcSlim, reductionSizeTyped, totalSlices, initValueTyped, extraArg);
+                }
             }
             else
             {
-                var deviceProps = context.DeviceInfoForContext(cudaContext);
-                var block = GetNonContigReduceBlock(deviceProps);
-                var grid = GetNoncontigReduceGrid(deviceProps, outElements);
+                CudaDeviceProperties deviceProps = context.DeviceInfoForContext(cudaContext);
+                dim3 block = GetNonContigReduceBlock(deviceProps);
+                dim3 grid = GetNoncontigReduceGrid(deviceProps, outElements);
                 uint smemSize = 0;
 
-                var fullName = "noncontig_" + PermutationGenerator.GetMangledName(kernelName, config);
-                if(extraArg == null)
+                string fullName = "noncontig_" + PermutationGenerator.GetMangledName(kernelName, config);
+                if (extraArg == null)
+                {
                     InvokeReduce(context, cudaContext, ptx, fullName, grid, block, smemSize, config, writeTarget, srcSlim, reductionStrideTyped, reductionSizeTyped, totalSlices, initValueTyped);
+                }
                 else
+                {
                     InvokeReduce(context, cudaContext, ptx, fullName, grid, block, smemSize, config, writeTarget, srcSlim, reductionStrideTyped, reductionSizeTyped, totalSlices, initValueTyped, extraArg);
+                }
             }
 
             return writeTarget;
@@ -80,15 +86,15 @@ namespace TensorSharp.CUDA.KernelOps
         public static void InvokeReduce(TSCudaContext context, CudaContext cudaContext, byte[] ptx, string kernelName, dim3 grid, dim3 block, uint smemSize, ApplySpecialization spec, params object[] args)
         {
             ConvertTensorArgs.Convert(cudaContext, spec.Use32BitIndices, args);
-            
-            var kernel = context.KernelCache.Get(cudaContext, ptx, kernelName);
+
+            CudaKernel kernel = context.KernelCache.Get(cudaContext, ptx, kernelName);
 
             kernel.GridDimensions = grid;
             kernel.BlockDimensions = block;
             kernel.DynamicSharedMemory = smemSize;
 
             kernel.Run(args);
-            
+
         }
 
         private static int GetNonContigReduceBlockSize(CudaDeviceProperties deviceProps)
@@ -126,7 +132,7 @@ namespace TensorSharp.CUDA.KernelOps
             // Scale up block size based on the reduction dimension size
             long warpsInReductionSize = ApplyUtils.CeilDiv(reductionSize, 32);
             int numWarps =
-              warpsInReductionSize > (long)maxWarps ? maxWarps : (int)warpsInReductionSize;
+              warpsInReductionSize > maxWarps ? maxWarps : (int)warpsInReductionSize;
 
             int targetSize = numWarps * 32;
 
@@ -137,7 +143,7 @@ namespace TensorSharp.CUDA.KernelOps
         private static dim3 GetNoncontigReduceGrid(CudaDeviceProperties deviceProps, long elements)
         {
             // One output point per thread
-            return GridFromTiles(ApplyUtils.CeilDiv(elements, (long)GetNonContigReduceBlockSize(deviceProps)));
+            return GridFromTiles(ApplyUtils.CeilDiv(elements, GetNonContigReduceBlockSize(deviceProps)));
         }
 
         private static dim3 GetContigReduceGrid(long elements)
@@ -179,10 +185,12 @@ namespace TensorSharp.CUDA.KernelOps
 
         private static void ThrowIfAnyTensorInvalid(params Tensor[] args)
         {
-            foreach (var tensor in args)
+            foreach (Tensor tensor in args)
             {
                 if (tensor.DimensionCount > TSCudaContext.MaxDims)
+                {
                     throw new InvalidOperationException("Tensors with dimension count > " + TSCudaContext.MaxDims + " are not supported");
+                }
             }
         }
     }

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace TensorSharp.CUDA.DeviceCode
+﻿namespace TensorSharp.CUDA.DeviceCode
 {
     [Precompile]
     public class ElementwiseKernels : CudaCode
@@ -15,7 +10,7 @@ namespace TensorSharp.CUDA.DeviceCode
 
         private static string GetFullCode()
         {
-            var result = new PermutationGenerator();
+            PermutationGenerator result = new PermutationGenerator();
             AppendTTFunc(result, "abs", "fabs");
             AppendTTFunc(result, "neg", "-");
             AppendTTFunc(result, "sign", "sgn");

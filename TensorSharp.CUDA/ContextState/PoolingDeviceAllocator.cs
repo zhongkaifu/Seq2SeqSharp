@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using ManagedCuda;
 using ManagedCuda.BasicTypes;
-using ManagedCuda;
+using System;
+using System.Collections.Generic;
 
 namespace TensorSharp.CUDA.ContextState
 {
@@ -12,11 +10,11 @@ namespace TensorSharp.CUDA.ContextState
         private const long MemoryAlignment = 256;
 
         private readonly CudaContext context;
-        private Dictionary<long, Queue<IDeviceMemory>> pools = new Dictionary<long, Queue<IDeviceMemory>>();
+        private readonly Dictionary<long, Queue<IDeviceMemory>> pools = new Dictionary<long, Queue<IDeviceMemory>>();
         //private long allocatedSize = 0;
         //private long missingCacheSize = 0;
         //private const long maxSize = (long)(1024L * 1024L * 1024L * 4L);
-        private static object locker = new object();
+        private static readonly object locker = new object();
 
         public PoolingDeviceAllocator(CudaContext context)
         {
@@ -33,11 +31,11 @@ namespace TensorSharp.CUDA.ContextState
                     GC.WaitForFullGCComplete();
                 }
 
-                foreach (var kv in pools)
+                foreach (KeyValuePair<long, Queue<IDeviceMemory>> kv in pools)
                 {
                     while (kv.Value.Count > 0)
                     {
-                        var item = kv.Value.Dequeue();
+                        IDeviceMemory item = kv.Value.Dequeue();
                         if (item != null)
                         {
                             context.FreeMemory(item.Pointer);
@@ -46,26 +44,27 @@ namespace TensorSharp.CUDA.ContextState
                 }
             }
         }
-      
+
 
         public IDeviceMemory Allocate(long byteCount)
         {
-            var size = PadToAlignment(byteCount, MemoryAlignment);          
-            Queue<IDeviceMemory> sizedPool;
+            long size = PadToAlignment(byteCount, MemoryAlignment);
 
             lock (locker)
             {
-             //   allocatedSize += size;
-                if (pools.TryGetValue(size, out sizedPool))
+                //   allocatedSize += size;
+                if (pools.TryGetValue(size, out Queue<IDeviceMemory> sizedPool))
                 {
                     if (sizedPool.Count > 0)
                     {
-                        var result = sizedPool.Dequeue();
+                        IDeviceMemory result = sizedPool.Dequeue();
 
                         // HACK  bizarrely, Queue.Dequeue appears to sometimes return null, even when there are many elements in the queue,
                         // and when the queue is only ever accessed from one thread.
                         if (result != null)
+                        {
                             return result;
+                        }
                     }
                 }
                 else
@@ -112,9 +111,9 @@ namespace TensorSharp.CUDA.ContextState
         {
             lock (locker)
             {
-                foreach (var kvp in pools)
+                foreach (KeyValuePair<long, Queue<IDeviceMemory>> kvp in pools)
                 {
-                    foreach (var item in kvp.Value)
+                    foreach (IDeviceMemory item in kvp.Value)
                     {
                         item.Free();
                     }

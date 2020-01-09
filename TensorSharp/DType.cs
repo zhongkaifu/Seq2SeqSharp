@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace TensorSharp
 {
@@ -57,13 +54,30 @@ namespace TensorSharp
     {
         public static DType FromCLRType(Type type)
         {
-            if (type == typeof(Half)) return DType.Float16;
-            else if (type == typeof(float)) return DType.Float32;
-            else if (type == typeof(double)) return DType.Float64;
-            else if (type == typeof(int)) return DType.Int32;
-            else if (type == typeof(byte)) return DType.UInt8;
+            if (type == typeof(Half))
+            {
+                return DType.Float16;
+            }
+            else if (type == typeof(float))
+            {
+                return DType.Float32;
+            }
+            else if (type == typeof(double))
+            {
+                return DType.Float64;
+            }
+            else if (type == typeof(int))
+            {
+                return DType.Int32;
+            }
+            else if (type == typeof(byte))
+            {
+                return DType.UInt8;
+            }
             else
+            {
                 throw new NotSupportedException("No corresponding DType value for CLR type " + type);
+            }
         }
     }
 }

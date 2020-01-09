@@ -3,10 +3,6 @@ using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TensorSharp;
 
 namespace Seq2SeqSharp
 {
@@ -35,7 +31,7 @@ namespace Seq2SeqSharp
 
         public void Reset(IWeightFactory weightFactory, int batchSize)
         {
-            foreach (var item in encoders)
+            foreach (LSTMCell item in encoders)
             {
                 item.Reset(weightFactory, batchSize);
             }
@@ -44,9 +40,9 @@ namespace Seq2SeqSharp
 
         public IWeightTensor Encode(IWeightTensor V, IComputeGraph g)
         {
-            foreach (var encoder in encoders)
+            foreach (LSTMCell encoder in encoders)
             {
-                var e = encoder.Step(V, g);
+                IWeightTensor e = encoder.Step(V, g);
                 V = e;
             }
 
@@ -58,7 +54,7 @@ namespace Seq2SeqSharp
         {
             List<IWeightTensor> response = new List<IWeightTensor>();
 
-            foreach (var item in encoders)
+            foreach (LSTMCell item in encoders)
             {
                 response.AddRange(item.getParams());
 
@@ -69,7 +65,7 @@ namespace Seq2SeqSharp
 
         public void Save(Stream stream)
         {
-            foreach (var item in encoders)
+            foreach (LSTMCell item in encoders)
             {
                 item.Save(stream);
             }
@@ -77,7 +73,7 @@ namespace Seq2SeqSharp
 
         public void Load(Stream stream)
         {
-            foreach (var item in encoders)
+            foreach (LSTMCell item in encoders)
             {
                 item.Load(stream);
             }

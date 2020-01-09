@@ -5,8 +5,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Seq2SeqSharp
 {
@@ -32,15 +30,9 @@ namespace Seq2SeqSharp
         public int SourceWordSize => m_srcIndexToWord.Count;
         public int TargetWordSize => m_tgtIndexToWord.Count;
 
-        public List<string> SrcVocab
-        {
-            get { return m_srcVocab.GetRange(3, m_srcVocab.Count - 3); }
-        }
+        public List<string> SrcVocab => m_srcVocab.GetRange(3, m_srcVocab.Count - 3);
 
-        public List<string> TgtVocab
-        {
-            get { return m_tgtVocab.GetRange(3, m_tgtVocab.Count - 3); }
-        }
+        public List<string> TgtVocab => m_tgtVocab.GetRange(3, m_tgtVocab.Count - 3);
 
         public Vocab()
         {
@@ -140,18 +132,18 @@ namespace Seq2SeqSharp
             {
                 foreach (SntPair sntPair in sntPairBatch.SntPairs)
                 {
-                    var item = sntPair.SrcSnt;
+                    string[] item = sntPair.SrcSnt;
                     for (int i = 0, n = item.Length; i < n; i++)
                     {
-                        var txti = item[i];
+                        string txti = item[i];
                         if (s_d.Keys.Contains(txti)) { s_d[txti] += 1; }
                         else { s_d.Add(txti, 1); }
                     }
 
-                    var item2 = sntPair.TgtSnt;
+                    string[] item2 = sntPair.TgtSnt;
                     for (int i = 0, n = item2.Length; i < n; i++)
                     {
-                        var txti = item2[i];
+                        string txti = item2[i];
                         if (t_d.Keys.Contains(txti)) { t_d[txti] += 1; }
                         else { t_d.Add(txti, 1); }
                     }
@@ -159,8 +151,8 @@ namespace Seq2SeqSharp
             }
 
 
-            var q = 3;
-            foreach (var ch in s_d)
+            int q = 3;
+            foreach (KeyValuePair<string, int> ch in s_d)
             {
                 if (ch.Value >= minFreq && ParallelCorpus.IsPreDefinedToken(ch.Key) == false)
                 {
@@ -176,7 +168,7 @@ namespace Seq2SeqSharp
 
 
             q = 3;
-            foreach (var ch in t_d)
+            foreach (KeyValuePair<string, int> ch in t_d)
             {
                 if (ch.Value >= minFreq && ParallelCorpus.IsPreDefinedToken(ch.Key) == false)
                 {
@@ -196,7 +188,7 @@ namespace Seq2SeqSharp
         public void DumpTargetVocab(string fileName)
         {
             List<string> lines = new List<string>();
-            foreach (var pair in m_tgtIndexToWord)
+            foreach (KeyValuePair<int, string> pair in m_tgtIndexToWord)
             {
                 lines.Add($"{pair.Key}\t{pair.Value}");
             }
@@ -208,7 +200,7 @@ namespace Seq2SeqSharp
         public void DumpSourceVocab(string fileName)
         {
             List<string> lines = new List<string>();
-            foreach (var pair in m_srcIndexToWord)
+            foreach (KeyValuePair<int, string> pair in m_srcIndexToWord)
             {
                 lines.Add($"{pair.Key}\t{pair.Value}");
             }
@@ -220,9 +212,9 @@ namespace Seq2SeqSharp
         public List<string> ConvertTargetIdsToString(List<int> idxs)
         {
             List<string> result = new List<string>();
-            foreach (var idx in idxs)
+            foreach (int idx in idxs)
             {
-                var letter = ParallelCorpus.UNK;
+                string letter = ParallelCorpus.UNK;
                 if (m_tgtIndexToWord.ContainsKey(idx))
                 {
                     letter = m_tgtIndexToWord[idx];
@@ -235,8 +227,7 @@ namespace Seq2SeqSharp
 
         public int GetSourceWordIndex(string word, bool logUnk = false)
         {
-            int id;
-            if (!SrcWordToIndex.TryGetValue(word, out id))
+            if (!SrcWordToIndex.TryGetValue(word, out int id))
             {
                 id = (int)SENTTAGS.UNK;
                 if (logUnk)
@@ -249,8 +240,7 @@ namespace Seq2SeqSharp
 
         public int GetTargetWordIndex(string word)
         {
-            int id;
-            if (!TgtWordToIndex.TryGetValue(word, out id))
+            if (!TgtWordToIndex.TryGetValue(word, out int id))
             {
                 id = (int)SENTTAGS.UNK;
             }

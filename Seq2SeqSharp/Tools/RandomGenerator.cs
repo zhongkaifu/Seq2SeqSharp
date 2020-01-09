@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Seq2SeqSharp
 {
@@ -13,7 +9,7 @@ namespace Seq2SeqSharp
         public static bool Return_V { get; set; }
         public static float V_Val { get; set; }
 
-        private static Random random = new Random(DateTime.Now.Millisecond);
+        private static readonly Random random = new Random(DateTime.Now.Millisecond);
         public static float GaussRandom()
         {
             if (Return_V)
@@ -21,12 +17,16 @@ namespace Seq2SeqSharp
                 Return_V = false;
                 return V_Val;
             }
-            var u = 2 * random.NextDouble() - 1;
-            var v = 2 * random.NextDouble() - 1;
-            var r = (u * u) + (v * v);
+            double u = 2 * random.NextDouble() - 1;
+            double v = 2 * random.NextDouble() - 1;
+            double r = (u * u) + (v * v);
 
-            if (r == 0 || r > 1) return GaussRandom();
-            var c = Math.Sqrt(-2 * Math.Log(r) / r);
+            if (r == 0 || r > 1)
+            {
+                return GaussRandom();
+            }
+
+            double c = Math.Sqrt(-2 * Math.Log(r) / r);
             V_Val = (float)(v * c);
             Return_V = true;
             return (float)(u * c);
@@ -36,12 +36,12 @@ namespace Seq2SeqSharp
         {
 
             return (float)(random.NextDouble() * (b - a) + a);
-        
+
         }
 
         public static float IntegarRandom(float a, float b)
-        { 
-            return (float)(Math.Floor(  random.NextDouble() * (b - a) + a)); 
+        {
+            return (float)(Math.Floor(random.NextDouble() * (b - a) + a));
         }
         ////public static float NormalRandom(float mu, float std)
         ////{
@@ -55,5 +55,5 @@ namespace Seq2SeqSharp
 
 
     }
-     
+
 }

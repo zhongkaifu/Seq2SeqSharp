@@ -2,10 +2,7 @@
 using ManagedCuda.BasicTypes;
 using ManagedCuda.VectorTypes;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 
 namespace TensorSharp.CUDA
 {
@@ -34,13 +31,13 @@ namespace TensorSharp.CUDA
 
         public static dim3 GetApplyGrid(CudaDeviceProperties deviceInfo, long totalElements)
         {
-            var smCount = deviceInfo.MultiProcessorCount;
+            int smCount = deviceInfo.MultiProcessorCount;
 
             // Rationale for grid size - from cuTorch source code:
             // 16 warps per block * 4 per SM gives 64 warps per SM at maximum,
             // which seems to be a good sweetspot for latency hiding
-            var maxSize = 4 * smCount;
-            var targetSize = CeilDiv(totalElements, ApplyThreadsPerBlock);
+            int maxSize = 4 * smCount;
+            long targetSize = CeilDiv(totalElements, ApplyThreadsPerBlock);
             return new dim3((uint)Math.Min(targetSize, maxSize));
         }
 
@@ -48,7 +45,7 @@ namespace TensorSharp.CUDA
 
         public static bool CanUse32BitIndexMath(Tensor tensor)
         {
-            var elements = tensor.ElementCount();
+            long elements = tensor.ElementCount();
             if (elements >= uint.MaxValue)
             {
                 return false;
@@ -59,8 +56,8 @@ namespace TensorSharp.CUDA
 
             for (int i = tensor.DimensionCount - 1; i >= 0; --i)
             {
-                var curDimIndex = linearId % tensor.Sizes[i];
-                var curDimOffset = curDimIndex * tensor.Strides[i];
+                long curDimIndex = linearId % tensor.Sizes[i];
+                long curDimOffset = curDimIndex * tensor.Strides[i];
                 offset += curDimOffset;
                 linearId /= tensor.Sizes[i];
             }
@@ -79,8 +76,12 @@ namespace TensorSharp.CUDA
 
             public int CompareTo(object obj)
             {
-                if (!(obj is SizeAndStride)) throw new InvalidOperationException();
-                var o = (SizeAndStride)obj;
+                if (!(obj is SizeAndStride))
+                {
+                    throw new InvalidOperationException();
+                }
+
+                SizeAndStride o = (SizeAndStride)obj;
                 return -stride.CompareTo(o.stride); // negated because we require descending order
             }
         }
@@ -102,7 +103,7 @@ namespace TensorSharp.CUDA
             // `dim`, or the innermost stride is 0.
 
             // Extract size/stride arrays; only consider size >1 dims.
-            var info = Enumerable.Range(0, tensor.DimensionCount)
+            SizeAndStride[] info = Enumerable.Range(0, tensor.DimensionCount)
                 .Select(x => new SizeAndStride() { size = tensor.Sizes[x], stride = tensor.Strides[x] })
                 .Where(x => x.size > 1)
                 .ToArray();
@@ -160,12 +161,15 @@ namespace TensorSharp.CUDA
         public static int CollapseDims(Tensor tensor, int excludeDim, out TensorInfo info)
         {
             info.buffer = CudaHelpers.GetBufferStart(tensor);
-            var firstNonOneDim = GetInnermostNon1Dim(tensor.Sizes, excludeDim);
+            int firstNonOneDim = GetInnermostNon1Dim(tensor.Sizes, excludeDim);
 
             // If all dims are size 1 (ie. tensor contains 1 element)
             if (firstNonOneDim == -1)
             {
-                if (excludeDim != -1) throw new ArgumentException("excludeDim must equal -1 if all dims are of size 1", "excludeDim");
+                if (excludeDim != -1)
+                {
+                    throw new ArgumentException("excludeDim must equal -1 if all dims are of size 1", "excludeDim");
+                }
 
                 info.sizes = new long[] { 1 };
                 info.strides = new long[] { 1 };
@@ -185,13 +189,13 @@ namespace TensorSharp.CUDA
             // dimensions.
             // size/strideInner are the size/strides of the previous inner
             // non-collapsible dim we encounter.
-            var sizeInner = tensor.Sizes[firstNonOneDim];
-            var strideInner = tensor.Strides[firstNonOneDim];
+            long sizeInner = tensor.Sizes[firstNonOneDim];
+            long strideInner = tensor.Strides[firstNonOneDim];
 
             for (int i = firstNonOneDim - 1; i >= 0; --i)
             {
-                var sizeOuter = tensor.Sizes[i];
-                var strideOuter = tensor.Strides[i];
+                long sizeOuter = tensor.Sizes[i];
+                long strideOuter = tensor.Strides[i];
 
                 // Don't collapse this dimension if we want to exclude it from
                 // collapsing.
@@ -228,8 +232,8 @@ namespace TensorSharp.CUDA
             }
 
             // This will be our new size/stride and dimension.
-            var newSizes = new long[TSCudaContext.MaxDims];
-            var newStrides = new long[TSCudaContext.MaxDims];
+            long[] newSizes = new long[TSCudaContext.MaxDims];
+            long[] newStrides = new long[TSCudaContext.MaxDims];
 
             int newDims = tensor.DimensionCount - numCollapsed;
 
@@ -250,8 +254,8 @@ namespace TensorSharp.CUDA
 
             for (int i = firstNonOneDim - 1; i >= 0; --i)
             {
-                var sizeOuter = tensor.Sizes[i];
-                var strideOuter = tensor.Strides[i];
+                long sizeOuter = tensor.Sizes[i];
+                long strideOuter = tensor.Strides[i];
 
                 if ((excludeDim != i) && (excludeDim != i + 1))
                 {

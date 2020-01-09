@@ -2,8 +2,6 @@
 using ManagedCuda.BasicTypes;
 using ManagedCuda.VectorTypes;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using TensorSharp.Core;
 using TensorSharp.CUDA.RuntimeCompiler;
@@ -144,7 +142,7 @@ __device__ void indexSelectLargeIndex(TensorInfo<IndexType> dst,
 
         private static string GetCode()
         {
-            var sb = new StringBuilder();
+            StringBuilder sb = new StringBuilder();
             sb.AppendLine(Code);
             sb.AppendLine(GetMacroInvocation(true, true, 1, 1, -2));
             sb.AppendLine(GetMacroInvocation(true, true, 2, 2, -2));
@@ -162,7 +160,7 @@ __device__ void indexSelectLargeIndex(TensorInfo<IndexType> dst,
 
         private static string GetMacroInvocation(bool isSmall, bool is32, int dstDims, int srcDims, int idxDims)
         {
-            var kernelName = MakeKernelName(isSmall, is32, dstDims, srcDims, idxDims);
+            string kernelName = MakeKernelName(isSmall, is32, dstDims, srcDims, idxDims);
             return string.Format("{0}({1}, {2}, {3}, {4}, {5})",
                 isSmall ? "DECLARE_SMALL" : "DECLARE_LARGE",
                 kernelName,
@@ -174,12 +172,12 @@ __device__ void indexSelectLargeIndex(TensorInfo<IndexType> dst,
 
         public Tensor IndexSelect(Tensor result, Tensor src, int dim, Tensor indices)
         {
-            var context = CudaHelpers.TSContextForTensor(src);
-            var cudaContext = context.CudaContextForTensor(src);
+            TSCudaContext context = CudaHelpers.TSContextForTensor(src);
+            CudaContext cudaContext = context.CudaContextForTensor(src);
 
-            var requiredOutputSize = (long[])src.Sizes.Clone();
+            long[] requiredOutputSize = (long[])src.Sizes.Clone();
             requiredOutputSize[dim] = 1;
-            var writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, requiredOutputSize);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, requiredOutputSize);
 
 
             // The `src` is partitioned into two parts:
@@ -187,26 +185,26 @@ __device__ void indexSelectLargeIndex(TensorInfo<IndexType> dst,
             // total size of the tensor ignoring dimension `dim`;
             // -the number of indices we are choosing, which is the total size
             // of the tensor `indices`.
-            var numIndices = indices.ElementCount();
-            var dstTotalSize = writeTarget.ElementCount();
-            var srcSelectDimSize = src.Sizes[dim];
-            var sliceSize = dstTotalSize / numIndices;
+            long numIndices = indices.ElementCount();
+            long dstTotalSize = writeTarget.ElementCount();
+            long srcSelectDimSize = src.Sizes[dim];
+            long sliceSize = dstTotalSize / numIndices;
 
-            var mpc = context.DeviceInfoForContext(cudaContext).MultiProcessorCount;
-            var smallIndexGrid = new dim3((uint)Math.Min(ApplyUtils.CeilDiv(sliceSize, 128), (mpc * 8)));
-            var smallIndexBlock = new dim3((uint)Math.Min(sliceSize, 128));
+            int mpc = context.DeviceInfoForContext(cudaContext).MultiProcessorCount;
+            dim3 smallIndexGrid = new dim3((uint)Math.Min(ApplyUtils.CeilDiv(sliceSize, 128), (mpc * 8)));
+            dim3 smallIndexBlock = new dim3((uint)Math.Min(sliceSize, 128));
 
-            var largeIndexGrid = new dim3((uint)Math.Min(ApplyUtils.CeilDiv(dstTotalSize, 128), (mpc * 8)));
-            var largeIndexBlock = new dim3((uint)Math.Min(dstTotalSize, 128));
+            dim3 largeIndexGrid = new dim3((uint)Math.Min(ApplyUtils.CeilDiv(dstTotalSize, 128), (mpc * 8)));
+            dim3 largeIndexBlock = new dim3((uint)Math.Min(dstTotalSize, 128));
 
 
-            var newResultSize = (long[])writeTarget.Sizes.Clone();
+            long[] newResultSize = (long[])writeTarget.Sizes.Clone();
             newResultSize[dim] = 1;
-            var resultFlat = new Tensor(newResultSize, writeTarget.Strides, writeTarget.Storage, writeTarget.StorageOffset);
+            Tensor resultFlat = new Tensor(newResultSize, writeTarget.Strides, writeTarget.Storage, writeTarget.StorageOffset);
 
-            var newSrcSize = (long[])src.Sizes.Clone();
+            long[] newSrcSize = (long[])src.Sizes.Clone();
             newSrcSize[dim] = 1;
-            var srcFlat = new Tensor(newSrcSize, src.Strides, src.Storage, src.StorageOffset);
+            Tensor srcFlat = new Tensor(newSrcSize, src.Strides, src.Storage, src.StorageOffset);
 
 
             if (ApplyUtils.CanUse32BitIndexMath(writeTarget) &&
@@ -214,9 +212,9 @@ __device__ void indexSelectLargeIndex(TensorInfo<IndexType> dst,
                 ApplyUtils.CanUse32BitIndexMath(indices))
             {
                 // Threshold for small kernel
-                var smallKernel = numIndices <= 16;
+                bool smallKernel = numIndices <= 16;
                 string kernelName = "";
-                var indContig = indices.IsContiguous();
+                bool indContig = indices.IsContiguous();
 
                 if (writeTarget.DimensionCount == src.DimensionCount &&
                     writeTarget.DimensionCount <= 3 &&
@@ -229,20 +227,20 @@ __device__ void indexSelectLargeIndex(TensorInfo<IndexType> dst,
                     kernelName = MakeKernelName(smallKernel, true, -1, -1, -1);
                 }
 
-                var grid = smallKernel ? smallIndexGrid : largeIndexGrid;
-                var block = smallKernel ? smallIndexBlock : largeIndexBlock;
+                dim3 grid = smallKernel ? smallIndexGrid : largeIndexGrid;
+                dim3 block = smallKernel ? smallIndexBlock : largeIndexBlock;
                 Invoke(context, cudaContext, kernelName, grid, block, 0, CUstream.NullStream, true,
                     writeTarget, src, indices, dim, dim, sliceSize, srcSelectDimSize);
             }
             else
             {
-                var kernelName = MakeKernelName(false, false, -1, -1, -1);
-                
+                string kernelName = MakeKernelName(false, false, -1, -1, -1);
+
                 Invoke(context, cudaContext, kernelName, largeIndexGrid, largeIndexBlock, 0, CUstream.NullStream, false,
                     writeTarget, src, indices, dim, dim, dstTotalSize, sliceSize, srcSelectDimSize);
             }
 
-            
+
 
             return writeTarget;
         }
@@ -251,8 +249,8 @@ __device__ void indexSelectLargeIndex(TensorInfo<IndexType> dst,
         {
             ConvertTensorArgs.Convert(cudaContext, index32, args);
 
-            var ptx = GetPtx(context.Compiler);
-            var kernel = context.KernelCache.Get(cudaContext, ptx, kernelName);
+            byte[] ptx = GetPtx(context.Compiler);
+            CudaKernel kernel = context.KernelCache.Get(cudaContext, ptx, kernelName);
             kernel.GridDimensions = grid;
             kernel.BlockDimensions = block;
             kernel.DynamicSharedMemory = smemSize;

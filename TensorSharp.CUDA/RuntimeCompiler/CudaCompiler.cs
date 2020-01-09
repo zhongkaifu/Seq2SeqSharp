@@ -1,7 +1,5 @@
-﻿using ManagedCuda;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -23,24 +21,24 @@ namespace TensorSharp.CUDA.RuntimeCompiler
         {
             // We manually prepend include files here, so that the header content forms part of the hash of the source
             // code. This means that changes to headers will correctly trigger a recompile.
-            var finalCode = new StringBuilder();
-            foreach (var includeName in prependIncludes)
+            StringBuilder finalCode = new StringBuilder();
+            foreach (string includeName in prependIncludes)
             {
                 finalCode.Append(includes[includeName]).Append('\n');
             }
             finalCode.Append(code);
-            var finalCodeString = finalCode.ToString();
+            string finalCodeString = finalCode.ToString();
 
             return diskCache.Get(finalCodeString, DoCompile);
         }
 
         private byte[] DoCompile(string fullSource)
         {
-            var rtc = new ManagedCuda.NVRTC.CudaRuntimeCompiler(fullSource, null);
+            ManagedCuda.NVRTC.CudaRuntimeCompiler rtc = new ManagedCuda.NVRTC.CudaRuntimeCompiler(fullSource, null);
 
             try
             {
-                rtc.Compile(new string[] {"--use_fast_math" });
+                rtc.Compile(new string[] { "--use_fast_math" });
             }
             catch
             {
@@ -52,17 +50,17 @@ namespace TensorSharp.CUDA.RuntimeCompiler
 
         public void RegisterHeader(string name, string content)
         {
-            this.includes.Add(name, content);
+            includes.Add(name, content);
         }
 
 
         private void RegisterAttributeHeaders(Assembly assembly)
         {
-            foreach (var applyType in assembly.TypesWithAttribute<CudaIncludeAttribute>(false))
+            foreach (Tuple<Type, IEnumerable<CudaIncludeAttribute>> applyType in assembly.TypesWithAttribute<CudaIncludeAttribute>(false))
             {
-                foreach(var attribute in applyType.Item2)
+                foreach (CudaIncludeAttribute attribute in applyType.Item2)
                 {
-                    var info = HeaderInfoFromAttribute(applyType.Item1, attribute);
+                    Tuple<string, string> info = HeaderInfoFromAttribute(applyType.Item1, attribute);
                     RegisterHeader(info.Item1, info.Item2);
                 }
             }
@@ -70,8 +68,8 @@ namespace TensorSharp.CUDA.RuntimeCompiler
 
         private Tuple<string, string> HeaderInfoFromAttribute(Type containingType, CudaIncludeAttribute attribute)
         {
-            var field = containingType.GetField(attribute.FieldName, BindingFlags.Public | BindingFlags.Static);
-            var content = (string)field.GetValue(null);
+            FieldInfo field = containingType.GetField(attribute.FieldName, BindingFlags.Public | BindingFlags.Static);
+            string content = (string)field.GetValue(null);
             return Tuple.Create(attribute.IncludeName, content);
         }
     }

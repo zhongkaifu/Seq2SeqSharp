@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace TensorSharp.CUDA.DeviceCode
+﻿namespace TensorSharp.CUDA.DeviceCode
 {
     [Precompile]
     public class CudaReduceKernels : CudaCode
@@ -15,9 +10,9 @@ namespace TensorSharp.CUDA.DeviceCode
 
         private static string GetFullCode()
         {
-            var identity = "return a;";
+            string identity = "return a;";
 
-            var result = new PermutationGenerator();
+            PermutationGenerator result = new PermutationGenerator();
             result.AddReduce("sum", identity, "return a + b;");
             result.AddReduce("prod", identity, "return a * b;");
             result.AddReduce("min", identity, "return min(a, b);");

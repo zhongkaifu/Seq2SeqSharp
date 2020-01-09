@@ -1,9 +1,5 @@
 ﻿using AdvUtils;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TensorSharp;
 using TensorSharp.Cpu;
 using TensorSharp.CUDA;
@@ -25,7 +21,7 @@ namespace Seq2SeqSharp
             {
                 m_deviceIds = ids;
 
-                foreach (var id in m_deviceIds)
+                foreach (int id in m_deviceIds)
                 {
                     Logger.WriteLine($"Initialize device '{id}'");
                 }

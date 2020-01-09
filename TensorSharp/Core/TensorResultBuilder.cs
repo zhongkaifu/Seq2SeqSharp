@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace TensorSharp.Core
 {
@@ -19,7 +16,7 @@ namespace TensorSharp.Core
             {
                 if (!MatchesRequirements(maybeResult, requireContiguous, requiredSizes))
                 {
-                    var message = string.Format("output tensor does not match requirements. Tensor must have sizes {0}{1}",
+                    string message = string.Format("output tensor does not match requirements. Tensor must have sizes {0}{1}",
                         string.Join(", ", requiredSizes),
                         requireContiguous ? "; and must be contiguous" : "");
 
@@ -46,12 +43,16 @@ namespace TensorSharp.Core
         public static bool ArrayEqual<T>(T[] a, T[] b)
         {
             if (a.Length != b.Length)
+            {
                 return false;
+            }
 
-            for(int i = 0; i < a.Length; ++i)
+            for (int i = 0; i < a.Length; ++i)
             {
                 if (!a[i].Equals(b[i]))
+                {
                     return false;
+                }
             }
 
             return true;
@@ -60,15 +61,21 @@ namespace TensorSharp.Core
         public static bool ArrayEqualExcept<T>(T[] a, T[] b, int ignoreIndex)
         {
             if (a.Length != b.Length)
+            {
                 return false;
+            }
 
             for (int i = 0; i < a.Length; ++i)
             {
                 if (i == ignoreIndex)
+                {
                     continue;
+                }
 
                 if (!a[i].Equals(b[i]))
+                {
                     return false;
+                }
             }
 
             return true;

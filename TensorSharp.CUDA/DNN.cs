@@ -462,7 +462,7 @@
 //                }
 //            }
 //        }
-        
+
 
 //        private static CudaDeviceVariable<float> GetDeviceVar(Tensor tensor)
 //        {

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 
 namespace TensorSharp
 {
@@ -10,9 +9,9 @@ namespace TensorSharp
     {
         public static IEnumerable<Tuple<Type, IEnumerable<T>>> TypesWithAttribute<T>(this Assembly assembly, bool inherit)
         {
-            foreach (var type in assembly.GetTypes())
+            foreach (Type type in assembly.GetTypes())
             {
-                var attributes = type.GetCustomAttributes(typeof(T), inherit);
+                object[] attributes = type.GetCustomAttributes(typeof(T), inherit);
                 if (attributes.Any())
                 {
                     yield return Tuple.Create(type, attributes.Cast<T>());
@@ -25,9 +24,9 @@ namespace TensorSharp
     {
         public static IEnumerable<Tuple<MethodInfo, IEnumerable<T>>> MethodsWithAttribute<T>(this Type type, bool inherit)
         {
-            foreach (var method in type.GetMethods())
+            foreach (MethodInfo method in type.GetMethods())
             {
-                var attributes = method.GetCustomAttributes(typeof(T), inherit);
+                object[] attributes = method.GetCustomAttributes(typeof(T), inherit);
                 if (attributes.Any())
                 {
                     yield return Tuple.Create(method, attributes.Cast<T>());
@@ -40,9 +39,9 @@ namespace TensorSharp
     {
         public static IEnumerable<Tuple<ParameterInfo, IEnumerable<T>>> ParametersWithAttribute<T>(this MethodInfo method, bool inherit)
         {
-            foreach (var paramter in method.GetParameters())
+            foreach (ParameterInfo paramter in method.GetParameters())
             {
-                var attributes = paramter.GetCustomAttributes(typeof(T), inherit);
+                object[] attributes = paramter.GetCustomAttributes(typeof(T), inherit);
                 if (attributes.Any())
                 {
                     yield return Tuple.Create(paramter, attributes.Cast<T>());

@@ -4,8 +4,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.Tools
 {
@@ -17,8 +15,8 @@ namespace Seq2SeqSharp.Tools
 
     public class SntPairBatch
     {
-        public List<SntPair> SntPairs; 
-        public int BatchSize { get { return SntPairs.Count; } }
+        public List<SntPair> SntPairs;
+        public int BatchSize => SntPairs.Count;
 
         public SntPairBatch(List<SntPair> sntPairs)
         {
@@ -28,17 +26,16 @@ namespace Seq2SeqSharp.Tools
 
     public class ParallelCorpus : IEnumerable<SntPairBatch>
     {
-        int m_maxSentLength = 32;
-        int m_blockSize = 1000000;
-        int m_batchSize = 1;
-        bool m_addBOSEOS = true;
-
-        List<string> m_srcFileList;
-        List<string> m_tgtFileList;
+        private readonly int m_maxSentLength = 32;
+        private readonly int m_blockSize = 1000000;
+        private readonly int m_batchSize = 1;
+        private readonly bool m_addBOSEOS = true;
+        private readonly List<string> m_srcFileList;
+        private readonly List<string> m_tgtFileList;
 
         public int CorpusSize = 0;
 
-        public int BatchSize { get { return m_batchSize; } }
+        public int BatchSize => m_batchSize;
 
         public const string EOS = "<END>";
         public const string BOS = "<START>";
@@ -50,9 +47,9 @@ namespace Seq2SeqSharp.Tools
             return str == EOS || str == BOS || str == UNK;
         }
 
-        Random rnd = new Random(DateTime.Now.Millisecond);
+        private readonly Random rnd = new Random(DateTime.Now.Millisecond);
 
-        void Shuffle(List<SntPair> sntPairs)
+        private void Shuffle(List<SntPair> sntPairs)
         {
             //Put sentence pair with same source length into the bucket
             Dictionary<int, List<SntPair>> dict = new Dictionary<int, List<SntPair>>(); //<source sentence length, sentence pair set>
@@ -68,7 +65,7 @@ namespace Seq2SeqSharp.Tools
             //Randomized the order of sentence pairs with same length in source side
             foreach (KeyValuePair<int, List<SntPair>> pair in dict)
             {
-                var sntPairList = pair.Value;
+                List<SntPair> sntPairList = pair.Value;
                 for (int i = 0; i < sntPairList.Count; i++)
                 {
                     int idx = rnd.Next(0, sntPairList.Count);
@@ -99,11 +96,11 @@ namespace Seq2SeqSharp.Tools
                 keys[idx] = tmp;
             }
 
-            foreach (var key in keys)
+            foreach (int key in keys)
             {
                 sntPairs.AddRange(sdict[key]);
             }
-            
+
         }
 
         private (string, string) ShuffleAll()
@@ -118,7 +115,7 @@ namespace Seq2SeqSharp.Tools
 
             List<SntPair> sntPairs = new List<SntPair>();
             CorpusSize = 0;
-            var tooLongSntCnt = 0;
+            int tooLongSntCnt = 0;
             for (int i = 0; i < m_srcFileList.Count; i++)
             {
                 StreamReader srSrc = new StreamReader(m_srcFileList[i]);
@@ -132,8 +129,8 @@ namespace Seq2SeqSharp.Tools
                     {
                         break;
                     }
-                
-                    sntPair.SrcSnt = line.Split(new char[]{ ' '}, StringSplitOptions.RemoveEmptyEntries);
+
+                    sntPair.SrcSnt = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
                     line = srTgt.ReadLine();
                     sntPair.TgtSnt = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
@@ -149,10 +146,10 @@ namespace Seq2SeqSharp.Tools
                     if (m_blockSize > 0 && sntPairs.Count >= m_blockSize)
                     {
                         Shuffle(sntPairs);
-                        foreach (var item in sntPairs)
+                        foreach (SntPair item in sntPairs)
                         {
-                            swSrc.WriteLine(String.Join(" ", item.SrcSnt));
-                            swTgt.WriteLine(String.Join(" ", item.TgtSnt));
+                            swSrc.WriteLine(string.Join(" ", item.SrcSnt));
+                            swTgt.WriteLine(string.Join(" ", item.TgtSnt));
                         }
                         sntPairs.Clear();
                     }
@@ -165,10 +162,10 @@ namespace Seq2SeqSharp.Tools
             if (sntPairs.Count > 0)
             {
                 Shuffle(sntPairs);
-                foreach (var item in sntPairs)
+                foreach (SntPair item in sntPairs)
                 {
-                    swSrc.WriteLine(String.Join(" ", item.SrcSnt));
-                    swTgt.WriteLine(String.Join(" ", item.TgtSnt));
+                    swSrc.WriteLine(string.Join(" ", item.SrcSnt));
+                    swTgt.WriteLine(string.Join(" ", item.TgtSnt));
                 }
 
                 sntPairs.Clear();
@@ -187,7 +184,7 @@ namespace Seq2SeqSharp.Tools
 
             return (srcShuffledFilePath, tgtShuffledFilePath);
         }
-       
+
         public IEnumerator<SntPairBatch> GetEnumerator()
         {
             (string srcShuffledFilePath, string tgtShuffledFilePath) = ShuffleAll();
@@ -219,7 +216,7 @@ namespace Seq2SeqSharp.Tools
                         line = srTgt.ReadLine().ToLower().Trim();
                         if (m_addBOSEOS)
                         {
-                            line = $"{line} {EOS}";                            
+                            line = $"{line} {EOS}";
                         }
                         sntPair.TgtSnt = line.Split(' ');
 
@@ -271,7 +268,7 @@ namespace Seq2SeqSharp.Tools
                 inputSeq.Add(ParallelCorpus.EOS);
             }
 
-            var inputSeqs = new List<List<string>>() { inputSeq };
+            List<List<string>> inputSeqs = new List<List<string>>() { inputSeq };
 
             return inputSeqs;
         }
@@ -286,7 +283,7 @@ namespace Seq2SeqSharp.Tools
             List<int> originalLengths = new List<int>();
 
             int maxLen = -1;
-            foreach (var item in s)
+            foreach (List<string> item in s)
             {
                 if (item.Count > maxLen)
                 {
@@ -324,7 +321,7 @@ namespace Seq2SeqSharp.Tools
                 }
 
                 int idx = rnd.Next(0, sntPairs.Count);
-                var tmp = sntPairs[i];
+                SntPair tmp = sntPairs[i];
                 sntPairs[i] = sntPairs[idx];
                 sntPairs[idx] = tmp;
             }

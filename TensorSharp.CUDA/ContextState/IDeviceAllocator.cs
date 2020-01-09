@@ -1,9 +1,5 @@
-﻿using ManagedCuda;
-using ManagedCuda.BasicTypes;
+﻿using ManagedCuda.BasicTypes;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace TensorSharp.CUDA.ContextState
 {

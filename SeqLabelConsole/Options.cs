@@ -1,13 +1,8 @@
 ﻿using AdvUtils;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SeqLabelConsole
 {
-    class Options
+    internal class Options
     {
         [Arg("Task name. It could be Train, Valid, Test, VisualizeNetwork or Help", "TaskName")]
         public string TaskName = "Help";
@@ -97,7 +92,7 @@ namespace SeqLabelConsole
         public string VisualizeNNFilePath;
 
         [Arg("The file path of config file for parameters", "ConfigFilePath")]
-        public string ConfigFilePath = String.Empty;
+        public string ConfigFilePath = string.Empty;
 
         [Arg("The beta1 for optimizer", "Beta1")]
         public float Beta1 = 0.9f;
