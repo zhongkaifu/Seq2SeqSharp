@@ -94,10 +94,13 @@ namespace Seq2SeqSharp
                 string[] items = line.Split('\t');
                 string word = items[0];
 
-                m_srcVocab.Add(word);
-                SrcWordToIndex[word] = q;
-                m_srcIndexToWord[q] = word;
-                q++;
+                if (ParallelCorpus.IsPreDefinedToken(word) == false)
+                {
+                    m_srcVocab.Add(word);
+                    SrcWordToIndex[word] = q;
+                    m_srcIndexToWord[q] = word;
+                    q++;
+                }
             }
 
             q = 3;
@@ -106,10 +109,13 @@ namespace Seq2SeqSharp
                 string[] items = line.Split('\t');
                 string word = items[0];
 
-                m_tgtVocab.Add(word);
-                TgtWordToIndex[word] = q;
-                m_tgtIndexToWord[q] = word;
-                q++;
+                if (ParallelCorpus.IsPreDefinedToken(word) == false)
+                {
+                    m_tgtVocab.Add(word);
+                    TgtWordToIndex[word] = q;
+                    m_tgtIndexToWord[q] = word;
+                    q++;
+                }
             }
 
         }
@@ -190,7 +196,7 @@ namespace Seq2SeqSharp
             List<string> lines = new List<string>();
             foreach (KeyValuePair<int, string> pair in m_tgtIndexToWord)
             {
-                lines.Add($"{pair.Key}\t{pair.Value}");
+                lines.Add($"{pair.Value}\t{pair.Key}");
             }
 
             File.WriteAllLines(fileName, lines);
@@ -202,7 +208,7 @@ namespace Seq2SeqSharp
             List<string> lines = new List<string>();
             foreach (KeyValuePair<int, string> pair in m_srcIndexToWord)
             {
-                lines.Add($"{pair.Key}\t{pair.Value}");
+                lines.Add($"{pair.Value}\t{pair.Key}");
             }
 
             File.WriteAllLines(fileName, lines);

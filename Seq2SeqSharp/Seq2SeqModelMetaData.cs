@@ -12,6 +12,7 @@ namespace Seq2SeqSharp
         public int MultiHeadNum;
         public EncoderTypeEnums EncoderType;
         public Vocab Vocab;
+        public bool EnableCoverageModel = true;
 
         public Seq2SeqModelMetaData()
         {

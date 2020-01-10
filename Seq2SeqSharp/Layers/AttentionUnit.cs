@@ -3,6 +3,7 @@ using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 
 namespace Seq2SeqSharp
 {
@@ -29,17 +30,18 @@ namespace Seq2SeqSharp
         private readonly int m_contextDim;
         private readonly int m_deviceId;
 
-        private bool m_enableCoverageModel = true;
+        private bool m_enableCoverageModel;
         private readonly IWeightTensor m_Wc;
         private readonly IWeightTensor m_bWc;
         private readonly LSTMCell m_coverage;
 
-        public AttentionUnit(string name, int hiddenDim, int contextDim, int deviceId)
+        public AttentionUnit(string name, int hiddenDim, int contextDim, int deviceId, bool enableCoverageModel)
         {
             m_name = name;
             m_hiddenDim = hiddenDim;
             m_contextDim = contextDim;
             m_deviceId = deviceId;
+            m_enableCoverageModel = enableCoverageModel;
 
             Logger.WriteLine($"Creating attention unit '{name}' HiddenDim = '{hiddenDim}', ContextDim = '{contextDim}', DeviceId = '{deviceId}'");
 
@@ -178,7 +180,7 @@ namespace Seq2SeqSharp
 
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
-            AttentionUnit a = new AttentionUnit(m_name, m_hiddenDim, m_contextDim, deviceId);
+            AttentionUnit a = new AttentionUnit(m_name, m_hiddenDim, m_contextDim, deviceId, m_enableCoverageModel);
             return a;
         }
     }

@@ -23,10 +23,11 @@ namespace Seq2SeqSharp
         private readonly int m_deviceId;
         private readonly AttentionUnit m_attentionLayer;
         private readonly string m_name;
+        private readonly bool m_enableCoverageModel;
 
-        public AttentionDecoder(string name, int hiddenDim, int embeddingDim, int contextDim, int outputDim, float dropoutRatio, int depth, int deviceId)
+        public AttentionDecoder(string name, int hiddenDim, int embeddingDim, int contextDim, int outputDim, float dropoutRatio, int depth, int deviceId, bool enableCoverageModel)
         {
-            m_attentionLayer = new AttentionUnit($"{name}.AttnUnit", hiddenDim, contextDim, deviceId);
+            m_attentionLayer = new AttentionUnit($"{name}.AttnUnit", hiddenDim, contextDim, deviceId, enableCoverageModel);
 
             m_name = name;
             m_hdim = hiddenDim;
@@ -36,6 +37,7 @@ namespace Seq2SeqSharp
             m_deviceId = deviceId;
             m_outputDim = outputDim;
             m_dropoutRatio = dropoutRatio;
+            m_enableCoverageModel = enableCoverageModel;
 
             m_decoders.Add(new LSTMAttentionDecoderCell($"{name}.LSTMAttn_0", hiddenDim, embeddingDim, contextDim, deviceId));
             for (int i = 1; i < depth; i++)
@@ -54,7 +56,7 @@ namespace Seq2SeqSharp
 
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
-            return new AttentionDecoder(m_name, m_hdim, m_embDim, m_context, m_outputDim, m_dropoutRatio, m_depth, deviceId);
+            return new AttentionDecoder(m_name, m_hdim, m_embDim, m_context, m_outputDim, m_dropoutRatio, m_depth, deviceId, m_enableCoverageModel);
         }
 
 

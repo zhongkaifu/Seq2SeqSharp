@@ -162,6 +162,11 @@ namespace Seq2SeqConsole
 
                 ss.VisualizeNeuralNetwork(opts.VisualizeNNFilePath);
             }
+            else if (mode == ModeEnums.DumpVocab)
+            {
+                ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds);
+                ss.DumpVocabToFiles(opts.SrcVocab, opts.TgtVocab);
+            }
             else
             {
                 argParser.Usage();

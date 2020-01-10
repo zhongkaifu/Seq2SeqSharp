@@ -4,7 +4,7 @@ namespace Seq2SeqConsole
 {
     internal class Options
     {
-        [Arg("Task name. It could be Train, Valid, Test, VisualizeNetwork or Help", "TaskName")]
+        [Arg("Task name. It could be Train, Valid, Test, VisualizeNetwork, DumpVocab or Help", "TaskName")]
         public string TaskName = "Help";
 
         [Arg("The vector size of encoded source word.", "WordVectorSize")]

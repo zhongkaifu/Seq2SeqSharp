@@ -6,6 +6,7 @@
         Valid,
         Test,
         VisualizeNetwork,
+        DumpVocab,
         Help
     }
 }
