@@ -37,18 +37,6 @@
     <Reference Include="AdvUtils">
       <HintPath>..\dll\AdvUtils.dll</HintPath>
     </Reference>
-    <Reference Include="ManagedCuda, Version=10.0.31.0, Culture=neutral, PublicKeyToken=242d898828717aa0, processorArchitecture=MSIL">
-      <HintPath>..\packages\ManagedCuda-100.10.0.31\lib\net46\ManagedCuda.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Msagl, Version=3.0.0.0, Culture=neutral, PublicKeyToken=640c57aa40e7ae7d, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Msagl.1.1.3\lib\net40\Microsoft.Msagl.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Msagl.Drawing, Version=3.0.0.0, Culture=neutral, PublicKeyToken=8a3d7c21d5fa1306, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Msagl.Drawing.1.1.3\lib\net40\Microsoft.Msagl.Drawing.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Msagl.GraphViewerGdi, Version=3.0.0.0, Culture=neutral, PublicKeyToken=fffc27ea4058b3a1, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Msagl.GraphViewerGDI.1.1.3\lib\net40\Microsoft.Msagl.GraphViewerGdi.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
@@ -108,7 +96,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TensorSharp.CUDA\TensorSharp.CUDA.csproj">
@@ -119,6 +106,14 @@
       <Project>{75332198-952c-48de-9f2b-21f49bc68ed2}</Project>
       <Name>TensorSharp</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="ManagedCuda-100">
+      <Version>10.0.31</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Msagl.GraphViewerGDI">
+      <Version>1.1.3</Version>
+    </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
