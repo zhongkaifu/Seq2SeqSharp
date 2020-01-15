@@ -1,7 +1,4 @@
-﻿using Microsoft.Msagl.Drawing;
-using Microsoft.Msagl.Layout.Incremental;
-using Microsoft.Msagl.Layout.Layered;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
@@ -67,12 +64,6 @@ namespace Seq2SeqSharp.Tools
         private readonly int m_deviceId;
         private readonly bool m_isSubGraph;
 
-        // Visualization for neural network
-        private Microsoft.Msagl.Drawing.Graph m_opsViz;
-        private HashSet<string> m_setEdges;
-        private Microsoft.Msagl.Drawing.Subgraph m_subGraph = null;
-        private Dictionary<string, Microsoft.Msagl.Drawing.Subgraph> m_name2SubGraph = null;
-
         public ComputeGraphTensor(IWeightFactory weightFactory, int deviceId, bool needBack = true, bool visNetwork = false, ConcurrentList<Action> backprop = null, bool isSubGraph = false)
         {
             m_backprop = backprop != null ? backprop : new ConcurrentList<Action>();
@@ -81,14 +72,6 @@ namespace Seq2SeqSharp.Tools
             m_deviceId = deviceId;
             m_visNeuralNetwork = visNetwork;
             m_isSubGraph = isSubGraph;
-
-            m_name2SubGraph = new Dictionary<string, Subgraph>();
-            if (m_visNeuralNetwork)
-            {
-                // Initialize parameters for neural network visualization
-                m_opsViz = new Microsoft.Msagl.Drawing.Graph();
-                m_setEdges = new HashSet<string>();
-            }
         }
 
         public IWeightFactory GetWeightFactory()
@@ -99,36 +82,6 @@ namespace Seq2SeqSharp.Tools
         public IComputeGraph CreateSubGraph(string name)
         {
             ComputeGraphTensor subGraph = new ComputeGraphTensor(m_weightTensorFactory, m_deviceId, m_needsBackprop, m_visNeuralNetwork, m_backprop, isSubGraph: true);
-            if (m_visNeuralNetwork)
-            {
-                // Create parameters for neural network visualization
-                subGraph.m_opsViz = m_opsViz;
-                subGraph.m_setEdges = m_setEdges;
-                subGraph.m_name2SubGraph = m_name2SubGraph;
-                if (m_name2SubGraph.ContainsKey(name) == false)
-                {
-                    int index = name.LastIndexOf(".");
-                    subGraph.m_subGraph = new Subgraph(name)
-                    {
-                        LabelText = name.Substring(index + 1)
-                    };
-
-                    m_name2SubGraph.Add(name, subGraph.m_subGraph);
-
-                    if (m_subGraph == null)
-                    {
-                        m_opsViz.RootSubgraph.AddSubgraph(subGraph.m_subGraph);
-                    }
-                    else
-                    {
-                        m_subGraph.AddSubgraph(subGraph.m_subGraph);
-                    }
-                }
-                else
-                {
-                    subGraph.m_subGraph = m_name2SubGraph[name];
-                }
-            }
 
             return subGraph;
         }
@@ -672,88 +625,12 @@ namespace Seq2SeqSharp.Tools
 
         private void VisualizeNodes(IWeightTensor sourceNode, IWeightTensor targetNode)
         {
-            VisualizeNodes(new IWeightTensor[] { sourceNode }, targetNode);
+            // No-op in .NET Core.
         }
 
         private void VisualizeNodes(IEnumerable<IWeightTensor> sourceNodes, IWeightTensor targetNode)
         {
-            if (!m_visNeuralNetwork || m_deviceId != 0)
-            {
-                return;
-            }
-
-            // Create node for target tensor
-            int index = targetNode.Name.LastIndexOf('.');
-            Microsoft.Msagl.Drawing.Node tgtNode = m_opsViz.AddNode(targetNode.Name);
-            tgtNode.LabelText = targetNode.Name.Substring(index + 1);
-
-            if (targetNode.IsTrainable)
-            {
-                tgtNode.Attr.FillColor = Microsoft.Msagl.Drawing.Color.LightSteelBlue;
-            }
-
-            if (m_subGraph != null)
-            {
-                // Current compute graph is a sub-graph
-                m_subGraph.AddNode(tgtNode);
-            }
-
-            // Create edges for each source node and target node
-            foreach (IWeightTensor sourceNode in sourceNodes)
-            {
-                if (!string.IsNullOrEmpty(sourceNode.Name) && !string.IsNullOrEmpty(targetNode.Name))
-                {
-                    string key = $"{sourceNode.Name}->{targetNode.Name}";
-                    if (m_setEdges.Contains(key))
-                    {
-                        continue;
-                    }
-
-                    int srcIndex = sourceNode.Name.LastIndexOf('.');
-                    Microsoft.Msagl.Drawing.Node srcNode = m_opsViz.AddNode(sourceNode.Name);
-                    srcNode.LabelText = sourceNode.Name.Substring(srcIndex + 1);
-                    if (sourceNode.IsTrainable)
-                    {
-                        srcNode.Attr.FillColor = Microsoft.Msagl.Drawing.Color.LightSteelBlue;
-
-                        if (m_subGraph != null)
-                        {
-                            m_subGraph.AddNode(srcNode);
-                        }
-                    }
-
-                    Edge edge = m_opsViz.AddEdge(sourceNode.Name, targetNode.Name);
-
-                    m_setEdges.Add(key);
-                }
-            }
-        }
-
-        public void VisualizeNeuralNetToFile(string neuralNetPicFilePath)
-        {
-            FastIncrementalLayoutSettings fastSettings = new FastIncrementalLayoutSettings
-            {
-                AvoidOverlaps = true,
-                NodeSeparation = 30,
-                RouteEdges = true
-            };
-
-            SugiyamaLayoutSettings settings = new SugiyamaLayoutSettings
-            {
-                FallbackLayoutSettings = fastSettings
-            };
-
-            m_opsViz.LayoutAlgorithmSettings = settings;
-
-            Microsoft.Msagl.GraphViewerGdi.GraphRenderer renderer = new Microsoft.Msagl.GraphViewerGdi.GraphRenderer(m_opsViz);
-            renderer.CalculateLayout();
-
-            System.Drawing.Bitmap bitmap = new System.Drawing.Bitmap((int)m_opsViz.Width, (int)m_opsViz.Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-            renderer.Render(bitmap);
-
-            bitmap.Save(neuralNetPicFilePath);
-
-            bitmap.Dispose();
+            // No-op in .NET Core.
         }
 
         public IWeightTensor RepeatRows(IWeightTensor w, int n, bool runGradient = true)
@@ -1217,16 +1094,6 @@ namespace Seq2SeqSharp.Tools
                 if (m_weightTensorFactory != null)
                 {
                     m_weightTensorFactory.Dispose();
-                }
-
-                if (m_setEdges != null)
-                {
-                    m_setEdges.Clear();
-                }
-
-                if (m_name2SubGraph != null)
-                {
-                    m_name2SubGraph.Clear();
                 }
             }
         }

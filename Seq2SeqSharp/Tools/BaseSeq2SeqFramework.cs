@@ -84,6 +84,8 @@ namespace Seq2SeqSharp.Tools
             BinaryFormatter bf = new BinaryFormatter();
             using (FileStream fs = new FileStream(m_modelFilePath, FileMode.Open, FileAccess.Read))
             {
+                bf.SurrogateSelector = DotNetCoreSerializationSurrogate.CreateSurrogateSelector();
+
                 modelMetaData = bf.Deserialize(fs) as IModelMetaData;
 
                 //Initialize parameters on devices

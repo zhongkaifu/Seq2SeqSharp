@@ -6,6 +6,12 @@ using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using TensorSharp;
 
 namespace Seq2SeqSharp
 {
@@ -429,38 +435,6 @@ namespace Seq2SeqSharp
             }
 
             return results;
-        }
-
-        public void VisualizeNeuralNetwork(string visNNFilePath)
-        {
-            (IEncoder encoder, AttentionDecoder decoder, IWeightTensor srcEmbedding, IWeightTensor tgtEmbedding) = GetNetworksOnDeviceAt(-1);
-            // Build input sentence
-            List<List<string>> inputSeqs = ParallelCorpus.ConstructInputTokens(null);
-            int batchSize = inputSeqs.Count;
-            IComputeGraph g = CreateComputGraph(m_defaultDeviceId, needBack: false, visNetwork: true);
-
-            encoder.Reset(g.GetWeightFactory(), batchSize);
-            decoder.Reset(g.GetWeightFactory(), batchSize);
-
-            // Run encoder
-            IWeightTensor encodedWeightMatrix = Encode(g.CreateSubGraph("Encoder"), inputSeqs, encoder, srcEmbedding);
-
-            // Prepare for attention over encoder-decoder
-            g = g.CreateSubGraph("Decoder");
-            AttentionPreProcessResult attPreProcessResult = decoder.PreProcess(encodedWeightMatrix, batchSize, g);
-
-            // Run decoder
-            IWeightTensor x = g.PeekRow(tgtEmbedding, (int)SENTTAGS.START);
-            IWeightTensor eOutput = decoder.Decode(x, attPreProcessResult, batchSize, g);
-            IWeightTensor probs = g.Softmax(eOutput);
-
-            g.VisualizeNeuralNetToFile(visNNFilePath);
-        }
-
-        public void DumpVocabToFiles(string outputSrcVocab, string outputTgtVocab)
-        {
-            m_modelMetaData.Vocab.DumpSourceVocab(outputSrcVocab);
-            m_modelMetaData.Vocab.DumpTargetVocab(outputTgtVocab);
         }
     }
 }
