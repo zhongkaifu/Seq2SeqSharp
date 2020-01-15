@@ -94,6 +94,10 @@ template<typename T> INLINE_FUNC T AddTanh(T x, T y) {
 	return tanh(x + y);
 }
 
+template<typename T> INLINE_FUNC T AddTanh3(T x, T y, T z) {
+	return tanh(x + y + z);
+}
+
 template <typename T> INLINE_FUNC T sgn(T val) {
 	if (val < T(0))
 		return T(-1);
@@ -272,6 +276,22 @@ int TS_AddTanh(TensorRef* result, TensorRef* srcX, TensorRef* srcY)
 		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, AddTanh_Apply, result, srcX, srcY)
 		API_END()
 }
+
+
+template<typename T>
+INLINE_FUNC void AddTanh3_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
+{
+	auto func = [](T* r, T* x, T* y, T* z) { *r = AddTanh3(*x, *y, *z); };
+	Apply4<T, T, T, T>(result, srcX, srcY, srcZ, func);
+}
+
+int TS_AddTanh3(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
+{
+	API_BEGIN()
+		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, AddTanh3_Apply, result, srcX, srcY, srcZ)
+		API_END()
+}
+
 
 template<typename T>
 INLINE_FUNC void AddReluD_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)

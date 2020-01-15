@@ -80,6 +80,11 @@ template<typename T> INLINE_FUNC T AddTanh(T x, T y) {
 }
 
 
+template<typename T> INLINE_FUNC T AddTanh3(T x, T y, T z) {
+	return tanhf(x + y + z);
+}
+
+
 template <typename T> INLINE_FUNC T sgn(T val) {
 	if (val < T(0))
 		return T(-1);

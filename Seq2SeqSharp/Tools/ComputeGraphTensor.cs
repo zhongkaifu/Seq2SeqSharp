@@ -204,6 +204,32 @@ namespace Seq2SeqSharp.Tools
 
         }
 
+        public IWeightTensor AddTanh(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3)
+        {
+            WeightTensor m1 = w1 as WeightTensor;
+            WeightTensor m2 = w2 as WeightTensor;
+            WeightTensor m3 = w3 as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name, w3.Name)}.AddTanh");
+            VisualizeNodes(new IWeightTensor[] { w1, w2, w3 }, res);
+
+            Ops.AddTanh3(res.TWeight, m1.TWeight, m2.TWeight, m3.TWeight);
+            if (m_needsBackprop)
+            {
+                Action backward = () =>
+                {
+                    m1.AddTanhGradient(res);
+                    m2.AddTanhGradient(res);
+                    m3.AddTanhGradient(res);
+
+                    res.Dispose();
+                };
+                m_backprop.Add(backward);
+            }
+
+            return res;
+
+        }
+
         public IWeightTensor Mul(IWeightTensor w, float v)
         {
             WeightTensor m = w as WeightTensor;
@@ -560,6 +586,7 @@ namespace Seq2SeqSharp.Tools
             {
                 Action backward = () =>
                 {
+                    res.ReleaseWeight();
                     using (Tensor gT = res.TGradient.Transpose())
                     {
                         m.CopyOrAddGradient(gT);
@@ -1092,14 +1119,50 @@ namespace Seq2SeqSharp.Tools
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(dims, m_deviceId, name: w.Name);
             //  VisualizeNodes(w, res);
 
-            res.TWeight = m.TWeight.View(dims);
+
+            using (Tensor congtiW = Ops.AsContiguous(m.TWeight))
+            {
+                res.TWeight = congtiW.View(dims);
+            }
+
             if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
+                    res.ReleaseWeight();
+
                     using (Tensor resG = res.TGradient.View(m.TWeight.Sizes))
                     {
                         m.CopyOrAddGradient(resG);
+                    }
+                    res.Dispose();
+                };
+                m_backprop.Add(backward);
+            }
+
+
+            return res;
+        }
+
+
+        public IWeightTensor Expand(IWeightTensor w, params long[] dims)
+        {
+            
+            WeightTensor m = w as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(dims, m_deviceId, name: $"{GetHashString(w.Name)}.Expand");
+            //  VisualizeNodes(w, res);
+
+            res.TWeight = m.TWeight.Expand(dims);
+
+            if (m_needsBackprop)
+            {
+                Action backward = () =>
+                {
+                    res.ReleaseWeight();
+
+                    using (var mGExp = m.TGradient.Expand(dims))
+                    {
+                        Ops.Add(mGExp, mGExp, res.TGradient);
                     }
                     res.Dispose();
                 };

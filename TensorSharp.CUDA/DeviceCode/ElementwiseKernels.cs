@@ -44,6 +44,7 @@
             AppendTTTFunc(result, "sigmoidD", "SigmoidD");
 
             AppendTTTFunc(result, "addtanh", "AddTanh");
+            AppendTTTTFunc(result, "addtanh3", "AddTanh3");
             AppendTTTTFunc(result, "addtanhD", "AddTanhD");
             AppendTTTFunc(result, "tanhD", "TanhD");
 

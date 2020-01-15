@@ -137,8 +137,8 @@ namespace TensorSharp
         public static Tensor TanhD(Tensor result, Tensor resW, Tensor resG) { return (Tensor)OpRegistry.Invoke("tanhD", result, resW, resG); }
 
 
-
         public static Tensor AddTanh(Tensor result, Tensor x, Tensor y) { return (Tensor)OpRegistry.Invoke("addtanh", result, x, y); }
+        public static Tensor AddTanh3(Tensor result, Tensor x, Tensor y, Tensor z) { return (Tensor)OpRegistry.Invoke("addtanh3", result, x, y, z); }
 
         public static Tensor MulMulAdd(Tensor result, Tensor x, Tensor y, Tensor z, Tensor w) { return (Tensor)OpRegistry.Invoke("mulmuladd", result, x, y, z, w); }
 

@@ -44,6 +44,7 @@ OPS_API int TS_Clamp(TensorRef* result, TensorRef* src, float min, float max);
 
 OPS_API int TS_MulMulAdd(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ, TensorRef* srcW);
 OPS_API int TS_AddTanh(TensorRef* result, TensorRef* srcX, TensorRef* srcY);
+OPS_API int TS_AddTanh3(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ);
 OPS_API int TS_AddTanhD(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ);
 OPS_API int TS_AddReluD(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ);
 

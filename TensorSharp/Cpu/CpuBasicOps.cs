@@ -321,6 +321,11 @@ namespace TensorSharp.Cpu
         public Tensor AddTanh(Tensor result, Tensor srcX, Tensor srcY) { return NativeWrapper.InvokeNullableResultElementwise(addtanh_func, result, srcX, srcY); }
 
 
+        private readonly MethodInfo addtanh3_func = NativeWrapper.GetMethod("TS_AddTanh3");
+        [RegisterOpStorageType("addtanh3", typeof(CpuStorage))]
+        public Tensor AddTanh3(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ) { return NativeWrapper.InvokeNullableResultElementwise(addtanh3_func, result, srcX, srcY, srcZ); }
+
+
         private readonly MethodInfo addtanhD_func = NativeWrapper.GetMethod("TS_AddTanhD");
         [RegisterOpStorageType("addtanhD", typeof(CpuStorage))]
         public Tensor AddTanhD(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ) { return NativeWrapper.InvokeNullableResultElementwise(addtanhD_func, result, srcX, srcY, srcZ); }

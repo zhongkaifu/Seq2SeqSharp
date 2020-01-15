@@ -84,6 +84,7 @@ namespace TensorSharp.Cpu
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddReluD(IntPtr result, IntPtr srcX, IntPtr srcY, IntPtr srcZ);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_MulMulAdd(IntPtr result, IntPtr srcX, IntPtr srcY, IntPtr srcZ, IntPtr srcW);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddTanh(IntPtr result, IntPtr srcX, IntPtr srcY);
+        [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddTanh3(IntPtr result, IntPtr srcX, IntPtr srcY, IntPtr srcZ);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddTanhD(IntPtr result, IntPtr srcX, IntPtr srcY, IntPtr srcZ);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Add(IntPtr result, IntPtr lhs, float rhs);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Sub(IntPtr result, IntPtr lhs, float rhs);

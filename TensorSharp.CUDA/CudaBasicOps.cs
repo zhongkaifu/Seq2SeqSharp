@@ -355,6 +355,10 @@ namespace TensorSharp.CUDA
         public Tensor AddTanh(Tensor result, Tensor x, Tensor y) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "addtanh", result, x, y); }
 
 
+        [RegisterOpStorageType("addtanh3", typeof(CudaStorage))]
+        public Tensor AddTanh3(Tensor result, Tensor x, Tensor y, Tensor z) { return ElementwiseTTTTOp.Invoke(elementwiseKernels, "addtanh3", result, x, y, z); }
+
+
         [RegisterOpStorageType("mulmuladd", typeof(CudaStorage))]
         public Tensor MulMulAdd(Tensor result, Tensor x, Tensor y, Tensor z, Tensor w) { return ElementwiseTTTTTOp.Invoke(elementwiseKernels, "mulmuladd", result, x, y, z, w); }
 

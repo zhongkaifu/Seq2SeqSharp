@@ -21,7 +21,10 @@ namespace Seq2SeqSharp
         IWeightTensor TransposeBatch(IWeightTensor m, int batchSize);
         IWeightTensor Permute(IWeightTensor w, params int[] dims);
         IWeightTensor View(IWeightTensor w, params long[] dims);
+        IWeightTensor Expand(IWeightTensor w, params long[] dims);
         IWeightTensor AddTanh(IWeightTensor w1, IWeightTensor w2);
+
+        IWeightTensor AddTanh(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3);
         IWeightTensor PeekRow(IWeightTensor w, int ix, int num = 1, bool runGradients = true);
         IWeightTensor Dropout(IWeightTensor V, int batchSize, float drop_prob, bool inPlace = false);
         IWeightTensor Softmax(IWeightTensor w, bool runGradients = true, bool inPlace = false);
