@@ -139,6 +139,12 @@ namespace Seq2SeqSharp.Tools
             TWeight.SetElementAsFloat(val, 0, offset);
         }
 
+
+        public void SetGradientAt(float val, int offset)
+        {
+            TGradient.SetElementAsFloat(val, 0, offset);
+        }
+
         public void SetWeightAtRow(int row, float[] val)
         {
             TWeight.SetElementsAsFloat(val, row, 0);
@@ -181,6 +187,12 @@ namespace Seq2SeqSharp.Tools
         {
             return TWeight.GetElementsAsFloat(Rows * Columns);
         }
+
+        public float[] ToGradientArray()
+        {
+            return TGradient.GetElementsAsFloat(Rows * Columns);
+        }
+
 
         public void AddSoftmaxGradient(WeightTensor src, bool inPlace = false)
         {
@@ -291,6 +303,11 @@ namespace Seq2SeqSharp.Tools
         public void SetWeightArray(float[] v)
         {
             TWeight.SetElementsAsFloat(v);
+        }
+
+        public void SetGradientArray(float[] v)
+        {
+            TGradient.SetElementsAsFloat(v);
         }
 
         public WeightTensor CopyWeightsRef(string name)

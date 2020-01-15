@@ -14,14 +14,14 @@ namespace Seq2SeqSharp
         private MultiProcessorNetworkWrapper<FeedForwardLayer> m_decoderFFLayer; //The feed forward layers over devices after LSTM layers in decoder
                                                                                  //  private CRFDecoder m_crfDecoder;
         private readonly float m_dropoutRatio;
-        private readonly Seq2SeqModelMetaData m_modelMetaData;
+        private readonly SeqLabelModelMetaData m_modelMetaData;
         private readonly object locker = new object();
 
         public SequenceLabel(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType,
             float dropoutRatio, Vocab vocab, int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath) :
             base(deviceIds, processorType, modelFilePath)
         {
-            m_modelMetaData = new Seq2SeqModelMetaData(hiddenDim, embeddingDim, encoderLayerDepth, 0, multiHeadNum, encoderType, vocab);
+            m_modelMetaData = new SeqLabelModelMetaData(hiddenDim, embeddingDim, encoderLayerDepth, multiHeadNum, encoderType, vocab);
             m_dropoutRatio = dropoutRatio;
 
             //Initializng weights in encoders and decoders
@@ -32,14 +32,14 @@ namespace Seq2SeqSharp
             : base(deviceIds, processorType, modelFilePath)
         {
             m_dropoutRatio = dropoutRatio;
-            m_modelMetaData = LoadModel(CreateTrainableParameters) as Seq2SeqModelMetaData;
+            m_modelMetaData = LoadModel(CreateTrainableParameters) as SeqLabelModelMetaData;
         }
 
 
         private bool CreateTrainableParameters(IModelMetaData mmd)
         {
             Logger.WriteLine($"Creating encoders and decoders...");
-            Seq2SeqModelMetaData modelMetaData = mmd as Seq2SeqModelMetaData;
+            SeqLabelModelMetaData modelMetaData = mmd as SeqLabelModelMetaData;
             RoundArray<int> raDeviceIds = new RoundArray<int>(DeviceIds);
 
             if (modelMetaData.EncoderType == EncoderTypeEnums.BiLSTM)

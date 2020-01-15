@@ -43,5 +43,7 @@ namespace Seq2SeqSharp
         IWeightFactory GetWeightFactory();
 
         int[] Argmax(IWeightTensor w, int dim);
+
+        IWeightTensor MapTensorColumn(IWeightTensor w, int[] idxs, int newColumSize);
     }
 }

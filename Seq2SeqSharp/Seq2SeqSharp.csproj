@@ -56,6 +56,7 @@
     <Compile Include="Metrics\LengthRatioMetric.cs" />
     <Compile Include="Metrics\IMetric.cs" />
     <Compile Include="Metrics\SequenceLabelFscoreMetric.cs" />
+    <Compile Include="Models\SeqLabelModelMetaData.cs" />
     <Compile Include="SequenceLabel.cs" />
     <Compile Include="Tools\BaseSeq2SeqFramework.cs" />
     <Compile Include="Utils\ArchEnums.cs" />
@@ -64,7 +65,7 @@
     <Compile Include="Tools\INeuralUnit.cs" />
     <Compile Include="Layers\AttentionUnit.cs" />
     <Compile Include="LearningRate\DecayLearningRate.cs" />
-    <Compile Include="Seq2SeqModelMetaData.cs" />
+    <Compile Include="Models\Seq2SeqModelMetaData.cs" />
     <Compile Include="MultiProcessorNetworkWrapper.cs" />
     <Compile Include="Networks\AttentionDecoder.cs" />
     <Compile Include="AttentionSeq2Seq.cs" />

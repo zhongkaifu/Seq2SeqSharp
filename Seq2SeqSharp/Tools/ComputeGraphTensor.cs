@@ -756,6 +756,51 @@ namespace Seq2SeqSharp.Tools
             bitmap.Dispose();
         }
 
+
+        public IWeightTensor MapTensorColumn(IWeightTensor w, int[] idxs, int newColumSize)
+        {
+            WeightTensor m = w as WeightTensor;
+            float[] resWeights = new float[m.Rows * newColumSize];
+            float[] mWeights = m.ToWeightArray();
+
+
+            for (int i = 0; i < m.Rows; i++)
+            {
+                for (int j = 0; j < m.Columns; j++)
+                {
+                    resWeights[i * newColumSize + idxs[j]] += mWeights[i * m.Columns + j];
+                }
+            }
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Rows, newColumSize, m_deviceId);
+            res.SetWeightArray(resWeights);
+
+            if (m_needsBackprop)
+            {
+                Action backward = () =>
+                {
+                    var resGradients = res.ToGradientArray();
+                    var mGradients = m.ToGradientArray();
+
+                    for (int i = 0; i < m.Rows; i++)
+                    {
+                        for (int j = 0; j < m.Columns; j++)
+                        {
+                            mGradients[i * m.Columns + j] += resGradients[i * newColumSize + idxs[j]];
+                        }
+                    }
+
+                    m.SetGradientArray(mGradients);
+
+                    res.Dispose();
+                };
+                m_backprop.Add(backward);
+            }
+
+
+            return res;
+        }
+
         public IWeightTensor RepeatRows(IWeightTensor w, int n, bool runGradient = true)
         {
             WeightTensor m = w as WeightTensor;
@@ -1009,6 +1054,40 @@ namespace Seq2SeqSharp.Tools
 
         public IWeightTensor View(IWeightTensor w, params long[] dims)
         {
+            bool hasNegOne = false;
+            int negOneIdx = 0;
+            long totalGivenSize = 1;
+            for (int i = 0;i < dims.Length;i++)
+            {
+                long dim = dims[i];
+                if (dim == -1)
+                {
+                    if (hasNegOne)
+                    {
+                        throw new ArgumentException($"View operation only allows single -1 in dims.");
+                    }
+
+                    hasNegOne = true;
+                    negOneIdx = i;
+                }
+                else
+                {
+                    totalGivenSize *= dim;
+                }
+            }
+
+            if (hasNegOne)
+            {
+                long totalSrcSize = 1;
+                foreach (int size in w.Sizes)
+                {
+                    totalSrcSize *= size;
+                }
+
+                dims[negOneIdx] = totalSrcSize / totalGivenSize;
+            }
+
+
             WeightTensor m = w as WeightTensor;
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(dims, m_deviceId, name: w.Name);
             //  VisualizeNodes(w, res);

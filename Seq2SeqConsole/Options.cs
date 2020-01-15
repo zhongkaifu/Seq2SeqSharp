@@ -105,5 +105,8 @@ namespace Seq2SeqConsole
 
         [Arg("The beta2 for optimizer", "Beta2")]
         public float Beta2 = 0.999f;
+
+        [Arg("Apply coverage model in decoder", "True")]
+        public bool EnableCoverageModel = true;
     }
 }

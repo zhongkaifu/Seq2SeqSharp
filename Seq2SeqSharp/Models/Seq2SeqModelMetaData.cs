@@ -19,7 +19,7 @@ namespace Seq2SeqSharp
 
         }
 
-        public Seq2SeqModelMetaData(int hiddenDim, int embeddingDim, int encoderLayerDepth, int decoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab vocab)
+        public Seq2SeqModelMetaData(int hiddenDim, int embeddingDim, int encoderLayerDepth, int decoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab vocab, bool enableCoverageModel)
         {
             HiddenDim = hiddenDim;
             EmbeddingDim = embeddingDim;
@@ -28,6 +28,7 @@ namespace Seq2SeqSharp
             MultiHeadNum = multiHeadNum;
             EncoderType = encoderType;
             Vocab = vocab;
+            EnableCoverageModel = enableCoverageModel;
         }
     }
 }
