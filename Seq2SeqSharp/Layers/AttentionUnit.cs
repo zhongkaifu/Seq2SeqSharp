@@ -37,7 +37,7 @@ namespace Seq2SeqSharp
         private readonly IWeightTensor m_bWc;
         private readonly LSTMCell m_coverage;
 
-        private readonly int k_coverageModelDim = 8;
+        private readonly int k_coverageModelDim = 16;
 
         public AttentionUnit(string name, int hiddenDim, int contextDim, int deviceId, bool enableCoverageModel)
         {
