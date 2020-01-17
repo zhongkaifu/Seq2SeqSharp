@@ -122,12 +122,10 @@ namespace Seq2SeqSharp
             }
             int seqLen = srcSnts[0].Count;
 
-            IWeightTensor encodedWeightMatrix = Encode(g.CreateSubGraph("Encoder"), srcSnts, encoder, srcEmbedding);
+            IWeightTensor encodedWeightMatrix = Encode(g, srcSnts, encoder, srcEmbedding);
             IWeightTensor ffLayer = decoderFFLayer.Process(encodedWeightMatrix, batchSize, g);
 
             IWeightTensor ffLayerBatch = g.TransposeBatch(ffLayer, batchSize);
-
-            //    Logger.WriteLine("1");
 
             float cost = 0.0f;
             using (IWeightTensor probs = g.Softmax(ffLayerBatch, runGradients: false, inPlace: true))

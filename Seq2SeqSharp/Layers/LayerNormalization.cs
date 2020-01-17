@@ -21,8 +21,7 @@ namespace Seq2SeqSharp
 
         public IWeightTensor Norm(IWeightTensor input, IComputeGraph g)
         {
-            IComputeGraph innerGraph = g.CreateSubGraph(m_name);
-            return innerGraph.LayerNorm(input, m_alpha, m_beta);
+            return g.LayerNorm(input, m_alpha, m_beta);
         }
 
         /// <summary>
@@ -34,8 +33,7 @@ namespace Seq2SeqSharp
         /// <returns></returns>
         public IWeightTensor AddNorm(IWeightTensor input1, IWeightTensor input2, IComputeGraph g)
         {
-            IComputeGraph innerGraph = g.CreateSubGraph(m_name);
-            return innerGraph.AddLayerNorm(input1, input2, m_alpha, m_beta);
+            return g.AddLayerNorm(input1, input2, m_alpha, m_beta);
         }
 
         public virtual List<IWeightTensor> getParams()

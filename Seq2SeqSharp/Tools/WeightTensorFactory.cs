@@ -32,9 +32,10 @@ namespace Seq2SeqSharp.Tools
             return t;
         }
 
-        public WeightTensor CreateWeightTensor(int row, int column, int deviceId, bool cleanWeights = false, string name = "", bool isTrainable = false)
+        public WeightTensor CreateWeightTensor(int row, int column, int deviceId, bool cleanWeights = false, string name = "", bool isTrainable = false, IComputeGraph graphToBind = null)
         {
-            WeightTensor r = new WeightTensor(new long[2] { row, column }, deviceId, name: name, isTrainable: isTrainable);
+            WeightTensor r = new WeightTensor(new long[2] { row, column }, deviceId, name: name, isTrainable: isTrainable, graphToBind: graphToBind);
+
             if (cleanWeights)
             {
                 r.CleanWeight();
@@ -45,9 +46,10 @@ namespace Seq2SeqSharp.Tools
             return r;
         }
 
-        public WeightTensor CreateWeightTensor(long[] sizes, int deviceId, bool cleanWeights = false, string name = "")
+        public WeightTensor CreateWeightTensor(long[] sizes, int deviceId, bool cleanWeights = false, string name = "", IComputeGraph graphToBind = null)
         {
-            WeightTensor r = new WeightTensor(sizes, deviceId, name);
+            WeightTensor r = new WeightTensor(sizes, deviceId, name, graphToBind: graphToBind);
+
             if (cleanWeights)
             {
                 r.CleanWeight();

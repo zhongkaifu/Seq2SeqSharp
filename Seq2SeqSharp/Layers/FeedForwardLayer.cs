@@ -34,9 +34,8 @@ namespace Seq2SeqSharp
             return m_deviceId;
         }
 
-        public IWeightTensor Process(IWeightTensor inputT, int batchSize, IComputeGraph graph)
+        public IWeightTensor Process(IWeightTensor inputT, int batchSize, IComputeGraph g)
         {
-            IComputeGraph g = graph.CreateSubGraph(m_name);
             IWeightTensor res = g.Affine(inputT, m_Whd, m_Bd);
             return g.Dropout(res, batchSize, m_dropoutRatio, inPlace: true);
         }

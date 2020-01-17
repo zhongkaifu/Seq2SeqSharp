@@ -3,6 +3,7 @@ using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.Remoting.Contexts;
 using System.Threading;
 
 namespace Seq2SeqSharp
@@ -67,11 +68,10 @@ namespace Seq2SeqSharp
             return m_deviceId;
         }
 
-        public AttentionPreProcessResult PreProcess(IWeightTensor inputs, int batchSize, IComputeGraph graph)
+        public AttentionPreProcessResult PreProcess(IWeightTensor inputs, int batchSize, IComputeGraph g)
         {
             int srcSeqLen = inputs.Rows / batchSize;
 
-            IComputeGraph g = graph.CreateSubGraph(m_name + "_PreProcess");
             AttentionPreProcessResult r = new AttentionPreProcessResult
             {
                 rawInputs = inputs,
@@ -84,7 +84,7 @@ namespace Seq2SeqSharp
 
             if (m_enableCoverageModel)
             {
-                m_coverage.Reset(graph.GetWeightFactory(), r.inputsBatchFirst.Rows);
+                m_coverage.Reset(g.GetWeightFactory(), r.inputsBatchFirst.Rows);
             }
 
             return r;
@@ -94,58 +94,60 @@ namespace Seq2SeqSharp
         {
             int srcSeqLen = attenPreProcessResult.inputsBatchFirst.Rows / batchSize;
 
-            IComputeGraph g = graph.CreateSubGraph(m_name);
-
-            // Affine decoder state
-            IWeightTensor wc = g.Affine(state, m_Wa, m_bWa);
-
-            // Expand dims from [batchSize x decoder_dim] to [batchSize x srcSeqLen x decoder_dim]
-            IWeightTensor wc1 = g.View(wc, batchSize, 1, wc.Columns);
-            IWeightTensor wcExp = g.Expand(wc1, batchSize, srcSeqLen, wc.Columns);
-
-            IWeightTensor ggs = null;
-            if (m_enableCoverageModel)
+            using (IComputeGraph g = graph.CreateSubGraph(m_name))
             {
-                // Get coverage model status at {t-1}
-                IWeightTensor wCoverage = g.Affine(m_coverage.Hidden, m_Wc, m_bWc);
-                IWeightTensor wCoverage1 = g.View(wCoverage, batchSize, srcSeqLen, -1);
+                // Affine decoder state
+                IWeightTensor wc = g.Affine(state, m_Wa, m_bWa);
 
-                ggs = g.AddTanh(attenPreProcessResult.uhs, wcExp, wCoverage1);
+                // Expand dims from [batchSize x decoder_dim] to [batchSize x srcSeqLen x decoder_dim]
+                IWeightTensor wc1 = g.View(wc, batchSize, 1, wc.Columns);
+                IWeightTensor wcExp = g.Expand(wc1, batchSize, srcSeqLen, wc.Columns);
+
+                IWeightTensor ggs = null;
+                if (m_enableCoverageModel)
+                {
+                    // Get coverage model status at {t-1}
+                    IWeightTensor wCoverage = g.Affine(m_coverage.Hidden, m_Wc, m_bWc);
+                    IWeightTensor wCoverage1 = g.View(wCoverage, batchSize, srcSeqLen, -1);
+
+                    ggs = g.AddTanh(attenPreProcessResult.uhs, wcExp, wCoverage1);
+                }
+                else
+                {
+                    ggs = g.AddTanh(attenPreProcessResult.uhs, wcExp);
+                }
+
+                IWeightTensor ggss = g.View(ggs, batchSize * srcSeqLen, -1);
+                IWeightTensor atten = g.Mul(ggss, m_V);
+
+                IWeightTensor attenT = g.Transpose(atten);
+                IWeightTensor attenT2 = g.View(attenT, batchSize, srcSeqLen);
+
+                IWeightTensor attenSoftmax1 = g.Softmax(attenT2, inPlace: true);
+
+                IWeightTensor attenSoftmax = g.View(attenSoftmax1, batchSize, 1, srcSeqLen);
+                IWeightTensor inputs2 = g.View(attenPreProcessResult.inputsBatchFirst, batchSize, srcSeqLen, attenPreProcessResult.inputsBatchFirst.Columns);
+
+                IWeightTensor contexts = graph.MulBatch(attenSoftmax, inputs2, batchSize);
+
+                if (m_enableCoverageModel)
+                {
+                    // Concatenate tensor as input for coverage model
+                    IWeightTensor aCoverage = g.View(attenSoftmax1, attenPreProcessResult.inputsBatchFirst.Rows, 1);
+
+
+                    IWeightTensor state2 = g.View(state, batchSize, 1, state.Columns);
+                    IWeightTensor state3 = g.Expand(state2, batchSize, srcSeqLen, state.Columns);
+                    IWeightTensor state4 = g.View(state3, batchSize * srcSeqLen, -1);
+
+
+                    IWeightTensor concate = g.ConcatColumns(aCoverage, attenPreProcessResult.inputsBatchFirst, state4);
+                    m_coverage.Step(concate, graph);
+                }
+
+
+                return contexts;
             }
-            else
-            {
-                ggs = g.AddTanh(attenPreProcessResult.uhs, wcExp);
-            }
-
-            IWeightTensor ggss = g.View(ggs, batchSize * srcSeqLen, -1);
-            IWeightTensor atten = g.Mul(ggss, m_V);
-
-            IWeightTensor attenT = g.Transpose(atten);
-            IWeightTensor attenT2 = g.View(attenT, batchSize, srcSeqLen);
-
-            IWeightTensor attenSoftmax1 = g.Softmax(attenT2, inPlace: true);
-
-            IWeightTensor attenSoftmax = g.View(attenSoftmax1, batchSize, 1, srcSeqLen);
-            IWeightTensor inputs2 = g.View(attenPreProcessResult.inputsBatchFirst, batchSize, srcSeqLen, attenPreProcessResult.inputsBatchFirst.Columns);
-
-            IWeightTensor contexts = g.MulBatch(attenSoftmax, inputs2, batchSize);
-
-            if (m_enableCoverageModel)
-            {
-                // Concatenate tensor as input for coverage model
-                IWeightTensor aCoverage = g.View(attenSoftmax1, attenPreProcessResult.inputsBatchFirst.Rows, 1);
-
-
-                IWeightTensor state2 = g.View(state, batchSize, 1, state.Columns);
-                IWeightTensor state3 = g.Expand(state2, batchSize, srcSeqLen, state.Columns);
-                IWeightTensor state4 = g.View(state3, batchSize * srcSeqLen, -1);
-
-
-                IWeightTensor concate = g.ConcatColumns(aCoverage, attenPreProcessResult.inputsBatchFirst, state4);
-                m_coverage.Step(concate, graph);
-            }
-
-            return contexts;
         }
 
 

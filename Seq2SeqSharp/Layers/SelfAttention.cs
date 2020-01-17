@@ -64,45 +64,47 @@ namespace Seq2SeqSharp
         /// <returns></returns>
         public IWeightTensor Perform(IWeightTensor input, int batchSize, IComputeGraph graph)
         {
-            IComputeGraph g = graph.CreateSubGraph(m_name);
-            int seqLen = input.Rows / batchSize;
-            IWeightTensor nInput = layerNorm1.Norm(input, g);
+            using (IComputeGraph g = graph.CreateSubGraph(m_name))
+            {
+                int seqLen = input.Rows / batchSize;
+                IWeightTensor nInput = layerNorm1.Norm(input, g);
 
-            //Input projections
-            IWeightTensor allQ = g.View(g.Affine(nInput, Q, Qb), batchSize, seqLen, m_multiHeadNum, m_d);
-            IWeightTensor allK = g.View(g.Affine(nInput, K, Kb), batchSize, seqLen, m_multiHeadNum, m_d);
-            IWeightTensor allV = g.View(g.Affine(nInput, V, Vb), batchSize, seqLen, m_multiHeadNum, m_d);
+                //Input projections
+                IWeightTensor allQ = g.View(g.Affine(nInput, Q, Qb), batchSize, seqLen, m_multiHeadNum, m_d);
+                IWeightTensor allK = g.View(g.Affine(nInput, K, Kb), batchSize, seqLen, m_multiHeadNum, m_d);
+                IWeightTensor allV = g.View(g.Affine(nInput, V, Vb), batchSize, seqLen, m_multiHeadNum, m_d);
 
-            //Multi-head attentions
-            IWeightTensor Qs = g.View(g.Permute(allQ, 2, 0, 1, 3), m_multiHeadNum * batchSize, seqLen, m_d);
-            IWeightTensor Ks = g.View(g.Permute(allK, 2, 0, 3, 1), m_multiHeadNum * batchSize, m_d, seqLen);
-            IWeightTensor Vs = g.View(g.Permute(allV, 2, 0, 1, 3), m_multiHeadNum * batchSize, seqLen, m_d);
+                //Multi-head attentions
+                IWeightTensor Qs = g.View(g.Permute(allQ, 2, 0, 1, 3), m_multiHeadNum * batchSize, seqLen, m_d);
+                IWeightTensor Ks = g.View(g.Permute(allK, 2, 0, 3, 1), m_multiHeadNum * batchSize, m_d, seqLen);
+                IWeightTensor Vs = g.View(g.Permute(allV, 2, 0, 1, 3), m_multiHeadNum * batchSize, seqLen, m_d);
 
-            // Scaled softmax
-            float scale = 1.0f / (float)Math.Sqrt(m_d);
-            IWeightTensor attn = g.MulBatch(Qs, Ks, m_multiHeadNum * batchSize, scale);
-            IWeightTensor attn2 = g.View(attn, m_multiHeadNum * batchSize * seqLen, seqLen);
+                // Scaled softmax
+                float scale = 1.0f / (float)Math.Sqrt(m_d);
+                IWeightTensor attn = g.MulBatch(Qs, Ks, m_multiHeadNum * batchSize, scale);
+                IWeightTensor attn2 = g.View(attn, m_multiHeadNum * batchSize * seqLen, seqLen);
 
-            IWeightTensor softmax = g.Softmax(attn2, inPlace: true);
-            IWeightTensor softmax2 = g.View(softmax, m_multiHeadNum * batchSize, seqLen, seqLen);
-            IWeightTensor o = g.View(g.MulBatch(softmax2, Vs, m_multiHeadNum * batchSize), m_multiHeadNum, batchSize, seqLen, m_d);
-            IWeightTensor W = g.View(g.Permute(o, 1, 2, 0, 3), batchSize * seqLen, m_multiHeadNum * m_d);
+                IWeightTensor softmax = g.Softmax(attn2, inPlace: true);
+                IWeightTensor softmax2 = g.View(softmax, m_multiHeadNum * batchSize, seqLen, seqLen);
+                IWeightTensor o = g.View(g.MulBatch(softmax2, Vs, m_multiHeadNum * batchSize), m_multiHeadNum, batchSize, seqLen, m_d);
+                IWeightTensor W = g.View(g.Permute(o, 1, 2, 0, 3), batchSize * seqLen, m_multiHeadNum * m_d);
 
-            // Output projection
-            IWeightTensor finalAttResults = g.Dropout(g.Affine(W, W0, b0), batchSize, m_dropoutRatio, inPlace: true);
+                // Output projection
+                IWeightTensor finalAttResults = g.Dropout(g.Affine(W, W0, b0), batchSize, m_dropoutRatio, inPlace: true);
 
-            //Skip connection and layer normaliztion
-            IWeightTensor normAddedAttResult = layerNorm2.AddNorm(finalAttResults, input, g);
+                //Skip connection and layer normaliztion
+                IWeightTensor normAddedAttResult = layerNorm2.AddNorm(finalAttResults, input, g);
 
-            //Feed forward
-            IWeightTensor ffnResult = feedForwardLayer1.Process(normAddedAttResult, batchSize, g);
-            IWeightTensor reluFFNResult = g.Relu(ffnResult);
-            IWeightTensor ffn2Result = feedForwardLayer2.Process(reluFFNResult, batchSize, g);
+                //Feed forward
+                IWeightTensor ffnResult = feedForwardLayer1.Process(normAddedAttResult, batchSize, g);
+                IWeightTensor reluFFNResult = g.Relu(ffnResult);
+                IWeightTensor ffn2Result = feedForwardLayer2.Process(reluFFNResult, batchSize, g);
 
-            //Skip connection and layer normaliztion
-            IWeightTensor addFFNResult = g.Add(ffn2Result, normAddedAttResult);
+                //Skip connection and layer normaliztion
+                IWeightTensor addFFNResult = graph.Add(ffn2Result, normAddedAttResult);
 
-            return addFFNResult;
+                return addFFNResult;
+            }
         }
 
 

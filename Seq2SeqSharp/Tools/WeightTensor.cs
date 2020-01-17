@@ -34,10 +34,19 @@ namespace Seq2SeqSharp.Tools
         private Tensor m_TGradient = null;
         private static readonly object locker = new object();
 
+        private bool releasedWeight = false;
+        private bool releasedGradient = false;
+        private IComputeGraph m_computeGraphToBind;
+
         public Tensor TWeight
         {
             get
             {
+                if (releasedWeight)
+                {
+                    throw new Exception($"The weight '{Name}' has been released, you cannot access it.");
+                }
+
                 if (m_TWeight == null)
                 {
                     m_TWeight = new Tensor(m_allocator, DType.Float32, Sizes);
@@ -47,8 +56,13 @@ namespace Seq2SeqSharp.Tools
             }
             set
             {
-                ReleaseWeight();
+                if (m_TWeight != null)
+                {
+                    throw new Exception($"Please call ReleaseWeight function before assign a new value to weight '{Name}'.");
+                }
+
                 m_TWeight = value;
+                releasedWeight = false;
             }
         }
 
@@ -56,6 +70,11 @@ namespace Seq2SeqSharp.Tools
         {
             get
             {
+                if (releasedGradient)
+                {
+                    throw new Exception($"The gradient '{Name}' has been released, you cannot access it.");
+                }
+
                 if (m_TGradient == null)
                 {
                     if (m_TWeight != null)
@@ -74,12 +93,17 @@ namespace Seq2SeqSharp.Tools
 
             set
             {
-                ReleaseGradient();
+                if (m_TGradient != null)
+                {
+                    throw new Exception($"Please call ReleaseGradient function before assign a new value to gradient '{Name}'.");
+                }
+
                 m_TGradient = value;
+                releasedGradient = false;
             }
         }
 
-        public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, bool normal = false)
+        public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, bool normal = false, IComputeGraph graphToBind = null)
         {
             Name = name;
             DeviceId = deviceId;
@@ -87,14 +111,21 @@ namespace Seq2SeqSharp.Tools
             m_allocator = TensorAllocator.Allocator(DeviceId);
             Sizes = sizes;
 
+            if (graphToBind != null)
+            {
+                m_computeGraphToBind = graphToBind;
+                m_computeGraphToBind.Bind(this);
+            }
+
             if (normal)
             {
-
                 float scale = (float)Math.Sqrt(6.0 / (Rows + Columns));
 
                 SeedSource seedSource = new SeedSource(DateTime.Now.Millisecond);
                 Ops.RandomUniform(TWeight, seedSource, -scale, scale);
             }
+
+            
         }
 
         public WeightTensor(long[] sizes, float c, int deviceId, string name = "", bool isTrainable = false)
@@ -109,6 +140,15 @@ namespace Seq2SeqSharp.Tools
             Ops.Fill(TWeight, c);
         }
 
+
+        public void UnbindFromComputeGraph()
+        {
+            if (m_computeGraphToBind != null)
+            {
+                m_computeGraphToBind.Unbind(this);
+            }
+        }
+
         public int GetDeviceId()
         {
             return DeviceId;
@@ -116,7 +156,7 @@ namespace Seq2SeqSharp.Tools
 
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
-            return new WeightTensor(Sizes, deviceId, Name, IsTrainable);
+            return new WeightTensor(Sizes, deviceId, Name, IsTrainable, graphToBind: m_computeGraphToBind);
         }
 
         public void ZeroGradient()
@@ -332,6 +372,7 @@ namespace Seq2SeqSharp.Tools
             {
                 m_TWeight.Dispose();
                 m_TWeight = null;
+                releasedWeight = true;
             }
         }
 
@@ -341,6 +382,7 @@ namespace Seq2SeqSharp.Tools
             {
                 m_TGradient.Dispose();
                 m_TGradient = null;
+                releasedGradient = true;
             }
         }
 

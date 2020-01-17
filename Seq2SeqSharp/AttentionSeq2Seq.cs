@@ -182,9 +182,9 @@ namespace Seq2SeqSharp
             decoder.Reset(computeGraph.GetWeightFactory(), srcSnts.Count);
 
             // Encoding input source sentences
-            IWeightTensor encodedWeightMatrix = Encode(computeGraph.CreateSubGraph("Encoder"), srcSnts, encoder, srcEmbedding);
+            IWeightTensor encodedWeightMatrix = Encode(computeGraph, srcSnts, encoder, srcEmbedding);
             // Generate output decoder sentences
-            return Decode(tgtSnts, computeGraph.CreateSubGraph("Decoder"), encodedWeightMatrix, decoder, tgtEmbedding, srcSnts.Count, isTraining);
+            return Decode(tgtSnts, computeGraph, encodedWeightMatrix, decoder, tgtEmbedding, srcSnts.Count, isTraining);
         }
 
         /// <summary>
@@ -359,9 +359,7 @@ namespace Seq2SeqSharp
             bss.HTs = decoder.GetHTs();
             bssList.Add(bss);
 
-            IWeightTensor encodedWeightMatrix = Encode(g.CreateSubGraph("Encoder"), inputSeqs, encoder, srcEmbedding);
-
-            g = g.CreateSubGraph("Decoder");
+            IWeightTensor encodedWeightMatrix = Encode(g, inputSeqs, encoder, srcEmbedding);
             AttentionPreProcessResult attPreProcessResult = decoder.PreProcess(encodedWeightMatrix, batchSize, g);
 
             List<BeamSearchStatus> newBSSList = new List<BeamSearchStatus>();
@@ -443,10 +441,9 @@ namespace Seq2SeqSharp
             decoder.Reset(g.GetWeightFactory(), batchSize);
 
             // Run encoder
-            IWeightTensor encodedWeightMatrix = Encode(g.CreateSubGraph("Encoder"), inputSeqs, encoder, srcEmbedding);
+            IWeightTensor encodedWeightMatrix = Encode(g, inputSeqs, encoder, srcEmbedding);
 
             // Prepare for attention over encoder-decoder
-            g = g.CreateSubGraph("Decoder");
             AttentionPreProcessResult attPreProcessResult = decoder.PreProcess(encodedWeightMatrix, batchSize, g);
 
             // Run decoder
