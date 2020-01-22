@@ -93,47 +93,6 @@ namespace Seq2SeqSharp
         }
 
 
-
-
-        public IWeightTensor DecodeWithCopyNet(IWeightTensor input, AttentionPreProcessResult attenPreProcessResult, int[] sourceIdxs, int batchSize, IComputeGraph g)
-        {
-            IWeightTensor V = input;
-            IWeightTensor lastStatus = m_decoders.LastOrDefault().Cell;
-            IWeightTensor context = m_attentionLayer.Perform(lastStatus, attenPreProcessResult, batchSize, g);
-
-            foreach (LSTMAttentionDecoderCell decoder in m_decoders)
-            {
-                IWeightTensor e = decoder.Step(context, V, g);
-                V = e;
-            }
-
-            IWeightTensor score_g = g.Dropout(V, batchSize, m_dropoutRatio, true);
-            score_g = m_decoderFFLayer.Process(score_g, batchSize, g);
-
-            int srcSeqLen = attenPreProcessResult.inputsBatchFirst.Rows / batchSize;
-
-            var score_c = g.Tanh(attenPreProcessResult.inputsBatchFirst);
-
-            score_c = g.View(score_c, batchSize, srcSeqLen, attenPreProcessResult.inputsBatchFirst.Columns);
-            IWeightTensor V2 = g.View(V, batchSize, m_hdim, 1);
-
-            score_c = g.MulBatch(score_c, V2, batchSize);
-            score_c = g.View(score_c, batchSize, srcSeqLen);
-
-            IWeightTensor score = g.ConcatColumns(score_g, score_c);
-
-            IWeightTensor probs = g.Softmax(score);
-
-            (IWeightTensor prob_g, IWeightTensor prob_c) = g.SplitColumns(probs, m_outputDim, srcSeqLen);
-
-            IWeightTensor prob_c_to_g = g.MapTensorColumn(prob_c, sourceIdxs, m_outputDim);
-
-            
-            return g.Add(prob_g, prob_c_to_g);
-        }
-
-
-
         public List<IWeightTensor> GetCTs()
         {
             List<IWeightTensor> res = new List<IWeightTensor>();

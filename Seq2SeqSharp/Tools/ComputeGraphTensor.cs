@@ -823,51 +823,7 @@ namespace Seq2SeqSharp.Tools
             bitmap.Dispose();
         }
 
-
-        public IWeightTensor MapTensorColumn(IWeightTensor w, int[] idxs, int newColumSize)
-        {
-            WeightTensor m = w as WeightTensor;
-            float[] resWeights = new float[m.Rows * newColumSize];
-            float[] mWeights = m.ToWeightArray();
-
-
-            for (int i = 0; i < m.Rows; i++)
-            {
-                for (int j = 0; j < m.Columns; j++)
-                {
-                    resWeights[i * newColumSize + idxs[j]] += mWeights[i * m.Columns + j];
-                }
-            }
-
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Rows, newColumSize, m_deviceId, graphToBind: this);
-            res.SetWeightArray(resWeights);
-
-            if (m_needsBackprop)
-            {
-                Action backward = () =>
-                {
-                    var resGradients = res.ToGradientArray();
-                    var mGradients = m.ToGradientArray();
-
-                    for (int i = 0; i < m.Rows; i++)
-                    {
-                        for (int j = 0; j < m.Columns; j++)
-                        {
-                            mGradients[i * m.Columns + j] += resGradients[i * newColumSize + idxs[j]];
-                        }
-                    }
-
-                    m.SetGradientArray(mGradients);
-
-                    res.Dispose();
-                };
-                m_backprop.Add(backward);
-            }
-
-
-            return res;
-        }
-
+     
         public IWeightTensor RepeatRows(IWeightTensor w, int n, bool runGradient = true)
         {
             WeightTensor m = w as WeightTensor;

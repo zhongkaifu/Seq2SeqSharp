@@ -47,8 +47,6 @@ namespace Seq2SeqSharp
 
         int[] Argmax(IWeightTensor w, int dim);
 
-        IWeightTensor MapTensorColumn(IWeightTensor w, int[] idxs, int newColumSize);
-
 
         void Bind(IWeightTensor w);
         void Unbind(IWeightTensor w);
