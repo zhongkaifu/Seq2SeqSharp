@@ -141,7 +141,8 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
 "WarmUpSteps":8000,
 "VisualizeNNFilePath":null,
 "Beta1":0.9,
-"Beta2":0.98
+"Beta2":0.98,
+"EnableCoverageModel":true
 }
 ```
 
