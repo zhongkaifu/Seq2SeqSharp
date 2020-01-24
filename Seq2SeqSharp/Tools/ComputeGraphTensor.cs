@@ -681,7 +681,7 @@ namespace Seq2SeqSharp.Tools
                 Action backward = () =>
                 {
                     if (inPlace)
-                    {
+                    {                        
                         m.TGradient = res.TGradient.CopyRef();
                     }
 
@@ -1147,7 +1147,7 @@ namespace Seq2SeqSharp.Tools
             
             WeightTensor m = w as WeightTensor;
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(dims, m_deviceId, name: $"{GetHashString(w.Name)}.Expand", graphToBind: this);
-            //  VisualizeNodes(w, res);
+            VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.Expand(dims);
 
@@ -1303,7 +1303,7 @@ namespace Seq2SeqSharp.Tools
 
         public IWeightTensor Dropout(IWeightTensor V, int batchSize, float drop_prob, bool inPlace = false)
         {
-            if (drop_prob == 0)
+            if (drop_prob == 0 || !m_needsBackprop)
             {
                 return V;
             }
@@ -1325,24 +1325,23 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(V, res);
 
             Ops.Mul(res.TWeight, w.TWeight, noise);
-            if (m_needsBackprop)
-            {
-                Action backward = () =>
-                {
-                    res.ReleaseWeight();
+            
+            Action backward = () =>
+             {
+                 res.ReleaseWeight();
 
-                    if (inPlace)
-                    {
-                        w.TGradient = res.TGradient.CopyRef();
-                    }
+                 if (inPlace)
+                 {
+                     w.TGradient = res.TGradient.CopyRef();
+                 }
 
-                    w.AddMulGradient(noise, res.TGradient, inPlace);
+                 w.AddMulGradient(noise, res.TGradient, inPlace);
 
-                    res.Dispose();
-                    noise.Dispose();
-                };
-                m_backprop.Add(backward);
-            }
+                 res.Dispose();
+                 noise.Dispose();
+             };
+            m_backprop.Add(backward);
+
 
             return res;
         }
