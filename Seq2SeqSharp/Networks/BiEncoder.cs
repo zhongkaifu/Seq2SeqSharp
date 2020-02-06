@@ -19,21 +19,22 @@ namespace Seq2SeqSharp
         private readonly int m_inputDim;
         private readonly int m_depth;
         private readonly int m_deviceId;
+        private readonly bool m_isTrainable;
 
-        public BiEncoder(string name, int hiddenDim, int inputDim, int depth, int deviceId)
+        public BiEncoder(string name, int hiddenDim, int inputDim, int depth, int deviceId, bool isTrainable)
         {
-            Logger.WriteLine($"Creating BiLSTM encoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', InputDim = '{inputDim}', Depth = '{depth}'");
+            Logger.WriteLine($"Creating BiLSTM encoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', InputDim = '{inputDim}', Depth = '{depth}', IsTrainable = '{isTrainable}'");
 
             m_forwardEncoders = new List<LSTMCell>();
             m_backwardEncoders = new List<LSTMCell>();
 
-            m_forwardEncoders.Add(new LSTMCell($"{name}.Forward_LSTM_0", hiddenDim, inputDim, deviceId));
-            m_backwardEncoders.Add(new LSTMCell($"{name}.Backward_LSTM_0", hiddenDim, inputDim, deviceId));
+            m_forwardEncoders.Add(new LSTMCell($"{name}.Forward_LSTM_0", hiddenDim, inputDim, deviceId, isTrainable: isTrainable));
+            m_backwardEncoders.Add(new LSTMCell($"{name}.Backward_LSTM_0", hiddenDim, inputDim, deviceId, isTrainable: isTrainable));
 
             for (int i = 1; i < depth; i++)
             {
-                m_forwardEncoders.Add(new LSTMCell($"{name}.Forward_LSTM_{i}", hiddenDim, hiddenDim * 2, deviceId));
-                m_backwardEncoders.Add(new LSTMCell($"{name}.Backward_LSTM_{i}", hiddenDim, hiddenDim * 2, deviceId));
+                m_forwardEncoders.Add(new LSTMCell($"{name}.Forward_LSTM_{i}", hiddenDim, hiddenDim * 2, deviceId, isTrainable: isTrainable));
+                m_backwardEncoders.Add(new LSTMCell($"{name}.Backward_LSTM_{i}", hiddenDim, hiddenDim * 2, deviceId, isTrainable: isTrainable));
             }
 
             m_name = name;
@@ -41,6 +42,7 @@ namespace Seq2SeqSharp
             m_inputDim = inputDim;
             m_depth = depth;
             m_deviceId = deviceId;
+            m_isTrainable = isTrainable;
         }
 
         public int GetDeviceId()
@@ -50,7 +52,7 @@ namespace Seq2SeqSharp
 
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
-            return new BiEncoder(m_name, m_hiddenDim, m_inputDim, m_depth, deviceId);
+            return new BiEncoder(m_name, m_hiddenDim, m_inputDim, m_depth, deviceId, m_isTrainable);
         }
 
         public void Reset(IWeightFactory weightFactory, int batchSize)

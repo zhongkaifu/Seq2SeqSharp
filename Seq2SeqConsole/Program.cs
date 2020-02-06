@@ -70,19 +70,6 @@ namespace Seq2SeqConsole
                 // Load valid corpus
                 ParallelCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new ParallelCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
 
-                // Load or build vocabulary
-                Vocab vocab = null;
-                if (!string.IsNullOrEmpty(opts.SrcVocab) && !string.IsNullOrEmpty(opts.TgtVocab))
-                {
-                    // Vocabulary files are specified, so we load them
-                    vocab = new Vocab(opts.SrcVocab, opts.TgtVocab);
-                }
-                else
-                {
-                    // We don't specify vocabulary, so we build it from train corpus
-                    vocab = new Vocab(trainCorpus);
-                }
-
                 // Create learning rate
                 ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);
 
@@ -96,18 +83,33 @@ namespace Seq2SeqConsole
                     new LengthRatioMetric()
                 };
 
-                if (File.Exists(opts.ModelFilePath) == false)
+
+                if (!String.IsNullOrEmpty(opts.ModelFilePath) && File.Exists(opts.ModelFilePath))
                 {
+                    //Incremental training
+                    Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
+                    ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, dropoutRatio: opts.DropoutRatio, deviceIds: deviceIds,
+                        isSrcEmbTrainable: opts.IsSrcEmbeddingTrainable, isTgtEmbTrainable: opts.IsTgtEmbeddingTrainable, isEncoderTrainable: opts.IsEncoderTrainable, isDecoderTrainable: opts.IsDecoderTrainable);
+                }
+                else
+                {
+                    // Load or build vocabulary
+                    Vocab vocab = null;
+                    if (!string.IsNullOrEmpty(opts.SrcVocab) && !string.IsNullOrEmpty(opts.TgtVocab))
+                    {
+                        // Vocabulary files are specified, so we load them
+                        vocab = new Vocab(opts.SrcVocab, opts.TgtVocab);
+                    }
+                    else
+                    {
+                        // We don't specify vocabulary, so we build it from train corpus
+                        vocab = new Vocab(trainCorpus);
+                    }
+
                     //New training
                     ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth,
                         srcEmbeddingFilePath: opts.SrcEmbeddingModelFilePath, tgtEmbeddingFilePath: opts.TgtEmbeddingModelFilePath, vocab: vocab, modelFilePath: opts.ModelFilePath,
                         dropoutRatio: opts.DropoutRatio, processorType: processorType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType, enableCoverageModel: opts.EnableCoverageModel);
-                }
-                else
-                {
-                    //Incremental training
-                    Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
-                    ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, dropoutRatio: opts.DropoutRatio, deviceIds: deviceIds);
                 }
 
                 // Add event handler for monitoring

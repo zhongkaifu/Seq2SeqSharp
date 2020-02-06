@@ -14,8 +14,9 @@ namespace Seq2SeqSharp
         private readonly int m_inputDim;
         private readonly int m_outputDim;
         private readonly int m_deviceId;
+        private readonly bool m_isTrainable;
 
-        public FeedForwardLayer(string name, int inputDim, int outputDim, float dropoutRatio, int deviceId)
+        public FeedForwardLayer(string name, int inputDim, int outputDim, float dropoutRatio, int deviceId, bool isTrainable)
         {
             Logger.WriteLine($"Create feed forward layer '{name}' InputDim = '{inputDim}', OutputDim = '{outputDim}', DropoutRatio = '{dropoutRatio}', DeviceId = '{deviceId}'");
 
@@ -24,9 +25,10 @@ namespace Seq2SeqSharp
             m_outputDim = outputDim;
             m_dropoutRatio = dropoutRatio;
             m_deviceId = deviceId;
+            m_isTrainable = isTrainable;
 
-            m_Whd = new WeightTensor(new long[2] { inputDim, outputDim }, deviceId, name: $"{name}.{nameof(m_Whd)}", isTrainable: true, normal: true);
-            m_Bd = new WeightTensor(new long[2] { 1, outputDim }, 0, deviceId, name: $"{name}.{nameof(m_Bd)}", isTrainable: true);
+            m_Whd = new WeightTensor(new long[2] { inputDim, outputDim }, deviceId, name: $"{name}.{nameof(m_Whd)}", isTrainable: true, normal: isTrainable);
+            m_Bd = new WeightTensor(new long[2] { 1, outputDim }, 0, deviceId, name: $"{name}.{nameof(m_Bd)}", isTrainable: isTrainable);
         }
 
         public int GetDeviceId()
@@ -66,7 +68,7 @@ namespace Seq2SeqSharp
 
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
-            return new FeedForwardLayer(m_name, m_inputDim, m_outputDim, m_dropoutRatio, deviceId);
+            return new FeedForwardLayer(m_name, m_inputDim, m_outputDim, m_dropoutRatio, deviceId, m_isTrainable);
         }
     }
 }

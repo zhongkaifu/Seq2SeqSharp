@@ -37,6 +37,11 @@ namespace Seq2SeqSharp
             HashSet<string> setWeightsName = new HashSet<string>();
             foreach (IWeightTensor item in model)
             {
+                if (!item.IsTrainable)
+                {
+                    continue;
+                }
+
                 if (setWeightsName.Contains(item.Name))
                 {
                     throw new ArgumentException($"Found duplicated weights name '{item.Name}'");

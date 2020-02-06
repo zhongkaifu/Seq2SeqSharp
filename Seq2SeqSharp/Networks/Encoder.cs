@@ -15,13 +15,13 @@ namespace Seq2SeqSharp
         public int dim { get; set; }
         public int depth { get; set; }
 
-        public Encoder(string name, int hdim, int dim, int depth, int deviceId)
+        public Encoder(string name, int hdim, int dim, int depth, int deviceId, bool isTrainable)
         {
-            encoders.Add(new LSTMCell($"{name}.LSTM_0", hdim, dim, deviceId));
+            encoders.Add(new LSTMCell($"{name}.LSTM_0", hdim, dim, deviceId, isTrainable));
 
             for (int i = 1; i < depth; i++)
             {
-                encoders.Add(new LSTMCell($"{name}.LSTM_{i}", hdim, hdim, deviceId));
+                encoders.Add(new LSTMCell($"{name}.LSTM_{i}", hdim, hdim, deviceId, isTrainable));
 
             }
             this.hdim = hdim;

@@ -41,19 +41,36 @@ namespace Seq2SeqSharp
         private readonly float m_dropoutRatio = 0.0f;
         private readonly int m_defaultDeviceId = 0;
 
-        public AttentionSeq2Seq(string modelFilePath, ProcessorTypeEnums processorType, int[] deviceIds, float dropoutRatio = 0.0f)
+        private readonly bool m_isSrcEmbTrainable = true;
+        private readonly bool m_isTgtEmbTrainable = true;
+        private readonly bool m_isEncoderTrainable = true;
+        private readonly bool m_isDecoderTrainable = true;
+
+        public AttentionSeq2Seq(string modelFilePath, ProcessorTypeEnums processorType, int[] deviceIds, float dropoutRatio = 0.0f, 
+            bool isSrcEmbTrainable = true, bool isTgtEmbTrainable = true, bool isEncoderTrainable = true, bool isDecoderTrainable = true)
             : base(deviceIds, processorType, modelFilePath)
         {
             m_dropoutRatio = dropoutRatio;
+            m_isSrcEmbTrainable = isSrcEmbTrainable;
+            m_isTgtEmbTrainable = isTgtEmbTrainable;
+            m_isEncoderTrainable = isEncoderTrainable;
+            m_isDecoderTrainable = isDecoderTrainable;
+
             m_modelMetaData = LoadModel(CreateTrainableParameters) as Seq2SeqModelMetaData;
         }
 
         public AttentionSeq2Seq(int embeddingDim, int hiddenDim, int encoderLayerDepth, int decoderLayerDepth, Vocab vocab, string srcEmbeddingFilePath, string tgtEmbeddingFilePath,
-            string modelFilePath, float dropoutRatio, int multiHeadNum, ProcessorTypeEnums processorType, EncoderTypeEnums encoderType, bool enableCoverageModel, int[] deviceIds)
+            string modelFilePath, float dropoutRatio, int multiHeadNum, ProcessorTypeEnums processorType, EncoderTypeEnums encoderType, bool enableCoverageModel, int[] deviceIds,
+            bool isSrcEmbTrainable = true, bool isTgtEmbTrainable = true, bool isEncoderTrainable = true, bool isDecoderTrainable = true)
             : base(deviceIds, processorType, modelFilePath)
         {
             m_modelMetaData = new Seq2SeqModelMetaData(hiddenDim, embeddingDim, encoderLayerDepth, decoderLayerDepth, multiHeadNum, encoderType, vocab, enableCoverageModel);
             m_dropoutRatio = dropoutRatio;
+
+            m_isSrcEmbTrainable = isSrcEmbTrainable;
+            m_isTgtEmbTrainable = isTgtEmbTrainable;
+            m_isEncoderTrainable = isEncoderTrainable;
+            m_isDecoderTrainable = isDecoderTrainable;
 
             //Initializng weights in encoders and decoders
             CreateTrainableParameters(m_modelMetaData);
@@ -85,21 +102,22 @@ namespace Seq2SeqSharp
             if (modelMetaData.EncoderType == EncoderTypeEnums.BiLSTM)
             {
                 m_encoder = new MultiProcessorNetworkWrapper<IEncoder>(
-                    new BiEncoder("BiLSTMEncoder", modelMetaData.HiddenDim, modelMetaData.EmbeddingDim, modelMetaData.EncoderLayerDepth, raDeviceIds.GetNextItem()), DeviceIds);
+                    new BiEncoder("BiLSTMEncoder", modelMetaData.HiddenDim, modelMetaData.EmbeddingDim, modelMetaData.EncoderLayerDepth, raDeviceIds.GetNextItem(), isTrainable: m_isEncoderTrainable), DeviceIds);
                 m_decoder = new MultiProcessorNetworkWrapper<AttentionDecoder>(
                     new AttentionDecoder("AttnLSTMDecoder", modelMetaData.HiddenDim, modelMetaData.EmbeddingDim, modelMetaData.HiddenDim * 2,
-                    modelMetaData.Vocab.TargetWordSize, m_dropoutRatio, modelMetaData.DecoderLayerDepth, raDeviceIds.GetNextItem(), modelMetaData.EnableCoverageModel), DeviceIds);
+                    modelMetaData.Vocab.TargetWordSize, m_dropoutRatio, modelMetaData.DecoderLayerDepth, raDeviceIds.GetNextItem(), modelMetaData.EnableCoverageModel, isTrainable: m_isDecoderTrainable), DeviceIds);
             }
             else
             {
                 m_encoder = new MultiProcessorNetworkWrapper<IEncoder>(
-                    new TransformerEncoder("TransformerEncoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.EmbeddingDim, modelMetaData.EncoderLayerDepth, m_dropoutRatio, raDeviceIds.GetNextItem()), DeviceIds);
+                    new TransformerEncoder("TransformerEncoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.EmbeddingDim, modelMetaData.EncoderLayerDepth, m_dropoutRatio, raDeviceIds.GetNextItem(), 
+                    isTrainable: m_isEncoderTrainable), DeviceIds);
                 m_decoder = new MultiProcessorNetworkWrapper<AttentionDecoder>(
                     new AttentionDecoder("AttnLSTMDecoder", modelMetaData.HiddenDim, modelMetaData.EmbeddingDim, modelMetaData.HiddenDim,
-                    modelMetaData.Vocab.TargetWordSize, m_dropoutRatio, modelMetaData.DecoderLayerDepth, raDeviceIds.GetNextItem(), modelMetaData.EnableCoverageModel), DeviceIds);
+                    modelMetaData.Vocab.TargetWordSize, m_dropoutRatio, modelMetaData.DecoderLayerDepth, raDeviceIds.GetNextItem(), modelMetaData.EnableCoverageModel, isTrainable: m_isDecoderTrainable), DeviceIds);
             }
-            m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.SourceWordSize, modelMetaData.EmbeddingDim }, raDeviceIds.GetNextItem(), normal: true, name: "SrcEmbeddings", isTrainable: true), DeviceIds);
-            m_tgtEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.TargetWordSize, modelMetaData.EmbeddingDim }, raDeviceIds.GetNextItem(), normal: true, name: "TgtEmbeddings", isTrainable: true), DeviceIds);
+            m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.SourceWordSize, modelMetaData.EmbeddingDim }, raDeviceIds.GetNextItem(), normal: true, name: "SrcEmbeddings", isTrainable: m_isSrcEmbTrainable), DeviceIds);
+            m_tgtEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.TargetWordSize, modelMetaData.EmbeddingDim }, raDeviceIds.GetNextItem(), normal: true, name: "TgtEmbeddings", isTrainable: m_isTgtEmbTrainable), DeviceIds);
 
             return true;
         }

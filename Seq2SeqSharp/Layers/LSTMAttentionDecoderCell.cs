@@ -21,7 +21,7 @@ namespace Seq2SeqSharp
         private readonly LayerNormalization m_layerNorm1;
         private readonly LayerNormalization m_layerNorm2;
 
-        public LSTMAttentionDecoderCell(string name, int hiddenDim, int inputDim, int contextDim, int deviceId)
+        public LSTMAttentionDecoderCell(string name, int hiddenDim, int inputDim, int contextDim, int deviceId, bool isTrainable)
         {
             m_name = name;
             m_hiddenDim = hiddenDim;
@@ -30,11 +30,11 @@ namespace Seq2SeqSharp
 
             Logger.WriteLine($"Create LSTM attention decoder cell '{name}' HiddemDim = '{hiddenDim}', InputDim = '{inputDim}', ContextDim = '{contextDim}', DeviceId = '{deviceId}'");
 
-            m_Wxhc = new WeightTensor(new long[2] { inputDim + hiddenDim + contextDim, hiddenDim * 4 }, deviceId, normal: true, name: $"{name}.{nameof(m_Wxhc)}", isTrainable: true);
-            m_b = new WeightTensor(new long[2] { 1, hiddenDim * 4 }, 0, deviceId, name: $"{name}.{nameof(m_b)}", isTrainable: true);
+            m_Wxhc = new WeightTensor(new long[2] { inputDim + hiddenDim + contextDim, hiddenDim * 4 }, deviceId, normal: true, name: $"{name}.{nameof(m_Wxhc)}", isTrainable: isTrainable);
+            m_b = new WeightTensor(new long[2] { 1, hiddenDim * 4 }, 0, deviceId, name: $"{name}.{nameof(m_b)}", isTrainable: isTrainable);
 
-            m_layerNorm1 = new LayerNormalization($"{name}.{nameof(m_layerNorm1)}", hiddenDim * 4, deviceId);
-            m_layerNorm2 = new LayerNormalization($"{name}.{nameof(m_layerNorm2)}", hiddenDim, deviceId);
+            m_layerNorm1 = new LayerNormalization($"{name}.{nameof(m_layerNorm1)}", hiddenDim * 4, deviceId, isTrainable);
+            m_layerNorm2 = new LayerNormalization($"{name}.{nameof(m_layerNorm2)}", hiddenDim, deviceId, isTrainable);
         }
 
         /// <summary>

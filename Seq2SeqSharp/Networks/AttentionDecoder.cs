@@ -24,8 +24,9 @@ namespace Seq2SeqSharp
         private readonly AttentionUnit m_attentionLayer;
         private readonly string m_name;
         private readonly bool m_enableCoverageModel;
+        private readonly bool m_isTrainable;
 
-        public AttentionDecoder(string name, int hiddenDim, int embeddingDim, int contextDim, int outputDim, float dropoutRatio, int depth, int deviceId, bool enableCoverageModel)
+        public AttentionDecoder(string name, int hiddenDim, int embeddingDim, int contextDim, int outputDim, float dropoutRatio, int depth, int deviceId, bool enableCoverageModel, bool isTrainable)
         {
             m_name = name;
             m_hdim = hiddenDim;
@@ -36,16 +37,17 @@ namespace Seq2SeqSharp
             m_outputDim = outputDim;
             m_dropoutRatio = dropoutRatio;
             m_enableCoverageModel = enableCoverageModel;
+            m_isTrainable = isTrainable;
 
-            m_attentionLayer = new AttentionUnit($"{name}.AttnUnit", hiddenDim, contextDim, deviceId, enableCoverageModel);
+            m_attentionLayer = new AttentionUnit($"{name}.AttnUnit", hiddenDim, contextDim, deviceId, enableCoverageModel, isTrainable: isTrainable);
 
-            m_decoders.Add(new LSTMAttentionDecoderCell($"{name}.LSTMAttn_0", hiddenDim, embeddingDim, contextDim, deviceId));
+            m_decoders.Add(new LSTMAttentionDecoderCell($"{name}.LSTMAttn_0", hiddenDim, embeddingDim, contextDim, deviceId, isTrainable));
             for (int i = 1; i < depth; i++)
             {
-                m_decoders.Add(new LSTMAttentionDecoderCell($"{name}.LSTMAttn_{i}", hiddenDim, hiddenDim, contextDim, deviceId));
+                m_decoders.Add(new LSTMAttentionDecoderCell($"{name}.LSTMAttn_{i}", hiddenDim, hiddenDim, contextDim, deviceId, isTrainable));
             }
 
-            m_decoderFFLayer = new FeedForwardLayer($"{name}.FeedForward", hiddenDim, outputDim, 0.0f, deviceId: deviceId);
+            m_decoderFFLayer = new FeedForwardLayer($"{name}.FeedForward", hiddenDim, outputDim, 0.0f, deviceId: deviceId, isTrainable: isTrainable);
 
         }
 
@@ -56,7 +58,7 @@ namespace Seq2SeqSharp
 
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
-            return new AttentionDecoder(m_name, m_hdim, m_embDim, m_context, m_outputDim, m_dropoutRatio, m_depth, deviceId, m_enableCoverageModel);
+            return new AttentionDecoder(m_name, m_hdim, m_embDim, m_context, m_outputDim, m_dropoutRatio, m_depth, deviceId, m_enableCoverageModel, m_isTrainable);
         }
 
 

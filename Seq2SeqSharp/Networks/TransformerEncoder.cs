@@ -16,8 +16,9 @@ namespace Seq2SeqSharp
         private readonly int m_hiddenDim;
         private readonly int m_depth;
         private readonly int m_deviceId;
+        private readonly bool m_isTrainable;
 
-        public TransformerEncoder(string name, int multiHeadNum, int hiddenDim, int inputDim, int depth, float dropoutRatio, int deviceId)
+        public TransformerEncoder(string name, int multiHeadNum, int hiddenDim, int inputDim, int depth, float dropoutRatio, int deviceId, bool isTrainable)
         {
             Logger.WriteLine($"Creating transformer encoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', InputDim = '{inputDim}', Depth = '{depth}', MultiHeadNum = '{multiHeadNum}'");
 
@@ -28,16 +29,17 @@ namespace Seq2SeqSharp
             m_depth = depth;
             m_dropoutRatio = dropoutRatio;
             m_deviceId = deviceId;
+            m_isTrainable = isTrainable;
 
             if (hiddenDim != inputDim)
             {
                 throw new ArgumentException($"hiddenDim is not equal to inputDim in TransformerEncoder.");
             }
 
-            m_encoders.Add(new SelfAttention($"{name}.SelfAttn_0", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId));
+            m_encoders.Add(new SelfAttention($"{name}.SelfAttn_0", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId, isTrainable: isTrainable));
             for (int i = 1; i < depth; i++)
             {
-                m_encoders.Add(new SelfAttention($"{name}.SelfAttn_{i}", multiHeadNum, hiddenDim, hiddenDim, m_dropoutRatio, deviceId));
+                m_encoders.Add(new SelfAttention($"{name}.SelfAttn_{i}", multiHeadNum, hiddenDim, hiddenDim, m_dropoutRatio, deviceId, isTrainable: isTrainable));
             }
         }
 
@@ -86,7 +88,7 @@ namespace Seq2SeqSharp
 
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
-            return new TransformerEncoder(m_name, m_multiHeadNum, m_hiddenDim, m_inputDim, m_depth, m_dropoutRatio, deviceId);
+            return new TransformerEncoder(m_name, m_multiHeadNum, m_hiddenDim, m_inputDim, m_depth, m_dropoutRatio, deviceId, m_isTrainable);
         }
 
         public List<IWeightTensor> GetParams()
