@@ -12,6 +12,9 @@ namespace TensorSharp.CUDA
         private readonly CopyOps copyOps;
 
         private readonly ElementwiseKernels elementwiseKernels = new ElementwiseKernels();
+        private readonly ElementwiseOpKernels elementwiseOpKernels = new ElementwiseOpKernels();
+        private readonly ElementwiseTriKernels elementwiseTriKernels = new ElementwiseTriKernels();
+
         private readonly FillCopyKernels fillCopyKernels = new FillCopyKernels();
 
         private readonly CudaReduceKernels cudaReduceKernels = new CudaReduceKernels();
@@ -302,25 +305,25 @@ namespace TensorSharp.CUDA
         public Tensor Frac(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseKernels, "frac", result, src); }
 
         [RegisterOpStorageType("sin", typeof(CudaStorage))]
-        public Tensor Sin(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseKernels, "sin", result, src); }
+        public Tensor Sin(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseTriKernels, "sin", result, src); }
         [RegisterOpStorageType("cos", typeof(CudaStorage))]
-        public Tensor Cos(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseKernels, "cos", result, src); }
+        public Tensor Cos(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseTriKernels, "cos", result, src); }
         [RegisterOpStorageType("tan", typeof(CudaStorage))]
-        public Tensor Tan(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseKernels, "tan", result, src); }
+        public Tensor Tan(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseTriKernels, "tan", result, src); }
 
         [RegisterOpStorageType("asin", typeof(CudaStorage))]
-        public Tensor Asin(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseKernels, "asin", result, src); }
+        public Tensor Asin(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseTriKernels, "asin", result, src); }
         [RegisterOpStorageType("acos", typeof(CudaStorage))]
-        public Tensor Acos(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseKernels, "acos", result, src); }
+        public Tensor Acos(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseTriKernels, "acos", result, src); }
         [RegisterOpStorageType("atan", typeof(CudaStorage))]
-        public Tensor Atan(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseKernels, "atan", result, src); }
+        public Tensor Atan(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseTriKernels, "atan", result, src); }
 
         [RegisterOpStorageType("sinh", typeof(CudaStorage))]
-        public Tensor Sinh(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseKernels, "sinh", result, src); }
+        public Tensor Sinh(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseTriKernels, "sinh", result, src); }
         [RegisterOpStorageType("cosh", typeof(CudaStorage))]
-        public Tensor Cosh(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseKernels, "cosh", result, src); }
+        public Tensor Cosh(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseTriKernels, "cosh", result, src); }
         [RegisterOpStorageType("tanh", typeof(CudaStorage))]
-        public Tensor Tanh(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseKernels, "tanh", result, src); }
+        public Tensor Tanh(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseTriKernels, "tanh", result, src); }
 
         [RegisterOpStorageType("sigmoid", typeof(CudaStorage))]
         public Tensor Sigmoid(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseKernels, "sigmoid", result, src); }
@@ -330,7 +333,7 @@ namespace TensorSharp.CUDA
 
 
         [RegisterOpStorageType("addtanhD", typeof(CudaStorage))]
-        public Tensor AddTanhD(Tensor result, Tensor t, Tensor resW, Tensor resG) { return ElementwiseTTTTOp.Invoke(elementwiseKernels, "addtanhD", result, t, resW, resG); }
+        public Tensor AddTanhD(Tensor result, Tensor t, Tensor resW, Tensor resG) { return ElementwiseTTTTOp.Invoke(elementwiseTriKernels, "addtanhD", result, t, resW, resG); }
 
 
         [RegisterOpStorageType("relu", typeof(CudaStorage))]
@@ -348,15 +351,15 @@ namespace TensorSharp.CUDA
 
 
         [RegisterOpStorageType("tanhD", typeof(CudaStorage))]
-        public Tensor TanhD(Tensor result, Tensor resW, Tensor resG) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "tanhD", result, resW, resG); }
+        public Tensor TanhD(Tensor result, Tensor resW, Tensor resG) { return ElementwiseTTTOp.Invoke(elementwiseTriKernels, "tanhD", result, resW, resG); }
 
 
         [RegisterOpStorageType("addtanh", typeof(CudaStorage))]
-        public Tensor AddTanh(Tensor result, Tensor x, Tensor y) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "addtanh", result, x, y); }
+        public Tensor AddTanh(Tensor result, Tensor x, Tensor y) { return ElementwiseTTTOp.Invoke(elementwiseTriKernels, "addtanh", result, x, y); }
 
 
         [RegisterOpStorageType("addtanh3", typeof(CudaStorage))]
-        public Tensor AddTanh3(Tensor result, Tensor x, Tensor y, Tensor z) { return ElementwiseTTTTOp.Invoke(elementwiseKernels, "addtanh3", result, x, y, z); }
+        public Tensor AddTanh3(Tensor result, Tensor x, Tensor y, Tensor z) { return ElementwiseTTTTOp.Invoke(elementwiseTriKernels, "addtanh3", result, x, y, z); }
 
 
         [RegisterOpStorageType("mulmuladd", typeof(CudaStorage))]
@@ -381,57 +384,57 @@ namespace TensorSharp.CUDA
         public Tensor Clamp(Tensor result, Tensor src, float min, float max) { return ClampOp.Invoke(elementwiseKernels, result, src, min, max); }
 
         [RegisterOpStorageType("addv", typeof(CudaStorage))]
-        public Tensor Add(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseKernels, "add", result, rhs, lhs); }
+        public Tensor Add(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseOpKernels, "add", result, rhs, lhs); }
         [RegisterOpStorageType("subv", typeof(CudaStorage))]
-        public Tensor Sub(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseKernels, "sub", result, rhs, lhs); }
+        public Tensor Sub(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseOpKernels, "sub", result, rhs, lhs); }
         [RegisterOpStorageType("rsubv", typeof(CudaStorage))]
-        public Tensor Sub(Tensor result, float rhs, Tensor lhs) { return ElementwiseTTSOp.Invoke(elementwiseKernels, "rsub", result, lhs, rhs); }
+        public Tensor Sub(Tensor result, float rhs, Tensor lhs) { return ElementwiseTTSOp.Invoke(elementwiseOpKernels, "rsub", result, lhs, rhs); }
         [RegisterOpStorageType("mulv", typeof(CudaStorage))]
-        public Tensor Mul(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseKernels, "mul", result, rhs, lhs); }
+        public Tensor Mul(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseOpKernels, "mul", result, rhs, lhs); }
         [RegisterOpStorageType("divv", typeof(CudaStorage))]
-        public Tensor Div(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseKernels, "div", result, rhs, lhs); }
+        public Tensor Div(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseOpKernels, "div", result, rhs, lhs); }
         [RegisterOpStorageType("rdivv", typeof(CudaStorage))]
-        public Tensor Div(Tensor result, float rhs, Tensor lhs) { return ElementwiseTTSOp.Invoke(elementwiseKernels, "rdiv", result, lhs, rhs); }
+        public Tensor Div(Tensor result, float rhs, Tensor lhs) { return ElementwiseTTSOp.Invoke(elementwiseOpKernels, "rdiv", result, lhs, rhs); }
         [RegisterOpStorageType("modv", typeof(CudaStorage))]
-        public Tensor Mod(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseKernels, "mod", result, rhs, lhs); }
+        public Tensor Mod(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseOpKernels, "mod", result, rhs, lhs); }
 
         [RegisterOpStorageType("gtValue", typeof(CudaStorage))]
-        public Tensor GreaterThan(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseKernels, "gt", result, rhs, lhs); }
+        public Tensor GreaterThan(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseOpKernels, "gt", result, rhs, lhs); }
         [RegisterOpStorageType("ltValue", typeof(CudaStorage))]
-        public Tensor LessThan(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseKernels, "lt", result, rhs, lhs); }
+        public Tensor LessThan(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseOpKernels, "lt", result, rhs, lhs); }
         [RegisterOpStorageType("geValue", typeof(CudaStorage))]
-        public Tensor GreaterOrEqual(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseKernels, "ge", result, rhs, lhs); }
+        public Tensor GreaterOrEqual(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseOpKernels, "ge", result, rhs, lhs); }
         [RegisterOpStorageType("leValue", typeof(CudaStorage))]
-        public Tensor LessOrEqual(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseKernels, "le", result, rhs, lhs); }
+        public Tensor LessOrEqual(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseOpKernels, "le", result, rhs, lhs); }
         [RegisterOpStorageType("eqValue", typeof(CudaStorage))]
-        public Tensor EqualTo(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseKernels, "eq", result, rhs, lhs); }
+        public Tensor EqualTo(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseOpKernels, "eq", result, rhs, lhs); }
         [RegisterOpStorageType("neValue", typeof(CudaStorage))]
-        public Tensor NotEqual(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseKernels, "ne", result, rhs, lhs); }
+        public Tensor NotEqual(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseOpKernels, "ne", result, rhs, lhs); }
 
 
         [RegisterOpStorageType("addt", typeof(CudaStorage))]
-        public Tensor Add(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "cadd", result, rhs, lhs); }
+        public Tensor Add(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseOpKernels, "cadd", result, rhs, lhs); }
         [RegisterOpStorageType("subt", typeof(CudaStorage))]
-        public Tensor Sub(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "csub", result, rhs, lhs); }
+        public Tensor Sub(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseOpKernels, "csub", result, rhs, lhs); }
         [RegisterOpStorageType("mult", typeof(CudaStorage))]
-        public Tensor Mul(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "cmul", result, rhs, lhs); }
+        public Tensor Mul(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseOpKernels, "cmul", result, rhs, lhs); }
         [RegisterOpStorageType("divt", typeof(CudaStorage))]
-        public Tensor Div(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "cdiv", result, rhs, lhs); }
+        public Tensor Div(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseOpKernels, "cdiv", result, rhs, lhs); }
         [RegisterOpStorageType("modt", typeof(CudaStorage))]
-        public Tensor Mod(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "cmod", result, rhs, lhs); }
+        public Tensor Mod(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseOpKernels, "cmod", result, rhs, lhs); }
 
         [RegisterOpStorageType("gtTensor", typeof(CudaStorage))]
-        public Tensor GreaterThan(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "cgt", result, rhs, lhs); }
+        public Tensor GreaterThan(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseOpKernels, "cgt", result, rhs, lhs); }
         [RegisterOpStorageType("ltTensor", typeof(CudaStorage))]
-        public Tensor LessThan(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "clt", result, rhs, lhs); }
+        public Tensor LessThan(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseOpKernels, "clt", result, rhs, lhs); }
         [RegisterOpStorageType("geTensor", typeof(CudaStorage))]
-        public Tensor GreaterOrEqual(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "cge", result, rhs, lhs); }
+        public Tensor GreaterOrEqual(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseOpKernels, "cge", result, rhs, lhs); }
         [RegisterOpStorageType("leTensor", typeof(CudaStorage))]
-        public Tensor LessOrEqual(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "cle", result, rhs, lhs); }
+        public Tensor LessOrEqual(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseOpKernels, "cle", result, rhs, lhs); }
         [RegisterOpStorageType("eqTensor", typeof(CudaStorage))]
-        public Tensor EqualTo(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "ceq", result, rhs, lhs); }
+        public Tensor EqualTo(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseOpKernels, "ceq", result, rhs, lhs); }
         [RegisterOpStorageType("neTensor", typeof(CudaStorage))]
-        public Tensor NotEqual(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseKernels, "cne", result, rhs, lhs); }
+        public Tensor NotEqual(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseOpKernels, "cne", result, rhs, lhs); }
 
 
         [RegisterOpStorageType("sum", typeof(CudaStorage))]

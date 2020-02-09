@@ -62,7 +62,7 @@ namespace TensorSharp.CUDA.KernelOps
 
     public static class ElementwiseTTOp
     {
-        public static Tensor Invoke(ElementwiseKernels kernels, string funcName, Tensor result, Tensor src)
+        public static Tensor Invoke(CudaCode kernels, string funcName, Tensor result, Tensor src)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(src);
             CudaContext cudaContext = context.CudaContextForTensor(src);
@@ -89,7 +89,7 @@ namespace TensorSharp.CUDA.KernelOps
 
     public static class ElementwiseTTSOp
     {
-        public static Tensor Invoke(ElementwiseKernels kernels, string funcName, Tensor result, Tensor src, float value)
+        public static Tensor Invoke(CudaCode kernels, string funcName, Tensor result, Tensor src, float value)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(src);
             CudaContext cudaContext = context.CudaContextForTensor(src);
@@ -224,7 +224,7 @@ namespace TensorSharp.CUDA.KernelOps
 
     public static class ElementwiseTTTOp
     {
-        public static Tensor Invoke(ElementwiseKernels kernels, string funcName, Tensor result, Tensor lhs, Tensor rhs)
+        public static Tensor Invoke(CudaCode kernels, string funcName, Tensor result, Tensor lhs, Tensor rhs)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(lhs);
             CudaContext cudaContext = context.CudaContextForTensor(lhs);
@@ -251,7 +251,7 @@ namespace TensorSharp.CUDA.KernelOps
 
     public static class ElementwiseTTTTOp
     {
-        public static Tensor Invoke(ElementwiseKernels kernels, string funcName, Tensor result, Tensor lhs, Tensor rhs, Tensor rhs2)
+        public static Tensor Invoke(CudaCode kernels, string funcName, Tensor result, Tensor lhs, Tensor rhs, Tensor rhs2)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(lhs);
             CudaContext cudaContext = context.CudaContextForTensor(lhs);

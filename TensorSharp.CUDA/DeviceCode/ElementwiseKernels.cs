@@ -29,24 +29,9 @@
             AppendTTFunc(result, "trunc", "trunc");
             AppendTTFunc(result, "frac", "Frac");
 
-            AppendTTFunc(result, "sin", "sin");
-            AppendTTFunc(result, "cos", "cos");
-            AppendTTFunc(result, "tan", "tan");
-            AppendTTFunc(result, "asin", "asin");
-            AppendTTFunc(result, "acos", "acos");
-            AppendTTFunc(result, "atan", "atan");
-            AppendTTFunc(result, "sinh", "sinh");
-            AppendTTFunc(result, "cosh", "cosh");
-            AppendTTFunc(result, "tanh", "tanhf");
-
             AppendTTFunc(result, "sigmoid", "Sigmoid");
             AppendTTTTFunc(result, "addsigmoidD", "AddSigmoidD");
             AppendTTTFunc(result, "sigmoidD", "SigmoidD");
-
-            AppendTTTFunc(result, "addtanh", "AddTanh");
-            AppendTTTTFunc(result, "addtanh3", "AddTanh3");
-            AppendTTTTFunc(result, "addtanhD", "AddTanhD");
-            AppendTTTFunc(result, "tanhD", "TanhD");
 
 
             AppendTTTFunc(result, "relud", "relud");
@@ -67,35 +52,6 @@
 
             //result.AddApplyTSS("t1_clamp", "*a = Clamp(*a, b, c);");
             //result.AddApplyTTSS("t2_clamp", "*a = Clamp(*b, c, d);");
-
-            AppendTTSFunc(result, "add", "add_op");
-            AppendTTSFunc(result, "sub", "sub_op");
-            AppendTTSFunc(result, "rsub", "rsub_op");
-            AppendTTSFunc(result, "mul", "mul_op");
-            AppendTTSFunc(result, "div", "div_op");
-            AppendTTSFunc(result, "rdiv", "rdiv_op");
-            AppendTTSFunc(result, "mod", "Mod_op");
-
-            AppendTTSFunc(result, "gt", "gt_op");
-            AppendTTSFunc(result, "lt", "lt_op");
-            AppendTTSFunc(result, "ge", "gt_op");
-            AppendTTSFunc(result, "le", "le_op");
-            AppendTTSFunc(result, "eq", "eq_op");
-            AppendTTSFunc(result, "ne", "ne_op");
-
-            AppendTTTFunc(result, "cadd", "add_op");
-            AppendTTTFunc(result, "csub", "sub_op");
-            AppendTTTFunc(result, "cmul", "mul_op");
-            AppendTTTFunc(result, "cdiv", "div_op");
-            AppendTTTFunc(result, "cmod", "Mod_op");
-
-            AppendTTTFunc(result, "cgt", "gt_op");
-            AppendTTTFunc(result, "clt", "lt_op");
-            AppendTTTFunc(result, "cge", "gt_op");
-            AppendTTTFunc(result, "cle", "le_op");
-            AppendTTTFunc(result, "ceq", "eq_op");
-            AppendTTTFunc(result, "cne", "ne_op");
-
 
             return result.ToString();
         }
