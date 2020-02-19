@@ -81,6 +81,8 @@ namespace TensorSharp.Cpu
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Lerp(IntPtr result, IntPtr srcA, IntPtr srcB, float weight);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Clamp(IntPtr result, IntPtr src, float min, float max);
 
+        [DllImport(dll, CallingConvention = cc)] public static extern int TS_MaskFill(IntPtr result, IntPtr src, IntPtr mask, float defValue);
+
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddReluD(IntPtr result, IntPtr srcX, IntPtr srcY, IntPtr srcZ);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_MulMulAdd(IntPtr result, IntPtr srcX, IntPtr srcY, IntPtr srcZ, IntPtr srcW);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddTanh(IntPtr result, IntPtr srcX, IntPtr srcY);

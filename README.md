@@ -209,52 +209,52 @@ Another example about **scaled multi-heads attention** component which is the co
         /// <summary>
         /// Scaled multi-heads attention component with skip connectioned feed forward layers
         /// </summary>
-        /// <param name="input">The input tensor</param>
-        /// <param name="g">The instance of computing graph</param>
-        /// <returns></returns>
-        public IWeightTensor Perform(IWeightTensor input, IComputeGraph graph)
+        /// <param name="inputQ">The input Q tensor</param>
+        /// <param name="inputK">The input K tensor</param>
+        /// <param name="inputV">The input V tensor</param>
+        /// <param name="batchSize">Batch size of input data set</param>
+        /// <param name="graph">The instance of computing graph</param>
+        /// <returns>Transformered output tensor</returns>
+        public IWeightTensor Perform(IWeightTensor inputQ, IWeightTensor inputK, IWeightTensor inputV, int batchSize, IComputeGraph graph)
         {
-            IComputeGraph g = graph.CreateSubGraph(m_name);
+            using (IComputeGraph g = graph.CreateSubGraph(m_name))
+            {
+                int seqLen = inputQ.Rows / batchSize;
+                IWeightTensor inputQNorm = layerNorm1.Norm(inputQ, g);
 
-            var seqLen = input.Rows / m_batchSize;
+                //Input projections
+                IWeightTensor allQ = g.View(g.Affine(inputQNorm, Q, Qb), batchSize, seqLen, m_multiHeadNum, m_d);
+                IWeightTensor allK = g.View(g.Affine(inputK, K, Kb), batchSize, seqLen, m_multiHeadNum, m_d);
+                IWeightTensor allV = g.View(g.Affine(inputV, V, Vb), batchSize, seqLen, m_multiHeadNum, m_d);
 
-            //Input projections
-            var allQ = g.View(Q.Process(input, g), m_batchSize, seqLen, m_multiHeadNum, m_d);
-            var allK = g.View(K.Process(input, g), m_batchSize, seqLen, m_multiHeadNum, m_d);
-            var allV = g.View(V.Process(input, g), m_batchSize, seqLen, m_multiHeadNum, m_d);
+                //Multi-head attentions
+                IWeightTensor Qs = g.View(g.Permute(allQ, 2, 0, 1, 3), m_multiHeadNum * batchSize, seqLen, m_d);
+                IWeightTensor Ks = g.View(g.Permute(allK, 2, 0, 3, 1), m_multiHeadNum * batchSize, m_d, seqLen);
+                IWeightTensor Vs = g.View(g.Permute(allV, 2, 0, 1, 3), m_multiHeadNum * batchSize, seqLen, m_d);
 
-            //Multi-head attentions
-            var Qs = g.View(g.Permute(allQ, 2, 0, 1, 3), m_multiHeadNum * m_batchSize, seqLen, m_d);
-            var Ks = g.View(g.Permute(allK, 2, 0, 3, 1), m_multiHeadNum * m_batchSize, m_d, seqLen);
-            var Vs = g.View(g.Permute(allV, 2, 0, 1, 3), m_multiHeadNum * m_batchSize, seqLen, m_d);
+                // Scaled softmax
+                float scale = 1.0f / (float)Math.Sqrt(m_d);
+                IWeightTensor attn = g.MulBatch(Qs, Ks, m_multiHeadNum * batchSize, scale);
+                IWeightTensor attn2 = g.View(attn, m_multiHeadNum * batchSize * seqLen, seqLen);
 
-            // Scaled softmax
-            float scale = 1.0f / (float)Math.Sqrt(m_d);
-            var attn = g.MulBatch(Qs, Ks, m_multiHeadNum * m_batchSize, scale);
-            var attn2 = g.View(attn, m_multiHeadNum * m_batchSize * seqLen, seqLen);
+                IWeightTensor softmax = g.Softmax(attn2, inPlace: true);
+                IWeightTensor softmax2 = g.View(softmax, m_multiHeadNum * batchSize, seqLen, seqLen);
+                IWeightTensor o = g.View(g.MulBatch(softmax2, Vs, m_multiHeadNum * batchSize), m_multiHeadNum, batchSize, seqLen, m_d);
+                IWeightTensor W = g.View(g.Permute(o, 1, 2, 0, 3), batchSize * seqLen, m_multiHeadNum * m_d);
 
-            var softmax = g.Softmax(attn2);
-            var softmax2 = g.View(softmax, m_multiHeadNum * m_batchSize, seqLen, seqLen);
-            var o = g.View(g.MulBatch(softmax2, Vs, m_multiHeadNum * m_batchSize), m_multiHeadNum, m_batchSize, seqLen, m_d);
-            var W = g.View(g.Permute(o, 1, 2, 0, 3), m_batchSize * seqLen, m_multiHeadNum * m_d);
+                // Output projection
+                IWeightTensor finalAttResults = g.Dropout(g.Affine(W, W0, b0), batchSize, m_dropoutRatio, inPlace: true);
 
-            // Output projection
-            var finalAttResults = g.Affine(W, W0, b0);
+                //Feed forward
+                IWeightTensor ffnResult = feedForwardLayer1.Process(finalAttResults, batchSize, g);
+                IWeightTensor reluFFNResult = g.Relu(ffnResult);
+                IWeightTensor ffn2Result = feedForwardLayer2.Process(reluFFNResult, batchSize, g);
 
-            //Skip connection and layer normaliztion
-            var addedAttResult = g.Add(finalAttResults, input);
-            var normAddedAttResult = layerNorm1.Process(addedAttResult, g);
+                //Skip connection and layer normaliztion
+                IWeightTensor addFFNResult = graph.Add(ffn2Result, inputQ);
 
-            //Feed forward
-            var ffnResult = feedForwardLayer1.Process(normAddedAttResult, g);
-            var reluFFNResult = g.Relu(ffnResult);
-            var ffn2Result = feedForwardLayer2.Process(reluFFNResult, g);
-
-            //Skip connection and layer normaliztion
-            var addFFNResult = g.Add(ffn2Result, normAddedAttResult);
-            var normAddFFNResult = layerNorm2.Process(addFFNResult, g);
-
-            return normAddFFNResult;
+                return addFFNResult;
+            }
         }
 ```
 # Build Your Operations  

@@ -99,6 +99,7 @@
     <Compile Include="ContextState\PoolingDeviceAllocator.cs" />
     <Compile Include="CudaAllocator.cs" />
     <Compile Include="CudaRandom.cs" />
+    <Compile Include="DeviceCode\ElementwiseActKernels.cs" />
     <Compile Include="DeviceCode\ElementwiseOpKernels.cs" />
     <Compile Include="DeviceCode\ElementwiseTriKernels.cs" />
     <Compile Include="DeviceCode\GatherScatterKernels.cs" />

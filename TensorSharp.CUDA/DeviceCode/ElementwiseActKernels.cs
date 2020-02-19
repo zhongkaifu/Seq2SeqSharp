@@ -1,9 +1,9 @@
 ﻿namespace TensorSharp.CUDA.DeviceCode
 {
     [Precompile]
-    public class ElementwiseTriKernels : CudaCode
+    public class ElementwiseActKernels : CudaCode
     {
-        public ElementwiseTriKernels()
+        public ElementwiseActKernels()
             : base(GetFullCode(), "General", "ReduceApplyUtils", "PointwiseApply", "Math", "ApplyMacros")
         {
         }
@@ -12,22 +12,13 @@
         {
             PermutationGenerator result = new PermutationGenerator();
 
-            AppendTTFunc(result, "sin", "sin");
-            AppendTTFunc(result, "cos", "cos");
-            AppendTTFunc(result, "tan", "tan");
-            AppendTTFunc(result, "asin", "asin");
-            AppendTTFunc(result, "acos", "acos");
-            AppendTTFunc(result, "atan", "atan");
-            AppendTTFunc(result, "sinh", "sinh");
-            AppendTTFunc(result, "cosh", "cosh");
-            AppendTTFunc(result, "tanh", "tanhf");
+            AppendTTFunc(result, "sigmoid", "Sigmoid");
+            AppendTTTTFunc(result, "addsigmoidD", "AddSigmoidD");
+            AppendTTTFunc(result, "sigmoidD", "SigmoidD");
 
-            result.AddApplyTTT("atan2", "*a = atan2f(*b, *c);");
-
-            AppendTTTFunc(result, "addtanh", "AddTanh");
-            AppendTTTTFunc(result, "addtanh3", "AddTanh3");
-            AppendTTTTFunc(result, "addtanhD", "AddTanhD");
-            AppendTTTFunc(result, "tanhD", "TanhD");
+            AppendTTFunc(result, "relu", "relu");
+            AppendTTTFunc(result, "relud", "relud");
+            AppendTTTTFunc(result, "addrelud", "addrelud");
 
             return result.ToString();
         }
@@ -37,6 +28,7 @@
             pg.AddApplyT("t1_" + kernelBaseName, string.Format("*v = {0}(*v);", func));
             pg.AddApplyTT("t2_" + kernelBaseName, string.Format("*a = {0}(*b);", func));
         }
+
 
         private static void AppendTTTFunc(PermutationGenerator pg, string kernelBaseName, string func)
         {
@@ -49,6 +41,5 @@
             pg.AddApplyTTT("t1_" + kernelBaseName, string.Format("*a = {0}(*a, *b, *c);", func));
             pg.AddApplyTTTT("t2_" + kernelBaseName, string.Format("*a = {0}(*b, *c, *d);", func));
         }
-
     }
 }

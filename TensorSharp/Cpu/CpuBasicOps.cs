@@ -307,7 +307,14 @@ namespace TensorSharp.Cpu
 
         private readonly MethodInfo clamp_func = NativeWrapper.GetMethod("TS_Clamp");
         [RegisterOpStorageType("clamp", typeof(CpuStorage))]
-        public Tensor Clamp(Tensor result, Tensor src, float min, float max) { return NativeWrapper.InvokeNullableResultElementwise(tanh_func, result, src, min, max); }
+        public Tensor Clamp(Tensor result, Tensor src, float min, float max) { return NativeWrapper.InvokeNullableResultElementwise(clamp_func, result, src, min, max); }
+
+
+
+        private readonly MethodInfo maskfill_func = NativeWrapper.GetMethod("TS_MaskFill");
+        [RegisterOpStorageType("maskfill", typeof(CpuStorage))]
+        public Tensor MaskFill(Tensor result, Tensor src, Tensor mask, float defValue) { return NativeWrapper.InvokeNullableResultElementwise(maskfill_func, result, src, mask, defValue); }
+
 
 
         private readonly MethodInfo mulmuladd_func = NativeWrapper.GetMethod("TS_MulMulAdd");

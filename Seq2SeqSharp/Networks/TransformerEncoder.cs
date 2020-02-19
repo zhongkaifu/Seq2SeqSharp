@@ -17,6 +17,7 @@ namespace Seq2SeqSharp
         private readonly int m_depth;
         private readonly int m_deviceId;
         private readonly bool m_isTrainable;
+        private readonly LayerNormalization layerNorm;
 
         public TransformerEncoder(string name, int multiHeadNum, int hiddenDim, int inputDim, int depth, float dropoutRatio, int deviceId, bool isTrainable)
         {
@@ -41,6 +42,9 @@ namespace Seq2SeqSharp
             {
                 m_encoders.Add(new SelfAttention($"{name}.SelfAttn_{i}", multiHeadNum, hiddenDim, hiddenDim, m_dropoutRatio, deviceId, isTrainable: isTrainable));
             }
+
+            layerNorm = new LayerNormalization($"{name}.{nameof(layerNorm)}", hiddenDim, deviceId, isTrainable);
+
         }
 
         public int GetDeviceId()
@@ -77,8 +81,11 @@ namespace Seq2SeqSharp
 
             for (int k = 0; k < m_encoders.Count; k++)
             {
-                inputs = m_encoders[k].Perform(inputs, batchSize, g);
+                var inputsMultiHeadAtt = m_encoders[k].MultiHeadAttention(inputs, inputs, inputs, batchSize, g);
+                inputs = m_encoders[k].PositionwiseFeedForward(inputsMultiHeadAtt, batchSize, g);
             }
+
+            inputs = layerNorm.Norm(inputs, g);
 
             // Transpose back to time-first based sequence
             rawInput = g.TransposeBatch(inputs, seqLen);
@@ -100,6 +107,8 @@ namespace Seq2SeqSharp
                 response.AddRange(item.getParams());
             }
 
+            response.AddRange(layerNorm.getParams());
+
             return response;
         }
 
@@ -109,6 +118,8 @@ namespace Seq2SeqSharp
             {
                 item.Save(stream);
             }
+
+            layerNorm.Save(stream);
         }
 
         public void Load(Stream stream)
@@ -117,6 +128,8 @@ namespace Seq2SeqSharp
             {
                 item.Load(stream);
             }
+
+            layerNorm.Load(stream);
         }
     }
 }

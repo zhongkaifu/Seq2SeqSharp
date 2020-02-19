@@ -18,12 +18,12 @@ namespace Seq2SeqSharp
     [Serializable]
     public class Vocab
     {
-        public ConcurrentDictionary<string, int> SrcWordToIndex;
-        public ConcurrentDictionary<string, int> TgtWordToIndex;
+        public Dictionary<string, int> SrcWordToIndex;
+        public Dictionary<string, int> TgtWordToIndex;
 
-        private ConcurrentDictionary<int, string> m_srcIndexToWord;
+        private Dictionary<int, string> m_srcIndexToWord;
         private List<string> m_srcVocab = new List<string>();
-        private ConcurrentDictionary<int, string> m_tgtIndexToWord;
+        private Dictionary<int, string> m_tgtIndexToWord;
         private List<string> m_tgtVocab = new List<string>();
 
 
@@ -34,6 +34,8 @@ namespace Seq2SeqSharp
 
         public List<string> TgtVocab => m_tgtVocab.GetRange(3, m_tgtVocab.Count - 3);
 
+        private object locker = new object();
+
         public Vocab()
         {
             CreateIndex();
@@ -41,12 +43,12 @@ namespace Seq2SeqSharp
 
         private void CreateIndex()
         {
-            SrcWordToIndex = new ConcurrentDictionary<string, int>();
-            m_srcIndexToWord = new ConcurrentDictionary<int, string>();
+            SrcWordToIndex = new Dictionary<string, int>();
+            m_srcIndexToWord = new Dictionary<int, string>();
             m_srcVocab = new List<string>();
 
-            TgtWordToIndex = new ConcurrentDictionary<string, int>();
-            m_tgtIndexToWord = new ConcurrentDictionary<int, string>();
+            TgtWordToIndex = new Dictionary<string, int>();
+            m_tgtIndexToWord = new Dictionary<int, string>();
             m_tgtVocab = new List<string>();
 
             m_srcVocab.Add(ParallelCorpus.EOS);
@@ -217,40 +219,49 @@ namespace Seq2SeqSharp
 
         public List<string> ConvertTargetIdsToString(List<int> idxs)
         {
-            List<string> result = new List<string>();
-            foreach (int idx in idxs)
+            lock (locker)
             {
-                string letter = ParallelCorpus.UNK;
-                if (m_tgtIndexToWord.ContainsKey(idx))
+                List<string> result = new List<string>();
+                foreach (int idx in idxs)
                 {
-                    letter = m_tgtIndexToWord[idx];
+                    string letter = ParallelCorpus.UNK;
+                    if (m_tgtIndexToWord.ContainsKey(idx))
+                    {
+                        letter = m_tgtIndexToWord[idx];
+                    }
+                    result.Add(letter);
                 }
-                result.Add(letter);
-            }
 
-            return result;
+                return result;
+            }
         }
 
         public int GetSourceWordIndex(string word, bool logUnk = false)
         {
-            if (!SrcWordToIndex.TryGetValue(word, out int id))
+            lock (locker)
             {
-                id = (int)SENTTAGS.UNK;
-                if (logUnk)
+                if (!SrcWordToIndex.TryGetValue(word, out int id))
                 {
-                    Logger.WriteLine($"Source word '{word}' is UNK");
+                    id = (int)SENTTAGS.UNK;
+                    if (logUnk)
+                    {
+                        Logger.WriteLine($"Source word '{word}' is UNK");
+                    }
                 }
+                return id;
             }
-            return id;
         }
 
         public int GetTargetWordIndex(string word)
         {
-            if (!TgtWordToIndex.TryGetValue(word, out int id))
+            lock (locker)
             {
-                id = (int)SENTTAGS.UNK;
+                if (!TgtWordToIndex.TryGetValue(word, out int id))
+                {
+                    id = (int)SENTTAGS.UNK;
+                }
+                return id;
             }
-            return id;
         }
     }
 }

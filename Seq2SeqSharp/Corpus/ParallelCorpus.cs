@@ -278,16 +278,18 @@ namespace Seq2SeqSharp.Tools
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>
-        public static List<int> PadSentences(List<List<string>> s)
+        public static List<int> PadSentences(List<List<string>> s, int maxLen = -1)
         {
             List<int> originalLengths = new List<int>();
 
-            int maxLen = -1;
-            foreach (List<string> item in s)
+            if (maxLen <= 0)
             {
-                if (item.Count > maxLen)
+                foreach (List<string> item in s)
                 {
-                    maxLen = item.Count;
+                    if (item.Count > maxLen)
+                    {
+                        maxLen = item.Count;
+                    }
                 }
             }
 

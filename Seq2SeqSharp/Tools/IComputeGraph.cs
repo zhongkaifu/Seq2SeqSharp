@@ -40,6 +40,8 @@ namespace Seq2SeqSharp
         IWeightTensor LayerNorm(IWeightTensor src, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-09f);
         IWeightTensor AddLayerNorm(IWeightTensor src1, IWeightTensor src2, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-09f);
 
+        IWeightTensor MaskFill(IWeightTensor src, IWeightTensor mask);
+
         void Backward();
         void RunTopBackward();
         void VisualizeNeuralNetToFile(string neuralNetPicFilePath);

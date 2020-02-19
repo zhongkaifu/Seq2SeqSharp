@@ -123,6 +123,13 @@ template <typename T> INLINE_FUNC T Clamp(T val, T min, T max) {
 }
 
 
+template <typename T> INLINE_FUNC T MaskFill(T tensor, T mask, T value) {
+	if (mask == T(0))
+		return value;
+    return tensor;
+}
+
+
 ";
     }
 }

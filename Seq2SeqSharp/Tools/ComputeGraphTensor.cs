@@ -1169,6 +1169,36 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+
+        public IWeightTensor MaskFill(IWeightTensor src, IWeightTensor mask)
+        {
+            WeightTensor s = src as WeightTensor;
+            WeightTensor m = mask as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(src.Sizes, m_deviceId, name: $"{GetHashString(src.Name)}.MaskFill", graphToBind: this);
+
+            res.TWeight = Ops.MaskFill(null, s.TWeight, m.TWeight, 1e-9f);
+
+            if (m_needsBackprop)
+            {
+                Action backward = () =>
+                {
+                    res.ReleaseWeight();
+
+                    using (var resG = Ops.MaskFill(null, res.TGradient, m.TWeight, 1e-9f))
+                    {
+                        s.CopyOrAddGradient(resG);
+                    }
+
+                    res.Dispose();
+                };
+                m_backprop.Add(backward);
+
+            }
+
+            return res;
+        }
+
+
         public (IWeightTensor r1, IWeightTensor r2) SplitColumns(IWeightTensor w, int size1, int size2)
         {
             List<IWeightTensor> res = SplitColumns2(w, size1, size2);

@@ -116,7 +116,7 @@ namespace TensorSharp.CUDA.KernelOps
 
     public static class ElementwiseTTTSOp
     {
-        public static Tensor Invoke(ElementwiseKernels kernels, string funcName, Tensor result, Tensor src, Tensor src2, float value)
+        public static Tensor Invoke(CudaCode kernels, string funcName, Tensor result, Tensor src, Tensor src2, float value)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(src);
             CudaContext cudaContext = context.CudaContextForTensor(src);
@@ -333,7 +333,7 @@ namespace TensorSharp.CUDA.KernelOps
 
     public static class Atan2Op
     {
-        public static Tensor Invoke(ElementwiseKernels kernels, Tensor result, Tensor srcY, Tensor srcX)
+        public static Tensor Invoke(CudaCode kernels, Tensor result, Tensor srcY, Tensor srcX)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(srcY);
             CudaContext cudaContext = context.CudaContextForTensor(srcY);

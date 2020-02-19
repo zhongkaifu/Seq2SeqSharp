@@ -15,8 +15,6 @@
             AppendTTFunc(result, "neg", "-");
             AppendTTFunc(result, "sign", "sgn");
 
-            AppendTTFunc(result, "relu", "relu");
-
             AppendTTFunc(result, "sqrt", "sqrtf");
             AppendTTFunc(result, "rsqrt", "rsqrtf");
 
@@ -29,19 +27,11 @@
             AppendTTFunc(result, "trunc", "trunc");
             AppendTTFunc(result, "frac", "Frac");
 
-            AppendTTFunc(result, "sigmoid", "Sigmoid");
-            AppendTTTTFunc(result, "addsigmoidD", "AddSigmoidD");
-            AppendTTTFunc(result, "sigmoidD", "SigmoidD");
-
-
-            AppendTTTFunc(result, "relud", "relud");
-            AppendTTTTFunc(result, "addrelud", "addrelud");
-
             AppendTTTTTFunc(result, "mulmuladd", "MulMulAdd");
             AppendTTTTFunc(result, "addmul", "AddMul");
             AppendTTTSFunc(result, "addmulv", "AddMul");
 
-            result.AddApplyTTT("atan2", "*a = atan2f(*b, *c);");
+            AppendTTTSFunc(result, "maskfill", "MaskFill");
 
             //result.AddApplyTS("t1_pow", "*a = powf(*a, b);");
             //result.AddApplyTTS("t2_pow", "*a = powf(*b, c);");

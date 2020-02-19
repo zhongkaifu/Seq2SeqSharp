@@ -59,20 +59,23 @@ namespace Seq2SeqSharp
         /// <summary>
         /// Scaled multi-heads attention component with skip connectioned feed forward layers
         /// </summary>
-        /// <param name="input">The input tensor</param>
-        /// <param name="g">The instance of computing graph</param>
-        /// <returns></returns>
-        public IWeightTensor Perform(IWeightTensor input, int batchSize, IComputeGraph graph)
+        /// <param name="inputQ">The input Q tensor</param>
+        /// <param name="inputK">The input K tensor</param>
+        /// <param name="inputV">The input V tensor</param>
+        /// <param name="batchSize">Batch size of input data set</param>
+        /// <param name="graph">The instance of computing graph</param>
+        /// <returns>Transformered output tensor</returns>
+        public IWeightTensor MultiHeadAttention(IWeightTensor inputQ, IWeightTensor inputK, IWeightTensor inputV, int batchSize, IComputeGraph graph)
         {
-            using (IComputeGraph g = graph.CreateSubGraph(m_name))
+            using (IComputeGraph g = graph.CreateSubGraph($"{m_name}_MultiHeadAttention"))
             {
-                int seqLen = input.Rows / batchSize;
-                IWeightTensor nInput = layerNorm1.Norm(input, g);
+                int seqLen = inputQ.Rows / batchSize;
+                IWeightTensor inputQNorm = layerNorm1.Norm(inputQ, g);
 
                 //Input projections
-                IWeightTensor allQ = g.View(g.Affine(nInput, Q, Qb), batchSize, seqLen, m_multiHeadNum, m_d);
-                IWeightTensor allK = g.View(g.Affine(nInput, K, Kb), batchSize, seqLen, m_multiHeadNum, m_d);
-                IWeightTensor allV = g.View(g.Affine(nInput, V, Vb), batchSize, seqLen, m_multiHeadNum, m_d);
+                IWeightTensor allQ = g.View(g.Affine(inputQNorm, Q, Qb), batchSize, seqLen, m_multiHeadNum, m_d);
+                IWeightTensor allK = g.View(g.Affine(inputK, K, Kb), batchSize, seqLen, m_multiHeadNum, m_d);
+                IWeightTensor allV = g.View(g.Affine(inputV, V, Vb), batchSize, seqLen, m_multiHeadNum, m_d);
 
                 //Multi-head attentions
                 IWeightTensor Qs = g.View(g.Permute(allQ, 2, 0, 1, 3), m_multiHeadNum * batchSize, seqLen, m_d);
@@ -92,21 +95,29 @@ namespace Seq2SeqSharp
                 // Output projection
                 IWeightTensor finalAttResults = g.Dropout(g.Affine(W, W0, b0), batchSize, m_dropoutRatio, inPlace: true);
 
-                //Skip connection and layer normaliztion
-                IWeightTensor normAddedAttResult = layerNorm2.AddNorm(finalAttResults, input, g);
+                return graph.Add(finalAttResults, inputQ);
+            }
+        }
+
+
+        public IWeightTensor PositionwiseFeedForward(IWeightTensor input, int batchSize, IComputeGraph graph)
+        {
+            using (IComputeGraph g = graph.CreateSubGraph($"{m_name}_PositionwiseFeedForward"))
+            {
+                var inputNorm = layerNorm2.Norm(input, g);
 
                 //Feed forward
-                IWeightTensor ffnResult = feedForwardLayer1.Process(normAddedAttResult, batchSize, g);
+                IWeightTensor ffnResult = feedForwardLayer1.Process(inputNorm, batchSize, g);
                 IWeightTensor reluFFNResult = g.Relu(ffnResult);
                 IWeightTensor ffn2Result = feedForwardLayer2.Process(reluFFNResult, batchSize, g);
 
                 //Skip connection and layer normaliztion
-                IWeightTensor addFFNResult = graph.Add(ffn2Result, normAddedAttResult);
+                IWeightTensor addFFNResult = graph.Add(ffn2Result, input);
 
                 return addFFNResult;
             }
-        }
 
+        }
 
         public virtual List<IWeightTensor> getParams()
         {
