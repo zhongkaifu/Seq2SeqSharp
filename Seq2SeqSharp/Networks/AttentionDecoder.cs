@@ -76,11 +76,11 @@ namespace Seq2SeqSharp
         }
 
 
-        public IWeightTensor Decode(IWeightTensor input, AttentionPreProcessResult attenPreProcessResult, int batchSize, IComputeGraph g)
+        public IWeightTensor Decode(IWeightTensor input, AttentionPreProcessResult attenPreProcessResult, IWeightTensor mask, int batchSize, IComputeGraph g)
         {
             IWeightTensor V = input;
             IWeightTensor lastStatus = m_decoders.LastOrDefault().Cell;
-            IWeightTensor context = m_attentionLayer.Perform(lastStatus, attenPreProcessResult, batchSize, g);
+            IWeightTensor context = m_attentionLayer.Perform(lastStatus, attenPreProcessResult, mask, batchSize, g);
 
             foreach (LSTMAttentionDecoderCell decoder in m_decoders)
             {

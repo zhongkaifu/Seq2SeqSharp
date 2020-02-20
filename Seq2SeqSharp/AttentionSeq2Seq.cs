@@ -199,38 +199,65 @@ namespace Seq2SeqSharp
             encoder.Reset(computeGraph.GetWeightFactory(), srcSnts.Count);
             decoder.Reset(computeGraph.GetWeightFactory(), srcSnts.Count);
 
+
+            List<int> originalSrcLengths = ParallelCorpus.PadSentences(srcSnts);
+            int seqLen = srcSnts[0].Count;
+            int batchSize = srcSnts.Count;
+
+            IWeightTensor mask = BuildMask(computeGraph, seqLen, originalSrcLengths, deviceIdIdx);
+
             // Encoding input source sentences
-            IWeightTensor encodedWeightMatrix = Encode(computeGraph, srcSnts, encoder, srcEmbedding);
+            IWeightTensor encodedWeightMatrix = Encode(computeGraph, srcSnts, encoder, srcEmbedding, mask);
             // Generate output decoder sentences
-            return Decode(tgtSnts, computeGraph, encodedWeightMatrix, decoder, tgtEmbedding, srcSnts.Count, isTraining);
+            return Decode(tgtSnts, computeGraph, encodedWeightMatrix, decoder, tgtEmbedding, mask, srcSnts.Count, isTraining);
+
+        }
+
+
+        private IWeightTensor BuildMask(IComputeGraph g, int paddedLength, List<int> originalLists, int deviceId)
+        {
+            float[] buf = new float[originalLists.Count * paddedLength];
+            Array.Clear(buf, 0, buf.Length);
+
+            for (int i = 0; i < originalLists.Count; i++)
+            {
+                for (int j = 0; j < originalLists[i]; j++)
+                {
+                    buf[i * paddedLength + j] = 1;
+                }
+            }
+
+            WeightTensor tensor = new WeightTensor(new long[] { originalLists.Count, paddedLength }, 0.0f, deviceId, $"Mask_{deviceId}", isTrainable: false);
+            tensor.SetWeightArray(buf);
+
+            return tensor;
         }
 
         /// <summary>
         /// Encode source sentences and output encoded weights
         /// </summary>
         /// <param name="g"></param>
-        /// <param name="inputSentences"></param>
+        /// <param name="srcSnts"></param>
         /// <param name="encoder"></param>
         /// <param name="reversEncoder"></param>
         /// <param name="Embedding"></param>
         /// <returns></returns>
-        private IWeightTensor Encode(IComputeGraph g, List<List<string>> inputSentences, IEncoder encoder, IWeightTensor Embedding)
+        private IWeightTensor Encode(IComputeGraph g, List<List<string>> srcSnts, IEncoder encoder, IWeightTensor Embedding, IWeightTensor mask)
         {
-            ParallelCorpus.PadSentences(inputSentences);
-            int seqLen = inputSentences[0].Count;
-            int batchSize = inputSentences.Count;
+            int seqLen = srcSnts[0].Count;
+            int batchSize = srcSnts.Count;
 
             List<IWeightTensor> forwardInput = new List<IWeightTensor>();
             for (int i = 0; i < seqLen; i++)
             {
-                for (int j = 0; j < inputSentences.Count; j++)
+                for (int j = 0; j < srcSnts.Count; j++)
                 {
-                    int ix_source = m_modelMetaData.Vocab.GetSourceWordIndex(inputSentences[j][i], logUnk: true);
+                    int ix_source = m_modelMetaData.Vocab.GetSourceWordIndex(srcSnts[j][i], logUnk: true);
                     forwardInput.Add(g.PeekRow(Embedding, ix_source));
                 }
             }
 
-            return encoder.Encode(g.ConcatRows(forwardInput), batchSize, g);
+            return encoder.Encode(g.ConcatRows(forwardInput), mask, batchSize, g);
         }
 
         /// <summary>
@@ -243,7 +270,7 @@ namespace Seq2SeqSharp
         /// <param name="decoderFFLayer"></param>
         /// <param name="embedding"></param>
         /// <returns></returns>
-        private float Decode(List<List<string>> outputSentences, IComputeGraph g, IWeightTensor encodedOutputs, AttentionDecoder decoder, IWeightTensor embedding,
+        private float Decode(List<List<string>> outputSentences, IComputeGraph g, IWeightTensor encodedOutputs, AttentionDecoder decoder, IWeightTensor embedding, IWeightTensor mask,
            int batchSize, bool isTraining = true)
         {
             float cost = 0.0f;
@@ -283,7 +310,7 @@ namespace Seq2SeqSharp
                 IWeightTensor inputsM = g.ConcatRows(inputs);
 
                 //Decode output sentence at position i
-                IWeightTensor eOutput = decoder.Decode(inputsM, attPreProcessResult, batchSize, g);
+                IWeightTensor eOutput = decoder.Decode(inputsM, attPreProcessResult, mask, batchSize, g);
 
                 //Softmax for output
                 using (IWeightTensor probs = g.Softmax(eOutput, runGradients: false, inPlace: true))
@@ -377,7 +404,7 @@ namespace Seq2SeqSharp
             bss.HTs = decoder.GetHTs();
             bssList.Add(bss);
 
-            IWeightTensor encodedWeightMatrix = Encode(g, inputSeqs, encoder, srcEmbedding);
+            IWeightTensor encodedWeightMatrix = Encode(g, inputSeqs, encoder, srcEmbedding, null);
             AttentionPreProcessResult attPreProcessResult = decoder.PreProcess(encodedWeightMatrix, batchSize, g);
 
             List<BeamSearchStatus> newBSSList = new List<BeamSearchStatus>();
@@ -405,7 +432,7 @@ namespace Seq2SeqSharp
                         decoder.SetHTs(bss.HTs);
 
                         IWeightTensor x = g.PeekRow(tgtEmbedding, ix_input);
-                        IWeightTensor eOutput = decoder.Decode(x, attPreProcessResult, batchSize, g);
+                        IWeightTensor eOutput = decoder.Decode(x, attPreProcessResult, null, batchSize, g);
                         using (IWeightTensor probs = g.Softmax(eOutput))
                         {
                             List<int> preds = probs.GetTopNMaxWeightIdx(beamSearchSize);
@@ -459,14 +486,14 @@ namespace Seq2SeqSharp
             decoder.Reset(g.GetWeightFactory(), batchSize);
 
             // Run encoder
-            IWeightTensor encodedWeightMatrix = Encode(g, inputSeqs, encoder, srcEmbedding);
+            IWeightTensor encodedWeightMatrix = Encode(g, inputSeqs, encoder, srcEmbedding, null);
 
             // Prepare for attention over encoder-decoder
             AttentionPreProcessResult attPreProcessResult = decoder.PreProcess(encodedWeightMatrix, batchSize, g);
 
             // Run decoder
             IWeightTensor x = g.PeekRow(tgtEmbedding, (int)SENTTAGS.START);
-            IWeightTensor eOutput = decoder.Decode(x, attPreProcessResult, batchSize, g);
+            IWeightTensor eOutput = decoder.Decode(x, attPreProcessResult, null, batchSize, g);
             IWeightTensor probs = g.Softmax(eOutput);
 
             g.VisualizeNeuralNetToFile(visNNFilePath);

@@ -4,7 +4,7 @@ namespace Seq2SeqSharp
 {
     public interface IEncoder : INeuralUnit
     {
-        IWeightTensor Encode(IWeightTensor rawInput, int batchSize, IComputeGraph g);
+        IWeightTensor Encode(IWeightTensor rawInput, IWeightTensor mask, int batchSize, IComputeGraph g);
         void Reset(IWeightFactory weightFactory, int batchSize);
     }
 }

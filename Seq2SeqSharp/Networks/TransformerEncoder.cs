@@ -62,26 +62,26 @@ namespace Seq2SeqSharp
         /// <param name="rawInputs"></param>
         /// <param name="g"></param>
         /// <returns></returns>
-        public IWeightTensor Encode(IWeightTensor rawInput, int batchSize, IComputeGraph g)
+        public IWeightTensor Encode(IWeightTensor rawInput, IWeightTensor mask, int batchSize, IComputeGraph g)
         {
             int seqLen = rawInput.Rows / batchSize;
-            IWeightTensor posEmbedding = g.BuildPositionMatrix(seqLen, m_inputDim);
-            IWeightTensor posEmbeddingRepeat = g.RepeatRows(posEmbedding, batchSize, runGradient: false);
-
             // Transpose to batch-first based sequence
             IWeightTensor inputs = g.TransposeBatch(rawInput, batchSize);
 
-            inputs = g.AddMul(posEmbeddingRepeat, inputs, (float)Math.Sqrt(m_inputDim), runGradientW1: false, runGradientW2: true);
-
-            // We don't update position embedding, so dispose it now to save memory.
-            posEmbeddingRepeat.Dispose();
-            posEmbedding.Dispose();
-
+            using (IWeightTensor posEmbedding = g.BuildPositionMatrix(seqLen, m_inputDim))
+            {
+                using (IWeightTensor posEmbeddingRepeat = g.RepeatRows(posEmbedding, batchSize, runGradient: false))
+                {
+                    inputs = g.AddMul(posEmbeddingRepeat, inputs, (float)Math.Sqrt(m_inputDim), runGradientW1: false, runGradientW2: true);
+                }
+            }
             inputs = g.Dropout(inputs, batchSize, m_dropoutRatio, inPlace: true);
+
+            var maskRep = g.RepeatRows(mask, m_multiHeadNum * seqLen, runGradient: false);
 
             for (int k = 0; k < m_encoders.Count; k++)
             {
-                var inputsMultiHeadAtt = m_encoders[k].MultiHeadAttention(inputs, inputs, inputs, batchSize, g);
+                var inputsMultiHeadAtt = m_encoders[k].MultiHeadAttention(inputs, inputs, inputs, maskRep, batchSize, g);
                 inputs = m_encoders[k].PositionwiseFeedForward(inputsMultiHeadAtt, batchSize, g);
             }
 

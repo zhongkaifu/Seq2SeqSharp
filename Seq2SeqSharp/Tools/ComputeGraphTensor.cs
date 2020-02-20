@@ -275,7 +275,7 @@ namespace Seq2SeqSharp.Tools
 
             Ops.AddMulV(res.TWeight, m1.TWeight, m2.TWeight, v);
 
-            if (m_needsBackprop && (runGradientW1 || runGradientW2))
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -676,16 +676,19 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             Ops.Softmax(res.TWeight, m.TWeight);
-            if (m_needsBackprop && runGradients)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
-                    if (inPlace)
-                    {                        
-                        m.TGradient = res.TGradient.CopyRef();
+                    if (runGradients)
+                    {
+                        if (inPlace)
+                        {
+                            m.TGradient = res.TGradient.CopyRef();
+                        }
+                        m.AddSoftmaxGradient(res, inPlace);
                     }
 
-                    m.AddSoftmaxGradient(res, inPlace);
                     res.Dispose();
                 };
                 m_backprop.Add(backward);
@@ -703,7 +706,7 @@ namespace Seq2SeqSharp.Tools
 
             VisualizeNodes(w, res);
 
-            if (m_needsBackprop && runGradients)
+            if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
@@ -1176,7 +1179,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor m = mask as WeightTensor;
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(src.Sizes, m_deviceId, name: $"{GetHashString(src.Name)}.MaskFill", graphToBind: this);
 
-            res.TWeight = Ops.MaskFill(null, s.TWeight, m.TWeight, 1e-9f);
+            res.TWeight = Ops.MaskFill(null, s.TWeight, m.TWeight, -1e9f);
 
             if (m_needsBackprop)
             {
@@ -1184,7 +1187,7 @@ namespace Seq2SeqSharp.Tools
                 {
                     res.ReleaseWeight();
 
-                    using (var resG = Ops.MaskFill(null, res.TGradient, m.TWeight, 1e-9f))
+                    using (var resG = Ops.MaskFill(null, res.TGradient, m.TWeight, -1e9f))
                     {
                         s.CopyOrAddGradient(resG);
                     }
@@ -1193,6 +1196,7 @@ namespace Seq2SeqSharp.Tools
                 };
                 m_backprop.Add(backward);
 
+                m.UnbindFromComputeGraph();
             }
 
             return res;

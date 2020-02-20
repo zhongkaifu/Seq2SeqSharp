@@ -92,7 +92,7 @@ namespace Seq2SeqSharp
             return r;
         }
 
-        public IWeightTensor Perform(IWeightTensor state, AttentionPreProcessResult attenPreProcessResult, int batchSize, IComputeGraph graph)
+        public IWeightTensor Perform(IWeightTensor state, AttentionPreProcessResult attenPreProcessResult, IWeightTensor mask, int batchSize, IComputeGraph graph)
         {
             int srcSeqLen = attenPreProcessResult.inputsBatchFirst.Rows / batchSize;
 
@@ -124,6 +124,11 @@ namespace Seq2SeqSharp
 
                 IWeightTensor attenT = g.Transpose(atten);
                 IWeightTensor attenT2 = g.View(attenT, batchSize, srcSeqLen);
+
+                if (mask != null)
+                {
+                    attenT2 = g.MaskFill(attenT2, mask);
+                }
 
                 IWeightTensor attenSoftmax1 = g.Softmax(attenT2, inPlace: true);
 

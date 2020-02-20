@@ -65,7 +65,7 @@ namespace Seq2SeqSharp
         /// <param name="batchSize">Batch size of input data set</param>
         /// <param name="graph">The instance of computing graph</param>
         /// <returns>Transformered output tensor</returns>
-        public IWeightTensor MultiHeadAttention(IWeightTensor inputQ, IWeightTensor inputK, IWeightTensor inputV, int batchSize, IComputeGraph graph)
+        public IWeightTensor MultiHeadAttention(IWeightTensor inputQ, IWeightTensor inputK, IWeightTensor inputV, IWeightTensor mask, int batchSize, IComputeGraph graph)
         {
             using (IComputeGraph g = graph.CreateSubGraph($"{m_name}_MultiHeadAttention"))
             {
@@ -86,6 +86,12 @@ namespace Seq2SeqSharp
                 float scale = 1.0f / (float)Math.Sqrt(m_d);
                 IWeightTensor attn = g.MulBatch(Qs, Ks, m_multiHeadNum * batchSize, scale);
                 IWeightTensor attn2 = g.View(attn, m_multiHeadNum * batchSize * seqLen, seqLen);
+
+
+                if (mask != null)
+                {
+                    attn2 = g.MaskFill(attn2, mask);
+                }
 
                 IWeightTensor softmax = g.Softmax(attn2, inPlace: true);
                 IWeightTensor softmax2 = g.View(softmax, m_multiHeadNum * batchSize, seqLen, seqLen);
