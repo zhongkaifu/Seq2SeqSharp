@@ -377,13 +377,6 @@ namespace TensorSharp.CUDA
         [RegisterOpStorageType("clamp", typeof(CudaStorage))]
         public Tensor Clamp(Tensor result, Tensor src, float min, float max) { return ClampOp.Invoke(elementwiseKernels, result, src, min, max); }
 
-
-        [RegisterOpStorageType("maskfill", typeof(CudaStorage))]
-        public Tensor MaskFill(Tensor result, Tensor src, Tensor mask, float defValue) { return ElementwiseTTTSOp.Invoke(elementwiseKernels, "maskfill", result, src, mask, defValue); }
-
-
-
-
         [RegisterOpStorageType("addv", typeof(CudaStorage))]
         public Tensor Add(Tensor result, Tensor rhs, float lhs) { return ElementwiseTTSOp.Invoke(elementwiseOpKernels, "add", result, rhs, lhs); }
         [RegisterOpStorageType("subv", typeof(CudaStorage))]
