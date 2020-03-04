@@ -38,6 +38,8 @@ namespace Seq2SeqSharp.Tools
         private bool releasedGradient = false;
         private IComputeGraph m_computeGraphToBind;
 
+        private string m_GradientSetName = "None";
+
         public Tensor TWeight
         {
             get
@@ -79,6 +81,8 @@ namespace Seq2SeqSharp.Tools
                 {
                     m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
                     Ops.Fill(m_TGradient, 0.0f);
+
+                    m_GradientSetName = "Get";
                 }
 
                 return m_TGradient;
@@ -87,8 +91,8 @@ namespace Seq2SeqSharp.Tools
             set
             {
                 if (m_TGradient != null)
-                {
-                    throw new Exception($"Please call ReleaseGradient function before assign a new value to gradient '{Name}'.");
+                {                   
+                    throw new Exception($"Please call ReleaseGradient function before assign a new value to gradient '{Name}'. This gradient was set by '{m_GradientSetName}'");
                 }
 
                 m_TGradient = value;
@@ -112,13 +116,21 @@ namespace Seq2SeqSharp.Tools
 
             if (normal)
             {
-                float scale = (float)Math.Sqrt(6.0 / (Rows + Columns));
-
                 SeedSource seedSource = new SeedSource(DateTime.Now.Millisecond);
-                Ops.RandomUniform(TWeight, seedSource, -scale, scale);
-            }
 
-            
+                //var std = Math.Sqrt(2.0 / (float)(Rows + Columns));
+
+                //   float scale = (float)Math.Sqrt(3.0) * (float)std;
+
+                //var std = Math.Sqrt(2.0 / (float)(Columns));
+                //Ops.RandomNormal(TWeight, seedSource, 0.0f, (float)std);
+
+
+                float scale = (float)Math.Sqrt(6.0 / (Rows + Columns));
+                Ops.RandomUniform(TWeight, seedSource, -scale, scale);
+
+
+            }
         }
 
         public WeightTensor(long[] sizes, float c, int deviceId, string name = "", bool isTrainable = false)
@@ -193,6 +205,8 @@ namespace Seq2SeqSharp.Tools
             }
 
             m_TGradient = m.TWeight.CopyRef();
+
+            m_GradientSetName = "CopyWeightsToGradients";
         }
 
         public void CopyWeightsFrom(IWeightTensor src)
@@ -234,6 +248,8 @@ namespace Seq2SeqSharp.Tools
                 m_allocator = TensorAllocator.Allocator(DeviceId);
                 m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
                 Ops.SoftmaxGrad(m_TGradient, src.TGradient, src.TWeight, false);
+
+                m_GradientSetName = "AddSoftmaxGradient";
             }
             else
             {
@@ -248,6 +264,8 @@ namespace Seq2SeqSharp.Tools
                 m_allocator = TensorAllocator.Allocator(DeviceId);
                 m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
                 Ops.Copy(m_TGradient, src.TGradient);
+
+                m_GradientSetName = "CopyOrAddGradient_WeightTensor";
             }
             else
             {
@@ -255,13 +273,15 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        public void CopyOrAddGradient(Tensor src)
+        public void CopyOrAddGradient(Tensor src, string callerName = "")
         {
             if (m_TGradient == null)
             {
                 m_allocator = TensorAllocator.Allocator(DeviceId);
                 m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
                 Ops.Copy(m_TGradient, src);
+
+                m_GradientSetName = $"CopyOrAddGradient_Tensor_CalledBy_{callerName}";
             }
             else
             {
@@ -276,6 +296,8 @@ namespace Seq2SeqSharp.Tools
                 m_allocator = TensorAllocator.Allocator(DeviceId);
                 m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
                 Ops.Mul(m_TGradient, w, g);
+
+                m_GradientSetName = "AddMulGrdient";
             }
             else
             {
@@ -297,6 +319,8 @@ namespace Seq2SeqSharp.Tools
                 m_allocator = TensorAllocator.Allocator(DeviceId);
                 m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
                 Ops.SigmoidD(m_TGradient, src.TWeight, src.TGradient);
+
+                m_GradientSetName = "AddSigmoidGradient";
             }
             else
             {
@@ -313,6 +337,8 @@ namespace Seq2SeqSharp.Tools
                 m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
 
                 Ops.TanhD(m_TGradient, src.TWeight, src.TGradient);
+
+                m_GradientSetName = "AddTanhGradient";
             }
             else
             {

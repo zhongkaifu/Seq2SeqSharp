@@ -72,6 +72,8 @@ namespace Seq2SeqSharp
         {
             int seqLen = rawInputs.Rows / batchSize;
 
+            rawInputs = g.TransposeBatch(rawInputs, seqLen);
+
             List<IWeightTensor> inputs = new List<IWeightTensor>();
             for (int i = 0; i < seqLen; i++)
             {

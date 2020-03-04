@@ -114,12 +114,6 @@ template <typename T> INLINE_FUNC T Clamp(T val, T min, T max) {
 	return val;
 }
 
-template <typename T> INLINE_FUNC T MaskFill(T tensor, T mask, T value) {
-	if (mask == T(0))
-		return value;
-	return tensor;
-}
-
 DECLARE_UNARY_ALL_CPU_TYPES(TS_Abs, abs)
 DECLARE_UNARY_ALL_CPU_TYPES(TS_Neg, Neg)
 DECLARE_UNARY_ALL_CPU_TYPES(TS_Sign, sgn)
@@ -370,24 +364,6 @@ int TS_Clamp(TensorRef* result, TensorRef* src, float min, float max)
 	SWITCH_TENSOR_TYPE_FLOAT(result->elementType, Clamp_Apply, result, src, min, max)
 	API_END()
 }
-
-
-
-template<typename T>
-INLINE_FUNC void MaskFill_Apply(TensorRef* result, TensorRef* src, TensorRef* mask, float defValue)
-{
-	auto func = [defValue](T* r, T* s, T* m) { *r = MaskFill(*s, *m, (T)defValue); };
-	Apply3<T, T, T>(result, src, mask, func);
-}
-
-int TS_MaskFill(TensorRef* result, TensorRef* src, TensorRef* mask, float defValue)
-{
-	API_BEGIN()
-		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, MaskFill_Apply, result, src, mask, defValue)
-		API_END()
-}
-
-
 
 
 #define DECLARE_T_S_ALL_CPU_TYPES(EXPORTNAME, FUNCNAME)\

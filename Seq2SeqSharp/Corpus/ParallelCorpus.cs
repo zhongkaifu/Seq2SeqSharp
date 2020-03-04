@@ -216,7 +216,7 @@ namespace Seq2SeqSharp.Tools
                         line = srTgt.ReadLine().ToLower().Trim();
                         if (m_addBOSEOS)
                         {
-                            line = $"{line} {EOS}";
+                            line = $"{BOS} {line} {EOS}";
                         }
                         sntPair.TgtSnt = line.Split(' ');
 

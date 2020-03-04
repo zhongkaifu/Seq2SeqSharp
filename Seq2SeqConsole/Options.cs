@@ -76,6 +76,9 @@ namespace Seq2SeqConsole
         [Arg("Encoder type: BiLSTM, Transformer", "EncoderType")]
         public string EncoderType = "BiLSTM";
 
+        [Arg("Decoder type: AttentionLSTM, Transformer", "DecoderType")]
+        public string DecoderType = "AttentionLSTM";
+
         [Arg("The number of multi-heads in transformer model", "MultiHeadNum")]
         public int MultiHeadNum = 8;
 

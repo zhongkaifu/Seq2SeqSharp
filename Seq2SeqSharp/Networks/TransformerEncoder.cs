@@ -8,7 +8,9 @@ namespace Seq2SeqSharp
 {
     internal class TransformerEncoder : IEncoder
     {
-        private readonly List<SelfAttention> m_encoders = new List<SelfAttention>();
+        private readonly List<MultiHeadAttention> m_encoders = new List<MultiHeadAttention>();
+        private readonly List<PositionwiseFeedForward> m_posFFNs = new List<PositionwiseFeedForward>();
+
         private readonly int m_inputDim;
         private readonly float m_dropoutRatio;
         private readonly string m_name;
@@ -17,7 +19,7 @@ namespace Seq2SeqSharp
         private readonly int m_depth;
         private readonly int m_deviceId;
         private readonly bool m_isTrainable;
-        private readonly LayerNormalization layerNorm;
+      //  private readonly LayerNormalization layerNorm;
 
         public TransformerEncoder(string name, int multiHeadNum, int hiddenDim, int inputDim, int depth, float dropoutRatio, int deviceId, bool isTrainable)
         {
@@ -37,13 +39,18 @@ namespace Seq2SeqSharp
                 throw new ArgumentException($"hiddenDim is not equal to inputDim in TransformerEncoder.");
             }
 
-            m_encoders.Add(new SelfAttention($"{name}.SelfAttn_0", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId, isTrainable: isTrainable));
+            m_encoders.Add(new MultiHeadAttention($"{name}.SelfAttn_0", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId, isTrainable: isTrainable));
             for (int i = 1; i < depth; i++)
             {
-                m_encoders.Add(new SelfAttention($"{name}.SelfAttn_{i}", multiHeadNum, hiddenDim, hiddenDim, m_dropoutRatio, deviceId, isTrainable: isTrainable));
+                m_encoders.Add(new MultiHeadAttention($"{name}.SelfAttn_{i}", multiHeadNum, hiddenDim, hiddenDim, m_dropoutRatio, deviceId, isTrainable: isTrainable));              
             }
 
-            layerNorm = new LayerNormalization($"{name}.{nameof(layerNorm)}", hiddenDim, deviceId, isTrainable);
+            for (int i = 0; i < depth; i++)
+            {
+                m_posFFNs.Add(new PositionwiseFeedForward($"{name}.PosFFN_{i}", hiddenDim, m_dropoutRatio, deviceId, isTrainable));
+            }
+
+       //     layerNorm = new LayerNormalization($"{name}.{nameof(layerNorm)}", hiddenDim, deviceId, isTrainable);
 
         }
 
@@ -62,35 +69,41 @@ namespace Seq2SeqSharp
         /// <param name="rawInputs"></param>
         /// <param name="g"></param>
         /// <returns></returns>
-        public IWeightTensor Encode(IWeightTensor rawInput, IWeightTensor mask, int batchSize, IComputeGraph g)
+        public IWeightTensor Encode(IWeightTensor inputs, IWeightTensor mask, int batchSize, IComputeGraph g)
         {
-            int seqLen = rawInput.Rows / batchSize;
-            // Transpose to batch-first based sequence
-            IWeightTensor inputs = g.TransposeBatch(rawInput, batchSize);
+            int seqLen = inputs.Rows / batchSize;
 
             using (IWeightTensor posEmbedding = g.BuildPositionMatrix(seqLen, m_inputDim))
             {
                 using (IWeightTensor posEmbeddingRepeat = g.RepeatRows(posEmbedding, batchSize, runGradient: false))
                 {
-                    inputs = g.AddMul(posEmbeddingRepeat, inputs, (float)Math.Sqrt(m_inputDim), runGradientW1: false, runGradientW2: true);
+                    inputs = g.AddMul(posEmbeddingRepeat, inputs, (float)Math.Sqrt(m_inputDim), runGradientW1: false, runGradientW2: true);            
                 }
             }
+
             inputs = g.Dropout(inputs, batchSize, m_dropoutRatio, inPlace: true);
 
-            var maskRep = g.RepeatRows(mask, m_multiHeadNum * seqLen, runGradient: false);
-
-            for (int k = 0; k < m_encoders.Count; k++)
+            var maskRep = g.View(mask, dims: new long[] { 1, batchSize, 1, seqLen });
+            var maskRepExp = g.Expand(maskRep, dims: new long[] { m_multiHeadNum, batchSize, seqLen, seqLen });
+            using (var maskRepExpView = g.View(maskRepExp, dims: new long[] { m_multiHeadNum * batchSize * seqLen, seqLen }))
             {
-                var inputsMultiHeadAtt = m_encoders[k].MultiHeadAttention(inputs, inputs, inputs, maskRep, batchSize, g);
-                inputs = m_encoders[k].PositionwiseFeedForward(inputsMultiHeadAtt, batchSize, g);
+                maskRep.Dispose();
+                maskRepExp.Dispose();
+
+                using (IComputeGraph subg = g.CreateSubGraph($"{m_name}_Encoder"))
+                {
+                    for (int k = 0; k < m_encoders.Count; k++)
+                    {
+                        inputs = m_encoders[k].Perform(inputs, inputs, inputs, maskRepExpView, batchSize, subg);
+                        inputs = m_posFFNs[k].Perform(inputs, batchSize, subg);
+                    }
+                    inputs.UnbindFromComputeGraph();
+                }
             }
 
-            inputs = layerNorm.Norm(inputs, g);
+            //   inputs = layerNorm.Norm(inputs, g);
 
-            // Transpose back to time-first based sequence
-            rawInput = g.TransposeBatch(inputs, seqLen);
-
-            return rawInput;
+            return inputs;
         }
 
         public INeuralUnit CloneToDeviceAt(int deviceId)
@@ -102,34 +115,49 @@ namespace Seq2SeqSharp
         {
             List<IWeightTensor> response = new List<IWeightTensor>();
 
-            foreach (SelfAttention item in m_encoders)
+            foreach (MultiHeadAttention item in m_encoders)
             {
                 response.AddRange(item.getParams());
             }
 
-            response.AddRange(layerNorm.getParams());
+            foreach (var item in m_posFFNs)
+            {
+                response.AddRange(item.getParams());
+            }
+
+         //   response.AddRange(layerNorm.getParams());
 
             return response;
         }
 
         public void Save(Stream stream)
         {
-            foreach (SelfAttention item in m_encoders)
+            foreach (MultiHeadAttention item in m_encoders)
             {
                 item.Save(stream);
             }
 
-            layerNorm.Save(stream);
+            foreach (var item in m_posFFNs)
+            {
+                item.Save(stream);
+            }
+
+        //    layerNorm.Save(stream);
         }
 
         public void Load(Stream stream)
         {
-            foreach (SelfAttention item in m_encoders)
+            foreach (MultiHeadAttention item in m_encoders)
             {
                 item.Load(stream);
             }
 
-            layerNorm.Load(stream);
+            foreach (var item in m_posFFNs)
+            {
+                item.Load(stream);
+            }
+
+        //    layerNorm.Load(stream);
         }
     }
 }

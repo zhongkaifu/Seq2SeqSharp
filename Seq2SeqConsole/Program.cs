@@ -59,6 +59,7 @@ namespace Seq2SeqConsole
             AttentionSeq2Seq ss = null;
             ProcessorTypeEnums processorType = (ProcessorTypeEnums)Enum.Parse(typeof(ProcessorTypeEnums), opts.ProcessorType);
             EncoderTypeEnums encoderType = (EncoderTypeEnums)Enum.Parse(typeof(EncoderTypeEnums), opts.EncoderType);
+            DecoderTypeEnums decoderType = (DecoderTypeEnums)Enum.Parse(typeof(DecoderTypeEnums), opts.DecoderType);
             ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.TaskName);
 
             //Parse device ids from options          
@@ -89,7 +90,8 @@ namespace Seq2SeqConsole
                     //Incremental training
                     Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
                     ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, dropoutRatio: opts.DropoutRatio, deviceIds: deviceIds,
-                        isSrcEmbTrainable: opts.IsSrcEmbeddingTrainable, isTgtEmbTrainable: opts.IsTgtEmbeddingTrainable, isEncoderTrainable: opts.IsEncoderTrainable, isDecoderTrainable: opts.IsDecoderTrainable);
+                        isSrcEmbTrainable: opts.IsSrcEmbeddingTrainable, isTgtEmbTrainable: opts.IsTgtEmbeddingTrainable, isEncoderTrainable: opts.IsEncoderTrainable, isDecoderTrainable: opts.IsDecoderTrainable,
+                        maxTgtSntSize: opts.MaxSentLength);
                 }
                 else
                 {
@@ -109,7 +111,8 @@ namespace Seq2SeqConsole
                     //New training
                     ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth,
                         srcEmbeddingFilePath: opts.SrcEmbeddingModelFilePath, tgtEmbeddingFilePath: opts.TgtEmbeddingModelFilePath, vocab: vocab, modelFilePath: opts.ModelFilePath,
-                        dropoutRatio: opts.DropoutRatio, processorType: processorType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType, enableCoverageModel: opts.EnableCoverageModel);
+                        dropoutRatio: opts.DropoutRatio, processorType: processorType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType, decoderType: decoderType,
+                        maxTgtSntSize: opts.MaxSentLength, enableCoverageModel: opts.EnableCoverageModel);
                 }
 
                 // Add event handler for monitoring
@@ -147,11 +150,11 @@ namespace Seq2SeqConsole
                 foreach (string line in data_sents_raw1)
                 {
                     // Below support beam search
-                    List<List<string>> outputWordsList = ss.Predict(line.ToLower().Trim().Split(' ').ToList(), opts.BeamSearch);
-                    outputLines.AddRange(outputWordsList.Select(x => string.Join(" ", x)));
+                    //List<List<string>> outputWordsList = ss.Predict(line.ToLower().Trim().Split(' ').ToList(), opts.BeamSearch);
+                    //outputLines.AddRange(outputWordsList.Select(x => string.Join(" ", x)));
 
-                    //var outputTokensBatch = ss.Test(ParallelCorpus.ConstructInputTokens(line.ToLower().Trim().Split(' ').ToList()));
-                    //outputLines.AddRange(outputTokensBatch.Select(x => String.Join(" ", x)));
+                    var outputTokensBatch = ss.Test(ParallelCorpus.ConstructInputTokens(line.ToLower().Trim().Split(' ').ToList()));
+                    outputLines.AddRange(outputTokensBatch.Select(x => String.Join(" ", x)));
                 }
 
                 File.WriteAllLines(opts.OutputTestFile, outputLines);
@@ -160,7 +163,7 @@ namespace Seq2SeqConsole
             {
                 ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth,
                     vocab: new Vocab(), srcEmbeddingFilePath: null, tgtEmbeddingFilePath: null, modelFilePath: opts.ModelFilePath, dropoutRatio: opts.DropoutRatio,
-                    processorType: processorType, deviceIds: new int[1] { 0 }, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType, enableCoverageModel: opts.EnableCoverageModel);
+                    processorType: processorType, deviceIds: new int[1] { 0 }, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType, decoderType: decoderType, enableCoverageModel: opts.EnableCoverageModel);
 
                 ss.VisualizeNeuralNetwork(opts.VisualizeNNFilePath);
             }

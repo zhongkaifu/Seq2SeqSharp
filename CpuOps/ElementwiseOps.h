@@ -42,8 +42,6 @@ OPS_API int TS_Tpow(TensorRef* result, float value, TensorRef* src);
 OPS_API int TS_Lerp(TensorRef* result, TensorRef* srcA, TensorRef* srcB, float weight);
 OPS_API int TS_Clamp(TensorRef* result, TensorRef* src, float min, float max);
 
-OPS_API int TS_MaskFill(TensorRef* result, TensorRef* src, TensorRef* mask, float defValue);
-
 OPS_API int TS_MulMulAdd(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ, TensorRef* srcW);
 OPS_API int TS_AddTanh(TensorRef* result, TensorRef* srcX, TensorRef* srcY);
 OPS_API int TS_AddTanh3(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ);

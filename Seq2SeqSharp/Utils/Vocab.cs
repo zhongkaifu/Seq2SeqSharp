@@ -252,13 +252,18 @@ namespace Seq2SeqSharp
             }
         }
 
-        public int GetTargetWordIndex(string word)
+        public int GetTargetWordIndex(string word, bool logUnk = false)
         {
             lock (locker)
             {
                 if (!TgtWordToIndex.TryGetValue(word, out int id))
                 {
                     id = (int)SENTTAGS.UNK;
+
+                    if (logUnk)
+                    {
+                        Logger.WriteLine($"Target word '{word}' is UNK");
+                    }
                 }
                 return id;
             }

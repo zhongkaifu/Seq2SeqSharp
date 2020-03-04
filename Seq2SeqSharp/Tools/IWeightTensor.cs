@@ -37,5 +37,7 @@ namespace Seq2SeqSharp.Tools
 
         float[] ToWeightArray();
 
+        void UnbindFromComputeGraph();
+
     }
 }

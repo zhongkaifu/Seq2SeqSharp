@@ -5,4 +5,10 @@
         BiLSTM,
         Transformer
     }
+
+    public enum DecoderTypeEnums
+    {
+        AttentionLSTM,
+        Transformer
+    }
 }

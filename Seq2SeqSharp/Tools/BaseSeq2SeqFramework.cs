@@ -2,6 +2,7 @@
 using Seq2SeqSharp.Metrics;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -104,8 +105,8 @@ namespace Seq2SeqSharp.Tools
             DateTime startDateTime = DateTime.Now;
             DateTime lastCheckPointDateTime = DateTime.Now;
             double costInTotal = 0.0;
-            long srcWordCnts = 0;
-            long tgtWordCnts = 0;
+            long srcWordCntsInTotal = 0;
+            long tgtWordCntsInTotal = 0;
             double avgCostPerWordInTotal = 0.0;
 
             TensorAllocator.FreeMemoryAllDevices();
@@ -118,79 +119,61 @@ namespace Seq2SeqSharp.Tools
                 sntPairBatchs.Add(sntPairBatch);
                 if (sntPairBatchs.Count == m_deviceIds.Length)
                 {
-                    float cost = 0.0f;
-                    int tlen = 0;
-                    int processedLine = 0;
-
                     // Copy weights from weights kept in default device to all other devices
                     CopyWeightsFromDefaultDeviceToAllOtherDevices();
 
-                    // Run forward and backward on all available processors
-                    Parallel.For(0, m_deviceIds.Length, i =>
+                    int batchSplitFactor = 1;
+                    bool runNetwordSuccssed = false;
+
+                    while (runNetwordSuccssed == false)
                     {
-                        SntPairBatch sntPairBatch_i = sntPairBatchs[i];
-                        // Construct sentences for encoding and decoding
-                        List<List<string>> srcTkns = new List<List<string>>();
-                        List<List<string>> tgtTkns = new List<List<string>>();
-                        int sLenInBatch = 0;
-                        int tLenInBatch = 0;
-                        for (int j = 0; j < sntPairBatch_i.BatchSize; j++)
+                        try
                         {
-                            srcTkns.Add(sntPairBatch_i.SntPairs[j].SrcSnt.ToList());
-                            sLenInBatch += sntPairBatch_i.SntPairs[j].SrcSnt.Length;
+                            (float cost, int sWordCnt, int tWordCnt, int processedLine) = RunNetwork(ForwardOnSingleDevice, sntPairBatchs, batchSplitFactor);
+                            processedLineInTotal += processedLine;
+                            srcWordCntsInTotal += sWordCnt;
+                            tgtWordCntsInTotal += tWordCnt;
 
-                            tgtTkns.Add(sntPairBatch_i.SntPairs[j].TgtSnt.ToList());
-                            tLenInBatch += sntPairBatch_i.SntPairs[j].TgtSnt.Length;
+                            //Sum up gradients in all devices, and kept it in default device for parameters optmization
+                            SumGradientsToTensorsInDefaultDevice();
+
+                            //Optmize parameters
+                            float lr = learningRate.GetCurrentLearningRate();
+                            List<IWeightTensor> models = GetParametersFromDefaultDevice();
+                            solver.UpdateWeights(models, processedLine, lr, m_regc, m_weightsUpdateCount + 1);
+
+
+                            costInTotal += cost;
+                            avgCostPerWordInTotal = costInTotal / tgtWordCntsInTotal;
+                            m_weightsUpdateCount++;
+                            if (IterationDone != null && m_weightsUpdateCount % 100 == 0)
+                            {
+                                IterationDone(this, new CostEventArg()
+                                {
+                                    LearningRate = lr,
+                                    CostPerWord = cost / tWordCnt,
+                                    AvgCostInTotal = avgCostPerWordInTotal,
+                                    Epoch = ep,
+                                    Update = m_weightsUpdateCount,
+                                    ProcessedSentencesInTotal = processedLineInTotal,
+                                    ProcessedWordsInTotal = srcWordCntsInTotal + tgtWordCntsInTotal,
+                                    StartDateTime = startDateTime
+                                });
+                            }
+
+                            runNetwordSuccssed = true;
                         }
-
-                        float lcost = 0.0f;
-                        // Create a new computing graph instance
-                        using (IComputeGraph computeGraph_i = CreateComputGraph(i))
+                        catch (Exception err)
                         {
-                            // Run forward part
-                            lcost = ForwardOnSingleDevice(computeGraph_i, srcTkns, tgtTkns, i, true);
-                            // Run backward part and compute gradients
-                            computeGraph_i.Backward();
+                            batchSplitFactor *= 2;
+                            Logger.WriteLine($"Increase batch split factor to {batchSplitFactor}, and retry it.");
+
+                            if (batchSplitFactor >= sntPairBatchs[0].BatchSize)
+                            {
+                                Logger.WriteLine($"Batch split factor is larger than batch size, give it up.");
+                                throw err;
+                            }
                         }
-
-                        lock (locker)
-                        {
-                            cost += lcost;
-                            srcWordCnts += sLenInBatch;
-                            tgtWordCnts += tLenInBatch;
-                            tlen += tLenInBatch;
-                            processedLineInTotal += sntPairBatch_i.BatchSize;
-                            processedLine += sntPairBatch_i.BatchSize;
-                        }
-                    });
-
-                    //Sum up gradients in all devices, and kept it in default device for parameters optmization
-                    SumGradientsToTensorsInDefaultDevice();
-
-                    //Optmize parameters
-                    float lr = learningRate.GetCurrentLearningRate();
-                    List<IWeightTensor> models = GetParametersFromDefaultDevice();
-                    solver.UpdateWeights(models, processedLine, lr, m_regc, m_weightsUpdateCount + 1);
-
-                    //Clear gradient over all devices
-                    ZeroGradientOnAllDevices();
-
-                    costInTotal += cost;
-                    avgCostPerWordInTotal = costInTotal / tgtWordCnts;
-                    m_weightsUpdateCount++;
-                    if (IterationDone != null && m_weightsUpdateCount % 100 == 0)
-                    {
-                        IterationDone(this, new CostEventArg()
-                        {
-                            LearningRate = lr,
-                            CostPerWord = cost / tlen,
-                            AvgCostInTotal = avgCostPerWordInTotal,
-                            Epoch = ep,
-                            Update = m_weightsUpdateCount,
-                            ProcessedSentencesInTotal = processedLineInTotal,
-                            ProcessedWordsInTotal = srcWordCnts + tgtWordCnts,
-                            StartDateTime = startDateTime
-                        });
                     }
 
                     // Evaluate model every hour and save it if we could get a better one.
@@ -209,6 +192,61 @@ namespace Seq2SeqSharp.Tools
 
             CreateCheckPoint(validCorpus, metrics, modelMetaData, ForwardOnSingleDevice, avgCostPerWordInTotal);
             m_avgCostPerWordInTotalInLastEpoch = avgCostPerWordInTotal;
+        }
+
+        private (float, int, int, int) RunNetwork(Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice,  List<SntPairBatch> sntPairBatchs, int batchSplitFactor)
+        {
+            float cost = 0.0f;
+            int processedLine = 0;
+            int srcWordCnts = 0;
+            int tgtWordCnts = 0;
+
+            //Clear gradient over all devices
+            ZeroGradientOnAllDevices(); 
+
+            // Run forward and backward on all available processors
+            Parallel.For(0, m_deviceIds.Length, i =>
+            {
+                SntPairBatch sntPairBatch_i = sntPairBatchs[i];
+                int batchSegSize = sntPairBatch_i.BatchSize / batchSplitFactor;
+
+                for (int k = 0; k < batchSplitFactor; k++)
+                {
+                    // Construct sentences for encoding and decoding
+                    List<List<string>> srcTkns = new List<List<string>>();
+                    List<List<string>> tgtTkns = new List<List<string>>();
+                    int sLenInBatch = 0;
+                    int tLenInBatch = 0;
+                    for (int j = k * batchSegSize; j < (k + 1) * batchSegSize; j++)
+                    {
+                        srcTkns.Add(sntPairBatch_i.SntPairs[j].SrcSnt.ToList());
+                        sLenInBatch += sntPairBatch_i.SntPairs[j].SrcSnt.Length;
+
+                        tgtTkns.Add(sntPairBatch_i.SntPairs[j].TgtSnt.ToList());
+                        tLenInBatch += sntPairBatch_i.SntPairs[j].TgtSnt.Length;
+                    }
+
+                    float lcost = 0.0f;
+                    // Create a new computing graph instance
+                    using (IComputeGraph computeGraph_i = CreateComputGraph(i))
+                    {
+                        // Run forward part
+                        lcost = ForwardOnSingleDevice(computeGraph_i, srcTkns, tgtTkns, i, true);
+                        // Run backward part and compute gradients
+                        computeGraph_i.Backward();
+                    }
+
+                    lock (locker)
+                    {
+                        cost += lcost;
+                        srcWordCnts += sLenInBatch;
+                        tgtWordCnts += tLenInBatch;
+                        processedLine += batchSegSize;
+                    }
+                }
+            });
+
+            return (cost, srcWordCnts, tgtWordCnts, processedLine);
         }
 
         private void CreateCheckPoint(ParallelCorpus validCorpus, List<IMetric> metrics, IModelMetaData modelMetaData, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice, double avgCostPerWordInTotal)
@@ -233,6 +271,8 @@ namespace Seq2SeqSharp.Tools
         internal List<List<string>> RunTest(List<List<string>> inputTokens, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice)
         {
             List<List<string>> hypTkns = new List<List<string>>();
+            hypTkns.Add(new List<string>());
+            hypTkns[0].Add(ParallelCorpus.BOS);
 
             // Create a new computing graph instance
             using (IComputeGraph computeGraph = CreateComputGraph(DeviceIds[0], needBack: false))
@@ -240,7 +280,7 @@ namespace Seq2SeqSharp.Tools
                 // Run forward part
                 ForwardOnSingleDevice(computeGraph, inputTokens, hypTkns, DeviceIds[0], false);
             }
-
+       
             return hypTkns;
         }
 
@@ -254,78 +294,108 @@ namespace Seq2SeqSharp.Tools
         /// <returns>true if we get a better result on primary metric, otherwise, false</returns>
         internal bool RunValid(ParallelCorpus validCorpus, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> RunNetwork, List<IMetric> metrics, bool outputToFile = false)
         {
-            Logger.WriteLine(Logger.Level.info, ConsoleColor.Gray, $"Start to Evaluate model...");
+            List<string> srcSents = null;
+            List<string> refSents = null;
+            List<string> hypSents = null;
+            int batchSplitFactor = 1;
+            bool runNetwordSuccssed = false;
 
-
-
-            List<string> srcSents = new List<string>();
-            List<string> refSents = new List<string>();
-            List<string> hypSents = new List<string>();
-
-            // Clear inner status of each metrics
-            foreach (IMetric metric in metrics)
+            while (runNetwordSuccssed == false)
             {
-                metric.ClearStatus();
-            }
-
-
-            List<SntPairBatch> sntPairBatchs = new List<SntPairBatch>();
-            foreach (SntPairBatch item in validCorpus)
-            {
-                sntPairBatchs.Add(item);
-                if (sntPairBatchs.Count == DeviceIds.Length)
+                try
                 {
-                    // Run forward on all available processors
-                    Parallel.For(0, m_deviceIds.Length, i =>
+                    if (batchSplitFactor == 1)
                     {
-                        SntPairBatch sntPairBatch = sntPairBatchs[i];
+                        Logger.WriteLine(Logger.Level.info, ConsoleColor.Gray, $"Start to evaluate model...");
+                    }
+                    else
+                    {
+                        Logger.WriteLine(Logger.Level.info, ConsoleColor.Gray, $"Retry to evaluate model. Batch split factor = '{batchSplitFactor}'");
+                    }
 
-                        // Construct sentences for encoding and decoding
-                        List<List<string>> srcTkns = new List<List<string>>();
-                        List<List<string>> refTkns = new List<List<string>>();
-                        for (int j = 0; j < sntPairBatch.BatchSize; j++)
+                    srcSents = new List<string>();
+                    refSents = new List<string>();
+                    hypSents = new List<string>();
+
+                    // Clear inner status of each metrics
+                    foreach (IMetric metric in metrics)
+                    {
+                        metric.ClearStatus();
+                    }
+
+                    List<SntPairBatch> sntPairBatchs = new List<SntPairBatch>();
+                    foreach (SntPairBatch item in validCorpus)
+                    {
+                        sntPairBatchs.Add(item);
+                        if (sntPairBatchs.Count == DeviceIds.Length)
                         {
-                            srcTkns.Add(sntPairBatch.SntPairs[j].SrcSnt.ToList());
-                            refTkns.Add(sntPairBatch.SntPairs[j].TgtSnt.ToList());
-                        }
 
-                        List<List<string>> hypTkns = new List<List<string>>();
-
-                        // Create a new computing graph instance
-                        using (IComputeGraph computeGraph = CreateComputGraph(DeviceIds[i], needBack: false))
-                        {
-                            // Run forward part
-                            RunNetwork(computeGraph, srcTkns, hypTkns, DeviceIds[i], false);
-                        }
-
-                        lock (locker)
-                        {
-
-                            for (int j = 0; j < hypTkns.Count; j++)
+                            // Run forward on all available processors
+                            Parallel.For(0, m_deviceIds.Length, i =>
                             {
-                                foreach (IMetric metric in metrics)
-                                {
-                                    metric.Evaluate(new List<List<string>>() { refTkns[j] }, hypTkns[j]);
-                                }
-                            }
+                                SntPairBatch sntPairBatch = sntPairBatchs[i];
+                                int batchSegSize = sntPairBatch.BatchSize / batchSplitFactor;
 
-                            if (outputToFile)
-                            {
-                                for (int j = 0; j < sntPairBatch.BatchSize; j++)
+                                for (int k = 0; k < batchSplitFactor; k++)
                                 {
-                                    srcSents.Add(string.Join(" ", srcTkns[j]));
-                                    refSents.Add(string.Join(" ", refTkns[j]));
-                                    hypSents.Add(string.Join(" ", hypTkns[j]));
+                                    // Construct sentences for encoding and decoding
+                                    List<List<string>> srcTkns = new List<List<string>>();
+                                    List<List<string>> refTkns = new List<List<string>>();
+                                    List<List<string>> hypTkns = new List<List<string>>();
+                                    for (int j = k * batchSegSize; j < (k + 1) * batchSegSize; j++)
+                                    {
+                                        srcTkns.Add(sntPairBatch.SntPairs[j].SrcSnt.ToList());
+                                        refTkns.Add(sntPairBatch.SntPairs[j].TgtSnt.ToList());
+                                        hypTkns.Add(new List<string>() { ParallelCorpus.BOS });
+                                    }
+
+                                    // Create a new computing graph instance
+                                    using (IComputeGraph computeGraph = CreateComputGraph(DeviceIds[i], needBack: false))
+                                    {
+                                        // Run forward part
+                                        RunNetwork(computeGraph, srcTkns, hypTkns, DeviceIds[i], false);
+                                    }
+
+                                    lock (locker)
+                                    {
+
+                                        for (int j = 0; j < hypTkns.Count; j++)
+                                        {
+                                            foreach (IMetric metric in metrics)
+                                            {
+                                                metric.Evaluate(new List<List<string>>() { refTkns[j] }, hypTkns[j]);
+                                            }
+                                        }
+
+                                        if (outputToFile)
+                                        {
+                                            for (int j = 0; j < srcTkns.Count; j++)
+                                            {
+                                                srcSents.Add(string.Join(" ", srcTkns[j]));
+                                                refSents.Add(string.Join(" ", refTkns[j]));
+                                                hypSents.Add(string.Join(" ", hypTkns[j]));
+                                            }
+                                        }
+                                    }
                                 }
-                            }
+
+                            });
+
+                            sntPairBatchs.Clear();
                         }
+                    }
 
-                    });
-
-                    sntPairBatchs.Clear();
+                    runNetwordSuccssed = true;
                 }
-
-
+                catch (Exception err)
+                {
+                    batchSplitFactor *= 2;
+                    if (batchSplitFactor >= 512)
+                    {
+                        Logger.WriteLine($"Batch split factor is larger than batch size, give it up.");
+                        throw err;
+                    }
+                }
             }
 
             Logger.WriteLine($"Metrics result:");

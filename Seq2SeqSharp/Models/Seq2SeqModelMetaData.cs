@@ -11,6 +11,7 @@ namespace Seq2SeqSharp
         public int DecoderLayerDepth;
         public int MultiHeadNum;
         public EncoderTypeEnums EncoderType;
+        public DecoderTypeEnums DecoderType;
         public Vocab Vocab;
         public bool EnableCoverageModel = true;
 
@@ -19,7 +20,7 @@ namespace Seq2SeqSharp
 
         }
 
-        public Seq2SeqModelMetaData(int hiddenDim, int embeddingDim, int encoderLayerDepth, int decoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab vocab, bool enableCoverageModel)
+        public Seq2SeqModelMetaData(int hiddenDim, int embeddingDim, int encoderLayerDepth, int decoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, DecoderTypeEnums decoderType, Vocab vocab, bool enableCoverageModel)
         {
             HiddenDim = hiddenDim;
             EmbeddingDim = embeddingDim;
@@ -27,6 +28,7 @@ namespace Seq2SeqSharp
             DecoderLayerDepth = decoderLayerDepth;
             MultiHeadNum = multiHeadNum;
             EncoderType = encoderType;
+            DecoderType = decoderType;
             Vocab = vocab;
             EnableCoverageModel = enableCoverageModel;
         }
