@@ -106,7 +106,9 @@ namespace Seq2SeqSharp
 
             }
 
-            return g.ConcatRows(layerOutputs);
+            var result = g.ConcatRows(layerOutputs);
+
+            return g.TransposeBatch(result, batchSize);
         }
 
 

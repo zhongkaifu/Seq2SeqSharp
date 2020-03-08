@@ -307,6 +307,26 @@ namespace Seq2SeqSharp.Tools
             return originalLengths;
         }
 
+
+        public static List<List<string>> LeftShiftSnts(List<List<string>> input, string lastTokenToPad)
+        {
+            List<List<string>> r = new List<List<string>>();
+
+            foreach (var seq in input)
+            {
+                List<string> rseq = new List<string>();
+
+                rseq.AddRange(seq);
+                rseq.RemoveAt(0);
+                rseq.Add(lastTokenToPad);
+
+                r.Add(rseq);
+            }
+
+            return r;
+        }
+
+
         /// <summary>
         /// Shuffle given sentence pairs and return the length of the longgest source sentence
         /// </summary>

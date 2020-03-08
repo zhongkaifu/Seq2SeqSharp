@@ -27,7 +27,7 @@ namespace Seq2SeqSharp
             m_deviceId = deviceId;
             m_isTrainable = isTrainable;
 
-            m_Whd = new WeightTensor(new long[2] { inputDim, outputDim }, deviceId, name: $"{name}.{nameof(m_Whd)}", normal: true, isTrainable: isTrainable);
+            m_Whd = new WeightTensor(new long[2] { inputDim, outputDim }, deviceId, name: $"{name}.{nameof(m_Whd)}", normal: NormType.Uniform, isTrainable: isTrainable);
             m_Bd = new WeightTensor(new long[2] { 1, outputDim }, 0, deviceId, name: $"{name}.{nameof(m_Bd)}", isTrainable: isTrainable);
         }
 

@@ -149,12 +149,17 @@ namespace Seq2SeqConsole
                 string[] data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
                 foreach (string line in data_sents_raw1)
                 {
-                    // Below support beam search
-                    //List<List<string>> outputWordsList = ss.Predict(line.ToLower().Trim().Split(' ').ToList(), opts.BeamSearch);
-                    //outputLines.AddRange(outputWordsList.Select(x => string.Join(" ", x)));
-
-                    var outputTokensBatch = ss.Test(ParallelCorpus.ConstructInputTokens(line.ToLower().Trim().Split(' ').ToList()));
-                    outputLines.AddRange(outputTokensBatch.Select(x => String.Join(" ", x)));
+                    if (opts.BeamSearch > 1)
+                    {
+                        // Below support beam search
+                        List<List<string>> outputWordsList = ss.Predict(line.ToLower().Trim().Split(' ').ToList(), opts.BeamSearch);
+                        outputLines.AddRange(outputWordsList.Select(x => string.Join(" ", x)));
+                    }
+                    else
+                    {
+                        var outputTokensBatch = ss.Test(ParallelCorpus.ConstructInputTokens(line.ToLower().Trim().Split(' ').ToList()));
+                        outputLines.AddRange(outputTokensBatch.Select(x => String.Join(" ", x)));
+                    }
                 }
 
                 File.WriteAllLines(opts.OutputTestFile, outputLines);

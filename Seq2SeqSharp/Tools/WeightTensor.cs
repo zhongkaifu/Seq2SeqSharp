@@ -7,6 +7,13 @@ using TensorSharp;
 
 namespace Seq2SeqSharp.Tools
 {
+    public enum NormType
+    {
+        None,
+        Uniform,
+        Normal
+    }
+
     [Serializable]
     public class WeightTensor : IWeightTensor, IDisposable
     {
@@ -100,7 +107,7 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, bool normal = false, IComputeGraph graphToBind = null)
+        public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, NormType normal = NormType.None, IComputeGraph graphToBind = null)
         {
             Name = name;
             DeviceId = deviceId;
@@ -114,23 +121,20 @@ namespace Seq2SeqSharp.Tools
                 m_computeGraphToBind.Bind(this);
             }
 
-            if (normal)
+            if (normal == NormType.Uniform)
             {
                 SeedSource seedSource = new SeedSource(DateTime.Now.Millisecond);
 
-                //var std = Math.Sqrt(2.0 / (float)(Rows + Columns));
-
-                //   float scale = (float)Math.Sqrt(3.0) * (float)std;
-
-                //var std = Math.Sqrt(2.0 / (float)(Columns));
-                //Ops.RandomNormal(TWeight, seedSource, 0.0f, (float)std);
-
-
-                float scale = (float)Math.Sqrt(6.0 / (Rows + Columns));
-                Ops.RandomUniform(TWeight, seedSource, -scale, scale);
-
+                var std = (float)Math.Sqrt(6.0 / (double)(Rows + Columns));
+                Ops.RandomUniform(TWeight, seedSource, -std, std);
 
             }
+            else if (normal == NormType.Normal)
+            {
+                SeedSource seedSource = new SeedSource(DateTime.Now.Millisecond);
+                var std = 1.0 / Math.Sqrt((double)Columns);
+                Ops.RandomNormal(TWeight, seedSource, 0.0f, (float)std);
+            }            
         }
 
         public WeightTensor(long[] sizes, float c, int deviceId, string name = "", bool isTrainable = false)

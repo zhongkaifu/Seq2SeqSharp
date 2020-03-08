@@ -109,16 +109,16 @@ namespace Seq2SeqConsole
         [Arg("The beta2 for optimizer", "Beta2")]
         public float Beta2 = 0.999f;
 
-        [Arg("Apply coverage model in decoder", "True")]
+        [Arg("Apply coverage model in decoder", "EnableCoverageModel")]
         public bool EnableCoverageModel = true;
 
-        [Arg("It indicates if the src embedding is trainable", "True")]
+        [Arg("It indicates if the src embedding is trainable", "IsSrcEmbeddingTrainable")]
         public bool IsSrcEmbeddingTrainable = true;
-        [Arg("It indicates if the tgt embedding is trainable", "True")]
+        [Arg("It indicates if the tgt embedding is trainable", "IsTgtEmbeddingTrainable")]
         public bool IsTgtEmbeddingTrainable = true;
-        [Arg("It indicates if the encoder is trainable", "True")]
+        [Arg("It indicates if the encoder is trainable", "IsEncoderTrainable")]
         public bool IsEncoderTrainable = true;
-        [Arg("It indicates if the decoder is trainable", "True")]
+        [Arg("It indicates if the decoder is trainable", "IsDecoderTrainable")]
         public bool IsDecoderTrainable = true;
     }
 }

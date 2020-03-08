@@ -34,7 +34,7 @@ namespace Seq2SeqSharp
             m_d = m_hiddenDim / m_multiHeadNum;
             m_dropoutRatio = dropoutRatio;
 
-            W0 = new WeightTensor(new long[2] { hiddenDim, hiddenDim }, deviceId, name: $"{name}.{nameof(W0)}", isTrainable: isTrainable, normal: true);
+            W0 = new WeightTensor(new long[2] { hiddenDim, hiddenDim }, deviceId, name: $"{name}.{nameof(W0)}", isTrainable: isTrainable, normal: NormType.Uniform);
             b0 = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(b0)}", isTrainable: isTrainable);
 
             Q = new WeightTensor(new long[2] { inputDim, hiddenDim }, deviceId, name: $"{name}.{nameof(Q)}", isTrainable: isTrainable);
@@ -70,8 +70,8 @@ namespace Seq2SeqSharp
                 int seqLenV = inputV.Rows / batchSize;
 
                 IWeightTensor inputQNorm = layerNorm1.Norm(inputQ, g);
-                IWeightTensor inputKNorm = (inputK == inputQ) ? inputQNorm : layerNorm1.Norm(inputK, g);
-                IWeightTensor inputVNorm = (inputK == inputV) ? inputKNorm : layerNorm1.Norm(inputV, g);
+                IWeightTensor inputKNorm = (inputK == inputQ) ? inputQNorm : inputK; // layerNorm1.Norm(inputK, g);
+                IWeightTensor inputVNorm = (inputK == inputV) ? inputKNorm : inputV; // layerNorm1.Norm(inputV, g);
 
                 //Input projections
                 IWeightTensor allQ = g.View(g.Affine(inputQNorm, Q, Qb), dims: new long[] { batchSize, seqLenQ, m_multiHeadNum, m_d });

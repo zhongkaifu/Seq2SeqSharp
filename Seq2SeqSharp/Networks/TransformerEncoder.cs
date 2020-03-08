@@ -19,7 +19,7 @@ namespace Seq2SeqSharp
         private readonly int m_depth;
         private readonly int m_deviceId;
         private readonly bool m_isTrainable;
-      //  private readonly LayerNormalization layerNorm;
+        private readonly LayerNormalization layerNorm;
 
         public TransformerEncoder(string name, int multiHeadNum, int hiddenDim, int inputDim, int depth, float dropoutRatio, int deviceId, bool isTrainable)
         {
@@ -50,7 +50,7 @@ namespace Seq2SeqSharp
                 m_posFFNs.Add(new PositionwiseFeedForward($"{name}.PosFFN_{i}", hiddenDim, m_dropoutRatio, deviceId, isTrainable));
             }
 
-       //     layerNorm = new LayerNormalization($"{name}.{nameof(layerNorm)}", hiddenDim, deviceId, isTrainable);
+            layerNorm = new LayerNormalization($"{name}.{nameof(layerNorm)}", hiddenDim, deviceId, isTrainable);
 
         }
 
@@ -101,7 +101,7 @@ namespace Seq2SeqSharp
                 }
             }
 
-            //   inputs = layerNorm.Norm(inputs, g);
+               inputs = layerNorm.Norm(inputs, g);
 
             return inputs;
         }
@@ -125,7 +125,7 @@ namespace Seq2SeqSharp
                 response.AddRange(item.getParams());
             }
 
-         //   response.AddRange(layerNorm.getParams());
+            response.AddRange(layerNorm.getParams());
 
             return response;
         }
@@ -142,7 +142,7 @@ namespace Seq2SeqSharp
                 item.Save(stream);
             }
 
-        //    layerNorm.Save(stream);
+            layerNorm.Save(stream);
         }
 
         public void Load(Stream stream)
@@ -157,7 +157,7 @@ namespace Seq2SeqSharp
                 item.Load(stream);
             }
 
-        //    layerNorm.Load(stream);
+            layerNorm.Load(stream);
         }
     }
 }
