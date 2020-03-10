@@ -75,6 +75,10 @@ namespace TensorSharp.Cpu
 
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddMulV(IntPtr result, IntPtr x, IntPtr y, float z);
 
+
+        [DllImport(dll, CallingConvention = cc)] public static extern int TS_MaskFill(IntPtr result, IntPtr t, IntPtr mask, float defValue);
+
+
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Atan2(IntPtr result, IntPtr srcY, IntPtr srcX);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Pow(IntPtr result, IntPtr src, float value);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Tpow(IntPtr result, float value, IntPtr src);

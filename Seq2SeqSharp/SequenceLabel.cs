@@ -222,7 +222,7 @@ namespace Seq2SeqSharp
                 }
             }
 
-            return encoder.Encode(g.ConcatRows(forwardInput), null, batchSize, g);
+            return encoder.Encode(g.ConcatRows(forwardInput), null, null, batchSize, g);
         }
 
 

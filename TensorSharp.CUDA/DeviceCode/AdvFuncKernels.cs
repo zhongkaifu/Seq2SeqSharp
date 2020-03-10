@@ -405,24 +405,32 @@ __global__ void Adam(float* __restrict__ w, float* __restrict__ g, float* __rest
         int i = tid + threadIdx.x;
         if(i < cols && sg[i] != 0.0) 
         {
-           float g = sg[i] / batchSize;
+           //float g = sg[i] / batchSize;
            
-           if (g > clipval)
-           {
-               g = clipval;
-           }
-           if (g < -clipval)
-           {
-               g = -clipval;
-           }
+           //if (g > clipval)
+           //{
+           //    g = clipval;
+           //}
+           //if (g < -clipval)
+           //{
+           //    g = -clipval;
+           //}
+
+           float g = sg[i];
 
            sm[i] = sm[i] * decay_rate_m + (1.0 - decay_rate_m) * g;
            sv[i] = sv[i] * decay_rate_v + (1.0 - decay_rate_v) * g * g;
 
-           float m_cap = sm[i] / (1.0 - powf(decay_rate_m, iter));
-           float v_cap = sv[i] / (1.0 - powf(decay_rate_v, iter));
+           //float m_cap = sm[i] / (1.0 - powf(decay_rate_m, iter));
+           //float v_cap = sv[i] / (1.0 - powf(decay_rate_v, iter));
 
-           sw[i] -= step_size * m_cap / (sqrtf(v_cap) + eps);
+
+           float bias_correction1 = 1.0 / (1.0 - powf(decay_rate_m, iter));
+           float bias_correction2 = 1.0 / (1.0 - powf(decay_rate_v, iter));
+           float adapted_learning_rate = step_size * bias_correction1 / sqrtf(bias_correction2);
+
+
+           sw[i] -= adapted_learning_rate * sm[i] / (sqrtf(sv[i]) + eps);
 
            sg[i] = 0;
         }

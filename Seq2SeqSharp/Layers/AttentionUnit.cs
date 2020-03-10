@@ -13,7 +13,6 @@ namespace Seq2SeqSharp
     {
         public IWeightTensor Uhs;
         public IWeightTensor encOutput;
-        public IWeightTensor EncMask;
     }
 
     [Serializable]
@@ -68,13 +67,12 @@ namespace Seq2SeqSharp
             return m_deviceId;
         }
 
-        public AttentionPreProcessResult PreProcess(IWeightTensor encOutput, IWeightTensor encMask, int batchSize, IComputeGraph g)
+        public AttentionPreProcessResult PreProcess(IWeightTensor encOutput, int batchSize, IComputeGraph g)
         {
             int srcSeqLen = encOutput.Rows / batchSize;
 
             AttentionPreProcessResult r = new AttentionPreProcessResult
             {
-                EncMask = encMask,
                 encOutput = encOutput
             };
 
@@ -122,11 +120,6 @@ namespace Seq2SeqSharp
 
                 IWeightTensor attenT = g.Transpose(atten);
                 IWeightTensor attenT2 = g.View(attenT, dims: new long[] { batchSize, srcSeqLen });
-
-                if (attnPre.EncMask != null)
-                {
-                    attenT2 = g.Add(attenT2, attnPre.EncMask, runGradient2: false);
-                }
 
                 IWeightTensor attenSoftmax1 = g.Softmax(attenT2, inPlace: true);
 

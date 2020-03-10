@@ -83,7 +83,7 @@ namespace Seq2SeqSharp
         /// <returns></returns>
         /// 
 
-        public IWeightTensor Decode(IWeightTensor tgtInputs, IWeightTensor encOutputBatchFirst, IWeightTensor tgtAttnMask, IWeightTensor decEncAttnMask, int batchSize, IComputeGraph g)
+        public IWeightTensor Decode(IWeightTensor tgtInputs, IWeightTensor encOutputBatchFirst, IWeightTensor tgtSelfMask, IWeightTensor decEncAttnMask, IWeightTensor tgtDimMask, int batchSize, IComputeGraph g)
         {
             int tgtSeqLen = tgtInputs.Rows / batchSize;
             int srcSeqLen = encOutputBatchFirst.Rows / batchSize;
@@ -98,39 +98,38 @@ namespace Seq2SeqSharp
 
             tgtInputs = g.Dropout(tgtInputs, batchSize, m_dropoutRatio, inPlace: true);
 
-            var tgtAttnMaskRep = g.View(tgtAttnMask, dims: new long[] { 1, batchSize, tgtSeqLen, tgtSeqLen });
-            var tgtAttnMaskRepExp = g.Expand(tgtAttnMaskRep, dims: new long[] { m_multiHeadNum, batchSize, tgtSeqLen, tgtSeqLen });
-            
-            var decEncAttnMaskRep = g.View(decEncAttnMask, dims: new long[] { 1, batchSize, 1, srcSeqLen });
+            var tgtSelfMaskRep = g.View(tgtSelfMask, dims: new long[] { 1, batchSize, tgtSeqLen, tgtSeqLen });
+            var tgtSelfMaskRepExp = g.Expand(tgtSelfMaskRep, dims: new long[] { m_multiHeadNum, batchSize, tgtSeqLen, tgtSeqLen });
+
+            var decEncAttnMaskRep = g.View(decEncAttnMask, dims: new long[] { 1, batchSize, tgtSeqLen, srcSeqLen });
             var decEncAttnMaskRepExp = g.Expand(decEncAttnMaskRep, dims: new long[] { m_multiHeadNum, batchSize, tgtSeqLen, srcSeqLen });
 
-            using (var tgtAttnMaskRepExpView = g.View(tgtAttnMaskRepExp, dims: new long[] { m_multiHeadNum * batchSize * tgtSeqLen, tgtSeqLen }))
+            var tgtSelfMaskRepExpView = g.View(tgtSelfMaskRepExp, dims: new long[] { m_multiHeadNum * batchSize * tgtSeqLen, tgtSeqLen });
+            var decEncAttnMaskRepExpView = g.View(decEncAttnMaskRepExp, dims: new long[] { m_multiHeadNum * batchSize * tgtSeqLen, srcSeqLen });
+
+            tgtSelfMaskRep.Dispose();
+            tgtSelfMaskRepExp.Dispose();
+
+            decEncAttnMaskRep.Dispose();
+            decEncAttnMaskRepExp.Dispose();
+
+            using (IComputeGraph subg = g.CreateSubGraph($"{m_name}_Decoder"))
             {
-                using (var decEncAttnMaskRepExpView = g.View(decEncAttnMaskRepExp, dims: new long[] { m_multiHeadNum * batchSize * tgtSeqLen, srcSeqLen }))
+                for (int k = 0; k < m_selfAttns.Count; k++)
                 {
-                    tgtAttnMaskRep.Dispose();
-                    tgtAttnMaskRepExp.Dispose();
+                    tgtInputs = g.MaskFill(tgtInputs, tgtDimMask, 0.0f);
 
-                    decEncAttnMaskRep.Dispose();
-                    decEncAttnMaskRepExp.Dispose();
-
-                    using (IComputeGraph subg = g.CreateSubGraph($"{m_name}_Decoder"))
-                    {
-                        for (int k = 0; k < m_selfAttns.Count; k++)
-                        {
-                            tgtInputs = m_selfAttns[k].Perform(tgtInputs, tgtInputs, tgtInputs, tgtAttnMaskRepExpView, batchSize, subg);
-                            tgtInputs = m_encAttns[k].Perform(tgtInputs, encOutputBatchFirst, encOutputBatchFirst, decEncAttnMaskRepExpView, batchSize, subg);
-                            tgtInputs = m_posFFNs[k].Perform(tgtInputs, batchSize, subg);
-                        }
-
-                        tgtInputs.UnbindFromComputeGraph();
-                    }
+                    tgtInputs = m_selfAttns[k].Perform(tgtInputs, tgtInputs, tgtInputs, tgtSelfMaskRepExpView, batchSize, subg);
+                    tgtInputs = m_encAttns[k].Perform(tgtInputs, encOutputBatchFirst, encOutputBatchFirst, decEncAttnMaskRepExpView, batchSize, subg);
+                    tgtInputs = m_posFFNs[k].Perform(tgtInputs, batchSize, subg);
                 }
+
+                tgtInputs.UnbindFromComputeGraph();
             }
 
             tgtInputs = layerNorm.Norm(tgtInputs, g);
 
-        //    tgtInputs = m_decoderFFLayer.Process(tgtInputs, batchSize, g);
+            //    tgtInputs = m_decoderFFLayer.Process(tgtInputs, batchSize, g);
             return tgtInputs;
         }
 

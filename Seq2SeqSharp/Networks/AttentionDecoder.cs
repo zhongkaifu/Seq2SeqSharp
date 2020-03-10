@@ -70,9 +70,9 @@ namespace Seq2SeqSharp
             }
         }
 
-        public AttentionPreProcessResult PreProcess(IWeightTensor encOutputs, IWeightTensor encMask, int batchSize, IComputeGraph g)
+        public AttentionPreProcessResult PreProcess(IWeightTensor encOutputs, int batchSize, IComputeGraph g)
         {
-            return m_attentionLayer.PreProcess(encOutputs, encMask, batchSize, g);
+            return m_attentionLayer.PreProcess(encOutputs, batchSize, g);
         }
 
 

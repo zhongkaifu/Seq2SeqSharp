@@ -289,6 +289,12 @@ namespace TensorSharp.Cpu
         [RegisterOpStorageType("addmulv", typeof(CpuStorage))]
         public Tensor AddMulV(Tensor result, Tensor x, Tensor y, float z) { return NativeWrapper.InvokeNullableResultElementwise(addmulv_func, result, x, y, z); }
 
+
+        private readonly MethodInfo maskfill_func = NativeWrapper.GetMethod("TS_MaskFill");
+        [RegisterOpStorageType("maskfill", typeof(CpuStorage))]
+        public Tensor MaskFill(Tensor result, Tensor t, Tensor mask, float defValue) { return NativeWrapper.InvokeNullableResultElementwise(maskfill_func, result, t, mask, defValue); }
+
+
         private readonly MethodInfo atan2_func = NativeWrapper.GetMethod("TS_Atan2");
         [RegisterOpStorageType("atan2", typeof(CpuStorage))]
         public Tensor Atan2(Tensor result, Tensor srcY, Tensor srcX) { return NativeWrapper.InvokeNullableResultElementwise(atan2_func, result, srcY, srcX); }

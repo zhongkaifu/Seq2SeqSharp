@@ -31,6 +31,8 @@
             AppendTTTTFunc(result, "addmul", "AddMul");
             AppendTTTSFunc(result, "addmulv", "AddMul");
 
+            AppendTTTSFunc(result, "maskfill", "MaskFill");
+
             //result.AddApplyTS("t1_pow", "*a = powf(*a, b);");
             //result.AddApplyTTS("t2_pow", "*a = powf(*b, c);");
             //result.AddApplyTS("t1_tpow", "*a = powf(b, *a);");

@@ -134,7 +134,7 @@ namespace Seq2SeqSharp.Tools
                 SeedSource seedSource = new SeedSource(DateTime.Now.Millisecond);
                 var std = 1.0 / Math.Sqrt((double)Columns);
                 Ops.RandomNormal(TWeight, seedSource, 0.0f, (float)std);
-            }            
+            }
         }
 
         public WeightTensor(long[] sizes, float c, int deviceId, string name = "", bool isTrainable = false)

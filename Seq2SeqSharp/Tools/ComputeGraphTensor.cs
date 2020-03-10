@@ -300,6 +300,38 @@ namespace Seq2SeqSharp.Tools
         }
 
 
+
+        public IWeightTensor MaskFill(IWeightTensor w1, IWeightTensor m, float v)
+        {
+            WeightTensor m1 = w1 as WeightTensor;
+            WeightTensor mask = m as WeightTensor;
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, m.Name)}.MaskFill", graphToBind: this);
+            VisualizeNodes(new IWeightTensor[] { w1, m }, res);
+
+
+            Ops.MaskFill(res.TWeight, m1.TWeight, mask.TWeight, v);
+
+            if (m_needsBackprop)
+            {
+                Action backward = () =>
+                {
+                    res.ReleaseWeight();
+
+                    using (var tGrad = Ops.MaskFill(null, res.TGradient, mask.TWeight, 0.0f))
+                    {
+                        m1.CopyOrAddGradient(tGrad);
+                    }
+
+                    res.Dispose();
+                };
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
+
         public void Bind(IWeightTensor w)
         {
             m_tensorsBindToCurrentGraph.Add(w);

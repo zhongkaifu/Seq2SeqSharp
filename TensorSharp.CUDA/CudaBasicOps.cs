@@ -366,6 +366,12 @@ namespace TensorSharp.CUDA
         [RegisterOpStorageType("addmulv", typeof(CudaStorage))]
         public Tensor AddMulV(Tensor result, Tensor x, Tensor y, float z) { return ElementwiseTTTSOp.Invoke(elementwiseKernels, "addmulv", result, x, y, z); }
 
+
+        [RegisterOpStorageType("maskfill", typeof(CudaStorage))]
+        public Tensor MaskFill(Tensor result, Tensor t, Tensor mask, float defValue) { return ElementwiseTTTSOp.Invoke(elementwiseKernels, "maskfill", result, t, mask, defValue); }
+
+
+
         [RegisterOpStorageType("atan2", typeof(CudaStorage))]
         public Tensor Atan2(Tensor result, Tensor srcY, Tensor srcX) { return Atan2Op.Invoke(elementwiseTriKernels, result, srcY, srcX); }
         [RegisterOpStorageType("pow", typeof(CudaStorage))]

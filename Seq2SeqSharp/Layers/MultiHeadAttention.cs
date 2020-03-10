@@ -59,7 +59,7 @@ namespace Seq2SeqSharp
         /// <param name="batchSize">Batch size of input data set</param>
         /// <param name="graph">The instance of computing graph</param>
         /// <returns>Transformered output tensor</returns>
-        public IWeightTensor Perform(IWeightTensor inputQ, IWeightTensor inputK, IWeightTensor inputV, IWeightTensor mask, int batchSize, IComputeGraph graph)
+        public IWeightTensor Perform(IWeightTensor inputQ, IWeightTensor inputK, IWeightTensor inputV, IWeightTensor keyMask, int batchSize, IComputeGraph graph)
         {
             using (IComputeGraph g = graph.CreateSubGraph($"{m_name}_MultiHeadAttention"))
             {
@@ -89,9 +89,10 @@ namespace Seq2SeqSharp
                 IWeightTensor attn2 = g.View(attn, dims: new long[] { m_multiHeadNum * batchSize * seqLenQ, seqLenK });
 
 
-                if (mask != null)
+                if (keyMask != null)
                 {
-                    attn2 = g.Add(attn2, mask, runGradient2: false);
+                    // attn2 = g.Add(attn2, mask, runGradient2: false);
+                    attn2 = g.MaskFill(attn2, keyMask, -1e9f);
                 }
 
                 IWeightTensor softmax = g.Softmax(attn2, inPlace: true);

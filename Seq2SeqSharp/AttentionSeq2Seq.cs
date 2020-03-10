@@ -7,6 +7,7 @@ using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Seq2SeqSharp
 {
@@ -218,51 +219,59 @@ namespace Seq2SeqSharp
 
 
             List<int> originalSrcLengths = ParallelCorpus.PadSentences(srcSnts);
-            int secSeqLen = srcSnts[0].Count;
+            int srcSeqPaddedLen = srcSnts[0].Count;
             int batchSize = srcSnts.Count;
 
-            using (IWeightTensor encMask = MaskUtils.BuildPadMask(computeGraph, secSeqLen, originalSrcLengths, deviceIdIdx))
-            {
-                // Encoding input source sentences
-                IWeightTensor encOutput = Encode(computeGraph, srcSnts, encoder, srcEmbedding, encMask);
+            IWeightTensor encSelfMask = MaskUtils.BuildPadSelfMask(computeGraph, srcSeqPaddedLen, originalSrcLengths, deviceIdIdx);
+            IWeightTensor encDimMask = MaskUtils.BuildPadDimMask(computeGraph, srcSeqPaddedLen, originalSrcLengths, m_modelMetaData.HiddenDim, deviceIdIdx);
 
-                // Generate output decoder sentences
-                if (decoder is AttentionDecoder)
+            // Encoding input source sentences
+            IWeightTensor encOutput = Encode(computeGraph, srcSnts, encoder, srcEmbedding, encSelfMask, encDimMask);
+
+            // Generate output decoder sentences
+            if (decoder is AttentionDecoder)
+            {
+                return DecodeAttentionLSTM(tgtSnts, computeGraph, encOutput, decoder as AttentionDecoder, tgtEmbedding, srcSnts.Count, isTraining);
+            }
+            else
+            {
+                if (isTraining)
                 {
-                    return DecodeAttentionLSTM(tgtSnts, computeGraph, encOutput, decoder as AttentionDecoder, tgtEmbedding, encMask, srcSnts.Count, isTraining);
+                    List<int> originalTgtLengths = ParallelCorpus.PadSentences(tgtSnts);
+                    int tgtSeqPaddedLen = tgtSnts[0].Count;
+                    IWeightTensor encDecMask = MaskUtils.BuildSrcTgtMask(computeGraph, srcSeqPaddedLen, tgtSeqPaddedLen, originalSrcLengths, originalTgtLengths, deviceIdIdx);
+                    
+                    return DecodeTransformer(tgtSnts, computeGraph, encOutput, encDecMask, decoder as TransformerDecoder, tgtEmbedding, batchSize, deviceIdIdx, isTraining);
                 }
                 else
                 {
-                    if (isTraining)
+                    for (int i = 0; i < m_maxTgtSntSize; i++)
                     {
-                        return DecodeTransformer(tgtSnts, computeGraph, encOutput, encMask, decoder as TransformerDecoder, tgtEmbedding, batchSize, deviceIdIdx, isTraining);
-                    }
-                    else
-                    {
-                        for (int i = 0;i < m_maxTgtSntSize;i++)
+                        using (var g = computeGraph.CreateSubGraph($"TransformerDecoder_Step_{i}"))
                         {
-                            using (var g = computeGraph.CreateSubGraph($"TransformerDecoder_Step_{i}"))
+                            List<int> originalTgtLengths = ParallelCorpus.PadSentences(tgtSnts);
+                            int tgtSeqPaddedLen = tgtSnts[0].Count;
+                            IWeightTensor encDecMask = MaskUtils.BuildSrcTgtMask(g, srcSeqPaddedLen, tgtSeqPaddedLen, originalSrcLengths, originalTgtLengths, deviceIdIdx);
+
+                            DecodeTransformer(tgtSnts, g, encOutput, encDecMask, decoder as TransformerDecoder, tgtEmbedding, batchSize, deviceIdIdx, isTraining);
+
+                            bool allSntsEnd = true;
+                            for (int j = 0; j < tgtSnts.Count; j++)
                             {
-                                DecodeTransformer(tgtSnts, g, encOutput, encMask, decoder as TransformerDecoder, tgtEmbedding, batchSize, deviceIdIdx, isTraining);
-
-                                bool allSntsEnd = true;
-                                for (int j = 0; j < tgtSnts.Count; j++)
+                                if (tgtSnts[j][tgtSnts[j].Count - 1] != ParallelCorpus.EOS)
                                 {
-                                    if (tgtSnts[j][tgtSnts[j].Count - 1] != ParallelCorpus.EOS)
-                                    {
-                                        allSntsEnd = false;
-                                        break;
-                                    }
-                                }
-
-                                if (allSntsEnd)
-                                {
+                                    allSntsEnd = false;
                                     break;
                                 }
                             }
+
+                            if (allSntsEnd)
+                            {
+                                break;
+                            }
                         }
-                        return 0.0f;
                     }
+                    return 0.0f;
                 }
             }
         }
@@ -280,7 +289,7 @@ namespace Seq2SeqSharp
         /// <param name="reversEncoder"></param>
         /// <param name="Embedding"></param>
         /// <returns></returns>
-        private IWeightTensor Encode(IComputeGraph g, List<List<string>> srcSnts, IEncoder encoder, IWeightTensor Embedding, IWeightTensor mask)
+        private IWeightTensor Encode(IComputeGraph g, List<List<string>> srcSnts, IEncoder encoder, IWeightTensor Embedding, IWeightTensor selfMask, IWeightTensor dimMask)
         {
             int seqLen = srcSnts[0].Count;
             int batchSize = srcSnts.Count;
@@ -297,12 +306,12 @@ namespace Seq2SeqSharp
                 }
             }
 
-            return encoder.Encode(g.ConcatRows(forwardInput), mask, batchSize, g);
+            return encoder.Encode(g.ConcatRows(forwardInput), selfMask, dimMask, batchSize, g);
         }
 
 
 
-        private float DecodeTransformer(List<List<string>> outInputSeqs, IComputeGraph g, IWeightTensor encOutputs, IWeightTensor encMask, TransformerDecoder decoder,
+        private float DecodeTransformer(List<List<string>> outInputSeqs, IComputeGraph g, IWeightTensor encOutputs, IWeightTensor encMask,  TransformerDecoder decoder,
             IWeightTensor tgtEmbedding, int batchSize, int deviceId, bool isTraining = true)
         {
             float cost = 0.0f;
@@ -310,7 +319,9 @@ namespace Seq2SeqSharp
             var originalInputLengths = ParallelCorpus.PadSentences(outInputSeqs);
             int tgtSeqLen = outInputSeqs[0].Count;
 
-            using (IWeightTensor tgtTriMask = MaskUtils.BuildPadTriMask(g, tgtSeqLen, originalInputLengths, deviceId))
+            IWeightTensor tgtDimMask = MaskUtils.BuildPadDimMask(g, tgtSeqLen, originalInputLengths, m_modelMetaData.HiddenDim, deviceId);
+
+            using (IWeightTensor tgtSelfTriMask = MaskUtils.BuildPadSelfTriMask(g, tgtSeqLen, originalInputLengths, deviceId))
             {
                 List<IWeightTensor> inputs = new List<IWeightTensor>();
                 for (int i = 0; i < batchSize; i++)
@@ -323,7 +334,7 @@ namespace Seq2SeqSharp
                 }
 
                 IWeightTensor tgtInputEmbeddings = inputs.Count > 1 ? g.ConcatRows(inputs) : inputs[0];
-                IWeightTensor decOutput = decoder.Decode(tgtInputEmbeddings, encOutputs, tgtTriMask, encMask, batchSize, g);
+                IWeightTensor decOutput = decoder.Decode(tgtInputEmbeddings, encOutputs, tgtSelfTriMask, encMask, tgtDimMask, batchSize, g);
 
                 decOutput = g.Mul(decOutput, g.Transpose(tgtEmbedding));
 
@@ -389,8 +400,7 @@ namespace Seq2SeqSharp
         /// <param name="decoderFFLayer"></param>
         /// <param name="tgtEmbedding"></param>
         /// <returns></returns>
-        private float DecodeAttentionLSTM(List<List<string>> outputSnts, IComputeGraph g, IWeightTensor encOutputs, AttentionDecoder decoder, IWeightTensor tgtEmbedding, IWeightTensor encMask,
-           int batchSize, bool isTraining = true)
+        private float DecodeAttentionLSTM(List<List<string>> outputSnts, IComputeGraph g, IWeightTensor encOutputs, AttentionDecoder decoder, IWeightTensor tgtEmbedding, int batchSize, bool isTraining = true)
         {
             float cost = 0.0f;
             int[] ix_inputs = new int[batchSize];
@@ -406,7 +416,7 @@ namespace Seq2SeqSharp
             HashSet<int> setEndSentId = isTraining ? null : new HashSet<int>();
 
             // Pre-process for attention model
-            AttentionPreProcessResult attPreProcessResult = decoder.PreProcess(encOutputs, encMask, batchSize, g);
+            AttentionPreProcessResult attPreProcessResult = decoder.PreProcess(encOutputs, batchSize, g);
             for (int i = 1; i < seqLen; i++)
             {
                 //Get embedding for all sentence in the batch at position i
@@ -502,8 +512,8 @@ namespace Seq2SeqSharp
             bss.HTs = rnnDecoder.GetHTs();
             bssList.Add(bss);
 
-            IWeightTensor encodedWeightMatrix = Encode(g, inputSeqs, encoder, srcEmbedding, null);
-            AttentionPreProcessResult attPreProcessResult = rnnDecoder.PreProcess(encodedWeightMatrix, null, batchSize, g);
+            IWeightTensor encodedWeightMatrix = Encode(g, inputSeqs, encoder, srcEmbedding, null, null);
+            AttentionPreProcessResult attPreProcessResult = rnnDecoder.PreProcess(encodedWeightMatrix, batchSize, g);
 
             List<BeamSearchStatus> newBSSList = new List<BeamSearchStatus>();
             bool finished = false;
@@ -585,10 +595,10 @@ namespace Seq2SeqSharp
             rnnDecoder.Reset(g.GetWeightFactory(), batchSize);
 
             // Run encoder
-            IWeightTensor encodedWeightMatrix = Encode(g, inputSeqs, encoder, srcEmbedding, null);
+            IWeightTensor encodedWeightMatrix = Encode(g, inputSeqs, encoder, srcEmbedding, null, null);
 
             // Prepare for attention over encoder-decoder
-            AttentionPreProcessResult attPreProcessResult = rnnDecoder.PreProcess(encodedWeightMatrix, null, batchSize, g);
+            AttentionPreProcessResult attPreProcessResult = rnnDecoder.PreProcess(encodedWeightMatrix, batchSize, g);
 
             // Run decoder
             IWeightTensor x = g.PeekRow(tgtEmbedding, (int)SENTTAGS.START);

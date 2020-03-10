@@ -121,6 +121,14 @@ template <typename T> INLINE_FUNC T Clamp(T val, T min, T max) {
 		return max;
 	return val;
 }
+
+template <typename T> INLINE_FUNC T MaskFill(T t, T mask, T defValue) {
+	if (mask == T(0))
+		return t;
+	return defValue;
+}
+
+
 ";
     }
 }
