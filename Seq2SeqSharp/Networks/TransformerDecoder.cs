@@ -12,7 +12,7 @@ namespace Seq2SeqSharp
         private readonly List<MultiHeadAttention> m_encAttns = new List<MultiHeadAttention>();
         private readonly List<PositionwiseFeedForward> m_posFFNs = new List<PositionwiseFeedForward>();
 
-     //   private readonly FeedForwardLayer m_decoderFFLayer;
+        private readonly FeedForwardLayer m_decoderFFLayer;
         private readonly int m_inputDim;
         private readonly int m_outputDim;
         private readonly float m_dropoutRatio;
@@ -63,7 +63,8 @@ namespace Seq2SeqSharp
 
             layerNorm = new LayerNormalization($"{name}.{nameof(layerNorm)}", hiddenDim, deviceId, isTrainable);
 
-        //    m_decoderFFLayer = new FeedForwardLayer($"{name}.FeedForward", hiddenDim, outputDim, 0.0f, deviceId: deviceId, isTrainable: isTrainable);
+           m_decoderFFLayer = new FeedForwardLayer($"{name}.FeedForward", hiddenDim, outputDim, 0.0f, deviceId: deviceId, isTrainable: isTrainable);
+
         }
 
         public int GetDeviceId()
@@ -83,7 +84,7 @@ namespace Seq2SeqSharp
         /// <returns></returns>
         /// 
 
-        public IWeightTensor Decode(IWeightTensor tgtInputs, IWeightTensor encOutputBatchFirst, IWeightTensor tgtSelfMask, IWeightTensor decEncAttnMask, IWeightTensor tgtDimMask, int batchSize, IComputeGraph g)
+        public IWeightTensor Decode(IWeightTensor tgtInputs, IWeightTensor encOutputBatchFirst, IWeightTensor tgtSelfMask, IWeightTensor srcTgtMask, int batchSize, IComputeGraph g)
         {
             int tgtSeqLen = tgtInputs.Rows / batchSize;
             int srcSeqLen = encOutputBatchFirst.Rows / batchSize;
@@ -92,7 +93,7 @@ namespace Seq2SeqSharp
             {
                 using (IWeightTensor posEmbeddingRepeat = g.RepeatRows(posEmbedding, batchSize, runGradient: false))
                 {
-                    tgtInputs = g.AddMul(posEmbeddingRepeat, tgtInputs, (float)Math.Sqrt(m_inputDim), runGradientW1: false, runGradientW2: true);
+                    tgtInputs = g.AddMul(posEmbeddingRepeat, tgtInputs, (float)Math.Sqrt(m_hiddenDim), runGradientW1: false, runGradientW2: true);                   
                 }
             }
 
@@ -100,27 +101,25 @@ namespace Seq2SeqSharp
 
             var tgtSelfMaskRep = g.View(tgtSelfMask, dims: new long[] { 1, batchSize, tgtSeqLen, tgtSeqLen });
             var tgtSelfMaskRepExp = g.Expand(tgtSelfMaskRep, dims: new long[] { m_multiHeadNum, batchSize, tgtSeqLen, tgtSeqLen });
-
-            var decEncAttnMaskRep = g.View(decEncAttnMask, dims: new long[] { 1, batchSize, tgtSeqLen, srcSeqLen });
-            var decEncAttnMaskRepExp = g.Expand(decEncAttnMaskRep, dims: new long[] { m_multiHeadNum, batchSize, tgtSeqLen, srcSeqLen });
-
             var tgtSelfMaskRepExpView = g.View(tgtSelfMaskRepExp, dims: new long[] { m_multiHeadNum * batchSize * tgtSeqLen, tgtSeqLen });
-            var decEncAttnMaskRepExpView = g.View(decEncAttnMaskRepExp, dims: new long[] { m_multiHeadNum * batchSize * tgtSeqLen, srcSeqLen });
 
             tgtSelfMaskRep.Dispose();
             tgtSelfMaskRepExp.Dispose();
 
-            decEncAttnMaskRep.Dispose();
-            decEncAttnMaskRepExp.Dispose();
+
+            var srcTgtMaskRep = g.View(srcTgtMask, dims: new long[] { 1, batchSize, tgtSeqLen, srcSeqLen });
+            var srcTgtMaskRepExp = g.Expand(srcTgtMaskRep, dims: new long[] { m_multiHeadNum, batchSize, tgtSeqLen, srcSeqLen });
+            var srcTgtMaskRepExpView = g.View(srcTgtMaskRepExp, dims: new long[] { m_multiHeadNum * batchSize * tgtSeqLen, srcSeqLen });
+
+            srcTgtMaskRep.Dispose();
+            srcTgtMaskRepExp.Dispose();
 
             using (IComputeGraph subg = g.CreateSubGraph($"{m_name}_Decoder"))
             {
                 for (int k = 0; k < m_selfAttns.Count; k++)
                 {
-                    tgtInputs = g.MaskFill(tgtInputs, tgtDimMask, 0.0f);
-
                     tgtInputs = m_selfAttns[k].Perform(tgtInputs, tgtInputs, tgtInputs, tgtSelfMaskRepExpView, batchSize, subg);
-                    tgtInputs = m_encAttns[k].Perform(tgtInputs, encOutputBatchFirst, encOutputBatchFirst, decEncAttnMaskRepExpView, batchSize, subg);
+                    tgtInputs = m_encAttns[k].Perform(tgtInputs, encOutputBatchFirst, encOutputBatchFirst, srcTgtMaskRepExpView, batchSize, subg);
                     tgtInputs = m_posFFNs[k].Perform(tgtInputs, batchSize, subg);
                 }
 
@@ -128,8 +127,8 @@ namespace Seq2SeqSharp
             }
 
             tgtInputs = layerNorm.Norm(tgtInputs, g);
+            tgtInputs = m_decoderFFLayer.Process(tgtInputs, batchSize, g);
 
-            //    tgtInputs = m_decoderFFLayer.Process(tgtInputs, batchSize, g);
             return tgtInputs;
         }
 
@@ -158,7 +157,7 @@ namespace Seq2SeqSharp
             }
 
             response.AddRange(layerNorm.getParams());
-        //    response.AddRange(m_decoderFFLayer.GetParams());
+            response.AddRange(m_decoderFFLayer.GetParams());
 
             return response;
         }
@@ -182,7 +181,7 @@ namespace Seq2SeqSharp
 
 
             layerNorm.Save(stream);
-        //    m_decoderFFLayer.Save(stream);
+            m_decoderFFLayer.Save(stream);
         }
 
         public void Load(Stream stream)
@@ -203,7 +202,7 @@ namespace Seq2SeqSharp
             }
 
             layerNorm.Load(stream);
-       //     m_decoderFFLayer.Load(stream);
+            m_decoderFFLayer.Load(stream);
         }
     }
 }

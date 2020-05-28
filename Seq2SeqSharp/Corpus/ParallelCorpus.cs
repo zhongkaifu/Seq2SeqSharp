@@ -41,6 +41,7 @@ namespace Seq2SeqSharp.Tools
         public const string BOS = "<START>";
         public const string UNK = "<UNK>";
 
+        public bool showTokenDist = true;
 
         public static bool IsPreDefinedToken(string str)
         {
@@ -49,8 +50,22 @@ namespace Seq2SeqSharp.Tools
 
         private readonly Random rnd = new Random(DateTime.Now.Millisecond);
 
-        private void Shuffle(List<SntPair> sntPairs)
+        private void Shuffle(List<SntPair> sntPairs, bool aggregateSrcLength = true)
         {
+            if (aggregateSrcLength == false)
+            {
+                for (int i = 0; i < sntPairs.Count; i++)
+                {
+                    int idx = rnd.Next(0, sntPairs.Count);
+                    SntPair tmp = sntPairs[i];
+                    sntPairs[i] = sntPairs[idx];
+                    sntPairs[idx] = tmp;
+                }
+
+                return;
+            }
+
+
             //Put sentence pair with same source length into the bucket
             Dictionary<int, List<SntPair>> dict = new Dictionary<int, List<SntPair>>(); //<source sentence length, sentence pair set>
             foreach (SntPair item in sntPairs)
@@ -103,8 +118,11 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        private (string, string) ShuffleAll()
+        private (string, string) ShuffleAll(bool aggregateSrcLength = true)
         {
+            SortedDictionary<int, int> dictSrcLenDist = new SortedDictionary<int, int>();
+            SortedDictionary<int, int> dictTgtLenDist = new SortedDictionary<int, int>();
+
             string srcShuffledFilePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName());
             string tgtShuffledFilePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName());
 
@@ -135,6 +153,19 @@ namespace Seq2SeqSharp.Tools
                     line = srTgt.ReadLine();
                     sntPair.TgtSnt = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
+                    if (dictSrcLenDist.ContainsKey(sntPair.SrcSnt.Length / 100) == false)
+                    {
+                        dictSrcLenDist.Add(sntPair.SrcSnt.Length / 100, 0);
+                    }
+                    dictSrcLenDist[sntPair.SrcSnt.Length / 100]++;
+
+                    if (dictTgtLenDist.ContainsKey(sntPair.TgtSnt.Length / 100) == false)
+                    {
+                        dictTgtLenDist.Add(sntPair.TgtSnt.Length / 100, 0);
+                    }
+                    dictTgtLenDist[sntPair.TgtSnt.Length / 100]++;
+
+
                     if (sntPair.SrcSnt.Length >= m_maxSentLength || sntPair.TgtSnt.Length >= m_maxSentLength)
                     {
                         tooLongSntCnt++;
@@ -145,7 +176,7 @@ namespace Seq2SeqSharp.Tools
                     CorpusSize++;
                     if (m_blockSize > 0 && sntPairs.Count >= m_blockSize)
                     {
-                        Shuffle(sntPairs);
+                        Shuffle(sntPairs, aggregateSrcLength);
                         foreach (SntPair item in sntPairs)
                         {
                             swSrc.WriteLine(string.Join(" ", item.SrcSnt));
@@ -161,7 +192,7 @@ namespace Seq2SeqSharp.Tools
 
             if (sntPairs.Count > 0)
             {
-                Shuffle(sntPairs);
+                Shuffle(sntPairs, aggregateSrcLength);
                 foreach (SntPair item in sntPairs)
                 {
                     swSrc.WriteLine(string.Join(" ", item.SrcSnt));
@@ -182,12 +213,33 @@ namespace Seq2SeqSharp.Tools
                 Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Found {tooLongSntCnt} sentences are longer than '{m_maxSentLength}' tokens, ignore them.");
             }
 
+
+            if (showTokenDist)
+            {
+                Logger.WriteLine($"AggregateSrcLength = '{aggregateSrcLength}'");
+                Logger.WriteLine($"Src token length distribution");
+                foreach (var pair in dictSrcLenDist)
+                {
+                    Logger.WriteLine($"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value}");
+                }
+
+                Logger.WriteLine($"Tgt token length distribution");
+                foreach (var pair in dictTgtLenDist)
+                {
+                    Logger.WriteLine($"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value}");
+                }
+
+                showTokenDist = false;
+            }
+
+
             return (srcShuffledFilePath, tgtShuffledFilePath);
         }
 
         public IEnumerator<SntPairBatch> GetEnumerator()
         {
-            (string srcShuffledFilePath, string tgtShuffledFilePath) = ShuffleAll();
+            bool aggregateSrcLength = true;
+            (string srcShuffledFilePath, string tgtShuffledFilePath) = ShuffleAll(aggregateSrcLength);
 
             using (StreamReader srSrc = new StreamReader(srcShuffledFilePath))
             {
@@ -220,7 +272,7 @@ namespace Seq2SeqSharp.Tools
                         }
                         sntPair.TgtSnt = line.Split(' ');
 
-                        if ((lastSrcSntLen > 0 && lastSrcSntLen != sntPair.SrcSnt.Length) || outputs.Count > maxOutputsSize)
+                        if ((lastSrcSntLen > 0 && aggregateSrcLength == true && lastSrcSntLen != sntPair.SrcSnt.Length) || outputs.Count > maxOutputsSize)
                         {
                             InnerShuffle(outputs);
                             for (int i = 0; i < outputs.Count; i += m_batchSize)

@@ -68,7 +68,7 @@ namespace Seq2SeqSharp
             }
         }
 
-        public IWeightTensor Encode(IWeightTensor rawInputs, IWeightTensor selfMask, IWeightTensor dimMask, int batchSize, IComputeGraph g)
+        public IWeightTensor Encode(IWeightTensor rawInputs, int batchSize, IComputeGraph g, IWeightTensor srcSelfMask)
         {
             int seqLen = rawInputs.Rows / batchSize;
 

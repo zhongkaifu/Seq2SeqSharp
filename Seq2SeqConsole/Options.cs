@@ -67,6 +67,9 @@ namespace Seq2SeqConsole
         [Arg("The batch size", "BatchSize")]
         public int BatchSize = 1;
 
+        [Arg("The batch size during validation", nameof(ValBatchSize))]
+        public int ValBatchSize = 1;
+
         [Arg("Dropout ratio", "Dropout")]
         public float DropoutRatio = 0.1f;
 

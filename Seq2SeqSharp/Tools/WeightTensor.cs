@@ -107,7 +107,8 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, NormType normal = NormType.None, IComputeGraph graphToBind = null)
+
+        public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, NormType normal = NormType.None, bool fanIn = false, bool fanOut = false, IComputeGraph graphToBind = null)
         {
             Name = name;
             DeviceId = deviceId;
@@ -123,17 +124,26 @@ namespace Seq2SeqSharp.Tools
 
             if (normal == NormType.Uniform)
             {
-                SeedSource seedSource = new SeedSource(DateTime.Now.Millisecond);
+                var scale = (float)Math.Sqrt(6.0 / (double)(Rows + Columns));
 
-                var std = (float)Math.Sqrt(6.0 / (double)(Rows + Columns));
-                Ops.RandomUniform(TWeight, seedSource, -std, std);
+                if (fanIn && !fanOut)
+                {
+                    scale = (float)Math.Sqrt(3.0 / (double)Rows);
+                }
+                else if (!fanIn && fanOut)
+                {
+                    scale = (float)Math.Sqrt(3.0 / (double)Columns);
+                }
+
+                var gain = 1.0f;
+
+                Ops.RandomUniform(TWeight, null, -scale * gain, scale * gain);
+
 
             }
             else if (normal == NormType.Normal)
             {
-                SeedSource seedSource = new SeedSource(DateTime.Now.Millisecond);
-                var std = 1.0 / Math.Sqrt((double)Columns);
-                Ops.RandomNormal(TWeight, seedSource, 0.0f, (float)std);
+                  Ops.RandomNormal(TWeight, null, 0.0f, 1.0f);       
             }
         }
 

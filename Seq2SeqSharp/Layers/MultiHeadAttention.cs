@@ -18,18 +18,20 @@ namespace Seq2SeqSharp
         private readonly IWeightTensor Kb;
         private readonly IWeightTensor Vb;
 
-        private readonly LayerNormalization layerNorm1;
+        private readonly LayerNormalization layerNormQ;
 
         private readonly int m_hiddenDim;
         private readonly int m_d;
         private readonly int m_multiHeadNum;
         private readonly string m_name;
         private readonly float m_dropoutRatio;
+        private readonly float m_inputDim;
 
         public MultiHeadAttention(string name, int multiHeadNum, int hiddenDim, int inputDim, float dropoutRatio, int deviceId, bool isTrainable)
         {
             m_name = name;
             m_hiddenDim = hiddenDim;
+            m_inputDim = inputDim;
             m_multiHeadNum = multiHeadNum;
             m_d = m_hiddenDim / m_multiHeadNum;
             m_dropoutRatio = dropoutRatio;
@@ -37,17 +39,16 @@ namespace Seq2SeqSharp
             W0 = new WeightTensor(new long[2] { hiddenDim, hiddenDim }, deviceId, name: $"{name}.{nameof(W0)}", isTrainable: isTrainable, normal: NormType.Uniform);
             b0 = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(b0)}", isTrainable: isTrainable);
 
-            Q = new WeightTensor(new long[2] { inputDim, hiddenDim }, deviceId, name: $"{name}.{nameof(Q)}", isTrainable: isTrainable);
+            Q = new WeightTensor(new long[2] { inputDim, hiddenDim }, deviceId, name: $"{name}.{nameof(Q)}", isTrainable: isTrainable, normal: NormType.Uniform);
             Qb = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(Qb)}", isTrainable: isTrainable);
 
-            K = new WeightTensor(new long[2] { inputDim, hiddenDim }, deviceId, name: $"{name}.{nameof(K)}", isTrainable: isTrainable);
+            layerNormQ = new LayerNormalization($"{name}.{nameof(layerNormQ)}", m_hiddenDim, deviceId, isTrainable);
+
+            K = new WeightTensor(new long[2] { inputDim, hiddenDim }, deviceId, name: $"{name}.{nameof(K)}", isTrainable: isTrainable, normal: NormType.Uniform);
             Kb = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(Kb)}", isTrainable: isTrainable);
 
-            V = new WeightTensor(new long[2] { inputDim, hiddenDim }, deviceId, name: $"{name}.{nameof(V)}", isTrainable: isTrainable);
+            V = new WeightTensor(new long[2] { inputDim, hiddenDim }, deviceId, name: $"{name}.{nameof(V)}", isTrainable: isTrainable, normal: NormType.Uniform);
             Vb = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(Vb)}", isTrainable: isTrainable);
-
-
-            layerNorm1 = new LayerNormalization($"{name}.{nameof(layerNorm1)}", hiddenDim, deviceId, isTrainable);
         }
 
         /// <summary>
@@ -69,30 +70,30 @@ namespace Seq2SeqSharp
                 int seqLenK = inputK.Rows / batchSize;
                 int seqLenV = inputV.Rows / batchSize;
 
-                IWeightTensor inputQNorm = layerNorm1.Norm(inputQ, g);
-                IWeightTensor inputKNorm = (inputK == inputQ) ? inputQNorm : inputK; // layerNorm1.Norm(inputK, g);
-                IWeightTensor inputVNorm = (inputK == inputV) ? inputKNorm : inputV; // layerNorm1.Norm(inputV, g);
+                IWeightTensor inputQNorm = layerNormQ.Norm(inputQ, g);
+                IWeightTensor inputKNorm = (inputK == inputQ) ? inputQNorm : inputK;
+                IWeightTensor inputVNorm = (inputK == inputV) ? inputKNorm : inputV;
+
+                // Scaled softmax
+                float scale = 1.0f / (float)(m_inputDim);
 
                 //Input projections
-                IWeightTensor allQ = g.View(g.Affine(inputQNorm, Q, Qb), dims: new long[] { batchSize, seqLenQ, m_multiHeadNum, m_d });
-                IWeightTensor allK = g.View(g.Affine(inputKNorm, K, Kb), dims: new long[] { batchSize, seqLenK, m_multiHeadNum, m_d });
+                IWeightTensor allQ = g.View(g.Affine(inputQNorm, Q, Qb, scale), dims: new long[] { batchSize, seqLenQ, m_multiHeadNum, m_d });
+                IWeightTensor allK = g.View(g.Affine(inputKNorm, K, Kb, scale), dims: new long[] { batchSize, seqLenK, m_multiHeadNum, m_d });
                 IWeightTensor allV = g.View(g.Affine(inputVNorm, V, Vb), dims: new long[] { batchSize, seqLenV, m_multiHeadNum, m_d });
+
 
                 //Multi-head attentions
                 IWeightTensor Qs = g.View(g.Permute(allQ, 2, 0, 1, 3), dims: new long[] { m_multiHeadNum * batchSize, seqLenQ, m_d });
                 IWeightTensor Ks = g.View(g.Permute(allK, 2, 0, 3, 1), dims: new long[] { m_multiHeadNum * batchSize, m_d, seqLenK });
                 IWeightTensor Vs = g.View(g.Permute(allV, 2, 0, 1, 3), dims: new long[] { m_multiHeadNum * batchSize, seqLenV, m_d });
 
-                // Scaled softmax
-                float scale = 1.0f / (float)Math.Sqrt(m_d);
-                IWeightTensor attn = g.MulBatch(Qs, Ks, m_multiHeadNum * batchSize, scale);
+                IWeightTensor attn = g.MulBatch(Qs, Ks, m_multiHeadNum * batchSize);
                 IWeightTensor attn2 = g.View(attn, dims: new long[] { m_multiHeadNum * batchSize * seqLenQ, seqLenK });
-
 
                 if (keyMask != null)
                 {
-                    // attn2 = g.Add(attn2, mask, runGradient2: false);
-                    attn2 = g.MaskFill(attn2, keyMask, -1e9f);
+                    attn2 = g.MaskFill(attn2, keyMask, -1e38f);
                 }
 
                 IWeightTensor softmax = g.Softmax(attn2, inPlace: true);
@@ -125,7 +126,7 @@ namespace Seq2SeqSharp
                 b0
             };
 
-            response.AddRange(layerNorm1.getParams());
+            response.AddRange(layerNormQ.getParams());
 
             return response;
         }
@@ -145,7 +146,9 @@ namespace Seq2SeqSharp
             W0.Save(stream);
             b0.Save(stream);
 
-            layerNorm1.Save(stream);
+            layerNormQ.Save(stream);
+
+
         }
 
 
@@ -163,7 +166,7 @@ namespace Seq2SeqSharp
             W0.Load(stream);
             b0.Load(stream);
 
-            layerNorm1.Load(stream);
+            layerNormQ.Load(stream);
         }
     }
 }

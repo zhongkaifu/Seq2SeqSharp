@@ -191,12 +191,6 @@ __global__ void gLayerNormalizationGrad(float* gradX,
 }
 
 
-
-
-
-
-
-
 __global__ void gAddLNormalization(float* out,
                                 const float* in1,
                                 const float* in2,
@@ -378,7 +372,7 @@ __global__ void gAddLayerNormalizationGrad(float* gradX1,
           atomicAdd(gradGamma + id, adjRow[id] * x_hat);
           if(beta) {
             atomicAdd(gradBeta + id, adjRow[id]);
-          }
+         }
         }
       }
     }
@@ -543,7 +537,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
       extern __shared__ float _share[];     
       float* _max = _share;
-      _max[threadIdx.x] = -999999999.0; 
+      _max[threadIdx.x] = -2e38f;
       
       for(int tid = 0; tid < cols; tid += blockDim.x) {        
         int i = tid + threadIdx.x;
@@ -631,15 +625,15 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
             cudaContext.SetCurrent();
 
-            long rows = inGrad.Sizes[0];
-            long cols = inGrad.Sizes[1];
-
             int ndim = inGrad.DimensionCount;
             long num_rows = 1;
             for (int dim = 0; dim < ndim - 1; dim++)
             {
                 num_rows *= inGrad.Sizes[dim];
             }
+
+            long rows = num_rows;
+            long cols = inGrad.Sizes[ndim - 1];
 
             dim3 threads = new dim3((uint)Math.Min(512, num_rows));
             dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
@@ -658,6 +652,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
         }
 
+
         public void AddLayerNormGrad(Tensor out1Grad, Tensor out2Grad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x1, Tensor x2, Tensor alpha, Tensor beta, float eps = 1e-9f)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(inGrad);
@@ -672,15 +667,15 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
             cudaContext.SetCurrent();
 
-            long rows = inGrad.Sizes[0];
-            long cols = inGrad.Sizes[1];
-
             int ndim = inGrad.DimensionCount;
             long num_rows = 1;
             for (int dim = 0; dim < ndim - 1; dim++)
             {
                 num_rows *= inGrad.Sizes[dim];
             }
+
+            long rows = num_rows;
+            long cols = inGrad.Sizes[ndim - 1];
 
             dim3 threads = new dim3((uint)Math.Min(512, num_rows));
             dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
@@ -718,15 +713,15 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
             cudaContext.SetCurrent();
 
-            long rows = src.Sizes[0];
-            long cols = src.Sizes[1];
-
             int ndim = src.DimensionCount;
             long num_rows = 1;
             for (int dim = 0; dim < ndim - 1; dim++)
             {
                 num_rows *= src.Sizes[dim];
             }
+
+            long rows = num_rows;
+            long cols = src.Sizes[ndim - 1];
 
             dim3 threads = new dim3((uint)Math.Min(512, num_rows));
             dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
@@ -756,15 +751,15 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
             cudaContext.SetCurrent();
 
-            long rows = src1.Sizes[0];
-            long cols = src1.Sizes[1];
-
             int ndim = src1.DimensionCount;
             long num_rows = 1;
             for (int dim = 0; dim < ndim - 1; dim++)
             {
                 num_rows *= src1.Sizes[dim];
             }
+
+            long rows = num_rows;
+            long cols = src1.Sizes[ndim - 1];
 
             dim3 threads = new dim3((uint)Math.Min(512, num_rows));
             dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
@@ -787,15 +782,15 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
             cudaContext.SetCurrent();
 
-            long rows = src.Sizes[0];
-            long cols = src.Sizes[1];
-
             int ndim = src.DimensionCount;
             long num_rows = 1;
             for (int dim = 0; dim < ndim - 1; dim++)
             {
                 num_rows *= src.Sizes[dim];
             }
+
+            long rows = num_rows;
+            long cols = src.Sizes[ndim - 1];
 
             dim3 threads = new dim3((uint)Math.Min(512, num_rows));
             dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
@@ -812,15 +807,16 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
             cudaContext.SetCurrent();
 
-            long rows = weight.Sizes[0];
-            long cols = weight.Sizes[1];
-
             int ndim = weight.DimensionCount;
             long num_rows = 1;
             for (int dim = 0; dim < ndim - 1; dim++)
             {
                 num_rows *= weight.Sizes[dim];
             }
+
+            long rows = num_rows;
+            long cols = weight.Sizes[ndim - 1];
+
 
             dim3 threads = new dim3((uint)Math.Min(512, num_rows));
             dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
@@ -847,15 +843,15 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
             cudaContext.SetCurrent();
 
-            long rows = weight.Sizes[0];
-            long cols = weight.Sizes[1];
-
             int ndim = weight.DimensionCount;
             long num_rows = 1;
             for (int dim = 0; dim < ndim - 1; dim++)
             {
                 num_rows *= weight.Sizes[dim];
             }
+
+            long rows = num_rows;
+            long cols = weight.Sizes[ndim - 1];
 
             dim3 threads = new dim3((uint)Math.Min(512, num_rows));
             dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
@@ -881,16 +877,16 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
             cudaContext.SetCurrent();
 
-            long rows = grad.Sizes[0];
-            long cols = grad.Sizes[1];
-            int iAddGrad = addGrad ? 1 : 0;
-
             int ndim = grad.DimensionCount;
             long num_rows = 1;
             for (int dim = 0; dim < ndim - 1; dim++)
             {
                 num_rows *= grad.Sizes[dim];
             }
+
+            long rows = num_rows;
+            long cols = grad.Sizes[ndim - 1];
+            int iAddGrad = addGrad ? 1 : 0;
 
             dim3 threads = new dim3((uint)Math.Min(512, num_rows));
             dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));

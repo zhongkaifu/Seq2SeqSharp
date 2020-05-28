@@ -37,7 +37,7 @@ namespace Seq2SeqSharp
         }
 
         public IWeightTensor Process(IWeightTensor inputT, int batchSize, IComputeGraph g)
-        {
+        {            
             IWeightTensor res = g.Affine(inputT, m_Whd, m_Bd);
             return g.Dropout(res, batchSize, m_dropoutRatio, inPlace: true);
         }

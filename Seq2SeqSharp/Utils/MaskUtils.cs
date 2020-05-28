@@ -64,7 +64,7 @@ namespace Seq2SeqSharp.Utils
             float[] buf = new float[originalLengths.Count * paddedLength * paddedLength];
             for (int i = 0; i < buf.Length; i++)
             {
-                buf[i] = -1e9f;
+                buf[i] = -1e38f;
             }
 
             for (int k = 0; k < originalLengths.Count; k++)
@@ -89,7 +89,7 @@ namespace Seq2SeqSharp.Utils
             float[] buf = new float[originalLengths.Count * paddedLength * paddedLength];
             for (int i = 0; i < buf.Length; i++)
             {
-                buf[i] = -1e9f;
+                buf[i] = -1e38f;
             }
 
             for (int k = 0; k < originalLengths.Count; k++)
@@ -117,41 +117,26 @@ namespace Seq2SeqSharp.Utils
         }
 
 
-        public static IWeightTensor BuildSrcTgtMask(IComputeGraph g, int srcPaddedLength, int tgtPaddedLength, List<int> srcOriginalLengths, List<int> tgtOriginalLengths, int deviceId)
+        public static IWeightTensor BuildSrcTgtMask(IComputeGraph g, int srcPaddedLength, int tgtPaddedLength, List<int> tgtOriginalLengths, int deviceId)
         {
-            float[] buf = new float[srcOriginalLengths.Count * tgtPaddedLength * srcPaddedLength];
+            float[] buf = new float[tgtOriginalLengths.Count * tgtPaddedLength * srcPaddedLength];
             for (int i = 0; i < buf.Length; i++)
             {
-                buf[i] = -1e9f;
+                buf[i] = -1e38f;
             }
 
-            for (int k = 0; k < srcOriginalLengths.Count; k++) // batch size
+            for (int k = 0; k < tgtOriginalLengths.Count; k++) // batch size
             {
                 for (int i = 0; i < tgtOriginalLengths[k]; i++)
                 {
-                    for (int j = 0; j < srcOriginalLengths[k]; j++)
+                    for (int j = 0; j < srcPaddedLength; j++)
                     {
-                        if (i >= j)
-                        {
-                            //try
-                            //{
-                                buf[k * (tgtPaddedLength * srcPaddedLength) + i * srcPaddedLength + j] = 0.0f;
-                            //}
-                            //catch (Exception err)
-                            //{
-                            //    Logger.WriteLine($"k = {k}, i = {i}, j = {j}, tgtPaddedLength = '{tgtPaddedLength}', srcPaddedLegnth = '{srcPaddedLength}'");
-                            //    throw err;
-                            //}
-                        }
-                        else
-                        {
-                            break;
-                        }
+                        buf[k * (tgtPaddedLength * srcPaddedLength) + i * srcPaddedLength + j] = 0.0f;
                     }
                 }
             }
 
-            WeightTensor tensor = new WeightTensor(new long[] { srcOriginalLengths.Count, tgtPaddedLength, srcPaddedLength }, 0.0f, deviceId, $"SrcTgtMask_{deviceId}", isTrainable: false);
+            WeightTensor tensor = new WeightTensor(new long[] { tgtOriginalLengths.Count, tgtPaddedLength, srcPaddedLength }, 0.0f, deviceId, $"SrcTgtMask_{deviceId}", isTrainable: false);
             tensor.SetWeightArray(buf);
 
             return tensor;

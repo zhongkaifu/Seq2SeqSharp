@@ -16,7 +16,7 @@ namespace Seq2SeqSharp
         IWeightTensor Sigmoid(IWeightTensor w);
         IWeightTensor Relu(IWeightTensor w);
         IWeightTensor BuildPositionMatrix(int row, int column);
-        IWeightTensor Affine(IWeightTensor m1, IWeightTensor m2, IWeightTensor mbias);
+        IWeightTensor Affine(IWeightTensor m1, IWeightTensor m2, IWeightTensor mbias, float alpha = 1.0f);
         IWeightTensor EltMulMulAdd(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3, IWeightTensor w4);
         IWeightTensor TransposeBatch(IWeightTensor m, int batchSize);
         IWeightTensor Permute(IWeightTensor w, params int[] dims);

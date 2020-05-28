@@ -69,39 +69,38 @@ namespace Seq2SeqSharp
         /// <param name="rawInputs"></param>
         /// <param name="g"></param>
         /// <returns></returns>
-        public IWeightTensor Encode(IWeightTensor inputs, IWeightTensor selfMask, IWeightTensor dimMask, int batchSize, IComputeGraph g)
+        public IWeightTensor Encode(IWeightTensor inputs, int batchSize, IComputeGraph g, IWeightTensor srcSelfMask)
         {
-            int seqLen = inputs.Rows / batchSize;
+            int srcSeqLen = inputs.Rows / batchSize;
 
-            using (IWeightTensor posEmbedding = g.BuildPositionMatrix(seqLen, m_inputDim))
+            using (IWeightTensor posEmbedding = g.BuildPositionMatrix(srcSeqLen, m_inputDim))
             {
                 using (IWeightTensor posEmbeddingRepeat = g.RepeatRows(posEmbedding, batchSize, runGradient: false))
                 {
-                    inputs = g.AddMul(posEmbeddingRepeat, inputs, (float)Math.Sqrt(m_inputDim), runGradientW1: false, runGradientW2: true);
+                    inputs = g.AddMul(posEmbeddingRepeat, inputs, (float)Math.Sqrt(m_hiddenDim), runGradientW1: false, runGradientW2: true);                   
                 }
             }
 
             inputs = g.Dropout(inputs, batchSize, m_dropoutRatio, inPlace: true);
 
-            var selfMaskRep = g.View(selfMask, dims: new long[] { 1, batchSize, seqLen, seqLen });
-            var multiHeadhSelfMaskRep = g.Expand(selfMaskRep, dims: new long[] { m_multiHeadNum, batchSize, seqLen, seqLen });
-            var multiHeadhSelfMaskRepView = g.View(multiHeadhSelfMaskRep, dims: new long[] { m_multiHeadNum * batchSize * seqLen, seqLen });
 
-            selfMaskRep.Dispose();
-            multiHeadhSelfMaskRep.Dispose();
+            var srcSelfMaskRep = g.View(srcSelfMask, dims: new long[] { 1, batchSize, srcSeqLen, srcSeqLen });
+            var srcSelfMaskRepExp = g.Expand(srcSelfMaskRep, dims: new long[] { m_multiHeadNum, batchSize, srcSeqLen, srcSeqLen });
+            var srcSelfMaskRepExpView = g.View(srcSelfMaskRepExp, dims: new long[] { m_multiHeadNum * batchSize * srcSeqLen, srcSeqLen });
+
+            srcSelfMaskRep.Dispose();
+            srcSelfMaskRepExp.Dispose();
+
 
             using (IComputeGraph subg = g.CreateSubGraph($"{m_name}_Encoder"))
             {
                 for (int k = 0; k < m_encoders.Count; k++)
                 {
-                    inputs = g.MaskFill(inputs, dimMask, 0.0f);
-
-                    inputs = m_encoders[k].Perform(inputs, inputs, inputs, multiHeadhSelfMaskRepView, batchSize, subg);
+                    inputs = m_encoders[k].Perform(inputs, inputs, inputs, srcSelfMaskRepExpView, batchSize, subg);
                     inputs = m_posFFNs[k].Perform(inputs, batchSize, subg);
                 }
                 inputs.UnbindFromComputeGraph();
             }
-
 
             inputs = layerNorm.Norm(inputs, g);
 

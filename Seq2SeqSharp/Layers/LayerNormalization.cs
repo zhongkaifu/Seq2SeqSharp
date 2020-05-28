@@ -15,13 +15,13 @@ namespace Seq2SeqSharp
         public LayerNormalization(string name, int dim, int deviceId, bool isTrainable)
         {
             m_name = name;
-            m_alpha = new WeightTensor(new long[2] { 1, dim }, 1, deviceId, name: $"{name}.{nameof(m_alpha)}", isTrainable: isTrainable);
+            m_alpha = new WeightTensor(new long[2] { 1, dim }, 1.0f, deviceId, name: $"{name}.{nameof(m_alpha)}", isTrainable: isTrainable);
             m_beta = new WeightTensor(new long[2] { 1, dim }, 0, deviceId, name: $"{name}.{nameof(m_beta)}", isTrainable: isTrainable);
         }
 
         public IWeightTensor Norm(IWeightTensor input, IComputeGraph g)
         {
-            return g.LayerNorm(input, m_alpha, m_beta, 1e-6f);
+            return g.LayerNorm(input, m_alpha, m_beta);
         }
 
         /// <summary>

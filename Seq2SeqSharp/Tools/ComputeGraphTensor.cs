@@ -494,7 +494,6 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-
         public IWeightTensor MulBatch(IWeightTensor m1, IWeightTensor m2, int batchSize, float alpha = 1.0f)
         {
             WeightTensor t1 = m1 as WeightTensor;
@@ -520,14 +519,14 @@ namespace Seq2SeqSharp.Tools
                         {
                             using (Tensor tW2 = t2W.Transpose(1, 2))
                             {
-                                Ops.AddmmBatch(t1G, 1.0f, t1G, 1.0f, rG, tW2);
+                                Ops.AddmmBatch(t1G, 1.0f, t1G, alpha, rG, tW2);
                             }
                         }
                         using (Tensor t2G = t2.TGradient.View(t2.TWeight.Sizes[0], t2.TWeight.Sizes[1], t2.TWeight.Sizes[2]))
                         {
                             using (Tensor tW1 = t1W.Transpose(1, 2))
                             {
-                                Ops.AddmmBatch(t2G, 1.0f, t2G, 1.0f, tW1, rG);
+                                Ops.AddmmBatch(t2G, 1.0f, t2G, alpha, tW1, rG);
                             }
                         }
                     }
@@ -583,7 +582,7 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightTensor Affine(IWeightTensor m1, IWeightTensor m2, IWeightTensor mbias)
+        public IWeightTensor Affine(IWeightTensor m1, IWeightTensor m2, IWeightTensor mbias, float alpha = 1.0f)
         {
             if (m1 == null)
             {
@@ -611,7 +610,7 @@ namespace Seq2SeqSharp.Tools
 
             using (Tensor t3WExp = t3.TWeight.Expand(n, d))
             {
-                Ops.Addmm(res.TWeight, 1.0f, t3WExp, 1.0f, t1.TWeight, t2.TWeight);
+                Ops.Addmm(res.TWeight, 1.0f, t3WExp, alpha, t1.TWeight, t2.TWeight);
             }
 
             if (m_needsBackprop)
@@ -627,12 +626,12 @@ namespace Seq2SeqSharp.Tools
 
                     using (Tensor tW2 = t2.TWeight.Transpose())
                     {
-                        Ops.Addmm(t1.TGradient, 1.0f, t1.TGradient, 1.0f, res.TGradient, tW2);
+                        Ops.Addmm(t1.TGradient, 1.0f, t1.TGradient, alpha, res.TGradient, tW2);
                     }
 
                     using (Tensor tW1 = t1.TWeight.Transpose())
                     {
-                        Ops.Addmm(t2.TGradient, 1.0f, t2.TGradient, 1.0f, tW1, res.TGradient);
+                        Ops.Addmm(t2.TGradient, 1.0f, t2.TGradient, alpha, tW1, res.TGradient);
                     }
 
                     res.Dispose();
@@ -698,7 +697,7 @@ namespace Seq2SeqSharp.Tools
 
             if (inPlace)
             {
-                res = m.CopyWeightsRef($"{GetHashString(w.Name)}.Softmax");               
+                res = m.CopyWeightsRef($"{GetHashString(w.Name)}.Softmax");
             }
             else
             {
@@ -858,7 +857,7 @@ namespace Seq2SeqSharp.Tools
             bitmap.Dispose();
         }
 
-     
+
         public IWeightTensor RepeatRows(IWeightTensor w, int n, bool runGradient = true)
         {
             WeightTensor m = w as WeightTensor;
@@ -1180,7 +1179,7 @@ namespace Seq2SeqSharp.Tools
 
         public IWeightTensor Expand(IWeightTensor w, bool runGradient = true, params long[] dims)
         {
-            
+
             WeightTensor m = w as WeightTensor;
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(dims, m_deviceId, name: $"{GetHashString(w.Name)}.Expand", graphToBind: this);
             VisualizeNodes(w, res);
@@ -1207,7 +1206,7 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-      
+
         public (IWeightTensor r1, IWeightTensor r2) SplitColumns(IWeightTensor w, int size1, int size2)
         {
             List<IWeightTensor> res = SplitColumns2(w, size1, size2);
@@ -1246,38 +1245,25 @@ namespace Seq2SeqSharp.Tools
             WeightTensor alphaT = alpha as WeightTensor;
             WeightTensor betaT = beta as WeightTensor;
 
-            Tensor alphaTWExp = alphaT.TWeight.Expand(src.Rows, src.Columns);
-            Tensor betaTWExp = betaT.TWeight.Expand(src.Rows, src.Columns);
-
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(srcT.Sizes, m_deviceId, name: $"{GetHashString(src.Name, alpha.Name, beta.Name)}.LayerNorm");
             VisualizeNodes(new IWeightTensor[] { src, alpha, beta }, res);
 
-            Ops.LayerNorm(res.TWeight, srcT.TWeight, alphaTWExp, betaTWExp, eps);
+            Ops.LayerNorm(res.TWeight, srcT.TWeight, alphaT.TWeight, betaT.TWeight, eps);
             if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
-                    using (Tensor alphaTGExp = alphaT.TGradient.Expand(src.Rows, src.Columns))
-                    {
-                        using (Tensor betaTGExp = betaT.TGradient.Expand(src.Rows, src.Columns))
-                        {
-                            Ops.LayerNormGrad(srcT.TGradient, alphaTGExp, betaTGExp, res.TGradient, res.TWeight, srcT.TWeight, alphaTWExp, betaTWExp, eps);
-                        }
-                    }
+                    Ops.LayerNormGrad(srcT.TGradient, alphaT.TGradient, betaT.TGradient, res.TGradient, res.TWeight, srcT.TWeight, alphaT.TWeight, betaT.TWeight, eps);
 
-                    alphaTWExp.Dispose();
-                    betaTWExp.Dispose();
 
                     res.Dispose();
                 };
                 m_backprop.Add(backward);
 
                 srcT.UnbindFromComputeGraph();
-            }
-            else
-            {
-                alphaTWExp.Dispose();
-                betaTWExp.Dispose();
+
+                alphaT.UnbindFromComputeGraph();
+                betaT.UnbindFromComputeGraph();
             }
 
             return res;
@@ -1301,27 +1287,15 @@ namespace Seq2SeqSharp.Tools
             WeightTensor alphaT = alpha as WeightTensor;
             WeightTensor betaT = beta as WeightTensor;
 
-            Tensor alphaTWExp = alphaT.TWeight.Expand(src1.Rows, src1.Columns);
-            Tensor betaTWExp = betaT.TWeight.Expand(src1.Rows, src1.Columns);
-
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(src1T.Sizes, m_deviceId, name: $"{GetHashString(src1.Name, src2.Name, alpha.Name, beta.Name)}.AddLayerNorm");
             VisualizeNodes(new IWeightTensor[] { src1, src2, alpha, beta }, res);
 
-            Ops.AddLayerNorm(res.TWeight, src1T.TWeight, src2T.TWeight, alphaTWExp, betaTWExp, eps);
+            Ops.AddLayerNorm(res.TWeight, src1T.TWeight, src2T.TWeight, alphaT.TWeight, betaT.TWeight, eps);
             if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
-                    using (Tensor alphaTGExp = alphaT.TGradient.Expand(src1.Rows, src1.Columns))
-                    {
-                        using (Tensor betaTGExp = betaT.TGradient.Expand(src1.Rows, src1.Columns))
-                        {
-                            Ops.AddLayerNormGrad(src1T.TGradient, src2T.TGradient, alphaTGExp, betaTGExp, res.TGradient, res.TWeight, src1T.TWeight, src2T.TWeight, alphaTWExp, betaTWExp, eps);
-                        }
-                    }
-
-                    alphaTWExp.Dispose();
-                    betaTWExp.Dispose();
+                    Ops.AddLayerNormGrad(src1T.TGradient, src2T.TGradient, alphaT.TGradient, betaT.TGradient, res.TGradient, res.TWeight, src1T.TWeight, src2T.TWeight, alphaT.TWeight, betaT.TWeight, eps);
 
                     res.Dispose();
                 };
@@ -1329,11 +1303,9 @@ namespace Seq2SeqSharp.Tools
 
                 src1T.UnbindFromComputeGraph();
                 src2T.UnbindFromComputeGraph();
-            }
-            else
-            {
-                alphaTWExp.Dispose();
-                betaTWExp.Dispose();
+
+                alphaT.UnbindFromComputeGraph();
+                betaT.UnbindFromComputeGraph();
             }
 
             return res;

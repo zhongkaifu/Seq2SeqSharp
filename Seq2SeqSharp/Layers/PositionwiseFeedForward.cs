@@ -25,9 +25,7 @@ namespace Seq2SeqSharp
             feedForwardLayer1 = new FeedForwardLayer($"{name}.{nameof(feedForwardLayer1)}", hiddenDim, hiddenDim * 4, m_dropoutRatio, deviceId, isTrainable);
             feedForwardLayer2 = new FeedForwardLayer($"{name}.{nameof(feedForwardLayer2)}", hiddenDim * 4, hiddenDim, m_dropoutRatio, deviceId, isTrainable);
         }
-
       
-
         public IWeightTensor Perform(IWeightTensor input, int batchSize, IComputeGraph graph)
         {
             using (IComputeGraph g = graph.CreateSubGraph($"{m_name}_PositionwiseFeedForward"))
@@ -35,7 +33,7 @@ namespace Seq2SeqSharp
                 var inputNorm = layerNorm2.Norm(input, g);
 
                 //Feed forward
-                IWeightTensor ffnResult = feedForwardLayer1.Process(input, batchSize, g);
+                IWeightTensor ffnResult = feedForwardLayer1.Process(inputNorm, batchSize, g);
                 IWeightTensor reluFFNResult = g.Relu(ffnResult);
                 IWeightTensor ffn2Result = feedForwardLayer2.Process(reluFFNResult, batchSize, g);
 
