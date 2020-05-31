@@ -88,7 +88,10 @@ namespace Seq2SeqSharp
                 IWeightTensor Ks = g.View(g.Permute(allK, 2, 0, 3, 1), dims: new long[] { m_multiHeadNum * batchSize, m_d, seqLenK });
                 IWeightTensor Vs = g.View(g.Permute(allV, 2, 0, 1, 3), dims: new long[] { m_multiHeadNum * batchSize, seqLenV, m_d });
 
-                IWeightTensor attn = g.MulBatch(Qs, Ks, m_multiHeadNum * batchSize);
+
+                scale = 1.0f / (float)(m_d);
+
+                IWeightTensor attn = g.MulBatch(Qs, Ks, m_multiHeadNum * batchSize, scale);
                 IWeightTensor attn2 = g.View(attn, dims: new long[] { m_multiHeadNum * batchSize * seqLenQ, seqLenK });
 
                 if (keyMask != null)
