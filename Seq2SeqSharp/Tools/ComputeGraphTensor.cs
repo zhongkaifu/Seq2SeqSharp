@@ -690,23 +690,33 @@ namespace Seq2SeqSharp.Tools
             return idx;
         }
 
-        public IWeightTensor Softmax(IWeightTensor w, bool runGradients = true, bool inPlace = false)
+      
+        public IWeightTensor Softmax(IWeightTensor w, IWeightTensor mask = null, bool runGradients = true, bool inPlace = false)
         {
-            WeightTensor m = w as WeightTensor;
+            WeightTensor t = w as WeightTensor;
             WeightTensor res = null;
 
             if (inPlace)
             {
-                res = m.CopyWeightsRef($"{GetHashString(w.Name)}.Softmax");
+                res = t.CopyWeightsRef($"{GetHashString(w.Name)}.SoftmaxMask");
             }
             else
             {
-                res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Softmax");
+                res = m_weightTensorFactory.CreateWeightTensor(t.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.SoftmaxMask");
             }
 
             VisualizeNodes(w, res);
 
-            Ops.Softmax(res.TWeight, m.TWeight);
+            if (mask != null)
+            {
+                WeightTensor m = mask as WeightTensor;
+                Ops.SoftmaxMask(res.TWeight, t.TWeight, m.TWeight);
+            }
+            else
+            {
+                Ops.Softmax(res.TWeight, t.TWeight);
+            }
+            
             if (m_needsBackprop)
             {
                 Action backward = () =>
@@ -715,9 +725,9 @@ namespace Seq2SeqSharp.Tools
                     {
                         if (inPlace)
                         {
-                            m.TGradient = res.TGradient.CopyRef();
+                            t.TGradient = res.TGradient.CopyRef();
                         }
-                        m.AddSoftmaxGradient(res, inPlace);
+                        t.AddSoftmaxGradient(res, inPlace);
                     }
 
                     res.Dispose();

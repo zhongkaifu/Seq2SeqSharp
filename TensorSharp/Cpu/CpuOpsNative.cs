@@ -181,6 +181,11 @@ namespace TensorSharp.Cpu
         [DllImport(dll, CallingConvention = cc)]
         public static extern int TS_Softmax(IntPtr out_, IntPtr in_, int rows, int cols);
 
+
+        [DllImport(dll, CallingConvention = cc)]
+        public static extern int TS_SoftmaxMask(IntPtr out_, IntPtr in_, IntPtr mask_, int rows, int cols);
+
+
         [DllImport(dll, CallingConvention = cc)]
         public static extern int TS_SoftmaxGrad(IntPtr grad_, IntPtr adj_, IntPtr val_, int rows, int cols, bool addGrad);
 

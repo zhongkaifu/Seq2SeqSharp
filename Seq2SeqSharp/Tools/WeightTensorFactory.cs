@@ -11,17 +11,18 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor t = new WeightTensor(new long[2] { row, column }, deviceId, name: name, isTrainable: isTrainable);
 
-            double numTimescales = (float)column / 2;
-            double logTimescaleIncrement = Math.Log(10000.0f) / (numTimescales - 1.0f);
+          //  double numTimescales = (float)column / 2;
+            double logTimescaleIncrement = Math.Log(10000.0f) / (float)(column);
             float[] posWeights = new float[row * column];
 
+            double sqrtC = Math.Sqrt(column);
             for (int p = 0; p < row; ++p)
             {
-                for (int i = 0; i < numTimescales; ++i)
+                for (int i = 0; i < column; i+=2)
                 {
                     float v = (float)(p * Math.Exp(i * -logTimescaleIncrement));
-                    posWeights[p * column + i] = (float)Math.Sin(v);
-                    posWeights[p * column + (int)numTimescales + i] = (float)Math.Cos(v);
+                    posWeights[p * column + i] = (float)(Math.Sin(v) / sqrtC);
+                    posWeights[p * column + i + 1] = (float)(Math.Cos(v) / sqrtC);
                 }
             }
 

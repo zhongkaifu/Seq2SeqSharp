@@ -38,7 +38,7 @@ namespace Seq2SeqSharp.Utils
             float[] buf = new float[originalLengths.Count * paddedLength * dim];
             for (int i = 0; i < buf.Length; i++)
             {
-                buf[i] = -1e9f;
+                buf[i] = -1e30f;
             }
 
             for (int k = 0; k < originalLengths.Count; k++)
@@ -64,7 +64,7 @@ namespace Seq2SeqSharp.Utils
             float[] buf = new float[originalLengths.Count * paddedLength * paddedLength];
             for (int i = 0; i < buf.Length; i++)
             {
-                buf[i] = -1e38f;
+                buf[i] = -1e30f;
             }
 
             for (int k = 0; k < originalLengths.Count; k++)
@@ -89,7 +89,7 @@ namespace Seq2SeqSharp.Utils
             float[] buf = new float[originalLengths.Count * paddedLength * paddedLength];
             for (int i = 0; i < buf.Length; i++)
             {
-                buf[i] = -1e38f;
+                buf[i] = -1e30f;
             }
 
             for (int k = 0; k < originalLengths.Count; k++)
@@ -122,7 +122,7 @@ namespace Seq2SeqSharp.Utils
             float[] buf = new float[tgtOriginalLengths.Count * tgtPaddedLength * srcPaddedLength];
             for (int i = 0; i < buf.Length; i++)
             {
-                buf[i] = -1e38f;
+                buf[i] = -1e30f;
             }
 
             for (int k = 0; k < tgtOriginalLengths.Count; k++) // batch size

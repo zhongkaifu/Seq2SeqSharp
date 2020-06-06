@@ -537,7 +537,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
       extern __shared__ float _share[];     
       float* _max = _share;
-      _max[threadIdx.x] = -2e38f;
+      _max[threadIdx.x] = -1.70141e+38;
       
       for(int tid = 0; tid < cols; tid += blockDim.x) {        
         int i = tid + threadIdx.x;
@@ -588,6 +588,85 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
         int i = tid + threadIdx.x;
         if(i < cols) {
           so[i] = so[i] / sum;
+        }
+      }
+    }
+    __syncthreads();
+  }
+}
+
+
+
+  __global__ void gSoftmaxMask(float* out, float* in, float *mask, unsigned rows, unsigned cols)
+  {
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float* so = out + j * cols;
+      const float* sp = in + j * cols;
+      const float* mp = mask + j * cols;
+
+      extern __shared__ float _share[];     
+      float* _max = _share;
+      _max[threadIdx.x] = -1.70141e+38;
+      
+      for(int tid = 0; tid < cols; tid += blockDim.x) {        
+        int i = tid + threadIdx.x;
+        if(i < cols && mp[i] == 0.0f) {
+          if(sp[i] > _max[threadIdx.x])
+            _max[threadIdx.x] = sp[i];
+        }
+      }
+      __syncthreads();      
+      int len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1)) {
+          if(_max[threadIdx.x + skip] > _max[threadIdx.x]) {
+            _max[threadIdx.x] = _max[threadIdx.x + skip];
+          }
+        }
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+      float max = _max[0];
+      __syncthreads();
+    
+      float* _sum = _share;
+      _sum[threadIdx.x] = 0.0;
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols && mp[i] == 0.0f) {         
+          float ex = expf(sp[i] - max);
+          so[i] = ex;
+          _sum[threadIdx.x] += ex;
+        }
+      }
+      __syncthreads();     
+      len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1))
+          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+    
+      float sum = _sum[0];
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols) {
+
+          if (mp[i] == 0.0f)
+          {
+             so[i] = so[i] / sum;
+          }
+          else
+          {
+            so[i] = 0.0f;
+          }
         }
       }
     }
@@ -801,6 +880,34 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             Invoke(context, cudaContext, "gSoftmax", grid, threads, threads.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, rows, cols);
         }
 
+
+        private void SoftmaxMask(TSCudaContext context, Tensor result, Tensor src, Tensor mask)
+        {
+            CudaContext cudaContext = context.CudaContextForTensor(src);
+
+            cudaContext.SetCurrent();
+
+            int ndim = src.DimensionCount;
+            long num_rows = 1;
+            for (int dim = 0; dim < ndim - 1; dim++)
+            {
+                num_rows *= src.Sizes[dim];
+            }
+
+            long rows = num_rows;
+            long cols = src.Sizes[ndim - 1];
+
+            dim3 threads = new dim3((uint)Math.Min(512, num_rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
+
+            CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
+            CUdeviceptr srcPtr = CudaHelpers.GetBufferStart(src);
+            CUdeviceptr maskPtr = CudaHelpers.GetBufferStart(mask);
+
+            Invoke(context, cudaContext, "gSoftmaxMask", grid, threads, threads.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, maskPtr, rows, cols);
+        }
+
+
         private void Adam(TSCudaContext context, Tensor weight, Tensor gradient, Tensor v, Tensor m, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
         {
             CudaContext cudaContext = context.CudaContextForTensor(weight);
@@ -904,6 +1011,16 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             TSCudaContext context = CudaHelpers.TSContextForTensor(src);
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
             Softmax(context, writeTarget, src);
+
+            return writeTarget;
+        }
+
+
+        public Tensor SoftmaxMask(Tensor result, Tensor src, Tensor mask)
+        {
+            TSCudaContext context = CudaHelpers.TSContextForTensor(src);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
+            SoftmaxMask(context, writeTarget, src, mask);
 
             return writeTarget;
         }

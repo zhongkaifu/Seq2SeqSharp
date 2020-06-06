@@ -27,7 +27,7 @@ namespace Seq2SeqSharp
         IWeightTensor AddTanh(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3);
         IWeightTensor PeekRow(IWeightTensor w, int ix, int num = 1, bool runGradients = true);
         IWeightTensor Dropout(IWeightTensor V, int batchSize, float drop_prob, bool inPlace = false);
-        IWeightTensor Softmax(IWeightTensor w, bool runGradients = true, bool inPlace = false);
+        IWeightTensor Softmax(IWeightTensor w, IWeightTensor mask = null, bool runGradients = true, bool inPlace = false);
         IWeightTensor ConcatColumns(params IWeightTensor[] wl);
         List<IWeightTensor> SplitColumns2(IWeightTensor w, params int[] sizes);
         (IWeightTensor r1, IWeightTensor r2) SplitColumns(IWeightTensor w, int size1, int size2);

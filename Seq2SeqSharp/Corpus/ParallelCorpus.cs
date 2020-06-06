@@ -41,7 +41,8 @@ namespace Seq2SeqSharp.Tools
         public const string BOS = "<START>";
         public const string UNK = "<UNK>";
 
-        public bool showTokenDist = true;
+        private bool m_showTokenDist = true;
+        private bool m_aggregateSrcLength = true;
 
         public static bool IsPreDefinedToken(string str)
         {
@@ -214,7 +215,7 @@ namespace Seq2SeqSharp.Tools
             }
 
 
-            if (showTokenDist)
+            if (m_showTokenDist)
             {
                 Logger.WriteLine($"AggregateSrcLength = '{aggregateSrcLength}'");
                 Logger.WriteLine($"Src token length distribution");
@@ -229,7 +230,7 @@ namespace Seq2SeqSharp.Tools
                     Logger.WriteLine($"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value}");
                 }
 
-                showTokenDist = false;
+                m_showTokenDist = false;
             }
 
 
@@ -238,8 +239,7 @@ namespace Seq2SeqSharp.Tools
 
         public IEnumerator<SntPairBatch> GetEnumerator()
         {
-            bool aggregateSrcLength = true;
-            (string srcShuffledFilePath, string tgtShuffledFilePath) = ShuffleAll(aggregateSrcLength);
+            (string srcShuffledFilePath, string tgtShuffledFilePath) = ShuffleAll(m_aggregateSrcLength);
 
             using (StreamReader srSrc = new StreamReader(srcShuffledFilePath))
             {
@@ -272,7 +272,7 @@ namespace Seq2SeqSharp.Tools
                         }
                         sntPair.TgtSnt = line.Split(' ');
 
-                        if ((lastSrcSntLen > 0 && aggregateSrcLength == true && lastSrcSntLen != sntPair.SrcSnt.Length) || outputs.Count > maxOutputsSize)
+                        if ((lastSrcSntLen > 0 && m_aggregateSrcLength == true && lastSrcSntLen != sntPair.SrcSnt.Length) || outputs.Count > maxOutputsSize)
                         {
                             InnerShuffle(outputs);
                             for (int i = 0; i < outputs.Count; i += m_batchSize)
@@ -408,13 +408,14 @@ namespace Seq2SeqSharp.Tools
             return GetEnumerator();
         }
 
-        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSentLength = 32, bool addBOSEOS = true)
+        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSentLength = 32, bool addBOSEOS = true, bool aggregateSrcLengthForShuffle = true)
         {
-            Logger.WriteLine($"Loading corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSentLength = '{maxSentLength}', addBOSEOS = '{addBOSEOS}'");
+            Logger.WriteLine($"Loading corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSentLength = '{maxSentLength}', addBOSEOS = '{addBOSEOS}', aggregateSrcLengthForShuffle = '{aggregateSrcLengthForShuffle}'");
             m_batchSize = batchSize;
             m_blockSize = shuffleBlockSize;
             m_maxSentLength = maxSentLength;
             m_addBOSEOS = addBOSEOS;
+            m_aggregateSrcLength = aggregateSrcLengthForShuffle;
 
             m_srcFileList = new List<string>();
             m_tgtFileList = new List<string>();

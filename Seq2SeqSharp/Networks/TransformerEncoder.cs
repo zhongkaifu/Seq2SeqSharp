@@ -76,8 +76,8 @@ namespace Seq2SeqSharp
             using (IWeightTensor posEmbedding = g.BuildPositionMatrix(srcSeqLen, m_inputDim))
             {
                 using (IWeightTensor posEmbeddingRepeat = g.RepeatRows(posEmbedding, batchSize, runGradient: false))
-                {
-                    inputs = g.AddMul(posEmbeddingRepeat, inputs, (float)Math.Sqrt(m_hiddenDim), runGradientW1: false, runGradientW2: true);                   
+                {                 
+                    inputs = g.Add(posEmbeddingRepeat, inputs);
                 }
             }
 

@@ -92,8 +92,8 @@ namespace Seq2SeqSharp
             using (IWeightTensor posEmbedding = g.BuildPositionMatrix(tgtSeqLen, m_inputDim))
             {
                 using (IWeightTensor posEmbeddingRepeat = g.RepeatRows(posEmbedding, batchSize, runGradient: false))
-                {
-                    tgtInputs = g.AddMul(posEmbeddingRepeat, tgtInputs, (float)Math.Sqrt(m_hiddenDim), runGradientW1: false, runGradientW2: true);                   
+                {                
+                    tgtInputs = g.Add(posEmbeddingRepeat, tgtInputs);
                 }
             }
 
@@ -123,10 +123,12 @@ namespace Seq2SeqSharp
                     tgtInputs = m_posFFNs[k].Perform(tgtInputs, batchSize, subg);
                 }
 
+                tgtInputs = layerNorm.Norm(tgtInputs, subg);
+
                 tgtInputs.UnbindFromComputeGraph();
             }
+            
 
-            tgtInputs = layerNorm.Norm(tgtInputs, g);
             tgtInputs = m_decoderFFLayer.Process(tgtInputs, batchSize, g);
 
             return tgtInputs;

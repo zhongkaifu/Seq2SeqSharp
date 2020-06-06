@@ -197,6 +197,8 @@ namespace TensorSharp
 
         public static Tensor Softmax(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("softmax", result, src); }
 
+        public static Tensor SoftmaxMask(Tensor result, Tensor src, Tensor mask) { return (Tensor)OpRegistry.Invoke("softmaxmask", result, src, mask); }
+
         public static Tensor SoftmaxGrad(Tensor grad, Tensor adj, Tensor val, bool addGrad = true) { return (Tensor)OpRegistry.Invoke("softmaxgrad", grad, adj, val, addGrad); }
 
 

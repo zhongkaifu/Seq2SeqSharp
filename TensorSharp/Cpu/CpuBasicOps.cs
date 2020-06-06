@@ -599,6 +599,16 @@ namespace TensorSharp.Cpu
             return writeTarget;
         }
 
+        private readonly MethodInfo softmaxmask_func = NativeWrapper.GetMethod("TS_SoftmaxMask");
+        [RegisterOpStorageType("softmaxmask", typeof(CpuStorage))]
+        public Tensor SoftmaxMask(Tensor result, Tensor src, Tensor mask)
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
+            NativeWrapper.InvokeTypeMatch(softmaxmask_func, writeTarget, src, mask, (int)src.Sizes[0], (int)src.Sizes[1]);
+            return writeTarget;
+        }
+
+
         private readonly MethodInfo softmaxGrad_func = NativeWrapper.GetMethod("TS_SoftmaxGrad");
         [RegisterOpStorageType("softmaxgrad", typeof(CpuStorage))]
         public Tensor SoftmaxGrad(Tensor grad_, Tensor adj_, Tensor val_, bool addGrad = true)

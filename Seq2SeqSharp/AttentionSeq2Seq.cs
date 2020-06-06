@@ -134,8 +134,8 @@ namespace Seq2SeqSharp
                     isTrainable: m_isDecoderTrainable), DeviceIds);
             }
 
-            m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.SourceWordSize, modelMetaData.EmbeddingDim }, raDeviceIds.GetNextItem(), normal: NormType.Uniform, fanOut: true, name: "SrcEmbeddings", isTrainable: m_isSrcEmbTrainable), DeviceIds);
-            m_tgtEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.TargetWordSize, modelMetaData.EmbeddingDim }, raDeviceIds.GetNextItem(), normal: NormType.Uniform, fanOut: true, name: "TgtEmbeddings", isTrainable: m_isTgtEmbTrainable), DeviceIds);
+            m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.SourceWordSize, modelMetaData.EmbeddingDim }, raDeviceIds.GetNextItem(), normal: NormType.Normal, fanOut: true, name: "SrcEmbeddings", isTrainable: m_isSrcEmbTrainable), DeviceIds);
+            m_tgtEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.TargetWordSize, modelMetaData.EmbeddingDim }, raDeviceIds.GetNextItem(), normal: NormType.Normal, fanOut: true, name: "TgtEmbeddings", isTrainable: m_isTgtEmbTrainable), DeviceIds);
 
             return true;
         }
@@ -345,7 +345,7 @@ namespace Seq2SeqSharp
                     IWeightTensor tgtInputEmbeddings = inputs.Count > 1 ? g.ConcatRows(inputs) : inputs[0];
                     IWeightTensor decOutput = decoder.Decode(tgtInputEmbeddings, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g);
 
-                    //   decOutput = g.Mul(decOutput, g.Transpose(tgtEmbedding));
+                  //  decOutput = g.Mul(decOutput, g.Transpose(tgtEmbedding));
 
                     using (IWeightTensor probs = g.Softmax(decOutput, runGradients: false, inPlace: true))
                     {

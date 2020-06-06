@@ -500,6 +500,10 @@ namespace TensorSharp.CUDA
         public Tensor Softmax(Tensor result, Tensor src) { return advFuncKernels.Softmax(result, src); }
 
 
+        [RegisterOpStorageType("softmaxmask", typeof(CudaStorage))]
+        public Tensor SoftmaxMask(Tensor result, Tensor src, Tensor mask) { return advFuncKernels.SoftmaxMask(result, src, mask); }
+
+
         [RegisterOpStorageType("softmaxgrad", typeof(CudaStorage))]
         public Tensor SoftmaxGrad(Tensor grad, Tensor adj, Tensor val, bool addGrad = true) { return advFuncKernels.SoftmaxGrad(grad, adj, val, addGrad); }
 
