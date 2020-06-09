@@ -165,11 +165,14 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="ManagedCuda-102">
+      <Version>10.2.41</Version>
+    </PackageReference>
     <PackageReference Include="ManagedCuda-CUBLAS">
-      <Version>10.0.31</Version>
+      <Version>10.2.41</Version>
     </PackageReference>
     <PackageReference Include="ManagedCuda-NVRTC">
-      <Version>10.0.31</Version>
+      <Version>10.2.41</Version>
     </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
