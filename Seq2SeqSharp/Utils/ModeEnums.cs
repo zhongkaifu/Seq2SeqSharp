@@ -5,7 +5,6 @@
         Train,
         Valid,
         Test,
-        VisualizeNetwork,
         DumpVocab,
         Help
     }

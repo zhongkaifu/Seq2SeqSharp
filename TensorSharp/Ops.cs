@@ -248,17 +248,17 @@ namespace TensorSharp
         public static Tensor ScatterFill(Tensor result, float value, int dim, Tensor indices) { return (Tensor)OpRegistry.Invoke("scatter_fill", result, value, dim, indices); }
 
 
-        private static int? GetSeed(SeedSource src)
+        private static int? GetSeed(RandomGenerator src)
         {
             return src == null ? (int?)null : src.NextSeed();
         }
 
-        public static void RandomUniform(Tensor result, SeedSource seedSource, float min, float max) { OpRegistry.Invoke("random_uniform", result, GetSeed(seedSource), min, max); }
-        public static void RandomNormal(Tensor result, SeedSource seedSource, float mean, float stdv) { OpRegistry.Invoke("random_normal", result, GetSeed(seedSource), mean, stdv); }
-        public static void RandomExponential(Tensor result, SeedSource seedSource, float lambda) { OpRegistry.Invoke("random_exponential", result, GetSeed(seedSource), lambda); }
-        public static void RandomCauchy(Tensor result, SeedSource seedSource, float median, float sigma) { OpRegistry.Invoke("random_cauchy", result, GetSeed(seedSource), median, sigma); }
-        public static void RandomLogNormal(Tensor result, SeedSource seedSource, float mean, float stdv) { OpRegistry.Invoke("random_lognormal", result, GetSeed(seedSource), mean, stdv); }
-        public static void RandomGeometric(Tensor result, SeedSource seedSource, float p) { OpRegistry.Invoke("random_geometric", result, GetSeed(seedSource), p); }
-        public static void RandomBernoulli(Tensor result, SeedSource seedSource, float p) { OpRegistry.Invoke("random_bernoulli", result, GetSeed(seedSource), p); }
+        public static void RandomUniform(Tensor result, RandomGenerator seedSource, float min, float max) { OpRegistry.Invoke("random_uniform", result, GetSeed(seedSource), min, max); }
+        public static void RandomNormal(Tensor result, RandomGenerator seedSource, float mean, float stdv) { OpRegistry.Invoke("random_normal", result, GetSeed(seedSource), mean, stdv); }
+        public static void RandomExponential(Tensor result, RandomGenerator seedSource, float lambda) { OpRegistry.Invoke("random_exponential", result, GetSeed(seedSource), lambda); }
+        public static void RandomCauchy(Tensor result, RandomGenerator seedSource, float median, float sigma) { OpRegistry.Invoke("random_cauchy", result, GetSeed(seedSource), median, sigma); }
+        public static void RandomLogNormal(Tensor result, RandomGenerator seedSource, float mean, float stdv) { OpRegistry.Invoke("random_lognormal", result, GetSeed(seedSource), mean, stdv); }
+        public static void RandomGeometric(Tensor result, RandomGenerator seedSource, float p) { OpRegistry.Invoke("random_geometric", result, GetSeed(seedSource), p); }
+        public static void RandomBernoulli(Tensor result, RandomGenerator seedSource, float p) { OpRegistry.Invoke("random_bernoulli", result, GetSeed(seedSource), p); }
     }
 }

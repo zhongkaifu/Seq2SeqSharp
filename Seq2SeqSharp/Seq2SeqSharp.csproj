@@ -1,35 +1,15 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{6B096832-E138-4C53-8930-2BB6F78C57F6}</ProjectGuid>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Seq2SeqSharp</RootNamespace>
-    <AssemblyName>Seq2SeqSharp</AssemblyName>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>TRACE;DEBUG;CUDA</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE;CUDA</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
     <PlatformTarget>x64</PlatformTarget>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
@@ -37,95 +17,19 @@
     <Reference Include="AdvUtils">
       <HintPath>..\dll\AdvUtils.dll</HintPath>
     </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Drawing" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
     <Reference Include="txt2vec">
       <HintPath>..\dll\txt2vec.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IModelMetaData.cs" />
-    <Compile Include="IMultiProcessorNetworkWrapper.cs" />
-    <Compile Include="Layers\IDecoder.cs" />
-    <Compile Include="Layers\PositionwiseFeedForward.cs" />
-    <Compile Include="Metrics\BleuMetric.cs" />
-    <Compile Include="Metrics\LengthRatioMetric.cs" />
-    <Compile Include="Metrics\IMetric.cs" />
-    <Compile Include="Metrics\SequenceLabelFscoreMetric.cs" />
-    <Compile Include="Models\SeqLabelModelMetaData.cs" />
-    <Compile Include="Networks\TransformerDecoder.cs" />
-    <Compile Include="SequenceLabel.cs" />
-    <Compile Include="Tools\BaseSeq2SeqFramework.cs" />
-    <Compile Include="Utils\ArchEnums.cs" />
-    <Compile Include="Utils\BeamSearch.cs" />
-    <Compile Include="LearningRate\ILearningRate.cs" />
-    <Compile Include="Tools\INeuralUnit.cs" />
-    <Compile Include="Layers\AttentionUnit.cs" />
-    <Compile Include="LearningRate\DecayLearningRate.cs" />
-    <Compile Include="Models\Seq2SeqModelMetaData.cs" />
-    <Compile Include="MultiProcessorNetworkWrapper.cs" />
-    <Compile Include="Networks\AttentionDecoder.cs" />
-    <Compile Include="AttentionSeq2Seq.cs" />
-    <Compile Include="Networks\BiEncoder.cs" />
-    <Compile Include="Utils\CostEventArg.cs" />
-    <Compile Include="Networks\Encoder.cs" />
-    <Compile Include="Utils\EncoderTypeEnums.cs" />
-    <Compile Include="Layers\FeedForwardLayer.cs" />
-    <Compile Include="Layers\IEncoder.cs" />
-    <Compile Include="Layers\LayerNormalization.cs" />
-    <Compile Include="Layers\LSTMCell.cs" />
-    <Compile Include="Layers\LSTMAttentionDecoderCell.cs" />
-    <Compile Include="Utils\ModeEnums.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Optimizer\AdamOptimizer.cs" />
-    <Compile Include="Layers\MultiHeadAttention.cs" />
-    <Compile Include="Utils\MaskUtils.cs" />
-    <Compile Include="Utils\TensorAllocator.cs" />
-    <Compile Include="Tools\ComparableItem.cs" />
-    <Compile Include="Tools\ComputeGraphTensor.cs" />
-    <Compile Include="Corpus\ParallelCorpus.cs" />
-    <Compile Include="Tools\IComputeGraph.cs" />
-    <Compile Include="Tools\IWeightFactory.cs" />
-    <Compile Include="Tools\IWeightTensor.cs" />
-    <Compile Include="Tools\RandomGenerator.cs" />
-    <Compile Include="Tools\WeightTensor.cs" />
-    <Compile Include="Tools\WeightTensorFactory.cs" />
-    <Compile Include="Networks\TransformerEncoder.cs" />
-    <Compile Include="Utils\Vocab.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="app.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\TensorSharp.CUDA\TensorSharp.CUDA.csproj">
-      <Project>{95890d35-0fe3-4a20-8260-e9829a636eb1}</Project>
-      <Name>TensorSharp.CUDA</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\TensorSharp\TensorSharp.csproj">
-      <Project>{75332198-952c-48de-9f2b-21f49bc68ed2}</Project>
-      <Name>TensorSharp</Name>
-    </ProjectReference>
+    <ProjectReference Include="..\TensorSharp.CUDA\TensorSharp.CUDA.csproj" />
+    <ProjectReference Include="..\TensorSharp\TensorSharp.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="ManagedCuda-102">
       <Version>10.2.41</Version>
     </PackageReference>
-    <PackageReference Include="Microsoft.Msagl.GraphViewerGDI">
-      <Version>1.1.3</Version>
-    </PackageReference>
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+    <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
 </Project>

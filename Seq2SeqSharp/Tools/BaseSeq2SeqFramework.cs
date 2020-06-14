@@ -39,10 +39,10 @@ namespace Seq2SeqSharp.Tools
             TensorAllocator.InitDevices(processorType, m_deviceIds);
         }
 
-        public IComputeGraph CreateComputGraph(int deviceIdIdx, bool needBack = true, bool visNetwork = false)
+        public IComputeGraph CreateComputGraph(int deviceIdIdx, bool needBack = true)
         {
             // Create computing graph instance and return it
-            return new ComputeGraphTensor(new WeightTensorFactory(), m_deviceIds[deviceIdIdx], needBack, visNetwork);
+            return new ComputeGraphTensor(new WeightTensorFactory(), m_deviceIds[deviceIdIdx], needBack);
         }
 
         public bool SaveModel(IModelMetaData modelMetaData)

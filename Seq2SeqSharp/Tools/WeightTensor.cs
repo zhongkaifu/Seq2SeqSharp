@@ -135,15 +135,13 @@ namespace Seq2SeqSharp.Tools
                     scale = (float)Math.Sqrt(3.0 / (double)Columns);
                 }
 
-                var gain = 1.0f;
-
-                Ops.RandomUniform(TWeight, null, -scale * gain, scale * gain);
-
-
+                float[] w = TensorSharp.RandomGenerator.BuildRandomUniformWeight(Sizes, -scale, scale);
+                SetWeightArray(w);               
             }
             else if (normal == NormType.Normal)
             {
-                  Ops.RandomNormal(TWeight, null, 0.0f, 1.0f);       
+                float[] w = TensorSharp.RandomGenerator.BuildRandomUniformWeight(Sizes, -1.0f, 1.0f);
+                SetWeightArray(w);
             }
         }
 

@@ -3,7 +3,6 @@ using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.Remoting.Contexts;
 using System.Threading;
 
 namespace Seq2SeqSharp

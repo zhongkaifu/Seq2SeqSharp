@@ -165,14 +165,6 @@ namespace Seq2SeqConsole
 
                 File.WriteAllLines(opts.OutputTestFile, outputLines);
             }
-            else if (mode == ModeEnums.VisualizeNetwork)
-            {
-                ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth,
-                    vocab: new Vocab(), srcEmbeddingFilePath: null, tgtEmbeddingFilePath: null, modelFilePath: opts.ModelFilePath, dropoutRatio: opts.DropoutRatio,
-                    processorType: processorType, deviceIds: new int[1] { 0 }, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType, decoderType: decoderType, enableCoverageModel: opts.EnableCoverageModel);
-
-                ss.VisualizeNeuralNetwork(opts.VisualizeNNFilePath);
-            }
             else if (mode == ModeEnums.DumpVocab)
             {
                 ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds);
@@ -187,7 +179,7 @@ namespace Seq2SeqConsole
         private static void ShowOptions(string[] args)
         {
             string commandLine = string.Join(" ", args);
-            Logger.WriteLine($"Seq2SeqSharp v2.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
+            Logger.WriteLine($"Seq2SeqSharp v2.1.1 written by Zhongkai Fu(fuzhongkai@gmail.com)");
             Logger.WriteLine($"Command Line = '{commandLine}'");
         }
     }

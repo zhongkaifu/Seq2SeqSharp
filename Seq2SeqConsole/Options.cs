@@ -4,7 +4,7 @@ namespace Seq2SeqConsole
 {
     internal class Options
     {
-        [Arg("Task name. It could be Train, Valid, Test, VisualizeNetwork, DumpVocab or Help", "TaskName")]
+        [Arg("Task name. It could be Train, Valid, Test, DumpVocab or Help", "TaskName")]
         public string TaskName = "Help";
 
         [Arg("The vector size of encoded source word.", "WordVectorSize")]
@@ -99,9 +99,6 @@ namespace Seq2SeqConsole
 
         [Arg("The number of steps for warming up", "WarmUpSteps")]
         public int WarmUpSteps = 8000;
-
-        [Arg("The file path of dumped neural network (.png file)", "VisNNFile")]
-        public string VisualizeNNFilePath;
 
         [Arg("The file path of config file for parameters", "ConfigFilePath")]
         public string ConfigFilePath = string.Empty;

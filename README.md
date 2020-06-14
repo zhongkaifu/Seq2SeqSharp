@@ -1,5 +1,5 @@
 ﻿# Seq2SeqSharp  
-Seq2SeqSharp is a tensor based fast & flexible encoder-decoder deep neural network framework written by .NET (C#). It can be used for sequence-to-sequence task, sequence-labeling task and sequence-classification task and other NLP tasks. Seq2SeqSharp supports both CPUs and GPUs.  
+Seq2SeqSharp is a tensor based fast & flexible encoder-decoder deep neural network framework written by .NET (C#). It can be used for sequence-to-sequence task, sequence-labeling task and sequence-classification task and other NLP tasks. Seq2SeqSharp supports both CPUs and GPUs. It's powered by .NET core, so Seq2SeqSharp can run on both Windows and Linux without any modification and recompilation.  
 
 # Features  
 Pure C# framework   
@@ -21,6 +21,7 @@ Auto data shuffling
 Auto vocabulary building  
 Beam search decoder  
 Visualize neural network  
+Support both Windows and Linux  
 
 # Architecture  
 Here is the architecture of Seq2SeqSharp  
@@ -28,6 +29,7 @@ Here is the architecture of Seq2SeqSharp
 
 Seq2SeqSharp provides the unified tensor operations, which means all tensor operations running on CPUs and GPUs are completely same and they can get switched on different device types without any modification.  
 Seq2SeqSharp is also a framework that neural networks can run on multi-GPUs in parallel. It can automatically distribute/sync weights/gradients over devices, manage resources and models and so on, so developers are able to totally focus on how to design and implment networks for their tasks.  
+Seq2SeqSharp is built by (.NET core)[https://docs.microsoft.com/en-us/dotnet/core/], so it can run on both Windows and Linux without any modification and recompilation.  
 
 # Usage  
 Seq2SeqSharp provides two console tools that you can run for sequence-to-sequence task (**Seq2SeqConsole.exe**) and sequence-labeling task (**SeqLabelConsole.exe**).  
@@ -130,6 +132,7 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
 "ShuffleBlockSize":-1,
 "GradClip":3.0,
 "BatchSize":128,
+"ValBatchSize":64,
 "DropoutRatio":0.1,
 "ProcessorType":"GPU",
 "EncoderType":"Transformer",
