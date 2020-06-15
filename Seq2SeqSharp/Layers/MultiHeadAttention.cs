@@ -94,7 +94,7 @@ namespace Seq2SeqSharp
                 IWeightTensor attn = g.MulBatch(Qs, Ks, m_multiHeadNum * batchSize, scale);
                 IWeightTensor attn2 = g.View(attn, dims: new long[] { m_multiHeadNum * batchSize * seqLenQ, seqLenK });
 
-                IWeightTensor softmax = g.Softmax(attn2, keyMask);
+                IWeightTensor softmax = g.Softmax(attn2, keyMask, inPlace: true);
 
                 IWeightTensor softmax2 = g.View(softmax, dims: new long[] { m_multiHeadNum * batchSize, seqLenQ, seqLenK });
                 IWeightTensor o = g.View(g.MulBatch(softmax2, Vs, m_multiHeadNum * batchSize), dims: new long[] { m_multiHeadNum, batchSize, seqLenQ, m_d });

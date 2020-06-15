@@ -422,7 +422,9 @@ namespace Seq2SeqSharp.Tools
             WeightTensor m1 = w1 as WeightTensor;
             WeightTensor m2 = w2 as WeightTensor;
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.Add", graphToBind: this);
+
             VisualizeNodes(new IWeightTensor[] { w1, w2 }, res);
+
 
             Ops.Add(res.TWeight, m1.TWeight, m2.TWeight);
 
@@ -471,11 +473,20 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightTensor Relu(IWeightTensor w)
+        public IWeightTensor Relu(IWeightTensor w, bool inPlace = false)
         {
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Relu", graphToBind: this);
+            WeightTensor res = null;
+            if (inPlace)
+            {
+                res = m.CopyWeightsRef($"{GetHashString(w.Name)}.Relu");
+            }
+            else
+            {
+                res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Relu", graphToBind: this);
+            }
             VisualizeNodes(w, res);
+
 
             Ops.Relu(res.TWeight, m.TWeight);
             if (m_needsBackprop)
@@ -483,7 +494,16 @@ namespace Seq2SeqSharp.Tools
                 Action backward = () =>
                 {
                     res.ReleaseWeight();
-                    Ops.AddReluD(m.TGradient, m.TGradient, m.TWeight, res.TGradient);
+
+                    if (inPlace)
+                    {
+                        m.TGradient = res.TGradient.CopyRef();
+                        Ops.ReluD(m.TGradient, m.TWeight, m.TGradient);
+                    }
+                    else
+                    {
+                        Ops.AddReluD(m.TGradient, m.TGradient, m.TWeight, res.TGradient);
+                    }
                     res.Dispose();
                 };
                 m_backprop.Add(backward);

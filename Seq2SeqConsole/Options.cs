@@ -123,5 +123,8 @@ namespace Seq2SeqConsole
         public bool IsEncoderTrainable = true;
         [Arg("It indicates if the decoder is trainable", "IsDecoderTrainable")]
         public bool IsDecoderTrainable = true;
+
+        [Arg("The ratio of memory usage", "MemoryUsageRatio")]
+        public float MemoryUsageRatio = 0.9f;
     }
 }

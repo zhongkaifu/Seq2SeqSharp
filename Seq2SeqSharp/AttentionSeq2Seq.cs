@@ -50,8 +50,8 @@ namespace Seq2SeqSharp
         private readonly bool m_isDecoderTrainable = true;
 
         public AttentionSeq2Seq(string modelFilePath, ProcessorTypeEnums processorType, int[] deviceIds, float dropoutRatio = 0.0f, 
-            bool isSrcEmbTrainable = true, bool isTgtEmbTrainable = true, bool isEncoderTrainable = true, bool isDecoderTrainable = true, int maxTgtSntSize = 128)
-            : base(deviceIds, processorType, modelFilePath)
+            bool isSrcEmbTrainable = true, bool isTgtEmbTrainable = true, bool isEncoderTrainable = true, bool isDecoderTrainable = true, int maxTgtSntSize = 128, float memoryUsageRatio = 0.9f)
+            : base(deviceIds, processorType, modelFilePath, memoryUsageRatio)
         {
             m_dropoutRatio = dropoutRatio;
             m_isSrcEmbTrainable = isSrcEmbTrainable;
@@ -65,8 +65,8 @@ namespace Seq2SeqSharp
 
         public AttentionSeq2Seq(int embeddingDim, int hiddenDim, int encoderLayerDepth, int decoderLayerDepth, Vocab vocab, string srcEmbeddingFilePath, string tgtEmbeddingFilePath,
             string modelFilePath, float dropoutRatio, int multiHeadNum, ProcessorTypeEnums processorType, EncoderTypeEnums encoderType, DecoderTypeEnums decoderType, bool enableCoverageModel, int[] deviceIds,
-            bool isSrcEmbTrainable = true, bool isTgtEmbTrainable = true, bool isEncoderTrainable = true, bool isDecoderTrainable = true, int maxTgtSntSize = 128)
-            : base(deviceIds, processorType, modelFilePath)
+            bool isSrcEmbTrainable = true, bool isTgtEmbTrainable = true, bool isEncoderTrainable = true, bool isDecoderTrainable = true, int maxTgtSntSize = 128, float memoryUsageRatio = 0.9f)
+            : base(deviceIds, processorType, modelFilePath, memoryUsageRatio)
         {
             m_modelMetaData = new Seq2SeqModelMetaData(hiddenDim, embeddingDim, encoderLayerDepth, decoderLayerDepth, multiHeadNum, encoderType, decoderType, vocab, enableCoverageModel);
             m_dropoutRatio = dropoutRatio;
@@ -597,31 +597,31 @@ namespace Seq2SeqSharp
             return results;
         }
 
-        public void VisualizeNeuralNetwork(string visNNFilePath)
-        {
-            (IEncoder encoder, IDecoder decoder, IWeightTensor srcEmbedding, IWeightTensor tgtEmbedding) = GetNetworksOnDeviceAt(-1);
-            // Build input sentence
-            List<List<string>> inputSeqs = ParallelCorpus.ConstructInputTokens(null);
-            int batchSize = inputSeqs.Count;
-            IComputeGraph g = CreateComputGraph(m_defaultDeviceId, needBack: false, visNetwork: true);
-            AttentionDecoder rnnDecoder = decoder as AttentionDecoder;
+        //public void VisualizeNeuralNetwork(string visNNFilePath)
+        //{
+        //    (IEncoder encoder, IDecoder decoder, IWeightTensor srcEmbedding, IWeightTensor tgtEmbedding) = GetNetworksOnDeviceAt(-1);
+        //    // Build input sentence
+        //    List<List<string>> inputSeqs = ParallelCorpus.ConstructInputTokens(null);
+        //    int batchSize = inputSeqs.Count;
+        //    IComputeGraph g = CreateComputGraph(m_defaultDeviceId, needBack: false, visNetwork: true);
+        //    AttentionDecoder rnnDecoder = decoder as AttentionDecoder;
 
-            encoder.Reset(g.GetWeightFactory(), batchSize);
-            rnnDecoder.Reset(g.GetWeightFactory(), batchSize);
+        //    encoder.Reset(g.GetWeightFactory(), batchSize);
+        //    rnnDecoder.Reset(g.GetWeightFactory(), batchSize);
 
-            // Run encoder
-            IWeightTensor encodedWeightMatrix = Encode(g, inputSeqs, encoder, srcEmbedding, null);
+        //    // Run encoder
+        //    IWeightTensor encodedWeightMatrix = Encode(g, inputSeqs, encoder, srcEmbedding, null);
 
-            // Prepare for attention over encoder-decoder
-            AttentionPreProcessResult attPreProcessResult = rnnDecoder.PreProcess(encodedWeightMatrix, batchSize, g);
+        //    // Prepare for attention over encoder-decoder
+        //    AttentionPreProcessResult attPreProcessResult = rnnDecoder.PreProcess(encodedWeightMatrix, batchSize, g);
 
-            // Run decoder
-            IWeightTensor x = g.PeekRow(tgtEmbedding, (int)SENTTAGS.START);
-            IWeightTensor eOutput = rnnDecoder.Decode(x, attPreProcessResult, batchSize, g);
-            IWeightTensor probs = g.Softmax(eOutput);
+        //    // Run decoder
+        //    IWeightTensor x = g.PeekRow(tgtEmbedding, (int)SENTTAGS.START);
+        //    IWeightTensor eOutput = rnnDecoder.Decode(x, attPreProcessResult, batchSize, g);
+        //    IWeightTensor probs = g.Softmax(eOutput);
 
-            g.VisualizeNeuralNetToFile(visNNFilePath);
-        }
+        //    g.VisualizeNeuralNetToFile(visNNFilePath);
+        //}
 
         public void DumpVocabToFiles(string outputSrcVocab, string outputTgtVocab)
         {

@@ -77,7 +77,7 @@ namespace Seq2SeqSharp
             {
                 using (IWeightTensor posEmbeddingRepeat = g.RepeatRows(posEmbedding, batchSize, runGradient: false))
                 {                 
-                    inputs = g.Add(posEmbeddingRepeat, inputs);
+                    inputs = g.Add(inputs, posEmbeddingRepeat, runGradient2: false);
                 }
             }
 

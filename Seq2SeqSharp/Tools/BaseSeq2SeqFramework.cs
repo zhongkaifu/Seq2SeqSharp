@@ -32,11 +32,11 @@ namespace Seq2SeqSharp.Tools
         private SortedList<string, IMultiProcessorNetworkWrapper> m_name2network;
         DateTime m_lastCheckPointDateTime = DateTime.Now;
 
-        public BaseSeq2SeqFramework(int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath)
+        public BaseSeq2SeqFramework(int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f)
         {
             m_deviceIds = deviceIds;
             m_modelFilePath = modelFilePath;
-            TensorAllocator.InitDevices(processorType, m_deviceIds);
+            TensorAllocator.InitDevices(processorType, m_deviceIds, memoryUsageRatio);
         }
 
         public IComputeGraph CreateComputGraph(int deviceIdIdx, bool needBack = true)
@@ -162,19 +162,19 @@ namespace Seq2SeqSharp.Tools
                             }
 
                             runNetwordSuccssed = true;
-                        }
+                    }
                         catch (Exception err)
-                        {
-                            batchSplitFactor *= 2;
-                            Logger.WriteLine($"Increase batch split factor to {batchSplitFactor}, and retry it.");
+                    {
+                        batchSplitFactor *= 2;
+                        Logger.WriteLine($"Increase batch split factor to {batchSplitFactor}, and retry it.");
 
-                            if (batchSplitFactor >= sntPairBatchs[0].BatchSize)
-                            {
-                                Logger.WriteLine($"Batch split factor is larger than batch size, give it up.");
-                                throw err;
-                            }
+                        if (batchSplitFactor >= sntPairBatchs[0].BatchSize)
+                        {
+                            Logger.WriteLine($"Batch split factor is larger than batch size, give it up.");
+                            throw err;
                         }
                     }
+                }
 
                     // Evaluate model every hour and save it if we could get a better one.
                     TimeSpan ts = DateTime.Now - m_lastCheckPointDateTime;
@@ -207,42 +207,51 @@ namespace Seq2SeqSharp.Tools
             // Run forward and backward on all available processors
             Parallel.For(0, m_deviceIds.Length, i =>
             {
-                SntPairBatch sntPairBatch_i = sntPairBatchs[i];
-                int batchSegSize = sntPairBatch_i.BatchSize / batchSplitFactor;
-
-                for (int k = 0; k < batchSplitFactor; k++)
+                try
                 {
-                    // Construct sentences for encoding and decoding
-                    List<List<string>> srcTkns = new List<List<string>>();
-                    List<List<string>> tgtTkns = new List<List<string>>();
-                    int sLenInBatch = 0;
-                    int tLenInBatch = 0;
-                    for (int j = k * batchSegSize; j < (k + 1) * batchSegSize; j++)
-                    {
-                        srcTkns.Add(sntPairBatch_i.SntPairs[j].SrcSnt.ToList());
-                        sLenInBatch += sntPairBatch_i.SntPairs[j].SrcSnt.Length;
+                    SntPairBatch sntPairBatch_i = sntPairBatchs[i];
+                    int batchSegSize = sntPairBatch_i.BatchSize / batchSplitFactor;
 
-                        tgtTkns.Add(sntPairBatch_i.SntPairs[j].TgtSnt.ToList());
-                        tLenInBatch += sntPairBatch_i.SntPairs[j].TgtSnt.Length;
-                    }
-
-                    float lcost = 0.0f;
-                    // Create a new computing graph instance
-                    using (IComputeGraph computeGraph_i = CreateComputGraph(i))
+                    for (int k = 0; k < batchSplitFactor; k++)
                     {
-                        // Run forward part
-                        lcost = ForwardOnSingleDevice(computeGraph_i, srcTkns, tgtTkns, i, true);
-                        // Run backward part and compute gradients
-                        computeGraph_i.Backward();
-                    }
+                        // Construct sentences for encoding and decoding
+                        List<List<string>> srcTkns = new List<List<string>>();
+                        List<List<string>> tgtTkns = new List<List<string>>();
+                        int sLenInBatch = 0;
+                        int tLenInBatch = 0;
+                        for (int j = k * batchSegSize; j < (k + 1) * batchSegSize; j++)
+                        {
+                            srcTkns.Add(sntPairBatch_i.SntPairs[j].SrcSnt.ToList());
+                            sLenInBatch += sntPairBatch_i.SntPairs[j].SrcSnt.Length;
 
-                    lock (locker)
-                    {
-                        cost += lcost;
-                        srcWordCnts += sLenInBatch;
-                        tgtWordCnts += tLenInBatch;
-                        processedLine += batchSegSize;
+                            tgtTkns.Add(sntPairBatch_i.SntPairs[j].TgtSnt.ToList());
+                            tLenInBatch += sntPairBatch_i.SntPairs[j].TgtSnt.Length;
+                        }
+
+                        float lcost = 0.0f;
+                        // Create a new computing graph instance
+                        using (IComputeGraph computeGraph_i = CreateComputGraph(i))
+                        {
+                            // Run forward part
+                            lcost = ForwardOnSingleDevice(computeGraph_i, srcTkns, tgtTkns, i, true);
+                            // Run backward part and compute gradients
+                            computeGraph_i.Backward();
+                        }
+
+                        lock (locker)
+                        {
+                            cost += lcost;
+                            srcWordCnts += sLenInBatch;
+                            tgtWordCnts += tLenInBatch;
+                            processedLine += batchSegSize;
+                        }
                     }
+                }
+                catch (Exception err)
+                {
+                    Logger.WriteLine($"Message: {err.Message}");
+                    Logger.WriteLine($"Call stack: {err.StackTrace}");
+                    throw err;
                 }
             });
 

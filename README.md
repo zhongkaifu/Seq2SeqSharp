@@ -11,7 +11,9 @@ Graph based neural network
 Automatic differentiation  
 Tensor based operations  
 Running on both CPUs and GPUs (CUDA)  
+Support Tensor Cores  
 Support multi-GPUs  
+Optimized CUDA memory management for higher performance  
 Mini-batch  
 Dropout  
 RMSProp and Adam optmization  
@@ -432,6 +434,5 @@ In Seq2SeqConsole project, it shows you how to initialize and play (train, valid
 
 # Todo List  
 If you are interested in below items, please let me know. Becuase African proverb says "If you want to go fast, go alone. If you want to go far, go together" :)  
-Support Tensor Cores in CUDA  
 Support Half-Float Type (FP16)  
 And More...  

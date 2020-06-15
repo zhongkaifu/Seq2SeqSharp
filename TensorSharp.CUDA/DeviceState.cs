@@ -24,7 +24,7 @@ namespace TensorSharp.CUDA
         public readonly ScratchSpace ScratchSpace;
 
 
-        public DeviceState(int deviceId)
+        public DeviceState(int deviceId, float memoryUsageRatio = 0.9f)
         {
             CudaContext = new CudaContext(deviceId);
             DeviceInfo = CudaContext.GetDeviceInfo();
@@ -36,7 +36,7 @@ namespace TensorSharp.CUDA
             },
                 blas => blas.Dispose());
 
-            MemoryAllocator = new PoolingDeviceAllocator(CudaContext);
+            MemoryAllocator = new PoolingDeviceAllocator(CudaContext, memoryUsageRatio);
             ScratchSpace = AllocScratchSpace(CudaContext, DeviceInfo);
         }
 

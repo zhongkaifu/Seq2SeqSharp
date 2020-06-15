@@ -14,7 +14,7 @@ namespace Seq2SeqSharp
         IWeightTensor Add(IWeightTensor w1, IWeightTensor w2, bool runGradient1 = true, bool runGradient2 = true);
         IWeightTensor Tanh(IWeightTensor w);
         IWeightTensor Sigmoid(IWeightTensor w);
-        IWeightTensor Relu(IWeightTensor w);
+        IWeightTensor Relu(IWeightTensor w, bool inPlace = false);
         IWeightTensor BuildPositionMatrix(int row, int column);
         IWeightTensor Affine(IWeightTensor m1, IWeightTensor m2, IWeightTensor mbias, float alpha = 1.0f);
         IWeightTensor EltMulMulAdd(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3, IWeightTensor w4);

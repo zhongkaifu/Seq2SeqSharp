@@ -1,4 +1,5 @@
-﻿using ManagedCuda;
+﻿using AdvUtils;
+using ManagedCuda;
 using ManagedCuda.BasicTypes;
 using System;
 using TensorSharp.CUDA.ContextState;
@@ -52,13 +53,24 @@ namespace TensorSharp.CUDA
         {
             CUdeviceptr ptr = DevicePtrAtElement(index);
 
-            if (ElementType == DType.Float32) { float[] result = new float[1]; context.CopyToHost(result, ptr); return result[0]; }
-            else if (ElementType == DType.Float64) { double[] result = new double[1]; context.CopyToHost(result, ptr); return (float)result[0]; }
-            else if (ElementType == DType.Int32) { int[] result = new int[1]; context.CopyToHost(result, ptr); return result[0]; }
-            else if (ElementType == DType.UInt8) { byte[] result = new byte[1]; context.CopyToHost(result, ptr); return result[0]; }
-            else
+            try
             {
-                throw new NotSupportedException("Element type " + ElementType + " not supported");
+                if (ElementType == DType.Float32) { float[] result = new float[1]; context.CopyToHost(result, ptr); return result[0]; }
+                else if (ElementType == DType.Float64) { double[] result = new double[1]; context.CopyToHost(result, ptr); return (float)result[0]; }
+                else if (ElementType == DType.Int32) { int[] result = new int[1]; context.CopyToHost(result, ptr); return result[0]; }
+                else if (ElementType == DType.UInt8) { byte[] result = new byte[1]; context.CopyToHost(result, ptr); return result[0]; }
+                else
+                {
+                    throw new NotSupportedException("Element type " + ElementType + " not supported");
+                }
+            }
+            catch (Exception err)
+            {
+                Logger.WriteLine($"Failed to get element as float from addr = '{ptr.Pointer}'");
+                Logger.WriteLine($"Exception: {err.Message}");
+                Logger.WriteLine($"Call stack: {err.StackTrace}");
+
+                throw err;
             }
         }
 

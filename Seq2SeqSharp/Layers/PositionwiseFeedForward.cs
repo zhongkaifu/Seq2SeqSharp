@@ -34,7 +34,7 @@ namespace Seq2SeqSharp
 
                 //Feed forward
                 IWeightTensor ffnResult = feedForwardLayer1.Process(inputNorm, batchSize, g);
-                IWeightTensor reluFFNResult = g.Relu(ffnResult);
+                IWeightTensor reluFFNResult = g.Relu(ffnResult, inPlace: true);
                 IWeightTensor ffn2Result = feedForwardLayer2.Process(reluFFNResult, batchSize, g);
 
                 //Skip connection and layer normaliztion

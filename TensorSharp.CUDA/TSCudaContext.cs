@@ -35,7 +35,7 @@ namespace TensorSharp.CUDA
         private readonly CudaKernelCache kernelCache = new CudaKernelCache();
 
 
-        public TSCudaContext(int[] deviceIds)
+        public TSCudaContext(int[] deviceIds, float memoryUsageRatio = 0.9f)
         {
             //try
             //{
@@ -52,7 +52,7 @@ namespace TensorSharp.CUDA
             devices = new DeviceState[deviceIds.Length];
             for (int i = 0; i < deviceIds.Length; i++)
             {
-                devices[i] = new DeviceState(deviceIds[i]);
+                devices[i] = new DeviceState(deviceIds[i], memoryUsageRatio);
             }
 
 
