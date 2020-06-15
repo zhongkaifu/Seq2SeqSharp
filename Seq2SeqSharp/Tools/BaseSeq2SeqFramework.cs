@@ -109,8 +109,6 @@ namespace Seq2SeqSharp.Tools
             long tgtWordCntsInTotal = 0;
             double avgCostPerWordInTotal = 0.0;
 
-            TensorAllocator.FreeMemoryAllDevices();
-
             Logger.WriteLine($"Start to process training corpus.");
             List<SntPairBatch> sntPairBatchs = new List<SntPairBatch>();
 
@@ -162,19 +160,47 @@ namespace Seq2SeqSharp.Tools
                             }
 
                             runNetwordSuccssed = true;
-                    }
-                        catch (Exception err)
-                    {
-                        batchSplitFactor *= 2;
-                        Logger.WriteLine($"Increase batch split factor to {batchSplitFactor}, and retry it.");
-
-                        if (batchSplitFactor >= sntPairBatchs[0].BatchSize)
+                        }
+                        catch (AggregateException err)
                         {
-                            Logger.WriteLine($"Batch split factor is larger than batch size, give it up.");
-                            throw err;
+                            if (err.InnerExceptions != null)
+                            {
+                                bool isOutOfMemExcep = false;
+                                foreach (var excep in err.InnerExceptions)
+                                {
+                                    if (excep is OutOfMemoryException)
+                                    {
+                                        isOutOfMemExcep = true;
+                                        break;
+                                    }
+                                }
+
+                                if (isOutOfMemExcep)
+                                {
+                                    batchSplitFactor *= 2;
+                                    Logger.WriteLine($"Got an out of memory exception: '{err.Message}', so we increase batch split factor to {batchSplitFactor}, and retry it.");
+
+                                    if (batchSplitFactor >= sntPairBatchs[0].BatchSize)
+                                    {
+                                        Logger.WriteLine($"Batch split factor is larger than batch size, so ignore current mini-batch.");
+                                        break;
+                                    }
+                                }
+                            }
+
+                        }
+                        catch (OutOfMemoryException err)
+                        {
+                            batchSplitFactor *= 2;
+                            Logger.WriteLine($"Got an out of memory exception: '{err.Message}', so we increase batch split factor to {batchSplitFactor}, and retry it.");
+
+                            if (batchSplitFactor >= sntPairBatchs[0].BatchSize)
+                            {
+                                Logger.WriteLine($"Batch split factor is larger than batch size, so ignore current mini-batch.");
+                                break;
+                            }
                         }
                     }
-                }
 
                     // Evaluate model every hour and save it if we could get a better one.
                     TimeSpan ts = DateTime.Now - m_lastCheckPointDateTime;
@@ -207,51 +233,42 @@ namespace Seq2SeqSharp.Tools
             // Run forward and backward on all available processors
             Parallel.For(0, m_deviceIds.Length, i =>
             {
-                try
-                {
-                    SntPairBatch sntPairBatch_i = sntPairBatchs[i];
-                    int batchSegSize = sntPairBatch_i.BatchSize / batchSplitFactor;
+                SntPairBatch sntPairBatch_i = sntPairBatchs[i];
+                int batchSegSize = sntPairBatch_i.BatchSize / batchSplitFactor;
 
-                    for (int k = 0; k < batchSplitFactor; k++)
+                for (int k = 0; k < batchSplitFactor; k++)
+                {
+                    // Construct sentences for encoding and decoding
+                    List<List<string>> srcTkns = new List<List<string>>();
+                    List<List<string>> tgtTkns = new List<List<string>>();
+                    int sLenInBatch = 0;
+                    int tLenInBatch = 0;
+                    for (int j = k * batchSegSize; j < (k + 1) * batchSegSize; j++)
                     {
-                        // Construct sentences for encoding and decoding
-                        List<List<string>> srcTkns = new List<List<string>>();
-                        List<List<string>> tgtTkns = new List<List<string>>();
-                        int sLenInBatch = 0;
-                        int tLenInBatch = 0;
-                        for (int j = k * batchSegSize; j < (k + 1) * batchSegSize; j++)
-                        {
-                            srcTkns.Add(sntPairBatch_i.SntPairs[j].SrcSnt.ToList());
-                            sLenInBatch += sntPairBatch_i.SntPairs[j].SrcSnt.Length;
+                        srcTkns.Add(sntPairBatch_i.SntPairs[j].SrcSnt.ToList());
+                        sLenInBatch += sntPairBatch_i.SntPairs[j].SrcSnt.Length;
 
-                            tgtTkns.Add(sntPairBatch_i.SntPairs[j].TgtSnt.ToList());
-                            tLenInBatch += sntPairBatch_i.SntPairs[j].TgtSnt.Length;
-                        }
-
-                        float lcost = 0.0f;
-                        // Create a new computing graph instance
-                        using (IComputeGraph computeGraph_i = CreateComputGraph(i))
-                        {
-                            // Run forward part
-                            lcost = ForwardOnSingleDevice(computeGraph_i, srcTkns, tgtTkns, i, true);
-                            // Run backward part and compute gradients
-                            computeGraph_i.Backward();
-                        }
-
-                        lock (locker)
-                        {
-                            cost += lcost;
-                            srcWordCnts += sLenInBatch;
-                            tgtWordCnts += tLenInBatch;
-                            processedLine += batchSegSize;
-                        }
+                        tgtTkns.Add(sntPairBatch_i.SntPairs[j].TgtSnt.ToList());
+                        tLenInBatch += sntPairBatch_i.SntPairs[j].TgtSnt.Length;
                     }
-                }
-                catch (Exception err)
-                {
-                    Logger.WriteLine($"Message: {err.Message}");
-                    Logger.WriteLine($"Call stack: {err.StackTrace}");
-                    throw err;
+
+                    float lcost = 0.0f;
+                    // Create a new computing graph instance
+                    using (IComputeGraph computeGraph_i = CreateComputGraph(i))
+                    {
+                        // Run forward part
+                        lcost = ForwardOnSingleDevice(computeGraph_i, srcTkns, tgtTkns, i, true);
+                        // Run backward part and compute gradients
+                        computeGraph_i.Backward();
+                    }
+
+                    lock (locker)
+                    {
+                        cost += lcost;
+                        srcWordCnts += sLenInBatch;
+                        tgtWordCnts += tLenInBatch;
+                        processedLine += batchSegSize;
+                    }
                 }
             });
 
@@ -273,8 +290,6 @@ namespace Seq2SeqSharp.Tools
                 // We don't have valid corpus, so if we could have lower cost, save the model
                 SaveModel(modelMetaData);
             }
-
-            TensorAllocator.FreeMemoryAllDevices();
         }
 
         internal List<List<string>> RunTest(List<List<string>> inputTokens, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice)

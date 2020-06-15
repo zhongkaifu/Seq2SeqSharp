@@ -125,6 +125,6 @@ namespace Seq2SeqConsole
         public bool IsDecoderTrainable = true;
 
         [Arg("The ratio of memory usage", "MemoryUsageRatio")]
-        public float MemoryUsageRatio = 0.9f;
+        public float MemoryUsageRatio = 0.95f;
     }
 }

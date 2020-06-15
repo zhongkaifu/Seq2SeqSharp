@@ -89,15 +89,6 @@ namespace TensorSharp.CUDA
         public CudaKernelCache KernelCache => kernelCache;
         //  public int DeviceCount { get { return deviceCount; } }
 
-
-        public void FreeMemoryAllDevices(bool callGC = false)
-        {
-            foreach (DeviceState device in devices)
-            {
-                device.FreeMemory(callGC);
-            }
-        }
-
         public void Dispose()
         {
             kernelCache.Dispose();

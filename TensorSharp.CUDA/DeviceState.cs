@@ -40,12 +40,6 @@ namespace TensorSharp.CUDA
             ScratchSpace = AllocScratchSpace(CudaContext, DeviceInfo);
         }
 
-
-        public void FreeMemory(bool callGC = false)
-        {
-            MemoryAllocator.FreeMemory(callGC);
-        }
-
         public void Dispose()
         {
             BlasHandles.Dispose();

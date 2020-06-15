@@ -10,38 +10,31 @@ namespace TensorSharp.CUDA.ContextState
     {
         private const long MemoryAlignment = 256;
 
-        private readonly CudaContext context;
-      //  private readonly Dictionary<long, Queue<IDeviceMemory>> pools = new Dictionary<long, Queue<IDeviceMemory>>();
-        //private long allocatedSize = 0;
-        //private long missingCacheSize = 0;
-        //private const long maxSize = (long)(1024L * 1024L * 1024L * 4L);
+        private readonly CudaContext m_context;
         private readonly object locker = new object();
 
-        private readonly SizeT availMemByteInTotal;
-        private CUdeviceptr memPoolPtr;
-        private readonly SizeT startMemAddr;
-        private readonly SizeT endMemAddr;
-     //   private SizeT currMemAddr;
+        private readonly SizeT m_availMemByteInTotal;
+        private CUdeviceptr m_memPoolPtr;
+        private readonly SizeT m_startMemAddr;
+        private readonly SizeT m_endMemAddr;
 
-        private SortedDictionary<ulong, ulong> usedAddr2Size;
+        private SortedDictionary<ulong, ulong> m_usedAddr2Size;
 
         public PoolingDeviceAllocator(CudaContext context, float memoryUsageRatio = 0.9f)
         {
-            this.context = context;
-
+            m_context = context;
             context.SetCurrent();
 
             long av = context.GetFreeDeviceMemorySize();
-            availMemByteInTotal = (SizeT)((long)(av * memoryUsageRatio));
+            m_availMemByteInTotal = (SizeT)((long)(av * memoryUsageRatio));
+            m_memPoolPtr = context.AllocateMemory(m_availMemByteInTotal);
 
-            memPoolPtr = context.AllocateMemory(availMemByteInTotal);
+            m_startMemAddr = m_memPoolPtr.Pointer;
+            m_endMemAddr = m_startMemAddr + m_availMemByteInTotal;
 
-            startMemAddr = memPoolPtr.Pointer;
-            endMemAddr = startMemAddr + availMemByteInTotal;
+            m_usedAddr2Size = new SortedDictionary<ulong, ulong>();
 
-            usedAddr2Size = new SortedDictionary<ulong, ulong>();
-
-            Logger.WriteLine($"Allocated Cuda memory: {availMemByteInTotal}, address from '{startMemAddr}' to '{endMemAddr}'");
+            Logger.WriteLine($"Allocated Cuda memory: {m_availMemByteInTotal}, address from '{m_startMemAddr}' to '{m_endMemAddr}'");
         }
 
 
@@ -49,21 +42,21 @@ namespace TensorSharp.CUDA.ContextState
         {
             lock (locker)
             {
-                SizeT currMemAddr = startMemAddr;
+                SizeT currMemAddr = m_startMemAddr;
                 SizeT currMemAddrEnd;
 
-                foreach (var kv in usedAddr2Size)
+                foreach (var kv in m_usedAddr2Size)
                 {
                     currMemAddrEnd = currMemAddr + size;
 
-                    if (currMemAddrEnd > endMemAddr)
+                    if (currMemAddrEnd > m_endMemAddr)
                     {
-                        throw new OutOfMemoryException($"Out of GPU memory. currMemAddrEnd = '{currMemAddrEnd}'('{currMemAddr}' + '{size}'), endMemAddr = '{endMemAddr}'");
+                        throw new OutOfMemoryException($"Out of GPU memory. currMemAddrEnd = '{currMemAddrEnd}'('{currMemAddr}' + '{size}'), endMemAddr = '{m_endMemAddr}'");
                     }
 
                     if (currMemAddrEnd < kv.Key)
                     {
-                        usedAddr2Size.Add(currMemAddr, size);
+                        m_usedAddr2Size.Add(currMemAddr, size);
                         return new CUdeviceptr(currMemAddr);
                     }
                     else
@@ -73,99 +66,30 @@ namespace TensorSharp.CUDA.ContextState
                 }
 
                 currMemAddrEnd = currMemAddr + size;
-                if (currMemAddrEnd > endMemAddr)
+                if (currMemAddrEnd > m_endMemAddr)
                 {
-                    throw new OutOfMemoryException($"Out of GPU memory. currMemAddrEnd = '{currMemAddrEnd}'('{currMemAddr}' + '{size}'), endMemAddr = '{endMemAddr}'");
+                    throw new OutOfMemoryException($"Out of GPU memory. currMemAddrEnd = '{currMemAddrEnd}'('{currMemAddr}' + '{size}'), endMemAddr = '{m_endMemAddr}'");
                 }
 
-                usedAddr2Size.Add(currMemAddr, size);
+                m_usedAddr2Size.Add(currMemAddr, size);
                 return new CUdeviceptr(currMemAddr);
             }
         }
-
-        public void FreeMemory(bool callGC = false)
-        {
-            lock (locker)
-            {
-                if (callGC)
-                {
-                    GC.Collect();
-                    GC.WaitForFullGCComplete();
-                }
-
-                //foreach (KeyValuePair<long, Queue<IDeviceMemory>> kv in pools)
-                //{
-                //    while (kv.Value.Count > 0)
-                //    {
-                //        IDeviceMemory item = kv.Value.Dequeue();
-                //        if (item != null)
-                //        {
-                //            context.FreeMemory(item.Pointer);
-                //        }
-                //    }
-                //}
-            }
-        }
-
 
         public IDeviceMemory Allocate(long byteCount)
         {
             ulong size = PadToAlignment(byteCount, MemoryAlignment);
 
             lock (locker)
-            {
-                ////   allocatedSize += size;
-                //if (pools.TryGetValue(size, out Queue<IDeviceMemory> sizedPool))
-                //{
-                //    if (sizedPool.Count > 0)
-                //    {
-                //        IDeviceMemory result = sizedPool.Dequeue();
-
-                //        usedAddr2Size.Add(result.Pointer.Pointer, size);
-
-                //        // HACK  bizarrely, Queue.Dequeue appears to sometimes return null, even when there are many elements in the queue,
-                //        // and when the queue is only ever accessed from one thread.
-                //        if (result != null)
-                //        {
-                //            return result;
-                //        }
-                //    }
-                //}
-                //else
-                //{
-                //    sizedPool = new Queue<IDeviceMemory>();
-                //    pools.Add(size, sizedPool);
-                //}
-
+            {            
                 CUdeviceptr buffer = AllocateMemory(size);
-                //try
-                //{
-                //    try
-                //    {
-                //        // If control flow gets to this point, sizedPool exists in the dictionary and is empty.
-                //        context.SetCurrent();
-                //        buffer = context.AllocateMemory(size);
-                //    }
-                //    catch (ManagedCuda.CudaException)
-                //    {
-                //        FreeMemory(false);
-                //        buffer = context.AllocateMemory(size);
-                //    }
-                //}
-                //catch (ManagedCuda.CudaException)
-                //{
-                //    FreeMemory(true);
-                //    buffer = context.AllocateMemory(size);
-                //}
 
                 BasicDeviceMemory devMemory = null;
                 devMemory = new BasicDeviceMemory(buffer, () =>
                 {
                     lock (locker)
                     {
-                        usedAddr2Size.Remove(devMemory.Pointer.Pointer);
-
-                      //  sizedPool.Enqueue(devMemory);
+                        m_usedAddr2Size.Remove(devMemory.Pointer.Pointer);
                     }
                 });
 
@@ -174,19 +98,9 @@ namespace TensorSharp.CUDA.ContextState
         }
 
         public void Dispose()
-        {
-            //lock (locker)
-            //{
-            //    foreach (KeyValuePair<long, Queue<IDeviceMemory>> kvp in pools)
-            //    {
-            //        foreach (IDeviceMemory item in kvp.Value)
-            //        {
-            //            item.Free();
-            //        }
-            //    }
-
-            //    pools.Clear();
-            //}
+        {           
+            m_context.SetCurrent();
+            m_context.FreeMemory(m_memPoolPtr);
         }
 
         private static ulong PadToAlignment(long size, long alignment)
