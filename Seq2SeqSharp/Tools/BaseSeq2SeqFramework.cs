@@ -178,7 +178,7 @@ namespace Seq2SeqSharp.Tools
                                 if (isOutOfMemExcep)
                                 {
                                     batchSplitFactor *= 2;
-                                    Logger.WriteLine($"Got an out of memory exception, so we increase batch split factor to {batchSplitFactor}, and retry it.");
+                                    Logger.WriteLine($"Got an out of memory exception: '{err.Message}', so we increase batch split factor to {batchSplitFactor}, and retry it.");
 
                                     if (batchSplitFactor >= sntPairBatchs[0].BatchSize)
                                     {
@@ -192,7 +192,7 @@ namespace Seq2SeqSharp.Tools
                         catch (OutOfMemoryException err)
                         {
                             batchSplitFactor *= 2;
-                            Logger.WriteLine($"Got an out of memory exception, so we increase batch split factor to {batchSplitFactor}, and retry it.");
+                            Logger.WriteLine($"Got an out of memory exception: '{err.Message}', so we increase batch split factor to {batchSplitFactor}, and retry it.");
 
                             if (batchSplitFactor >= sntPairBatchs[0].BatchSize)
                             {

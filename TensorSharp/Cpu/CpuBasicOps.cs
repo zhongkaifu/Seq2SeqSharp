@@ -635,16 +635,6 @@ namespace TensorSharp.Cpu
             return tw;
         }
 
-
-        private readonly MethodInfo updatecost_func = NativeWrapper.GetMethod("TS_UpdateCost");
-        [RegisterOpStorageType("updatecost", typeof(CpuStorage))]
-        public Tensor UpdateCost(Tensor tw, Tensor tids, Tensor tc)
-        {
-            NativeWrapper.InvokeTypeMatch(updatecost_func, tw, tids, tc, (int)tw.Sizes[0], (int)tw.Sizes[1]);
-            return tw;
-        }
-
-
         private readonly MethodInfo normall_func = NativeWrapper.GetMethod("TS_NormAll");
         [RegisterOpStorageType("normall", typeof(CpuStorage))]
         public Tensor NormAll(Tensor result, Tensor src, float value)

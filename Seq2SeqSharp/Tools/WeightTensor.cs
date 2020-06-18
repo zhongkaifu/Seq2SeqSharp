@@ -173,7 +173,7 @@ namespace Seq2SeqSharp.Tools
 
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
-            return new WeightTensor(Sizes, deviceId, Name, IsTrainable);
+            return new WeightTensor(Sizes, deviceId, Name, IsTrainable, graphToBind: m_computeGraphToBind);
         }
 
         public void ZeroGradient()

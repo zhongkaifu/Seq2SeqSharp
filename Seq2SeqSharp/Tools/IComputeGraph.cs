@@ -51,8 +51,5 @@ namespace Seq2SeqSharp
 
         void Bind(IWeightTensor w);
         void Unbind(IWeightTensor w);
-
-        float UpdateCost(IWeightTensor m, int[] ids);
-
     }
 }

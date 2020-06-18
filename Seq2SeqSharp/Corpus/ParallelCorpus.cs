@@ -402,6 +402,11 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
+            if (maxLen % 8 != 0)
+            {
+                maxLen = maxLen + 8 - (maxLen % 8); 
+            }
+
             for (int i = 0; i < s.Count; i++)
             {
                 int count = s[i].Count;
