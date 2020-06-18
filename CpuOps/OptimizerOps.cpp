@@ -38,3 +38,16 @@ int TS_Adam(
 		SWITCH_TENSOR_TYPE_ALL_CPU(tw->elementType, Adam, tw, tg, tv, tm, rows, cols, batchSize, step_size, clipval, regc, decay_rate_v, decay_rate_m, iter, eps)
 		API_END()
 }
+
+
+int TS_UpdateCost(
+	TensorRef* tw,
+	TensorRef* tids,
+	TensorRef* tc,
+	int rows,
+	int cols)
+{
+	API_BEGIN()
+		SWITCH_TENSOR_TYPE_ALL_CPU(tw->elementType, UpdateCost, tw, tids, tc, rows, cols)
+		API_END()
+}

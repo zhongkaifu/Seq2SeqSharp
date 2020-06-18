@@ -532,6 +532,13 @@ namespace TensorSharp.CUDA
         }
 
 
+        [RegisterOpStorageType("updatecost", typeof(CudaStorage))]
+        public Tensor UpdateCost(Tensor costs, Tensor weight, Tensor ids)
+        {
+            return advFuncKernels.UpdateCost(costs, weight, ids);
+        }
+
+
         [RegisterOpStorageType("sumall", typeof(CudaStorage))]
         public Tensor SumAll(Tensor result, Tensor src)
         {

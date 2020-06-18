@@ -194,6 +194,11 @@ namespace TensorSharp
             return storage.GetElementsAsFloat(storageOffset, length);
         }
 
+        public int[] GetElementsAsInt(int length)
+        {
+            return storage.GetElementsAsInt(storageOffset, length);
+        }
+
         /// <summary>
         /// Note: this does not check whether indices are in range
         /// </summary>
@@ -226,6 +231,11 @@ namespace TensorSharp
         public void SetElementsAsFloat(float[] value)
         {
             storage.SetElementsAsFloat(storageOffset, value);
+        }
+
+        public void SetElementsAsInt(int[] value)
+        {
+            storage.SetElementsAsInt(storageOffset, value);
         }
 
         public void SetElementsAsFloat(float[] value, params long[] indices)

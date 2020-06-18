@@ -220,6 +220,13 @@ namespace TensorSharp
             return (Tensor)OpRegistry.Invoke("rmsprop", weight, gradient, cache, batchSize, step_size, clipval, regc, decay_rate, eps);
         }
 
+
+        public static Tensor UpdateCost(Tensor costs, Tensor weight, Tensor ids)
+        {
+            return (Tensor)OpRegistry.Invoke("updatecost", costs, weight, ids);
+        }
+
+
         public static Tensor SumAll(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("sumall", result, src); }
         public static Tensor ProdAll(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("prodall", result, src); }
         public static Tensor MinAll(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("minall", result, src); }

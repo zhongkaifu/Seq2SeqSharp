@@ -196,6 +196,11 @@ namespace TensorSharp.Cpu
         [DllImport(dll, CallingConvention = cc)]
         public static extern int TS_Adam(IntPtr tw, IntPtr tg, IntPtr tv, IntPtr tm, int rows, int cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps);
 
+
+        [DllImport(dll, CallingConvention = cc)]
+        public static extern int TS_UpdateCost(IntPtr tw, IntPtr tids, IntPtr tc, int rows, int cols);
+
+
         [DllImport(dll, CallingConvention = cc)]
         public static extern int TS_SpatialMaxPooling_updateOutput_frame(IntPtr input_p, IntPtr output_p, IntPtr ind_p, long nslices, long iwidth, long iheight, long owidth, long oheight, int kW, int kH, int dW, int dH, int padW, int padH);
 

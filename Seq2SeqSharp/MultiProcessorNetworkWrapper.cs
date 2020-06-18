@@ -10,13 +10,17 @@ namespace Seq2SeqSharp
         private readonly int m_defaultDeviceId;
         private readonly int[] m_deviceIds;
         private readonly T m_networkOnDefaultDevice;
+        private readonly bool m_isStaticWeights;
+        private bool m_weightsSynced;
 
-        public MultiProcessorNetworkWrapper(T networkOnDefaultDevice, int[] deviceIds)
+        public MultiProcessorNetworkWrapper(T networkOnDefaultDevice, int[] deviceIds, bool isStaticWeights = false)
         {
             m_networks = new T[deviceIds.Length];
             m_defaultDeviceId = networkOnDefaultDevice.GetDeviceId();
             m_deviceIds = deviceIds;
             m_networkOnDefaultDevice = networkOnDefaultDevice;
+            m_isStaticWeights = isStaticWeights;
+            m_weightsSynced = false;
 
             for (int i = 0; i < deviceIds.Length; i++)
             {
@@ -36,6 +40,11 @@ namespace Seq2SeqSharp
         /// </summary>
         public void SyncWeights()
         {
+            if (m_isStaticWeights && m_weightsSynced)
+            {
+                return;
+            }
+
             List<Tools.IWeightTensor> tensorsOnDefaultDevice = m_networkOnDefaultDevice.GetParams();
             Parallel.ForEach(m_networks, network =>
             {
@@ -50,6 +59,8 @@ namespace Seq2SeqSharp
                 }
 
             });
+
+            m_weightsSynced = true;
         }
 
         /// <summary>
@@ -57,6 +68,11 @@ namespace Seq2SeqSharp
         /// </summary>
         public void SumGradientsToNetworkOnDefaultDevice()
         {
+            if (m_isStaticWeights)
+            {
+                return;
+            }
+
             List<Tools.IWeightTensor> tensorsOnDefaultDevice = m_networkOnDefaultDevice.GetParams();
             Parallel.ForEach(m_networks, network =>
             {
@@ -79,6 +95,11 @@ namespace Seq2SeqSharp
         /// </summary>
         public void ZeroGradientsOnAllDevices()
         {
+            if (m_isStaticWeights)
+            {
+                return;
+            }
+
             Parallel.ForEach(m_networks, network =>
             {
                 List<Tools.IWeightTensor> tensors = network.GetParams();

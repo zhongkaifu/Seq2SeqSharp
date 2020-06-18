@@ -79,6 +79,28 @@ namespace TensorSharp.Cpu
             }
         }
 
+        public override int[] GetElementsAsInt(long index, int length)
+        {
+            unsafe
+            {
+                if (ElementType == DType.Int32)
+                {
+                    int* p = ((int*)buffer.ToPointer());
+                    int[] array = new int[length];
+
+                    for (int i = 0; i < length; i++)
+                    {
+                        array[i] = *(p + i);
+                    }
+                    return array;
+                }
+                else
+                {
+                    throw new NotSupportedException("Element type " + ElementType + " not supported");
+                }
+            }
+        }
+
         public override void SetElementAsFloat(long index, float value)
         {
             unsafe
@@ -116,6 +138,25 @@ namespace TensorSharp.Cpu
                     for (int i = 0; i < value.Length; i++)
                     {
                         ((float*)buffer.ToPointer())[index + i] = value[i];
+                    }
+                }
+                else
+                {
+                    throw new NotSupportedException("Element type " + ElementType + " not supported");
+                }
+            }
+        }
+
+
+        public override void SetElementsAsInt(long index, int[] value)
+        {
+            unsafe
+            {
+                if (ElementType == DType.Int32)
+                {
+                    for (int i = 0; i < value.Length; i++)
+                    {
+                        ((int*)buffer.ToPointer())[index + i] = value[i];
                     }
                 }
                 else

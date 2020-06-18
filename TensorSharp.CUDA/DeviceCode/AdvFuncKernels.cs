@@ -382,7 +382,7 @@ __global__ void gAddLayerNormalizationGrad(float* gradX1,
 
 
 
-__global__ void Adam(float* __restrict__ w, float* __restrict__ g, float* __restrict__ v, float* __restrict__ m, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
+__global__ void Adam(float* w, float* g, float* v, float* m, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
 {
   for(int bid = 0; bid < rows; bid += gridDim.x) 
   {
@@ -434,9 +434,33 @@ __global__ void Adam(float* __restrict__ w, float* __restrict__ g, float* __rest
 }
 
 
+__global__ void UpdateCost(float* weights, int* ids, float* costs, unsigned rows, unsigned cols)
+{
+    for(int bid = 0; bid < rows; bid += gridDim.x) 
+    {
+      int j = bid + blockIdx.x;
+      if(j < rows && threadIdx.x == 0) 
+      {
+        float* sw = weights + j * cols;
+        int sid = ids[j];
+
+        if (sid >= 0)
+        {
+          costs[j] = -logf(sw[sid] + 1e-30f);
+          sw[sid] -= 1.0f;
+        }
+        else
+        {
+          costs[j] = 0.0f;
+          sw[sid] = 0.0f;
+        }
+      }
+    }
+}
 
 
-__global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __restrict__ c, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
+
+__global__ void RMSProp(float* w, float* g, float* c, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
 {
   for(int bid = 0; bid < rows; bid += gridDim.x) 
   {
@@ -597,7 +621,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
 
 
-  __global__ void gSoftmaxMask(float* out, float* in, float *mask, unsigned rows, unsigned cols)
+  __global__ void gSoftmaxMask(float* out, float* in, float* mask, unsigned rows, unsigned cols)
   {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -977,6 +1001,48 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
             return weight;
         }
+
+
+
+        private void UpdateCost(TSCudaContext context, Tensor weight, Tensor ids, Tensor costs)
+        {
+            CudaContext cudaContext = context.CudaContextForTensor(weight);
+
+            cudaContext.SetCurrent();
+
+            int ndim = weight.DimensionCount;
+            long num_rows = 1;
+            for (int dim = 0; dim < ndim - 1; dim++)
+            {
+                num_rows *= weight.Sizes[dim];
+            }
+
+            long rows = num_rows;
+            long cols = weight.Sizes[ndim - 1];
+
+            dim3 threads = new dim3((uint)Math.Min(512, num_rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
+
+            CUdeviceptr weightPtr = CudaHelpers.GetBufferStart(weight);
+            CUdeviceptr idsPtr = CudaHelpers.GetBufferStart(ids);
+            CUdeviceptr costsPtr = CudaHelpers.GetBufferStart(costs);
+
+            Invoke(context, cudaContext, "UpdateCost", grid, threads, 0, CUstream.NullStream, weightPtr, idsPtr, costsPtr, rows, cols);
+        }
+
+
+        public Tensor UpdateCost(Tensor costs, Tensor weight, Tensor ids)
+        {
+            TSCudaContext context = CudaHelpers.TSContextForTensor(weight);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(costs, weight, true, ids.Sizes);
+
+            Ops.Fill(writeTarget, 0.0f);
+
+            UpdateCost(context, weight, ids, writeTarget);
+
+            return writeTarget;
+        }
+
 
         private void SoftmaxGrad(TSCudaContext context, Tensor grad, Tensor adj, Tensor val, bool addGrad = true)
         {

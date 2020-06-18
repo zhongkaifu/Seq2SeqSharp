@@ -89,13 +89,13 @@ namespace Seq2SeqSharp
             int tgtSeqLen = tgtInputs.Rows / batchSize;
             int srcSeqLen = encOutputBatchFirst.Rows / batchSize;
 
-            using (IWeightTensor posEmbedding = g.BuildPositionMatrix(tgtSeqLen, m_inputDim))
-            {
-                using (IWeightTensor posEmbeddingRepeat = g.RepeatRows(posEmbedding, batchSize, runGradient: false))
-                {                
-                    tgtInputs = g.Add(tgtInputs, posEmbeddingRepeat, runGradient2: false);
-                }
-            }
+            //using (IWeightTensor posEmbedding = g.BuildPositionMatrix(tgtSeqLen, m_inputDim))
+            //{
+            //    using (IWeightTensor posEmbeddingRepeat = g.RepeatRows(posEmbedding, batchSize, runGradient: false))
+            //    {                
+            //        tgtInputs = g.Add(tgtInputs, posEmbeddingRepeat, runGradient2: false);
+            //    }
+            //}
 
             tgtInputs = g.Dropout(tgtInputs, batchSize, m_dropoutRatio, inPlace: true);
 

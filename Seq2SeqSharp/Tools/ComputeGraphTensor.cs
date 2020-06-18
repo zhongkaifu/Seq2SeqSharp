@@ -1,6 +1,7 @@
 ﻿//using Microsoft.Msagl.Drawing;
 //using Microsoft.Msagl.Layout.Incremental;
 //using Microsoft.Msagl.Layout.Layered;
+using AdvUtils;
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -513,6 +514,22 @@ namespace Seq2SeqSharp.Tools
 
             return res;
         }
+
+
+        public float UpdateCost(IWeightTensor m, int[] ids)
+        {
+            WeightTensor t = m as WeightTensor;
+
+            using (Tensor idsTensor = new Tensor(TensorAllocator.Allocator(m_deviceId), DType.Int32, 1, ids.Length))
+            {
+                idsTensor.SetElementsAsInt(ids);
+                using (Tensor costs = Ops.UpdateCost(null, t.TWeight, idsTensor))
+                {
+                    return Ops.SumAll(costs);
+                }
+            }
+        }
+
 
         public IWeightTensor MulBatch(IWeightTensor m1, IWeightTensor m2, int batchSize, float alpha = 1.0f)
         {
