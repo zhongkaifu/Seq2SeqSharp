@@ -71,32 +71,11 @@ namespace Seq2SeqSharp
         /// <returns></returns>
         public IWeightTensor Encode(IWeightTensor inputs, int batchSize, IComputeGraph g, IWeightTensor srcSelfMask)
         {
-            int srcSeqLen = inputs.Rows / batchSize;
-
-            using (IWeightTensor posEmbedding = g.BuildPositionMatrix(srcSeqLen, m_inputDim))
-            {
-                using (IWeightTensor posEmbeddingRepeat = g.RepeatRows(posEmbedding, batchSize, runGradient: false))
-                {                 
-                    inputs = g.Add(inputs, posEmbeddingRepeat, runGradient2: false);
-                }
-            }
-
-            inputs = g.Dropout(inputs, batchSize, m_dropoutRatio, inPlace: true);
-
-
-            var srcSelfMaskRep = g.View(srcSelfMask, dims: new long[] { 1, batchSize, srcSeqLen, srcSeqLen });
-            var srcSelfMaskRepExp = g.Expand(srcSelfMaskRep, dims: new long[] { m_multiHeadNum, batchSize, srcSeqLen, srcSeqLen });
-            var srcSelfMaskRepExpView = g.View(srcSelfMaskRepExp, dims: new long[] { m_multiHeadNum * batchSize * srcSeqLen, srcSeqLen });
-
-            srcSelfMaskRep.Dispose();
-            srcSelfMaskRepExp.Dispose();
-
-
             using (IComputeGraph subg = g.CreateSubGraph($"{m_name}_Encoder"))
             {
                 for (int k = 0; k < m_encoders.Count; k++)
                 {
-                    inputs = m_encoders[k].Perform(inputs, inputs, inputs, srcSelfMaskRepExpView, batchSize, subg);
+                    inputs = m_encoders[k].Perform(inputs, inputs, inputs, srcSelfMask, batchSize, subg);
                     inputs = m_posFFNs[k].Perform(inputs, batchSize, subg);
                 }
                 inputs.UnbindFromComputeGraph();

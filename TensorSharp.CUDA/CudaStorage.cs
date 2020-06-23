@@ -36,6 +36,29 @@ namespace TensorSharp.CUDA
             }
         }
 
+        public override int[] GetElementsAsInt(long index, int length)
+        {
+            CUdeviceptr ptr = DevicePtrAtElement(index);
+
+            if (ElementType == DType.Int32) { int[] result = new int[length]; context.CopyToHost(result, ptr); return result; }
+            else
+            {
+                throw new NotSupportedException("Element type " + ElementType + " not supported");
+            }
+        }
+
+        public override void SetElementsAsInt(long index, int[] value)
+        {
+            CUdeviceptr ptr = DevicePtrAtElement(index);
+
+            if (ElementType == DType.Int32) { context.CopyToDevice(ptr, value); }
+            else
+            {
+                throw new NotSupportedException("Element type " + ElementType + " not supported");
+            }
+        }
+
+
         public override string LocationDescription()
         {
             return "CUDA:" + context.DeviceId;

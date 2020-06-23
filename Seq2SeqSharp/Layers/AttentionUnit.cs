@@ -127,6 +127,8 @@ namespace Seq2SeqSharp
 
                 IWeightTensor contexts = graph.MulBatch(attenSoftmax, inputs2, batchSize);
 
+                contexts = graph.View(contexts, dims: new long[] { batchSize, attnPre.encOutput.Columns });
+
                 if (m_enableCoverageModel)
                 {
                     // Concatenate tensor as input for coverage model

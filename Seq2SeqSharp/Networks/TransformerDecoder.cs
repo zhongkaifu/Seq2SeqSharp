@@ -86,40 +86,12 @@ namespace Seq2SeqSharp
 
         public IWeightTensor Decode(IWeightTensor tgtInputs, IWeightTensor encOutputBatchFirst, IWeightTensor tgtSelfMask, IWeightTensor srcTgtMask, int batchSize, IComputeGraph g)
         {
-            int tgtSeqLen = tgtInputs.Rows / batchSize;
-            int srcSeqLen = encOutputBatchFirst.Rows / batchSize;
-
-            using (IWeightTensor posEmbedding = g.BuildPositionMatrix(tgtSeqLen, m_inputDim))
-            {
-                using (IWeightTensor posEmbeddingRepeat = g.RepeatRows(posEmbedding, batchSize, runGradient: false))
-                {                
-                    tgtInputs = g.Add(tgtInputs, posEmbeddingRepeat, runGradient2: false);
-                }
-            }
-
-            tgtInputs = g.Dropout(tgtInputs, batchSize, m_dropoutRatio, inPlace: true);
-
-            var tgtSelfMaskRep = g.View(tgtSelfMask, dims: new long[] { 1, batchSize, tgtSeqLen, tgtSeqLen });
-            var tgtSelfMaskRepExp = g.Expand(tgtSelfMaskRep, dims: new long[] { m_multiHeadNum, batchSize, tgtSeqLen, tgtSeqLen });
-            var tgtSelfMaskRepExpView = g.View(tgtSelfMaskRepExp, dims: new long[] { m_multiHeadNum * batchSize * tgtSeqLen, tgtSeqLen });
-
-            tgtSelfMaskRep.Dispose();
-            tgtSelfMaskRepExp.Dispose();
-
-
-            var srcTgtMaskRep = g.View(srcTgtMask, dims: new long[] { 1, batchSize, tgtSeqLen, srcSeqLen });
-            var srcTgtMaskRepExp = g.Expand(srcTgtMaskRep, dims: new long[] { m_multiHeadNum, batchSize, tgtSeqLen, srcSeqLen });
-            var srcTgtMaskRepExpView = g.View(srcTgtMaskRepExp, dims: new long[] { m_multiHeadNum * batchSize * tgtSeqLen, srcSeqLen });
-
-            srcTgtMaskRep.Dispose();
-            srcTgtMaskRepExp.Dispose();
-
             using (IComputeGraph subg = g.CreateSubGraph($"{m_name}_Decoder"))
             {
                 for (int k = 0; k < m_selfAttns.Count; k++)
                 {
-                    tgtInputs = m_selfAttns[k].Perform(tgtInputs, tgtInputs, tgtInputs, tgtSelfMaskRepExpView, batchSize, subg);
-                    tgtInputs = m_encAttns[k].Perform(tgtInputs, encOutputBatchFirst, encOutputBatchFirst, srcTgtMaskRepExpView, batchSize, subg);
+                    tgtInputs = m_selfAttns[k].Perform(tgtInputs, tgtInputs, tgtInputs, tgtSelfMask, batchSize, subg);
+                    tgtInputs = m_encAttns[k].Perform(tgtInputs, encOutputBatchFirst, encOutputBatchFirst, srcTgtMask, batchSize, subg);
                     tgtInputs = m_posFFNs[k].Perform(tgtInputs, batchSize, subg);
                 }
 

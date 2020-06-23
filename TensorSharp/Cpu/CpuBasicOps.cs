@@ -594,8 +594,19 @@ namespace TensorSharp.Cpu
         [RegisterOpStorageType("softmax", typeof(CpuStorage))]
         public Tensor Softmax(Tensor result, Tensor src)
         {
+            int ndim = src.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(src.Sizes, src.Strides);
+            long cols = src.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
-            NativeWrapper.InvokeTypeMatch(softmax_func, writeTarget, src, (int)src.Sizes[0], (int)src.Sizes[1]);
+            NativeWrapper.InvokeTypeMatch(softmax_func, writeTarget, src, (int)rows, (int)cols);
             return writeTarget;
         }
 
@@ -603,8 +614,40 @@ namespace TensorSharp.Cpu
         [RegisterOpStorageType("softmaxmask", typeof(CpuStorage))]
         public Tensor SoftmaxMask(Tensor result, Tensor src, Tensor mask)
         {
+            int ndim = src.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(src.Sizes, src.Strides);
+            long cols = src.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+            int maskNdim = mask.DimensionCount;
+            long maskStorageSize = TensorDimensionHelpers.GetStorageSize(mask.Sizes, mask.Strides);
+            long maskCols = mask.Sizes[maskNdim - 1];
+
+            if (maskStorageSize % maskCols != 0)
+            {
+                throw new Exception($"Invalid mask tensor storage size = '{maskStorageSize}', and cols = '{maskCols}'");
+            }
+
+            long maskRows = maskStorageSize / maskCols;
+
+            if (rows % maskRows != 0)
+            {
+                throw new Exception($"Invalid tensor rows = '{rows}' and mask tensor rows = '{maskRows}'");
+            }
+
+            if (cols != maskCols)
+            {
+                throw new Exception($"Tensor cols = '{cols}', mask tensor cols = '{maskCols}'. They should be equal.");
+            }
+
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
-            NativeWrapper.InvokeTypeMatch(softmaxmask_func, writeTarget, src, mask, (int)src.Sizes[0], (int)src.Sizes[1]);
+            NativeWrapper.InvokeTypeMatch(softmaxmask_func, writeTarget, src, mask, (int)rows, (int)cols, (int)maskRows);
             return writeTarget;
         }
 
@@ -613,8 +656,19 @@ namespace TensorSharp.Cpu
         [RegisterOpStorageType("softmaxgrad", typeof(CpuStorage))]
         public Tensor SoftmaxGrad(Tensor grad_, Tensor adj_, Tensor val_, bool addGrad = true)
         {
+            int ndim = adj_.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(adj_.Sizes, adj_.Strides);
+            long cols = adj_.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(grad_, adj_, false, adj_.Sizes);
-            NativeWrapper.InvokeTypeMatch(softmaxGrad_func, writeTarget, adj_, val_, (int)adj_.Sizes[0], (int)adj_.Sizes[1], addGrad);
+            NativeWrapper.InvokeTypeMatch(softmaxGrad_func, writeTarget, adj_, val_, (int)rows, (int)cols, addGrad);
             return writeTarget;
         }
 
@@ -632,6 +686,14 @@ namespace TensorSharp.Cpu
         public Tensor Adam(Tensor tw, Tensor tg, Tensor tv, Tensor tm, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
         {
             NativeWrapper.InvokeTypeMatch(adam_func, tw, tg, tv, tm, (int)tw.Sizes[0], (int)tw.Sizes[1], batchSize, step_size, clipval, regc, decay_rate_v, decay_rate_m, iter, eps);
+            return tw;
+        }
+
+        private readonly MethodInfo updatecost_func = NativeWrapper.GetMethod("TS_UpdateCost");
+        [RegisterOpStorageType("updatecost", typeof(CpuStorage))]
+        public Tensor UpdateCost(Tensor tw, Tensor tids, Tensor tc)
+        {
+            NativeWrapper.InvokeTypeMatch(updatecost_func, tw, tids, tc, (int)tw.Sizes[0], (int)tw.Sizes[1]);
             return tw;
         }
 

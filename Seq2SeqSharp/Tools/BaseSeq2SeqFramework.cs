@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
 
@@ -178,7 +179,7 @@ namespace Seq2SeqSharp.Tools
                                 if (isOutOfMemExcep)
                                 {
                                     batchSplitFactor *= 2;
-                                    Logger.WriteLine($"Got an out of memory exception: '{err.Message}', so we increase batch split factor to {batchSplitFactor}, and retry it.");
+                                    Logger.WriteLine($"Got an out of memory exception, so we increase batch split factor to {batchSplitFactor}, and retry it.");
 
                                     if (batchSplitFactor >= sntPairBatchs[0].BatchSize)
                                     {
@@ -186,19 +187,34 @@ namespace Seq2SeqSharp.Tools
                                         break;
                                     }
                                 }
+                                else
+                                {
+                                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}, Call stack: {err.StackTrace}");
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}, Call stack: {err.StackTrace}");
+                                break;
                             }
 
                         }
                         catch (OutOfMemoryException err)
                         {
                             batchSplitFactor *= 2;
-                            Logger.WriteLine($"Got an out of memory exception: '{err.Message}', so we increase batch split factor to {batchSplitFactor}, and retry it.");
+                            Logger.WriteLine($"Got an out of memory exception, so we increase batch split factor to {batchSplitFactor}, and retry it.");
 
                             if (batchSplitFactor >= sntPairBatchs[0].BatchSize)
                             {
                                 Logger.WriteLine($"Batch split factor is larger than batch size, so ignore current mini-batch.");
                                 break;
                             }
+                        }
+                        catch (Exception err)
+                        {
+                            Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}, Call stack: {err.StackTrace}");
+                            break;
                         }
                     }
 

@@ -74,30 +74,23 @@ namespace Seq2SeqSharp
                 IWeightTensor inputKNorm = (inputK == inputQ) ? inputQNorm : inputK;
                 IWeightTensor inputVNorm = (inputK == inputV) ? inputKNorm : inputV;
 
-                // Scaled softmax
-                float scale = 1.0f / (float)(m_inputDim);
-
                 //Input projections
+                float scale = 1.0f / (float)(m_inputDim);
                 IWeightTensor allQ = g.View(g.Affine(inputQNorm, Q, Qb, scale), dims: new long[] { batchSize, seqLenQ, m_multiHeadNum, m_d });
                 IWeightTensor allK = g.View(g.Affine(inputKNorm, K, Kb, scale), dims: new long[] { batchSize, seqLenK, m_multiHeadNum, m_d });
-                IWeightTensor allV = g.View(g.Affine(inputVNorm, V, Vb), dims: new long[] { batchSize, seqLenV, m_multiHeadNum, m_d });
-
+                IWeightTensor allV = g.View(g.Affine(inputVNorm, V, Vb, scale), dims: new long[] { batchSize, seqLenV, m_multiHeadNum, m_d });
 
                 //Multi-head attentions
                 IWeightTensor Qs = g.View(g.Permute(allQ, 2, 0, 1, 3), dims: new long[] { m_multiHeadNum * batchSize, seqLenQ, m_d });
                 IWeightTensor Ks = g.View(g.Permute(allK, 2, 0, 3, 1), dims: new long[] { m_multiHeadNum * batchSize, m_d, seqLenK });
                 IWeightTensor Vs = g.View(g.Permute(allV, 2, 0, 1, 3), dims: new long[] { m_multiHeadNum * batchSize, seqLenV, m_d });
 
-
+                // Scaled softmax
                 scale = 1.0f / (float)(m_d);
+                IWeightTensor attn = g.MulBatch(Qs, Ks, m_multiHeadNum * batchSize, scale);                
+                IWeightTensor softmax = g.Softmax(attn, keyMask, inPlace: true);
+                IWeightTensor o = g.View(g.MulBatch(softmax, Vs, m_multiHeadNum * batchSize), dims: new long[] { m_multiHeadNum, batchSize, seqLenQ, m_d });
 
-                IWeightTensor attn = g.MulBatch(Qs, Ks, m_multiHeadNum * batchSize, scale);
-                IWeightTensor attn2 = g.View(attn, dims: new long[] { m_multiHeadNum * batchSize * seqLenQ, seqLenK });
-
-                IWeightTensor softmax = g.Softmax(attn2, keyMask, inPlace: true);
-
-                IWeightTensor softmax2 = g.View(softmax, dims: new long[] { m_multiHeadNum * batchSize, seqLenQ, seqLenK });
-                IWeightTensor o = g.View(g.MulBatch(softmax2, Vs, m_multiHeadNum * batchSize), dims: new long[] { m_multiHeadNum, batchSize, seqLenQ, m_d });
                 IWeightTensor W = g.View(g.Permute(o, 1, 2, 0, 3), dims: new long[] { batchSize * seqLenQ, m_multiHeadNum * m_d });
 
                 // Output projection

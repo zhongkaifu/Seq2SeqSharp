@@ -224,7 +224,7 @@ namespace Seq2SeqSharp.Tools
                     dictTgtLenDist[rawSntPair.TgtLength / 100]++;
 
 
-                    if (rawSntPair.SrcLength >= m_maxSentLength || rawSntPair.TgtLength >= m_maxSentLength)
+                    if (rawSntPair.SrcLength > m_maxSentLength || rawSntPair.TgtLength > m_maxSentLength)
                     {
                         tooLongSntCnt++;
                         continue;
@@ -329,6 +329,14 @@ namespace Seq2SeqSharp.Tools
                         }
                         sntPair.TgtSnt = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
+
+                        if (sntPair.SrcSnt.Length > m_maxSentLength + 2 || sntPair.TgtSnt.Length > m_maxSentLength + 2)
+                        {
+                            Logger.WriteLine($"Sentence source = '{String.Join(" ", sntPair.SrcSnt)}' and target = '{String.Join(" ", sntPair.TgtSnt)}' are longer than '{m_maxSentLength + 2}'");
+                            throw new InvalidDataException($"Sentence source = '{String.Join(" ", sntPair.SrcSnt)}' and target = '{String.Join(" ", sntPair.TgtSnt)}' are longer than '{m_maxSentLength + 2}'");
+                        }
+
+
                         if ((lastSrcSntLen > 0 && m_aggregateSrcLength == true && lastSrcSntLen != sntPair.SrcSnt.Length) || outputs.Count > maxOutputsSize)
                         {
                            // InnerShuffle(outputs);
@@ -400,11 +408,6 @@ namespace Seq2SeqSharp.Tools
                         maxLen = item.Count;
                     }
                 }
-            }
-
-            if (maxLen % 8 != 0)
-            {
-                maxLen = maxLen + 8 - (maxLen % 8); 
             }
 
             for (int i = 0; i < s.Count; i++)

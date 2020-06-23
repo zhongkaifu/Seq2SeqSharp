@@ -67,6 +67,28 @@ namespace TensorSharp.CUDA
         */
 
 
+
+        [RegisterOpStorageType("buildpadselftrimask", typeof(CudaStorage))]
+        public Tensor BuildPadSelfTriMask(Tensor originalLengths, int batchSize, int paddedLength)
+        {
+            return advFuncKernels.BuildPadSelfTriMask(originalLengths, batchSize, paddedLength);
+        }
+
+
+        [RegisterOpStorageType("buildsrctgtmask", typeof(CudaStorage))]
+        public Tensor BuildSrcTgtMask(Tensor originalSrcLengths, Tensor originalTgtLengths, int batchSize, int paddedSrcLength, int paddedTgtLength)
+        {
+            return advFuncKernels.BuildSrcTgtMask(originalSrcLengths, originalTgtLengths, batchSize, paddedSrcLength, paddedTgtLength);
+        }
+
+
+
+        [RegisterOpStorageType("updatecost", typeof(CudaStorage))]
+        public Tensor UpdateCost(Tensor costs, Tensor weight, Tensor ids)
+        {
+            return advFuncKernels.UpdateCost(costs, weight, ids);
+        }
+
         [RegisterOpArgCount("copy")]
         public void CopyGpu(
             [OpArgStorageType(typeof(CudaStorage))] Tensor result,

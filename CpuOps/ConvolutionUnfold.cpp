@@ -57,10 +57,11 @@ int TS_SoftmaxMask(
 	TensorRef* in_,
 	TensorRef* mask_,
 	int rows,
-	int cols)
+	int cols,
+	int maskRows)
 {
 	API_BEGIN()
-		SWITCH_TENSOR_TYPE_ALL_CPU(in_->elementType, SoftmaxMask, out_, in_, mask_, rows, cols)
+		SWITCH_TENSOR_TYPE_ALL_CPU(in_->elementType, SoftmaxMask, out_, in_, mask_, rows, cols, maskRows)
 		API_END()
 }
 

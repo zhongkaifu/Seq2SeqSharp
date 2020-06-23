@@ -50,7 +50,8 @@ OPS_API int TS_SoftmaxMask(
 	TensorRef* in_,
 	TensorRef* mask_,
 	int rows,
-	int cols);
+	int cols,
+	int maskRows);
 
 OPS_API int TS_SoftmaxGrad(
 	TensorRef* grad_,
@@ -88,7 +89,7 @@ void Softmax(TensorRef* out, TensorRef* in, int rows, int cols) {
 
 
 template<typename T>
-void SoftmaxMask(TensorRef* out, TensorRef* in, TensorRef* mask, int rows, int cols) {
+void SoftmaxMask(TensorRef* out, TensorRef* in, TensorRef* mask, int rows, int cols, int maskRows) {
 	T* pOut = (T*)out->buffer;
 	T* pIn = (T*)in->buffer;
 	T* pMask = (T*)mask->buffer;
@@ -96,7 +97,7 @@ void SoftmaxMask(TensorRef* out, TensorRef* in, TensorRef* mask, int rows, int c
 	for (int j = 0; j < rows; ++j) {
 		T* so = pOut + j * cols;
 		T* sp = pIn + j * cols;
-		T* mp = pMask + j * cols;
+		T* mp = pMask + (j % maskRows) * cols;
 
 		T max = sp[0];
 		for (int i = 1; i < cols; ++i)

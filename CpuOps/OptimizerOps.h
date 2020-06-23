@@ -37,6 +37,40 @@ OPS_API int TS_Adam(
 	int iter,
 	float eps);
 
+
+OPS_API int TS_UpdateCost(
+	TensorRef* tw,
+	TensorRef* tids,
+	TensorRef* tc,
+	int rows,
+	int cols);
+
+
+template<typename T>
+void UpdateCost(TensorRef* tw, TensorRef* tids, TensorRef* tc, unsigned rows, unsigned cols)
+{
+	T* weights = (T*)tw->buffer;
+	T* costs = (T*)tc->buffer;
+	int* ids = (int*)tids->buffer;
+
+	for (int j = 0; j < rows; j++)
+	{
+		T* sw = weights + j * cols;
+		int sid = ids[j];
+
+		if (sid >= 0)
+		{
+			costs[j] = -log(sw[sid]);
+			sw[sid] -= 1.0f;
+		}
+		else
+		{
+			costs[j] = 0.0f;
+			sw[sid] = 0.0f;
+		}
+	}
+}
+
 template<typename T>
 void Adam(TensorRef* tw, TensorRef* tg, TensorRef* tv, TensorRef* tm, int rows, int cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
 {

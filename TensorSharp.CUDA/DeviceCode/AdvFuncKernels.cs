@@ -1,4 +1,5 @@
-﻿using ManagedCuda;
+﻿using AdvUtils;
+using ManagedCuda;
 using ManagedCuda.BasicTypes;
 using ManagedCuda.VectorTypes;
 using System;
@@ -267,7 +268,100 @@ __global__ void gAddLNormalization(float* out,
   }
 }
 
+__global__ void UpdateCost(float* weights, int* ids, float* costs, unsigned rows, unsigned cols)
+{
+    for(int bid = 0; bid < rows; bid += gridDim.x) 
+    {
+      int j = bid + blockIdx.x;
+      if(j < rows && threadIdx.x == 0) 
+      {
+        float* sw = weights + j * cols;
+        int sid = ids[j];
 
+        if (sid >= 0)
+        {
+          costs[j] = -logf(sw[sid]);
+          sw[sid] -= 1.0f;
+        }
+        else
+        {
+          costs[j] = 0.0f;
+          sw[sid] = 0.0f;
+        }
+      }
+    }
+}
+
+
+__global__ void BuildPadSelfTriMask(float* weights, int* originalLengths, int batchSize, unsigned rows, unsigned cols)
+{
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+
+      int paddedLength = cols;
+      float* weights_j = weights + j * cols;
+
+      int originalLen = originalLengths[j / paddedLength];
+
+      int row_i = j % paddedLength;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+
+            if (row_i >= id && id < originalLen)
+            {
+                  weights_j[id] = 0.0f;
+            }
+            else
+            {
+                  weights_j[id] = -1e30f;
+            }
+
+        }
+      }
+
+    }
+
+  }
+}
+
+
+__global__ void BuildSrcTgtMask(float* weights, int* originalSrcLengths, int* originalTgtLengths, int batchSize, unsigned rows, unsigned cols)
+{
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+
+      //int paddedSrcLength = cols;
+      int paddedTgtLength = rows / batchSize;
+
+      float* weights_j = weights + j * cols;
+
+      int originalSrcLen = originalSrcLengths[j / paddedTgtLength];
+      int originalTgtLen = originalTgtLengths[j / paddedTgtLength];
+
+      int row_i = j % paddedTgtLength;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+
+           if (row_i < originalTgtLen && id < originalSrcLen)
+           {
+              weights_j[id] = 0.0f;
+           }
+           else
+           {
+              weights_j[id] = -1e30f;
+           }
+        }
+      }
+    }
+
+  }
+}
 
 
 
@@ -597,14 +691,14 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
 
 
-  __global__ void gSoftmaxMask(float* out, float* in, float *mask, unsigned rows, unsigned cols)
+  __global__ void gSoftmaxMask(float* out, float* in, float *mask, unsigned rows, unsigned cols, unsigned maskRows)
   {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
       float* so = out + j * cols;
       const float* sp = in + j * cols;
-      const float* mp = mask + j * cols;
+      const float* mp = mask + (j % maskRows) * cols;
 
       extern __shared__ float _share[];     
       float* _max = _share;
@@ -687,6 +781,123 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             return Code;
         }
 
+ 
+        private void BuildPadSelfTriMask(TSCudaContext context, Tensor mask, Tensor originalLengths, int batchSize)
+        {
+            CudaContext cudaContext = context.CudaContextForTensor(mask);
+
+            cudaContext.SetCurrent();
+
+            int ndim = mask.DimensionCount;
+            long rows = 1;
+            for (int dim = 0; dim < ndim - 1; dim++)
+            {
+                rows *= mask.Sizes[dim];
+            }
+
+            long cols = mask.Sizes[ndim - 1];
+
+            dim3 threads = new dim3((uint)Math.Min(512, rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+
+
+            CUdeviceptr maskPtr = CudaHelpers.GetBufferStart(mask);
+            CUdeviceptr originalLengthsPtr = CudaHelpers.GetBufferStart(originalLengths);
+
+            Invoke(context, cudaContext, "BuildPadSelfTriMask", grid, threads, 0, CUstream.NullStream, maskPtr, originalLengthsPtr, batchSize, rows, cols);
+        }
+
+        public Tensor BuildPadSelfTriMask(Tensor originalLengths, int batchSize, int paddedLength)
+        {
+            TSCudaContext context = CudaHelpers.TSContextForTensor(originalLengths);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(null, originalLengths.Allocator, DType.Float32, true, new long[] { batchSize, paddedLength, paddedLength });
+
+            BuildPadSelfTriMask(context, writeTarget, originalLengths, batchSize);
+
+            return writeTarget;
+        }
+
+
+
+        //BuildSrcTgtMask(float* weights, int* originalSrcLengths, int* originalTgtLengths, int batchSize, unsigned rows, unsigned cols)
+
+        private void BuildSrcTgtMask(TSCudaContext context, Tensor mask, Tensor originalSrcLengths, Tensor originalTgtLengths, int batchSize)
+        {
+            CudaContext cudaContext = context.CudaContextForTensor(mask);
+
+            cudaContext.SetCurrent();
+
+            int ndim = mask.DimensionCount;
+            long rows = 1;
+            for (int dim = 0; dim < ndim - 1; dim++)
+            {
+                rows *= mask.Sizes[dim];
+            }
+
+            long cols = mask.Sizes[ndim - 1];
+
+            dim3 threads = new dim3((uint)Math.Min(512, rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+
+
+            CUdeviceptr maskPtr = CudaHelpers.GetBufferStart(mask);
+            CUdeviceptr originalSrcLengthsPtr = CudaHelpers.GetBufferStart(originalSrcLengths);
+            CUdeviceptr originalTgtLengthsPtr = CudaHelpers.GetBufferStart(originalTgtLengths);
+
+
+            Invoke(context, cudaContext, "BuildSrcTgtMask", grid, threads, 0, CUstream.NullStream, maskPtr, originalSrcLengthsPtr, originalTgtLengthsPtr, batchSize, rows, cols);
+        }
+
+        public Tensor BuildSrcTgtMask(Tensor originalSrcLengths, Tensor originalTgtLengths, int batchSize, int paddedSrcLength, int paddedTgtLength)
+        {
+            TSCudaContext context = CudaHelpers.TSContextForTensor(originalSrcLengths);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(null, originalSrcLengths.Allocator, DType.Float32, true, new long[] { batchSize, paddedTgtLength, paddedSrcLength });
+
+            BuildSrcTgtMask(context, writeTarget, originalSrcLengths, originalTgtLengths, batchSize);
+
+            return writeTarget;
+        }
+
+
+
+        private void UpdateCost(TSCudaContext context, Tensor weight, Tensor ids, Tensor costs)
+        {
+            CudaContext cudaContext = context.CudaContextForTensor(weight);
+
+            cudaContext.SetCurrent();
+
+            int ndim = weight.DimensionCount;
+            long rows = 1;
+            for (int dim = 0; dim < ndim - 1; dim++)
+            {
+                rows *= weight.Sizes[dim];
+            }
+
+            long cols = weight.Sizes[ndim - 1];
+
+            dim3 threads = new dim3((uint)Math.Min(512, rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+
+            CUdeviceptr weightPtr = CudaHelpers.GetBufferStart(weight);
+            CUdeviceptr idsPtr = CudaHelpers.GetBufferStart(ids);
+            CUdeviceptr costsPtr = CudaHelpers.GetBufferStart(costs);
+
+            Invoke(context, cudaContext, "UpdateCost", grid, threads, 0, CUstream.NullStream, weightPtr, idsPtr, costsPtr, rows, cols);
+        }
+
+
+        public Tensor UpdateCost(Tensor costs, Tensor weight, Tensor ids)
+        {
+            TSCudaContext context = CudaHelpers.TSContextForTensor(weight);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(costs, weight, true, ids.Sizes);
+
+            Ops.Fill(writeTarget, 0.0f);
+
+            UpdateCost(context, weight, ids, writeTarget);
+
+            return writeTarget;
+        }
+
 
         public Tensor LayerNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps = 1e-9f)
         {
@@ -705,17 +916,18 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             cudaContext.SetCurrent();
 
             int ndim = inGrad.DimensionCount;
-            long num_rows = 1;
-            for (int dim = 0; dim < ndim - 1; dim++)
-            {
-                num_rows *= inGrad.Sizes[dim];
-            }
-
-            long rows = num_rows;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(inGrad.Sizes, inGrad.Strides);
             long cols = inGrad.Sizes[ndim - 1];
 
-            dim3 threads = new dim3((uint)Math.Min(512, num_rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+            dim3 threads = new dim3((uint)Math.Min(512, rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
 
             CUdeviceptr outGradPtr = CudaHelpers.GetBufferStart(outGrad);
             CUdeviceptr alphaGradPtr = CudaHelpers.GetBufferStart(alphaGrad);
@@ -745,19 +957,19 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             CudaContext cudaContext = context.CudaContextForTensor(inGrad);
 
             cudaContext.SetCurrent();
-
             int ndim = inGrad.DimensionCount;
-            long num_rows = 1;
-            for (int dim = 0; dim < ndim - 1; dim++)
-            {
-                num_rows *= inGrad.Sizes[dim];
-            }
-
-            long rows = num_rows;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(inGrad.Sizes, inGrad.Strides);
             long cols = inGrad.Sizes[ndim - 1];
 
-            dim3 threads = new dim3((uint)Math.Min(512, num_rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+            dim3 threads = new dim3((uint)Math.Min(512, rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
 
             CUdeviceptr out1GradPtr = CudaHelpers.GetBufferStart(out1Grad);
             CUdeviceptr out2GradPtr = CudaHelpers.GetBufferStart(out2Grad);
@@ -793,17 +1005,19 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             cudaContext.SetCurrent();
 
             int ndim = src.DimensionCount;
-            long num_rows = 1;
-            for (int dim = 0; dim < ndim - 1; dim++)
-            {
-                num_rows *= src.Sizes[dim];
-            }
-
-            long rows = num_rows;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(src.Sizes, src.Strides);
             long cols = src.Sizes[ndim - 1];
 
-            dim3 threads = new dim3((uint)Math.Min(512, num_rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+
+            dim3 threads = new dim3((uint)Math.Min(512, rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
 
             CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
             CUdeviceptr srcPtr = CudaHelpers.GetBufferStart(src);
@@ -831,17 +1045,19 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             cudaContext.SetCurrent();
 
             int ndim = src1.DimensionCount;
-            long num_rows = 1;
-            for (int dim = 0; dim < ndim - 1; dim++)
-            {
-                num_rows *= src1.Sizes[dim];
-            }
-
-            long rows = num_rows;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(src1.Sizes, src1.Strides);
             long cols = src1.Sizes[ndim - 1];
 
-            dim3 threads = new dim3((uint)Math.Min(512, num_rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+
+            dim3 threads = new dim3((uint)Math.Min(512, rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
 
             CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
             CUdeviceptr src1Ptr = CudaHelpers.GetBufferStart(src1);
@@ -862,17 +1078,19 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             cudaContext.SetCurrent();
 
             int ndim = src.DimensionCount;
-            long num_rows = 1;
-            for (int dim = 0; dim < ndim - 1; dim++)
-            {
-                num_rows *= src.Sizes[dim];
-            }
-
-            long rows = num_rows;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(src.Sizes, src.Strides);
             long cols = src.Sizes[ndim - 1];
 
-            dim3 threads = new dim3((uint)Math.Min(512, num_rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+
+            dim3 threads = new dim3((uint)Math.Min(512, rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
 
             CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
             CUdeviceptr srcPtr = CudaHelpers.GetBufferStart(src);
@@ -888,23 +1106,49 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             cudaContext.SetCurrent();
 
             int ndim = src.DimensionCount;
-            long num_rows = 1;
-            for (int dim = 0; dim < ndim - 1; dim++)
-            {
-                num_rows *= src.Sizes[dim];
-            }
-
-            long rows = num_rows;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(src.Sizes, src.Strides);
             long cols = src.Sizes[ndim - 1];
 
-            dim3 threads = new dim3((uint)Math.Min(512, num_rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+
+
+
+            int maskNdim = mask.DimensionCount;
+            long maskStorageSize = TensorDimensionHelpers.GetStorageSize(mask.Sizes, mask.Strides);
+            long maskCols = mask.Sizes[maskNdim - 1];
+
+            if (maskStorageSize % maskCols != 0)
+            {
+                throw new Exception($"Invalid mask tensor storage size = '{maskStorageSize}', and cols = '{maskCols}'");
+            }
+
+            long maskRows = maskStorageSize / maskCols;
+
+            if (rows % maskRows != 0)
+            {
+                throw new Exception($"Invalid tensor rows = '{rows}' and mask tensor rows = '{maskRows}'");
+            }
+
+            if (cols != maskCols)
+            {
+                throw new Exception($"Tensor cols = '{cols}', mask tensor cols = '{maskCols}'. They should be equal.");
+            }
+
+
+            dim3 threads = new dim3((uint)Math.Min(512, rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
 
             CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
             CUdeviceptr srcPtr = CudaHelpers.GetBufferStart(src);
             CUdeviceptr maskPtr = CudaHelpers.GetBufferStart(mask);
 
-            Invoke(context, cudaContext, "gSoftmaxMask", grid, threads, threads.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, maskPtr, rows, cols);
+            Invoke(context, cudaContext, "gSoftmaxMask", grid, threads, threads.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, maskPtr, rows, cols, maskRows);
         }
 
 
@@ -915,18 +1159,18 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             cudaContext.SetCurrent();
 
             int ndim = weight.DimensionCount;
-            long num_rows = 1;
-            for (int dim = 0; dim < ndim - 1; dim++)
-            {
-                num_rows *= weight.Sizes[dim];
-            }
-
-            long rows = num_rows;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(weight.Sizes, weight.Strides);
             long cols = weight.Sizes[ndim - 1];
 
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
 
-            dim3 threads = new dim3((uint)Math.Min(512, num_rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
+            long rows = storageSize / cols;
+
+            dim3 threads = new dim3((uint)Math.Min(512, rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
 
             CUdeviceptr weightPtr = CudaHelpers.GetBufferStart(weight);
             CUdeviceptr gradientPtr = CudaHelpers.GetBufferStart(gradient);
@@ -951,17 +1195,18 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             cudaContext.SetCurrent();
 
             int ndim = weight.DimensionCount;
-            long num_rows = 1;
-            for (int dim = 0; dim < ndim - 1; dim++)
-            {
-                num_rows *= weight.Sizes[dim];
-            }
-
-            long rows = num_rows;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(weight.Sizes, weight.Strides);
             long cols = weight.Sizes[ndim - 1];
 
-            dim3 threads = new dim3((uint)Math.Min(512, num_rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+            dim3 threads = new dim3((uint)Math.Min(512, rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
 
             CUdeviceptr weightPtr = CudaHelpers.GetBufferStart(weight);
             CUdeviceptr gradientPtr = CudaHelpers.GetBufferStart(gradient);
@@ -985,18 +1230,20 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             cudaContext.SetCurrent();
 
             int ndim = grad.DimensionCount;
-            long num_rows = 1;
-            for (int dim = 0; dim < ndim - 1; dim++)
+            long storageSize = TensorDimensionHelpers.GetStorageSize(grad.Sizes, grad.Strides);
+            long cols = grad.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
             {
-                num_rows *= grad.Sizes[dim];
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
             }
 
-            long rows = num_rows;
-            long cols = grad.Sizes[ndim - 1];
+            long rows = storageSize / cols;
+
             int iAddGrad = addGrad ? 1 : 0;
 
-            dim3 threads = new dim3((uint)Math.Min(512, num_rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(num_rows, threads.y)));
+            dim3 threads = new dim3((uint)Math.Min(512, rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
 
             CUdeviceptr gradPtr = CudaHelpers.GetBufferStart(grad);
             CUdeviceptr adjPtr = CudaHelpers.GetBufferStart(adj);

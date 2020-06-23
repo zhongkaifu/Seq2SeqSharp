@@ -92,7 +92,7 @@ namespace Seq2SeqConsole
                     Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
                     ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, dropoutRatio: opts.DropoutRatio, deviceIds: deviceIds,
                         isSrcEmbTrainable: opts.IsSrcEmbeddingTrainable, isTgtEmbTrainable: opts.IsTgtEmbeddingTrainable, isEncoderTrainable: opts.IsEncoderTrainable, isDecoderTrainable: opts.IsDecoderTrainable,
-                        maxTgtSntSize: opts.MaxSentLength, memoryUsageRatio: opts.MemoryUsageRatio);
+                        maxTgtSntSize: opts.MaxSentLength, memoryUsageRatio: opts.MemoryUsageRatio, aggregateSrcLength: opts.AggregateSrcLength);
                 }
                 else
                 {
@@ -113,7 +113,7 @@ namespace Seq2SeqConsole
                     ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth,
                         srcEmbeddingFilePath: opts.SrcEmbeddingModelFilePath, tgtEmbeddingFilePath: opts.TgtEmbeddingModelFilePath, vocab: vocab, modelFilePath: opts.ModelFilePath,
                         dropoutRatio: opts.DropoutRatio, processorType: processorType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType, decoderType: decoderType,
-                        maxTgtSntSize: opts.MaxSentLength, enableCoverageModel: opts.EnableCoverageModel, memoryUsageRatio: opts.MemoryUsageRatio);
+                        maxTgtSntSize: opts.MaxSentLength, enableCoverageModel: opts.EnableCoverageModel, memoryUsageRatio: opts.MemoryUsageRatio, aggregateSrcLength: opts.AggregateSrcLength);
                 }
 
                 // Add event handler for monitoring
@@ -136,7 +136,7 @@ namespace Seq2SeqConsole
                 // Load valid corpus
                 ParallelCorpus validCorpus = new ParallelCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
 
-                ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds, memoryUsageRatio: opts.MemoryUsageRatio);
+                ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds, memoryUsageRatio: opts.MemoryUsageRatio, aggregateSrcLength: opts.AggregateSrcLength);
                 ss.Valid(validCorpus: validCorpus, metrics: metrics);
             }
             else if (mode == ModeEnums.Test)
@@ -144,7 +144,7 @@ namespace Seq2SeqConsole
                 Logger.WriteLine($"Test model '{opts.ModelFilePath}' by input corpus '{opts.InputTestFile}'");
 
                 //Test trained model
-                ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds, memoryUsageRatio: opts.MemoryUsageRatio);
+                ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds, memoryUsageRatio: opts.MemoryUsageRatio, aggregateSrcLength: opts.AggregateSrcLength, maxTgtSntSize: opts.MaxSentLength);
 
                 List<string> outputLines = new List<string>();
                 string[] data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);

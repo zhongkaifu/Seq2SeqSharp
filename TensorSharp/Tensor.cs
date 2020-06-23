@@ -265,6 +265,16 @@ namespace TensorSharp
             return sb.ToString();
         }
 
+        public int[] GetElementsAsInt(int length)
+        {
+            return storage.GetElementsAsInt(storageOffset, length);
+        }
+
+        public void SetElementsAsInt(int[] value)
+        {
+            storage.SetElementsAsInt(storageOffset, value);
+        }
+
         public Tensor View(params long[] sizes)
         {
             if (!IsContiguous())
@@ -294,7 +304,7 @@ namespace TensorSharp
 
             if (size <= 0 || startIndex + size > sizes[dimension])
             {
-                throw new ArgumentOutOfRangeException("size");
+                throw new ArgumentOutOfRangeException("size", $"startIndex = '{startIndex}', sizes[dimension] = '{sizes[dimension]}', dimension = '{dimension}', size = '{size}'");
             }
 
             long newOffset = storageOffset + startIndex * strides[dimension];

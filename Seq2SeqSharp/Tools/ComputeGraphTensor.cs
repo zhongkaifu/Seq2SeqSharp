@@ -156,13 +156,6 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        public IWeightTensor BuildPositionMatrix(int row, int column)
-        {
-            WeightTensor res = m_weightTensorFactory.BuildPositionWeightTensor(row, column, m_deviceId, name: "PositionEmbeddings", isTrainable: true);
-
-            return res;
-        }
-
         public IWeightTensor Sigmoid(IWeightTensor w)
         {
             WeightTensor m = w as WeightTensor;
@@ -417,6 +410,21 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+        public float UpdateCost(IWeightTensor m, int[] ids)
+        {
+            WeightTensor t = m as WeightTensor;
+
+            using (Tensor idsTensor = new Tensor(TensorAllocator.Allocator(m_deviceId), DType.Int32, 1, ids.Length))
+            {
+                idsTensor.SetElementsAsInt(ids);
+                using (Tensor costs = Ops.UpdateCost(null, t.TWeight, idsTensor))
+                {
+                    return Ops.SumAll(costs);
+                }
+            }
+        }
+
+
         public IWeightTensor Add(IWeightTensor w1, IWeightTensor w2, bool runGradient1 = true, bool runGradient2 = true)
         {
             WeightTensor m1 = w1 as WeightTensor;
@@ -518,37 +526,29 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor t1 = m1 as WeightTensor;
             WeightTensor t2 = m2 as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor((int)(batchSize * t1.TWeight.Sizes[1]), (int)t2.TWeight.Sizes[2], m_deviceId, name: $"{GetHashString(m1.Name, m2.Name)}.MulBatch", graphToBind: this);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { batchSize, t1.TWeight.Sizes[1], t2.TWeight.Sizes[2] }, m_deviceId, name: $"{GetHashString(m1.Name, m2.Name)}.MulBatch", graphToBind: this);
             VisualizeNodes(new IWeightTensor[] { m1, m2 }, res);
 
             Tensor t1W = t1.TWeight;
             Tensor t2W = t2.TWeight;
-            using (Tensor rW = res.TWeight.View(batchSize, t1.TWeight.Sizes[1], t2.TWeight.Sizes[2]))
-            {
-                Ops.AddmmBatch(rW, 0.0f, rW, alpha, t1W, t2W);
-            }
+
+            Ops.AddmmBatch(res.TWeight, 0.0f, res.TWeight, alpha, t1W, t2W);
+
 
             if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
                     res.ReleaseWeight();
-                    using (Tensor rG = res.TGradient.View(batchSize, t1.TWeight.Sizes[1], t2.TWeight.Sizes[2]))
+
+                    using (Tensor tW2 = t2W.Transpose(1, 2))
                     {
-                        using (Tensor t1G = t1.TGradient.View(t1.TWeight.Sizes[0], t1.TWeight.Sizes[1], t1.TWeight.Sizes[2]))
-                        {
-                            using (Tensor tW2 = t2W.Transpose(1, 2))
-                            {
-                                Ops.AddmmBatch(t1G, 1.0f, t1G, alpha, rG, tW2);
-                            }
-                        }
-                        using (Tensor t2G = t2.TGradient.View(t2.TWeight.Sizes[0], t2.TWeight.Sizes[1], t2.TWeight.Sizes[2]))
-                        {
-                            using (Tensor tW1 = t1W.Transpose(1, 2))
-                            {
-                                Ops.AddmmBatch(t2G, 1.0f, t2G, alpha, tW1, rG);
-                            }
-                        }
+                        Ops.AddmmBatch(t1.TGradient, 1.0f, t1.TGradient, alpha, res.TGradient, tW2);
+                    }
+
+                    using (Tensor tW1 = t1W.Transpose(1, 2))
+                    {
+                        Ops.AddmmBatch(t2.TGradient, 1.0f, t2.TGradient, alpha, tW1, res.TGradient);
                     }
 
                     res.Dispose();

@@ -78,6 +78,21 @@ namespace TensorSharp
         }
 
 
+        public static Tensor UpdateCost(Tensor costs, Tensor weight, Tensor ids)
+        {
+            return (Tensor)OpRegistry.Invoke("updatecost", costs, weight, ids);
+        }
+
+        public static Tensor BuildPadSelfTriMask(Tensor originalLengths, int batchSize, int paddedLength)
+        {
+            return (Tensor)OpRegistry.Invoke("buildpadselftrimask", originalLengths, batchSize, paddedLength);
+        }
+
+
+        public static Tensor BuildSrcTgtMask(Tensor originalSrcLengths, Tensor originalTgtLengths, int batchSize, int paddedSrcLength, int paddedTgtLength)
+        {
+            return (Tensor)OpRegistry.Invoke("buildsrctgtmask", originalSrcLengths, originalTgtLengths, batchSize, paddedSrcLength, paddedTgtLength);
+        }
 
 
         public static void Copy(Tensor result, Tensor src) { OpRegistry.Invoke("copy", result, src); }

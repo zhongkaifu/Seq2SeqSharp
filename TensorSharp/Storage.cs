@@ -28,6 +28,9 @@ namespace TensorSharp
         }
 
 
+        public abstract int[] GetElementsAsInt(long index, int length);
+        public abstract void SetElementsAsInt(long index, int[] value);
+
 
         public abstract string LocationDescription();
 

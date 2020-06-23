@@ -15,7 +15,6 @@ namespace Seq2SeqSharp
         IWeightTensor Tanh(IWeightTensor w);
         IWeightTensor Sigmoid(IWeightTensor w);
         IWeightTensor Relu(IWeightTensor w, bool inPlace = false);
-        IWeightTensor BuildPositionMatrix(int row, int column);
         IWeightTensor Affine(IWeightTensor m1, IWeightTensor m2, IWeightTensor mbias, float alpha = 1.0f);
         IWeightTensor EltMulMulAdd(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3, IWeightTensor w4);
         IWeightTensor TransposeBatch(IWeightTensor m, int batchSize);
@@ -51,5 +50,7 @@ namespace Seq2SeqSharp
 
         void Bind(IWeightTensor w);
         void Unbind(IWeightTensor w);
+
+        float UpdateCost(IWeightTensor m, int[] ids);
     }
 }
