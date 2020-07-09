@@ -21,5 +21,10 @@ namespace TensorSharp.CUDA
         {
             return new CudaStorage(this, context, context.CudaContextForDevice(deviceId), elementType, elementCount);
         }
+
+        public float GetAllocatedMemoryRatio()
+        {
+            return Context.AllocatorForDevice(DeviceId).GetAllocatedMemoryRatio();
+        }
     }
 }

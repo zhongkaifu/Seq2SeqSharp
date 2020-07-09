@@ -21,6 +21,9 @@ namespace Seq2SeqSharp
         IWeightTensor Permute(IWeightTensor w, params int[] dims);
         IWeightTensor View(IWeightTensor w, bool runGradient = true, params long[] dims);
         IWeightTensor Expand(IWeightTensor w, bool runGradient = true, params long[] dims);
+
+        IWeightTensor Select(IWeightTensor w, int dim, int index);
+
         IWeightTensor AddTanh(IWeightTensor w1, IWeightTensor w2);
 
         IWeightTensor AddTanh(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3);

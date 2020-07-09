@@ -10,5 +10,10 @@
         {
             return new CpuStorage(this, elementType, elementCount);
         }
+
+        public float GetAllocatedMemoryRatio()
+        {
+            return 0.0f;
+        }
     }
 }

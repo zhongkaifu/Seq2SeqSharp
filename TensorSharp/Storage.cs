@@ -41,5 +41,6 @@ namespace TensorSharp
 
         public abstract void CopyToStorage(long storageIndex, IntPtr src, long byteCount);
         public abstract void CopyFromStorage(IntPtr dst, long storageIndex, long byteCount);
+
     }
 }

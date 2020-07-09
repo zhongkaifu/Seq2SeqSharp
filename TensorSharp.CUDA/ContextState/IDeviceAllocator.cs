@@ -13,5 +13,6 @@ namespace TensorSharp.CUDA.ContextState
     public interface IDeviceAllocator : IDisposable
     {
         IDeviceMemory Allocate(long byteCount);
+        float GetAllocatedMemoryRatio();
     }
 }

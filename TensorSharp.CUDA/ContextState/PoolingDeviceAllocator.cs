@@ -13,7 +13,7 @@ namespace TensorSharp.CUDA.ContextState
         private readonly CudaContext m_context;
         private readonly object locker = new object();
 
-        private readonly SizeT m_availMemByteInTotal;
+        private readonly ulong m_ulAvailMemByteInTotal;
         private CUdeviceptr m_memPoolPtr;
         private readonly SizeT m_startMemAddr;
         private readonly SizeT m_endMemAddr;
@@ -25,18 +25,31 @@ namespace TensorSharp.CUDA.ContextState
             m_context = context;
             context.SetCurrent();
 
-            long av = context.GetFreeDeviceMemorySize();
-            m_availMemByteInTotal = (SizeT)((long)(av * memoryUsageRatio));
-            m_memPoolPtr = context.AllocateMemory(m_availMemByteInTotal);
+            m_ulAvailMemByteInTotal = (ulong)((ulong)context.GetFreeDeviceMemorySize() * memoryUsageRatio);
+
+            m_memPoolPtr = context.AllocateMemory(m_ulAvailMemByteInTotal);
 
             m_startMemAddr = m_memPoolPtr.Pointer;
-            m_endMemAddr = m_startMemAddr + m_availMemByteInTotal;
+            m_endMemAddr = m_startMemAddr + m_ulAvailMemByteInTotal;
 
             m_usedAddr2Size = new SortedDictionary<ulong, ulong>();
 
-            Logger.WriteLine($"Allocated Cuda memory: {m_availMemByteInTotal}, address from '{m_startMemAddr}' to '{m_endMemAddr}'");
+            Logger.WriteLine($"Allocated Cuda memory: {m_ulAvailMemByteInTotal}, address from '{m_startMemAddr}' to '{m_endMemAddr}'");
         }
 
+        public float GetAllocatedMemoryRatio()
+        {
+            lock (locker)
+            {
+                ulong allocatedMemByte = 0;
+                foreach (var pair in m_usedAddr2Size)
+                {
+                    allocatedMemByte += pair.Value;
+                }
+
+                return (float)((float)allocatedMemByte / (float)m_ulAvailMemByteInTotal);
+            }
+        }
 
         private CUdeviceptr AllocateMemory(ulong size)
         {
@@ -51,7 +64,7 @@ namespace TensorSharp.CUDA.ContextState
 
                     if (currMemAddrEnd > m_endMemAddr)
                     {
-                        throw new OutOfMemoryException($"Out of GPU memory. currMemAddrEnd = '{currMemAddrEnd}'('{currMemAddr}' + '{size}'), endMemAddr = '{m_endMemAddr}'");
+                        throw new OutOfMemoryException($"Out of GPU memory. Current memory usage = '{(GetAllocatedMemoryRatio() * 100.0f).ToString("F")}%'");
                     }
 
                     if (currMemAddrEnd < kv.Key)
@@ -68,7 +81,7 @@ namespace TensorSharp.CUDA.ContextState
                 currMemAddrEnd = currMemAddr + size;
                 if (currMemAddrEnd > m_endMemAddr)
                 {
-                    throw new OutOfMemoryException($"Out of GPU memory. currMemAddrEnd = '{currMemAddrEnd}'('{currMemAddr}' + '{size}'), endMemAddr = '{m_endMemAddr}'");
+                    throw new OutOfMemoryException($"Out of GPU memory. Current memory usage = '{(GetAllocatedMemoryRatio() * 100.0f).ToString("F")}%'");
                 }
 
                 m_usedAddr2Size.Add(currMemAddr, size);

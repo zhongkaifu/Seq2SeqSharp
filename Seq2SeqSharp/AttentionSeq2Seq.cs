@@ -156,22 +156,22 @@ namespace Seq2SeqSharp
         }
 
 
+        private double CalAngle(double position, double hid_idx, int d_hid)
+        {
+            return position / Math.Pow(10000, 2 * (hid_idx / 2) / d_hid);
+        }
+
         private WeightTensor BuildPositionWeightTensor(int row, int column, int deviceId, string name = "", bool isTrainable = false)
         {
             WeightTensor t = new WeightTensor(new long[2] { row, column }, deviceId, name: name, isTrainable: isTrainable);
-
-            //  double numTimescales = (float)column / 2;
-            double logTimescaleIncrement = Math.Log(10000.0f) / (float)(column);
             float[] posWeights = new float[row * column];
 
-            double sqrtC = Math.Sqrt(column);
             for (int p = 0; p < row; ++p)
             {
                 for (int i = 0; i < column; i += 2)
-                {
-                    float v = (float)(p * Math.Exp(i * -logTimescaleIncrement));
-                    posWeights[p * column + i] = (float)(Math.Sin(v) / sqrtC);
-                    posWeights[p * column + i + 1] = (float)(Math.Cos(v) / sqrtC);
+                {               
+                    posWeights[p * column + i] = (float)Math.Sin(CalAngle(p, i, column));
+                    posWeights[p * column + i + 1] = (float)Math.Cos(CalAngle(p, i, column));
                 }
             }
 
@@ -403,55 +403,53 @@ namespace Seq2SeqSharp
 
                     IWeightTensor decOutput = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g);
 
-                    //  decOutput = g.Mul(decOutput, g.Transpose(tgtEmbedding));
-
                     using (IWeightTensor probs = g.Softmax(decOutput, runGradients: false, inPlace: true))
                     {
-                        //if (isTraining)
-                        //{
-                        //    var leftShiftInputSeqs = ParallelCorpus.LeftShiftSnts(tgtSeqs, ParallelCorpus.EOS);
-                        //    for (int i = 0; i < batchSize; i++)
-                        //    {
-                        //        for (int j = 0; j < tgtSeqLen; j++)
-                        //        {
-                        //            using (IWeightTensor probs_i_j = g.PeekRow(probs, i * tgtSeqLen + j, runGradients: false))
-                        //            {
-                        //                if (j < tgtOriginalLengths[i])
-                        //                {
-                        //                    int ix_targets_i_j = m_modelMetaData.Vocab.GetTargetWordIndex(leftShiftInputSeqs[i][j], logUnk: true);
-                        //                    float score_i_j = probs_i_j.GetWeightAt(ix_targets_i_j);
-
-                        //                    cost += (float)-Math.Log(score_i_j);
-
-                        //                    probs_i_j.SetWeightAt(score_i_j - 1, ix_targets_i_j);
-                        //                }
-                        //                else
-                        //                {
-                        //                    probs_i_j.CleanWeight();
-                        //                }
-                        //            }
-                        //        }
-                        //    }
-
-                        //    decOutput.CopyWeightsToGradients(probs);
-                        //}
                         if (isTraining)
                         {
                             var leftShiftInputSeqs = ParallelCorpus.LeftShiftSnts(tgtSeqs, ParallelCorpus.EOS);
-                            int[] targetIds = new int[batchSize * tgtSeqLen];
-                            int ids = 0;
                             for (int i = 0; i < batchSize; i++)
                             {
                                 for (int j = 0; j < tgtSeqLen; j++)
                                 {
-                                    targetIds[ids] = j < tgtOriginalLengths[i] ? m_modelMetaData.Vocab.GetTargetWordIndex(leftShiftInputSeqs[i][j], logUnk: true) : -1;
-                                    ids++;
+                                    using (IWeightTensor probs_i_j = g.PeekRow(probs, i * tgtSeqLen + j, runGradients: false))
+                                    {
+                                        if (j < tgtOriginalLengths[i])
+                                        {
+                                            int ix_targets_i_j = m_modelMetaData.Vocab.GetTargetWordIndex(leftShiftInputSeqs[i][j], logUnk: true);
+                                            float score_i_j = probs_i_j.GetWeightAt(ix_targets_i_j);
+
+                                            cost += (float)-Math.Log(score_i_j);
+
+                                            probs_i_j.SetWeightAt(score_i_j - 1, ix_targets_i_j);
+                                        }
+                                        else
+                                        {
+                                            probs_i_j.CleanWeight();
+                                        }
+                                    }
                                 }
                             }
 
-                            cost += g.UpdateCost(probs, targetIds);
                             decOutput.CopyWeightsToGradients(probs);
                         }
+                        //if (isTraining)
+                        //{
+                        //    var leftShiftInputSeqs = ParallelCorpus.LeftShiftSnts(tgtSeqs, ParallelCorpus.EOS);
+                        //    int[] targetIds = new int[batchSize * tgtSeqLen];
+                        //    int ids = 0;
+                        //    for (int i = 0; i < batchSize; i++)
+                        //    {
+                        //        for (int j = 0; j < tgtSeqLen; j++)
+                        //        {
+                        //            targetIds[ids] = j < tgtOriginalLengths[i] ? m_modelMetaData.Vocab.GetTargetWordIndex(leftShiftInputSeqs[i][j], logUnk: true) : -1;
+                        //            ids++;
+                        //        }
+                        //    }
+
+                        //    cost += g.UpdateCost(probs, targetIds);
+                        //    decOutput.CopyWeightsToGradients(probs);
+                        //}
                         else
                         {
                             // Output "i"th target word
@@ -466,6 +464,7 @@ namespace Seq2SeqSharp
                     }
                 }
             }
+
 
 
             return cost;
@@ -534,53 +533,52 @@ namespace Seq2SeqSharp
                 //Softmax for output
                 using (IWeightTensor probs = g.Softmax(eOutput, runGradients: false, inPlace: true))
                 {
-                    //if (isTraining)
-                    //{
-                    //    //Calculate loss for each word in the batch
-                    //    for (int k = 0; k < batchSize; k++)
-                    //    {
-                    //        using (IWeightTensor probs_k = g.PeekRow(probs, k, runGradients: false))
-                    //        {
-                    //            int ix_targets_k = m_modelMetaData.Vocab.GetTargetWordIndex(outputSnts[k][i]);
-                    //            float score_k = probs_k.GetWeightAt(ix_targets_k);
-                    //            if (i < originalOutputLengths[k])
-                    //            {
-                    //                var lcost = (float)-Math.Log(score_k);
-                    //                if (float.IsNaN(lcost))
-                    //                {
-                    //                    Logger.WriteLine($"Score = '{score_k}' Cost = Nan at index '{i}' word '{outputSnts[k][i]}'");
-                    //                    Logger.WriteLine($"Output Sentence = '{String.Join(" ", outputSnts[k])}'");
-                    //                }
-                    //                else
-                    //                {
-                    //                    cost += lcost;
-                    //                }
-                    //            }
-
-                    //            probs_k.SetWeightAt(score_k - 1, ix_targets_k);
-                    //            ix_inputs[k] = ix_targets_k;
-                    //        }
-                    //    }
-                    //    eOutput.CopyWeightsToGradients(probs);
-                    //}
                     if (isTraining)
                     {
                         //Calculate loss for each word in the batch
-                        int[] targetIds = new int[batchSize];
-                        int ids = 0;
                         for (int k = 0; k < batchSize; k++)
                         {
-                            int targetsId_k = m_modelMetaData.Vocab.GetTargetWordIndex(outputSnts[k][i]);
-                            targetIds[ids] = i < originalOutputLengths[k] ? targetsId_k : -1;
-                            ix_inputs[k] = targetsId_k;
+                            using (IWeightTensor probs_k = g.PeekRow(probs, k, runGradients: false))
+                            {
+                                int ix_targets_k = m_modelMetaData.Vocab.GetTargetWordIndex(outputSnts[k][i]);
+                                float score_k = probs_k.GetWeightAt(ix_targets_k);
+                                if (i < originalOutputLengths[k])
+                                {
+                                    var lcost = (float)-Math.Log(score_k);
+                                    if (float.IsNaN(lcost))
+                                    {
+                                        throw new ArithmeticException($"Score = '{score_k}' Cost = Nan at index '{i}' word '{outputSnts[k][i]}', Output Sentence = '{String.Join(" ", outputSnts[k])}'");
+                                    }
+                                    else
+                                    {
+                                        cost += lcost;
+                                    }
+                                }
 
-                            ids++;
+                                probs_k.SetWeightAt(score_k - 1, ix_targets_k);
+                                ix_inputs[k] = ix_targets_k;
+                            }
                         }
-
-                        cost += g.UpdateCost(probs, targetIds);
                         eOutput.CopyWeightsToGradients(probs);
-
                     }
+                    //if (isTraining)
+                    //{
+                    //    //Calculate loss for each word in the batch
+                    //    int[] targetIds = new int[batchSize];
+                    //    int ids = 0;
+                    //    for (int k = 0; k < batchSize; k++)
+                    //    {
+                    //        int targetsId_k = m_modelMetaData.Vocab.GetTargetWordIndex(outputSnts[k][i]);
+                    //        targetIds[ids] = i < originalOutputLengths[k] ? targetsId_k : -1;
+                    //        ix_inputs[k] = targetsId_k;
+
+                    //        ids++;
+                    //    }
+
+                    //    cost += g.UpdateCost(probs, targetIds);
+                    //    eOutput.CopyWeightsToGradients(probs);
+
+                    //}
                     else
                     {
                         // Output "i"th target word

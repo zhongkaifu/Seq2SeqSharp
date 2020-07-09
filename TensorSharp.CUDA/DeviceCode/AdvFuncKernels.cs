@@ -491,7 +491,7 @@ __global__ void Adam(float* __restrict__ w, float* __restrict__ g, float* __rest
       for(int tid = 0; tid < cols; tid += blockDim.x) 
       {        
         int i = tid + threadIdx.x;
-        if(i < cols && sg[i] != 0.0) 
+        if(i < cols)
         {
           // float g = sg[i] / batchSize;
            

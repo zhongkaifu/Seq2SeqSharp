@@ -166,20 +166,29 @@ namespace Seq2SeqSharp.Tools
                         {
                             if (err.InnerExceptions != null)
                             {
-                                bool isOutOfMemExcep = false;
+                                string oomMessage = String.Empty;
+                                bool isOutOfMemException = false;
+                                bool isArithmeticException = false;
                                 foreach (var excep in err.InnerExceptions)
                                 {
                                     if (excep is OutOfMemoryException)
                                     {
-                                        isOutOfMemExcep = true;
+                                        isOutOfMemException = true;
+                                        oomMessage = excep.Message;
+                                        break;
+                                    }
+                                    else if (excep is ArithmeticException)
+                                    {
+                                        isArithmeticException = true;
+                                        oomMessage = excep.Message;
                                         break;
                                     }
                                 }
 
-                                if (isOutOfMemExcep)
+                                if (isOutOfMemException)
                                 {
                                     batchSplitFactor *= 2;
-                                    Logger.WriteLine($"Got an out of memory exception, so we increase batch split factor to {batchSplitFactor}, and retry it.");
+                                    Logger.WriteLine($"Got an exception ('{oomMessage}'), so we increase batch split factor to {batchSplitFactor}, and retry it.");
 
                                     if (batchSplitFactor >= sntPairBatchs[0].BatchSize)
                                     {
@@ -187,23 +196,28 @@ namespace Seq2SeqSharp.Tools
                                         break;
                                     }
                                 }
+                                else if (isArithmeticException)
+                                {
+                                    Logger.WriteLine($"Arithmetic exception: '{err.Message}'");
+                                    break;
+                                }
                                 else
                                 {
                                     Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}, Call stack: {err.StackTrace}");
-                                    break;
+                                    throw err;
                                 }
                             }
                             else
                             {
                                 Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}, Call stack: {err.StackTrace}");
-                                break;
+                                throw err;
                             }
 
                         }
                         catch (OutOfMemoryException err)
                         {
                             batchSplitFactor *= 2;
-                            Logger.WriteLine($"Got an out of memory exception, so we increase batch split factor to {batchSplitFactor}, and retry it.");
+                            Logger.WriteLine($"Got an exception ('{err.Message}'), so we increase batch split factor to {batchSplitFactor}, and retry it.");
 
                             if (batchSplitFactor >= sntPairBatchs[0].BatchSize)
                             {
@@ -211,10 +225,15 @@ namespace Seq2SeqSharp.Tools
                                 break;
                             }
                         }
+                        catch (ArithmeticException err)
+                        {
+                            Logger.WriteLine($"Arithmetic exception: '{err.Message}'");
+                            break;
+                        }
                         catch (Exception err)
                         {
                             Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}, Call stack: {err.StackTrace}");
-                            break;
+                            throw err;
                         }
                     }
 
@@ -314,11 +333,18 @@ namespace Seq2SeqSharp.Tools
             hypTkns.Add(new List<string>());
             hypTkns[0].Add(ParallelCorpus.BOS);
 
-            // Create a new computing graph instance
-            using (IComputeGraph computeGraph = CreateComputGraph(DeviceIds[0], needBack: false))
+            try
             {
-                // Run forward part
-                ForwardOnSingleDevice(computeGraph, inputTokens, hypTkns, DeviceIds[0], false);
+                // Create a new computing graph instance
+                using (IComputeGraph computeGraph = CreateComputGraph(DeviceIds[0], needBack: false))
+                {
+                    // Run forward part
+                    ForwardOnSingleDevice(computeGraph, inputTokens, hypTkns, DeviceIds[0], false);
+                }
+            }
+            catch (Exception err)
+            {
+                Logger.WriteLine(Logger.Level.err, $"{err.Message}");
             }
        
             return hypTkns;

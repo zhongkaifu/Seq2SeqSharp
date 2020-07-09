@@ -27,6 +27,11 @@ namespace TensorSharp.CUDA.ContextState
             CUdeviceptr buffer = context.AllocateMemory(byteCount);
             return new BasicDeviceMemory(buffer, () => context.FreeMemory(buffer));
         }
+
+        public float GetAllocatedMemoryRatio()
+        {
+            return 0.0f;
+        }
     }
 
     public class BasicDeviceMemory : IDeviceMemory

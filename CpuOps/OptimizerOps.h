@@ -60,7 +60,7 @@ void UpdateCost(TensorRef* tw, TensorRef* tids, TensorRef* tc, unsigned rows, un
 
 		if (sid >= 0)
 		{
-			costs[j] = -log(sw[sid]);
+			costs[j] = -log(sw[sid] + 1e-30f);
 			sw[sid] -= 1.0f;
 		}
 		else

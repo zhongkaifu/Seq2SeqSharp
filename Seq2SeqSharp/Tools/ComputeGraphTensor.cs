@@ -779,6 +779,37 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+        public IWeightTensor Select(IWeightTensor w, int dim, int index)
+        {
+            WeightTensor m = w as WeightTensor;
+
+            Tensor selWeights = m.TWeight.Select(dim, index);
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(selWeights.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Select", graphToBind: this);
+            res.TWeight = selWeights;
+
+            VisualizeNodes(w, res);
+
+            if (m_needsBackprop)
+            {
+                Action backward = () =>
+                {
+                    res.ReleaseWeight();
+
+                    using (var mGrad = m.TGradient.Select(dim, index))
+                    {
+                        Ops.Add(mGrad, mGrad, res.TGradient);
+                    }
+
+                    res.Dispose();
+                };
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
+
         private byte[] GetHash(string inputString)
         {
             HashAlgorithm algorithm = SHA256.Create();
@@ -1278,12 +1309,12 @@ namespace Seq2SeqSharp.Tools
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(srcT.Sizes, m_deviceId, name: $"{GetHashString(src.Name, alpha.Name, beta.Name)}.LayerNorm");
             VisualizeNodes(new IWeightTensor[] { src, alpha, beta }, res);
 
-            Ops.LayerNorm(res.TWeight, srcT.TWeight, alphaT.TWeight, betaT.TWeight, eps);
+                Ops.LayerNorm(res.TWeight, srcT.TWeight, alphaT.TWeight, betaT.TWeight, eps);
             if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
-                    Ops.LayerNormGrad(srcT.TGradient, alphaT.TGradient, betaT.TGradient, res.TGradient, res.TWeight, srcT.TWeight, alphaT.TWeight, betaT.TWeight, eps);
+                        Ops.LayerNormGrad(srcT.TGradient, alphaT.TGradient, betaT.TGradient, res.TGradient, res.TWeight, srcT.TWeight, alphaT.TWeight, betaT.TWeight, eps);
 
 
                     res.Dispose();
