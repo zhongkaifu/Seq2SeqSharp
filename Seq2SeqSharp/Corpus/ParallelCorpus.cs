@@ -1,4 +1,5 @@
 ﻿using AdvUtils;
+using Seq2SeqSharp.Utils;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -92,7 +93,7 @@ namespace Seq2SeqSharp.Tools
         public const string UNK = "<UNK>";
 
         private bool m_showTokenDist = true;
-        private bool m_aggregateSrcLength = true;
+        private ShuffleEnums m_shuffleEnums;
 
         public static bool IsPreDefinedToken(string str)
         {
@@ -101,9 +102,9 @@ namespace Seq2SeqSharp.Tools
 
         private readonly Random rnd = new Random(DateTime.Now.Millisecond);
 
-        private void Shuffle(List<RawSntPair> rawSntPairs, bool aggregateSrcLength = true)
+        private void Shuffle(List<RawSntPair> rawSntPairs)
         {
-            if (aggregateSrcLength == false)
+            if (m_shuffleEnums == ShuffleEnums.Random)
             {
                 for (int i = 0; i < rawSntPairs.Count; i++)
                 {
@@ -121,11 +122,13 @@ namespace Seq2SeqSharp.Tools
             Dictionary<int, List<RawSntPair>> dict = new Dictionary<int, List<RawSntPair>>(); //<source sentence length, sentence pair set>
             foreach (RawSntPair item in rawSntPairs)
             {
-                if (dict.ContainsKey(item.SrcLength) == false)
+                int length = m_shuffleEnums == ShuffleEnums.NoPaddingInSrc ? item.SrcLength : item.TgtLength;
+
+                if (dict.ContainsKey(length) == false)
                 {
-                    dict.Add(item.SrcLength, new List<RawSntPair>());
+                    dict.Add(length, new List<RawSntPair>());
                 }
-                dict[item.SrcLength].Add(item);
+                dict[length].Add(item);
             }
 
             //Randomized the order of sentence pairs with same length in source side
@@ -172,7 +175,7 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        private (string, string) ShuffleAll(bool aggregateSrcLength = true)
+        private (string, string) ShuffleAll()
         {
             SortedDictionary<int, int> dictSrcLenDist = new SortedDictionary<int, int>();
             SortedDictionary<int, int> dictTgtLenDist = new SortedDictionary<int, int>();
@@ -234,7 +237,7 @@ namespace Seq2SeqSharp.Tools
                     CorpusSize++;
                     if (m_blockSize > 0 && sntPairs.Count >= m_blockSize)
                     {
-                        Shuffle(sntPairs, aggregateSrcLength);
+                        Shuffle(sntPairs);
                         foreach (RawSntPair item in sntPairs)
                         {
                             swSrc.WriteLine(item.SrcSnt);
@@ -250,7 +253,7 @@ namespace Seq2SeqSharp.Tools
 
             if (sntPairs.Count > 0)
             {
-                Shuffle(sntPairs, aggregateSrcLength);
+                Shuffle(sntPairs);
                 foreach (RawSntPair item in sntPairs)
                 {
                     swSrc.WriteLine(item.SrcSnt);
@@ -274,17 +277,38 @@ namespace Seq2SeqSharp.Tools
 
             if (m_showTokenDist)
             {
-                Logger.WriteLine($"AggregateSrcLength = '{aggregateSrcLength}'");
+                Logger.WriteLine($"AggregateSrcLength = '{m_shuffleEnums}'");
                 Logger.WriteLine($"Src token length distribution");
+
+                int srcTotalNum = 0;
                 foreach (var pair in dictSrcLenDist)
                 {
-                    Logger.WriteLine($"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value}");
+                    srcTotalNum += pair.Value;
+                }
+
+                int srcAccNum = 0;
+                foreach (var pair in dictSrcLenDist)
+                {
+                    srcAccNum += pair.Value;
+
+                    Logger.WriteLine($"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value} (acc: {(100.0f * (float)srcAccNum / (float)srcTotalNum).ToString("F")}%)");
                 }
 
                 Logger.WriteLine($"Tgt token length distribution");
+
+                int tgtTotalNum = 0;
                 foreach (var pair in dictTgtLenDist)
                 {
-                    Logger.WriteLine($"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value}");
+                    tgtTotalNum += pair.Value;
+                }
+
+                int tgtAccNum = 0;
+
+                foreach (var pair in dictTgtLenDist)
+                {
+                    tgtAccNum += pair.Value;
+
+                    Logger.WriteLine($"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value}  (acc: {(100.0f * (float)tgtAccNum / (float)tgtTotalNum).ToString("F")}%)");
                 }
 
                 m_showTokenDist = false;
@@ -296,13 +320,14 @@ namespace Seq2SeqSharp.Tools
 
         public IEnumerator<SntPairBatch> GetEnumerator()
         {
-            (string srcShuffledFilePath, string tgtShuffledFilePath) = ShuffleAll(m_aggregateSrcLength);
+            (string srcShuffledFilePath, string tgtShuffledFilePath) = ShuffleAll();
 
             using (StreamReader srSrc = new StreamReader(srcShuffledFilePath))
             {
                 using (StreamReader srTgt = new StreamReader(tgtShuffledFilePath))
                 {
                     int lastSrcSntLen = -1;
+                    int lastTgtSntLen = -1;
                     int maxOutputsSize = m_batchSize * 10000;
                     List<SntPair> outputs = new List<SntPair>();
 
@@ -337,7 +362,9 @@ namespace Seq2SeqSharp.Tools
                         }
 
 
-                        if ((lastSrcSntLen > 0 && m_aggregateSrcLength == true && lastSrcSntLen != sntPair.SrcSnt.Length) || outputs.Count > maxOutputsSize)
+                        if ((lastTgtSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInTgt && lastTgtSntLen != sntPair.TgtSnt.Length) || 
+                            (lastSrcSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInSrc && lastSrcSntLen != sntPair.SrcSnt.Length) ||                            
+                            outputs.Count > maxOutputsSize)
                         {
                            // InnerShuffle(outputs);
                             for (int i = 0; i < outputs.Count; i += m_batchSize)
@@ -350,7 +377,9 @@ namespace Seq2SeqSharp.Tools
                         }
 
                         outputs.Add(sntPair);
+
                         lastSrcSntLen = sntPair.SrcSnt.Length;
+                        lastTgtSntLen = sntPair.TgtSnt.Length;
                     }
 
                    // InnerShuffle(outputs);
@@ -473,14 +502,14 @@ namespace Seq2SeqSharp.Tools
             return GetEnumerator();
         }
 
-        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSentLength = 32, bool addBOSEOS = true, bool aggregateSrcLengthForShuffle = true)
+        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSentLength = 32, bool addBOSEOS = true, ShuffleEnums shuffleEnums = ShuffleEnums.Random)
         {
-            Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSentLength = '{maxSentLength}', addBOSEOS = '{addBOSEOS}', aggregateSrcLengthForShuffle = '{aggregateSrcLengthForShuffle}'");
+            Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSentLength = '{maxSentLength}', addBOSEOS = '{addBOSEOS}', aggregateSrcLengthForShuffle = '{shuffleEnums}'");
             m_batchSize = batchSize;
             m_blockSize = shuffleBlockSize;
             m_maxSentLength = maxSentLength;
             m_addBOSEOS = addBOSEOS;
-            m_aggregateSrcLength = aggregateSrcLengthForShuffle;
+            m_shuffleEnums = shuffleEnums;
 
             m_srcFileList = new List<string>();
             m_tgtFileList = new List<string>();

@@ -51,10 +51,10 @@ namespace Seq2SeqSharp
         private readonly bool m_isEncoderTrainable = true;
         private readonly bool m_isDecoderTrainable = true;
 
-        private readonly bool m_aggregateSrcLength = true;
+        private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
 
         public AttentionSeq2Seq(string modelFilePath, ProcessorTypeEnums processorType, int[] deviceIds, float dropoutRatio = 0.0f, 
-            bool isSrcEmbTrainable = true, bool isTgtEmbTrainable = true, bool isEncoderTrainable = true, bool isDecoderTrainable = true, int maxTgtSntSize = 128, float memoryUsageRatio = 0.9f, bool aggregateSrcLength = true)
+            bool isSrcEmbTrainable = true, bool isTgtEmbTrainable = true, bool isEncoderTrainable = true, bool isDecoderTrainable = true, int maxTgtSntSize = 128, float memoryUsageRatio = 0.9f, ShuffleEnums shuffleType = ShuffleEnums.Random)
             : base(deviceIds, processorType, modelFilePath, memoryUsageRatio)
         {
             m_dropoutRatio = dropoutRatio;
@@ -63,14 +63,14 @@ namespace Seq2SeqSharp
             m_isEncoderTrainable = isEncoderTrainable;
             m_isDecoderTrainable = isDecoderTrainable;
             m_maxTgtSntSize = maxTgtSntSize;
-            m_aggregateSrcLength = aggregateSrcLength;
+            m_shuffleType = shuffleType;
 
             m_modelMetaData = LoadModel(CreateTrainableParameters) as Seq2SeqModelMetaData;
         }
 
         public AttentionSeq2Seq(int embeddingDim, int hiddenDim, int encoderLayerDepth, int decoderLayerDepth, Vocab vocab, string srcEmbeddingFilePath, string tgtEmbeddingFilePath,
             string modelFilePath, float dropoutRatio, int multiHeadNum, ProcessorTypeEnums processorType, EncoderTypeEnums encoderType, DecoderTypeEnums decoderType, bool enableCoverageModel, int[] deviceIds,
-            bool isSrcEmbTrainable = true, bool isTgtEmbTrainable = true, bool isEncoderTrainable = true, bool isDecoderTrainable = true, int maxTgtSntSize = 128, float memoryUsageRatio = 0.9f, bool aggregateSrcLength = true)
+            bool isSrcEmbTrainable = true, bool isTgtEmbTrainable = true, bool isEncoderTrainable = true, bool isDecoderTrainable = true, int maxTgtSntSize = 128, float memoryUsageRatio = 0.9f, ShuffleEnums shuffleType = ShuffleEnums.Random)
             : base(deviceIds, processorType, modelFilePath, memoryUsageRatio)
         {
             m_modelMetaData = new Seq2SeqModelMetaData(hiddenDim, embeddingDim, encoderLayerDepth, decoderLayerDepth, multiHeadNum, encoderType, decoderType, vocab, enableCoverageModel);
@@ -81,7 +81,7 @@ namespace Seq2SeqSharp
             m_isEncoderTrainable = isEncoderTrainable;
             m_isDecoderTrainable = isDecoderTrainable;
             m_maxTgtSntSize = maxTgtSntSize;
-            m_aggregateSrcLength = aggregateSrcLength;
+            m_shuffleType = shuffleType;
 
             //Initializng weights in encoders and decoders
             CreateTrainableParameters(m_modelMetaData);
@@ -276,8 +276,7 @@ namespace Seq2SeqSharp
             List<int> originalSrcLengths = ParallelCorpus.PadSentences(srcSnts);
             int srcSeqPaddedLen = srcSnts[0].Count;
             int batchSize = srcSnts.Count;
-            IWeightTensor srcSelfMask = (m_aggregateSrcLength || m_modelMetaData.EncoderType == EncoderTypeEnums.BiLSTM) ? null 
-                                : MaskUtils.BuildPadSelfMask(computeGraph, srcSeqPaddedLen, originalSrcLengths, deviceIdIdx); // The length of source sentences are same in a single mini-batch, so we don't have source mask.
+            IWeightTensor srcSelfMask = m_shuffleType == ShuffleEnums.NoPaddingInSrc ? null : MaskUtils.BuildPadSelfMask(computeGraph, srcSeqPaddedLen, originalSrcLengths, deviceIdIdx); // The length of source sentences are same in a single mini-batch, so we don't have source mask.
 
             // Encoding input source sentences
             IWeightTensor encOutput = Encode(computeGraph, srcSnts, encoder, srcEmbedding, srcSelfMask, posEmbedding);
@@ -461,6 +460,7 @@ namespace Seq2SeqSharp
                                 tgtSeqs[i].Add(targetWords[i * tgtSeqLen + tgtSeqLen - 1]);
                             }
                         }
+
                     }
                 }
             }

@@ -112,8 +112,8 @@ namespace Seq2SeqConsole
         [Arg("Apply coverage model in decoder", "EnableCoverageModel")]
         public bool EnableCoverageModel = true;
 
-        [Arg("Aggregate length of source side for shuffling", "AggregateSrcLength")]
-        public bool AggregateSrcLength = true;
+        [Arg("Type of shuffling. It could be NoPaddingInSrc, NoPaddingInTgt and Random", "ShuffleType")]
+        public string ShuffleType = "NoPaddingInSrc";
 
         [Arg("It indicates if the src embedding is trainable", "IsSrcEmbeddingTrainable")]
         public bool IsSrcEmbeddingTrainable = true;
