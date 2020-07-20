@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.Tools
@@ -77,7 +78,9 @@ namespace Seq2SeqSharp.Tools
 
     public class ParallelCorpus : IEnumerable<SntPairBatch>
     {
-        private readonly int m_maxSentLength = 32;
+        private readonly int m_maxSrcSentLength = 32;
+        private readonly int m_maxTgtSentLength = 32;
+
         private readonly int m_blockSize = 1000000;
         private readonly int m_batchSize = 1;
         private readonly bool m_addBOSEOS = true;
@@ -190,7 +193,9 @@ namespace Seq2SeqSharp.Tools
 
             List<RawSntPair> sntPairs = new List<RawSntPair>();
             CorpusSize = 0;
-            int tooLongSntCnt = 0;
+            int tooLongSrcSntCnt = 0;
+            int tooLongTgtSntCnt = 0;
+
             for (int i = 0; i < m_srcFileList.Count; i++)
             {
                 if (m_showTokenDist)
@@ -227,9 +232,21 @@ namespace Seq2SeqSharp.Tools
                     dictTgtLenDist[rawSntPair.TgtLength / 100]++;
 
 
-                    if (rawSntPair.SrcLength > m_maxSentLength || rawSntPair.TgtLength > m_maxSentLength)
+                    bool hasTooLongSent = false;
+                    if (rawSntPair.SrcLength > m_maxSrcSentLength)
                     {
-                        tooLongSntCnt++;
+                        tooLongSrcSntCnt++;
+                        hasTooLongSent = true;
+                    }
+
+                    if (rawSntPair.TgtLength > m_maxTgtSentLength)
+                    {
+                        tooLongTgtSntCnt++;
+                        hasTooLongSent = true;
+                    }
+
+                    if (hasTooLongSent)
+                    {
                         continue;
                     }
 
@@ -269,11 +286,15 @@ namespace Seq2SeqSharp.Tools
 
             Logger.WriteLine($"Shuffled '{CorpusSize}' sentence pairs to file '{srcShuffledFilePath}' and '{tgtShuffledFilePath}'.");
 
-            if (tooLongSntCnt > 0)
+            if (tooLongSrcSntCnt > 0)
             {
-                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Found {tooLongSntCnt} sentences are longer than '{m_maxSentLength}' tokens, ignore them.");
+                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Found {tooLongSrcSntCnt} source sentences are longer than '{m_maxSrcSentLength}' tokens, ignore them.");
             }
 
+            if (tooLongTgtSntCnt > 0)
+            {
+                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Found {tooLongTgtSntCnt} target sentences are longer than '{m_maxTgtSentLength}' tokens, ignore them.");
+            }
 
             if (m_showTokenDist)
             {
@@ -353,13 +374,6 @@ namespace Seq2SeqSharp.Tools
                             line = $"{BOS} {line} {EOS}";
                         }
                         sntPair.TgtSnt = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-
-                        if (sntPair.SrcSnt.Length > m_maxSentLength + 2 || sntPair.TgtSnt.Length > m_maxSentLength + 2)
-                        {
-                            Logger.WriteLine($"Sentence source = '{String.Join(" ", sntPair.SrcSnt)}' and target = '{String.Join(" ", sntPair.TgtSnt)}' are longer than '{m_maxSentLength + 2}'");
-                            throw new InvalidDataException($"Sentence source = '{String.Join(" ", sntPair.SrcSnt)}' and target = '{String.Join(" ", sntPair.TgtSnt)}' are longer than '{m_maxSentLength + 2}'");
-                        }
 
 
                         if ((lastTgtSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInTgt && lastTgtSntLen != sntPair.TgtSnt.Length) || 
@@ -502,12 +516,14 @@ namespace Seq2SeqSharp.Tools
             return GetEnumerator();
         }
 
-        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSentLength = 32, bool addBOSEOS = true, ShuffleEnums shuffleEnums = ShuffleEnums.Random)
+        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSrcSentLength = 32, int maxTgtSentLength = 32, bool addBOSEOS = true, ShuffleEnums shuffleEnums = ShuffleEnums.Random)
         {
-            Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSentLength = '{maxSentLength}', addBOSEOS = '{addBOSEOS}', aggregateSrcLengthForShuffle = '{shuffleEnums}'");
+            Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSrcSentLength = '{maxSrcSentLength}',  MaxTgtSentLength = '{maxTgtSentLength}', addBOSEOS = '{addBOSEOS}', aggregateSrcLengthForShuffle = '{shuffleEnums}'");
             m_batchSize = batchSize;
             m_blockSize = shuffleBlockSize;
-            m_maxSentLength = maxSentLength;
+            m_maxSrcSentLength = maxSrcSentLength;
+            m_maxTgtSentLength = maxTgtSentLength;
+
             m_addBOSEOS = addBOSEOS;
             m_shuffleEnums = shuffleEnums;
 

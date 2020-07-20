@@ -94,8 +94,11 @@ namespace Seq2SeqConsole
         [Arg("Maxmium epoch number during training. Default is 100", "MaxEpochNum")]
         public int MaxEpochNum = 100;
 
-        [Arg("Maxmium sentence length", "MaxSentLength")]
-        public int MaxSentLength = 32;
+        [Arg("Maxmium src sentence length", "MaxSrcSentLength")]
+        public int MaxSrcSentLength = 32;
+
+        [Arg("Maxmium tgt sentence length", "MaxTgtSentLength")]
+        public int MaxTgtSentLength = 32;
 
         [Arg("The number of steps for warming up", "WarmUpSteps")]
         public int WarmUpSteps = 8000;

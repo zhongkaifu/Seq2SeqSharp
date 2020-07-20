@@ -44,6 +44,8 @@ namespace Seq2SeqSharp
         // optimization  hyperparameters
         private readonly float m_dropoutRatio = 0.0f;
         private readonly int m_defaultDeviceId = 0;
+
+        private readonly int m_maxSrcSntSize = 128;
         private readonly int m_maxTgtSntSize = 128;
 
         private readonly bool m_isSrcEmbTrainable = true;
@@ -54,7 +56,7 @@ namespace Seq2SeqSharp
         private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
 
         public AttentionSeq2Seq(string modelFilePath, ProcessorTypeEnums processorType, int[] deviceIds, float dropoutRatio = 0.0f, 
-            bool isSrcEmbTrainable = true, bool isTgtEmbTrainable = true, bool isEncoderTrainable = true, bool isDecoderTrainable = true, int maxTgtSntSize = 128, float memoryUsageRatio = 0.9f, ShuffleEnums shuffleType = ShuffleEnums.Random)
+            bool isSrcEmbTrainable = true, bool isTgtEmbTrainable = true, bool isEncoderTrainable = true, bool isDecoderTrainable = true, int maxSrcSntSize = 128, int maxTgtSntSize = 128, float memoryUsageRatio = 0.9f, ShuffleEnums shuffleType = ShuffleEnums.Random)
             : base(deviceIds, processorType, modelFilePath, memoryUsageRatio)
         {
             m_dropoutRatio = dropoutRatio;
@@ -62,6 +64,7 @@ namespace Seq2SeqSharp
             m_isTgtEmbTrainable = isTgtEmbTrainable;
             m_isEncoderTrainable = isEncoderTrainable;
             m_isDecoderTrainable = isDecoderTrainable;
+            m_maxSrcSntSize = maxSrcSntSize;
             m_maxTgtSntSize = maxTgtSntSize;
             m_shuffleType = shuffleType;
 
@@ -70,7 +73,7 @@ namespace Seq2SeqSharp
 
         public AttentionSeq2Seq(int embeddingDim, int hiddenDim, int encoderLayerDepth, int decoderLayerDepth, Vocab vocab, string srcEmbeddingFilePath, string tgtEmbeddingFilePath,
             string modelFilePath, float dropoutRatio, int multiHeadNum, ProcessorTypeEnums processorType, EncoderTypeEnums encoderType, DecoderTypeEnums decoderType, bool enableCoverageModel, int[] deviceIds,
-            bool isSrcEmbTrainable = true, bool isTgtEmbTrainable = true, bool isEncoderTrainable = true, bool isDecoderTrainable = true, int maxTgtSntSize = 128, float memoryUsageRatio = 0.9f, ShuffleEnums shuffleType = ShuffleEnums.Random)
+            bool isSrcEmbTrainable = true, bool isTgtEmbTrainable = true, bool isEncoderTrainable = true, bool isDecoderTrainable = true, int maxSrcSntSize = 128, int maxTgtSntSize = 128, float memoryUsageRatio = 0.9f, ShuffleEnums shuffleType = ShuffleEnums.Random)
             : base(deviceIds, processorType, modelFilePath, memoryUsageRatio)
         {
             m_modelMetaData = new Seq2SeqModelMetaData(hiddenDim, embeddingDim, encoderLayerDepth, decoderLayerDepth, multiHeadNum, encoderType, decoderType, vocab, enableCoverageModel);
@@ -80,6 +83,7 @@ namespace Seq2SeqSharp
             m_isTgtEmbTrainable = isTgtEmbTrainable;
             m_isEncoderTrainable = isEncoderTrainable;
             m_isDecoderTrainable = isDecoderTrainable;
+            m_maxSrcSntSize = maxSrcSntSize;
             m_maxTgtSntSize = maxTgtSntSize;
             m_shuffleType = shuffleType;
 
@@ -142,7 +146,7 @@ namespace Seq2SeqSharp
 
             if (modelMetaData.EncoderType == EncoderTypeEnums.Transformer || modelMetaData.DecoderType == DecoderTypeEnums.Transformer)
             {
-                m_posEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(BuildPositionWeightTensor(m_maxTgtSntSize + 2, modelMetaData.EmbeddingDim, raDeviceIds.GetNextItem(), "PosEmbedding", false), DeviceIds, true);
+                m_posEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(BuildPositionWeightTensor(Math.Max(m_maxSrcSntSize, m_maxTgtSntSize) + 2, modelMetaData.EmbeddingDim, raDeviceIds.GetNextItem(), "PosEmbedding", false), DeviceIds, true);
             }
             else
             {
