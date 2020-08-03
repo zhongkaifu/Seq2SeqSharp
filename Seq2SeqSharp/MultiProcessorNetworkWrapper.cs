@@ -116,7 +116,10 @@ namespace Seq2SeqSharp
         /// <param name="stream"></param>
         public void Save(Stream stream)
         {
-            m_networkOnDefaultDevice.Save(stream);
+            if (m_isStaticWeights == false)
+            {
+                m_networkOnDefaultDevice.Save(stream);
+            }
         }
 
         /// <summary>
@@ -125,7 +128,10 @@ namespace Seq2SeqSharp
         /// <param name="stream"></param>
         public void Load(Stream stream)
         {
-            m_networkOnDefaultDevice.Load(stream);
+            if (m_isStaticWeights == false)
+            {
+                m_networkOnDefaultDevice.Load(stream);
+            }
         }
 
         public T GetNetworkOnDefaultDevice()

@@ -1,4 +1,14 @@
-﻿# Seq2SeqSharp  
+﻿Donate a beverage to help me to keep Seq2SeqSharp up to date :)
+```html
+<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+<input type="hidden" name="cmd" value="_donations" />
+<input type="hidden" name="business" value="E53XA6BGBDVYE" />
+<input type="hidden" name="currency_code" value="USD" />
+<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
+<img alt="" border="0" src="https://www.paypal.com/en_US/i/scr/pixel.gif" width="1" height="1" />
+</form>
+```
+# Seq2SeqSharp  
 Seq2SeqSharp is a tensor based fast & flexible encoder-decoder deep neural network framework written by .NET (C#). It can be used for sequence-to-sequence task, sequence-labeling task and sequence-classification task and other NLP tasks. Seq2SeqSharp supports both CPUs and GPUs. It's powered by .NET core, so Seq2SeqSharp can run on both Windows and Linux without any modification and recompilation.  
 
 # Features  
@@ -63,7 +73,8 @@ Parameters:
 **-ProcessorType**: Processor type: CPU or GPU  
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
 **-MaxEpochNum**: Maxmium epoch number during training. Default is 100  
-**-MaxSentLength**: Maxmium sentence length  
+**-MaxSrcSentLength**: Maxmium sentence length on source side. Default is 32 tokens  
+**-MaxTgtSentLength**: Maxmium sentence length on target side. Default is 32 tokens  
 **-WarmUpSteps**: The number of steps for warming up. Default is 8,000  
 Note that:  
   1) if "-SrcVocab" and "-TgtVocab" are empty, vocabulary will be built from training corpus.  
@@ -142,7 +153,8 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
 "DeviceIds":"0,1,2,3",
 "BeamSearch":1,
 "MaxEpochNum":100,
-"MaxSentLength":64,
+"MaxSrcSentLength":64,
+"MaxTgtSentLength":64,
 "WarmUpSteps":8000,
 "VisualizeNNFilePath":null,
 "Beta1":0.9,
