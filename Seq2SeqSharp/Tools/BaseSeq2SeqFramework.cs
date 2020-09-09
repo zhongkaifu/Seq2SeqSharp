@@ -42,8 +42,13 @@ namespace Seq2SeqSharp.Tools
 
         public IComputeGraph CreateComputGraph(int deviceIdIdx, bool needBack = true)
         {
+            if (deviceIdIdx < 0 || deviceIdIdx >= DeviceIds.Length)
+            {
+                throw new ArgumentOutOfRangeException($"Index '{deviceIdIdx}' is out of deviceId range. DeviceId length is '{DeviceIds.Length}'");
+            }
+
             // Create computing graph instance and return it
-            return new ComputeGraphTensor(new WeightTensorFactory(), m_deviceIds[deviceIdIdx], needBack);
+            return new ComputeGraphTensor(new WeightTensorFactory(), DeviceIds[deviceIdIdx], needBack);
         }
 
         public bool SaveModel(IModelMetaData modelMetaData)
@@ -100,7 +105,7 @@ namespace Seq2SeqSharp.Tools
             return modelMetaData;
         }
 
-        internal void TrainOneEpoch(int ep, ParallelCorpus trainCorpus, ParallelCorpus validCorpus, ILearningRate learningRate, AdamOptimizer solver, List<IMetric> metrics, IModelMetaData modelMetaData,
+        internal void TrainOneEpoch(int ep, IEnumerable<SntPairBatch> trainCorpus, IEnumerable<SntPairBatch> validCorpus, ILearningRate learningRate, AdamOptimizer solver, List<IMetric> metrics, IModelMetaData modelMetaData,
             Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice)
         {
             int processedLineInTotal = 0;
@@ -251,11 +256,11 @@ namespace Seq2SeqSharp.Tools
 
             Logger.WriteLine(Logger.Level.info, ConsoleColor.Green, $"Epoch '{ep}' took '{DateTime.Now - startDateTime}' time to finish. AvgCost = {avgCostPerWordInTotal.ToString("F6")}, AvgCostInLastEpoch = {m_avgCostPerWordInTotalInLastEpoch.ToString("F6")}");
 
-          //  CreateCheckPoint(validCorpus, metrics, modelMetaData, ForwardOnSingleDevice, avgCostPerWordInTotal);
+            //  CreateCheckPoint(validCorpus, metrics, modelMetaData, ForwardOnSingleDevice, avgCostPerWordInTotal);
             m_avgCostPerWordInTotalInLastEpoch = avgCostPerWordInTotal;
         }
 
-        private (float, int, int, int) RunNetwork(Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice,  List<SntPairBatch> sntPairBatchs, int batchSplitFactor)
+        private (float, int, int, int) RunNetwork(Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice, List<SntPairBatch> sntPairBatchs, int batchSplitFactor)
         {
             float cost = 0.0f;
             int processedLine = 0;
@@ -263,54 +268,68 @@ namespace Seq2SeqSharp.Tools
             int tgtWordCnts = 0;
 
             //Clear gradient over all devices
-            ZeroGradientOnAllDevices(); 
+            ZeroGradientOnAllDevices();
 
             // Run forward and backward on all available processors
             Parallel.For(0, m_deviceIds.Length, i =>
             {
-                SntPairBatch sntPairBatch_i = sntPairBatchs[i];
-                int batchSegSize = sntPairBatch_i.BatchSize / batchSplitFactor;
-
-                for (int k = 0; k < batchSplitFactor; k++)
+                try
                 {
-                    // Construct sentences for encoding and decoding
-                    List<List<string>> srcTkns = new List<List<string>>();
-                    List<List<string>> tgtTkns = new List<List<string>>();
-                    int sLenInBatch = 0;
-                    int tLenInBatch = 0;
-                    for (int j = k * batchSegSize; j < (k + 1) * batchSegSize; j++)
-                    {
-                        srcTkns.Add(sntPairBatch_i.SntPairs[j].SrcSnt.ToList());
-                        sLenInBatch += sntPairBatch_i.SntPairs[j].SrcSnt.Length;
+                    SntPairBatch sntPairBatch_i = sntPairBatchs[i];
+                    int batchSegSize = sntPairBatch_i.BatchSize / batchSplitFactor;
 
-                        tgtTkns.Add(sntPairBatch_i.SntPairs[j].TgtSnt.ToList());
-                        tLenInBatch += sntPairBatch_i.SntPairs[j].TgtSnt.Length;
-                    }
-
-                    float lcost = 0.0f;
-                    // Create a new computing graph instance
-                    using (IComputeGraph computeGraph_i = CreateComputGraph(i))
+                    for (int k = 0; k < batchSplitFactor; k++)
                     {
-                        // Run forward part
-                        lcost = ForwardOnSingleDevice(computeGraph_i, srcTkns, tgtTkns, i, true);
-                        // Run backward part and compute gradients
-                        computeGraph_i.Backward();
-                    }
+                        // Construct sentences for encoding and decoding
+                        List<List<string>> srcTkns = new List<List<string>>();
+                        List<List<string>> tgtTkns = new List<List<string>>();
+                        int sLenInBatch = 0;
+                        int tLenInBatch = 0;
+                        for (int j = k * batchSegSize; j < (k + 1) * batchSegSize; j++)
+                        {
+                            srcTkns.Add(sntPairBatch_i.SntPairs[j].SrcSnt.ToList());
+                            sLenInBatch += sntPairBatch_i.SntPairs[j].SrcSnt.Length;
 
-                    lock (locker)
-                    {
-                        cost += lcost;
-                        srcWordCnts += sLenInBatch;
-                        tgtWordCnts += tLenInBatch;
-                        processedLine += batchSegSize;
+                            tgtTkns.Add(sntPairBatch_i.SntPairs[j].TgtSnt.ToList());
+                            tLenInBatch += sntPairBatch_i.SntPairs[j].TgtSnt.Length;
+                        }
+
+                        float lcost = 0.0f;
+                        // Create a new computing graph instance
+                        using (IComputeGraph computeGraph_i = CreateComputGraph(i))
+                        {
+                            // Run forward part
+                            lcost = ForwardOnSingleDevice(computeGraph_i, srcTkns, tgtTkns, i, true);
+                            // Run backward part and compute gradients
+                            computeGraph_i.Backward();
+                        }
+
+                        lock (locker)
+                        {
+                            cost += lcost;
+                            srcWordCnts += sLenInBatch;
+                            tgtWordCnts += tLenInBatch;
+                            processedLine += batchSegSize;
+                        }
                     }
+                }
+                catch (OutOfMemoryException err)
+                {                    
+                    throw err;
+                }
+                catch (Exception err)
+                {
+                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: '{err.Message}'");
+                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Call stack: '{err.StackTrace}'");
+
+                    throw err;
                 }
             });
 
             return (cost, srcWordCnts, tgtWordCnts, processedLine);
         }
 
-        private void CreateCheckPoint(ParallelCorpus validCorpus, List<IMetric> metrics, IModelMetaData modelMetaData, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice, double avgCostPerWordInTotal)
+        private void CreateCheckPoint(IEnumerable<SntPairBatch> validCorpus, List<IMetric> metrics, IModelMetaData modelMetaData, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice, double avgCostPerWordInTotal)
         {
             if (validCorpus != null)
             {
@@ -344,7 +363,7 @@ namespace Seq2SeqSharp.Tools
             }
             catch (Exception err)
             {
-                Logger.WriteLine(Logger.Level.err, $"{err.Message}");
+                Logger.WriteLine(Logger.Level.err, $"Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
             }
        
             return hypTkns;
@@ -358,7 +377,7 @@ namespace Seq2SeqSharp.Tools
         /// <param name="metrics">A set of metrics. The first one is the primary metric</param>
         /// <param name="outputToFile">It indicates if valid corpus and results should be dumped to files</param>
         /// <returns>true if we get a better result on primary metric, otherwise, false</returns>
-        internal bool RunValid(ParallelCorpus validCorpus, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> RunNetwork, List<IMetric> metrics, bool outputToFile = false)
+        internal bool RunValid(IEnumerable<SntPairBatch> validCorpus, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> RunNetwork, List<IMetric> metrics, bool outputToFile = false)
         {
             List<string> srcSents = new List<string>();
             List<string> refSents = new List<string>();
@@ -395,10 +414,10 @@ namespace Seq2SeqSharp.Tools
                         }
 
                         // Create a new computing graph instance
-                        using (IComputeGraph computeGraph = CreateComputGraph(DeviceIds[i], needBack: false))
+                        using (IComputeGraph computeGraph = CreateComputGraph(i, needBack: false))
                         {
                             // Run forward part
-                            RunNetwork(computeGraph, srcTkns, hypTkns, DeviceIds[i], false);
+                            RunNetwork(computeGraph, srcTkns, hypTkns, i, false);
                         }
 
                         lock (locker)
@@ -408,6 +427,16 @@ namespace Seq2SeqSharp.Tools
                             {
                                 foreach (IMetric metric in metrics)
                                 {
+                                    if (j < 0 || j >= refTkns.Count)
+                                    {
+                                        throw new InvalidDataException($"Ref token only has '{refTkns.Count}' batch, however, it try to access batch '{j}'. Hyp token has '{hypTkns.Count}' tokens, Batch Size = '{sntPairBatch.BatchSize}'");
+                                    }
+
+                                    if (j < 0 || j >= hypTkns.Count)
+                                    {
+                                        throw new InvalidDataException($"Hyp token only has '{hypTkns.Count}' batch, however, it try to access batch '{j}'. Ref token has '{refTkns.Count}' tokens, Batch Size = '{sntPairBatch.BatchSize}'");
+                                    }
+
                                     metric.Evaluate(new List<List<string>>() { refTkns[j] }, hypTkns[j]);
                                 }
                             }

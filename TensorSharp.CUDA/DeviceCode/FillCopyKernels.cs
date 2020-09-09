@@ -4,7 +4,7 @@
     public class FillCopyKernels : CudaCode
     {
         public FillCopyKernels()
-            : base(GetFullCode(), "General", "ReduceApplyUtils", "PointwiseApply", "ApplyMacros")
+            : base(GetFullCode(), "General", "ReduceApplyUtils", "PointwiseApply")
         {
         }
 

@@ -71,7 +71,13 @@ namespace Seq2SeqSharp
                 }
             }
 
-            return -1;
+            string strIds = String.Empty;
+            foreach (var item in m_deviceIds)
+            {
+                strIds = strIds + " " + item.ToString();
+            }
+
+            throw new ArgumentException($"Failed to get deviceId '{id}', deviceId List = {strIds}");
         }
     }
 }

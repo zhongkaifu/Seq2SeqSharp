@@ -19,7 +19,7 @@ namespace Seq2SeqSharp
         private readonly ConcurrentDictionary<string, Tensor> m_cacheName2M;
         private readonly float m_clipval;
 
-        public AdamOptimizer(float clipval, float beta1 = 0.9f, float beta2 = 0.999f)
+        public AdamOptimizer(float clipval, float beta1 = 0.9f, float beta2 = 0.98f)
         {
             Logger.WriteLine($"Creating Adam optimizer. GradClip = '{clipval}', Beta1 = '{beta1}', Beta2 = '{beta2}'");
 

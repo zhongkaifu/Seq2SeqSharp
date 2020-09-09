@@ -4,7 +4,7 @@
     public class ElementwiseOpKernels : CudaCode
     {
         public ElementwiseOpKernels()
-            : base(GetFullCode(), "General", "ReduceApplyUtils", "PointwiseApply", "Math", "ApplyMacros")
+            : base(GetFullCode(), "General", "ReduceApplyUtils", "PointwiseApply", "Math")
         {
         }
 

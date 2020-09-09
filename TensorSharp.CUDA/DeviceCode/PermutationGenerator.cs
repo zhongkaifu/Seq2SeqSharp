@@ -22,7 +22,19 @@ namespace TensorSharp.CUDA.DeviceCode
                 string kernelName = GetMangledName(kernelBaseName, spec);
                 string indexType = spec.Use32BitIndices ? ApplySpecialization.IndexType32 : ApplySpecialization.IndexType64;
                 string dimsA = spec.TensorDims[0].ToString();
-                sb.AppendFormat("APPLY_T({0}, {1}, {2}, {3})\n", indexType, dimsA, kernelName, operatorCode);
+
+                sb.AppendLine($"struct ConcreteOp_{kernelName} {{ __device__ __forceinline__ void operator()(float* v) const {{ {operatorCode} }} }};");
+                sb.AppendLine("extern \"C\" {");
+                sb.AppendLine($"   __global__ void {kernelName}(TensorInfo<{indexType}> src, __int64 totalElements)");
+                sb.AppendLine("   {");
+
+                sb.AppendLine($"      for ({indexType} linearIndex = blockIdx.x * blockDim.x + threadIdx.x;linearIndex < totalElements;linearIndex += gridDim.x * blockDim.x)");
+                sb.AppendLine("      {");
+                sb.AppendLine($"         const {indexType} aOffset = IndexToOffset < {indexType}, {dimsA}>::get(linearIndex, src);");
+                sb.AppendLine($"         ConcreteOp_{kernelName}()(&src.data[aOffset]);");
+                sb.AppendLine("      }");
+                sb.AppendLine("   }");
+                sb.AppendLine("}");
             }
         }
 
@@ -34,7 +46,23 @@ namespace TensorSharp.CUDA.DeviceCode
                 string indexType = spec.Use32BitIndices ? ApplySpecialization.IndexType32 : ApplySpecialization.IndexType64;
                 string dimsA = spec.TensorDims[0].ToString();
                 string dimsB = spec.TensorDims[1].ToString();
-                sb.AppendFormat("APPLY_TT({0}, {1}, {2}, {3}, {4})\n", indexType, dimsA, dimsB, kernelName, operatorCode);
+
+
+                sb.AppendLine($"struct ConcreteOp_{kernelName} {{ __device__ __forceinline__ void operator()(float* a, float *b) const {{ {operatorCode} }} }};");
+                sb.AppendLine("extern \"C\" {");
+                sb.AppendLine($"   __global__ void {kernelName}(TensorInfo<{indexType}> tensorA, TensorInfo<{indexType}> tensorB, __int64 totalElements)");
+                sb.AppendLine("   {");
+
+                sb.AppendLine($"      for ({indexType} linearIndex = blockIdx.x * blockDim.x + threadIdx.x;linearIndex < totalElements;linearIndex += gridDim.x * blockDim.x)");
+                sb.AppendLine("      {");
+                sb.AppendLine($"         const {indexType} aOffset = IndexToOffset < {indexType}, {dimsA}>::get(linearIndex, tensorA);");
+                sb.AppendLine($"         const {indexType} bOffset = IndexToOffset < {indexType}, {dimsB}>::get(linearIndex, tensorB);");
+                sb.AppendLine($"         ConcreteOp_{kernelName}()(&tensorA.data[aOffset], &tensorB.data[bOffset]);");
+                sb.AppendLine("      }");
+                sb.AppendLine("   }");
+                sb.AppendLine("}");
+
+
             }
         }
 
@@ -47,7 +75,22 @@ namespace TensorSharp.CUDA.DeviceCode
                 string dimsA = spec.TensorDims[0].ToString();
                 string dimsB = spec.TensorDims[1].ToString();
                 string dimsC = spec.TensorDims[2].ToString();
-                sb.AppendFormat("APPLY_TTT({0}, {1}, {2}, {3}, {4}, {5})\n", indexType, dimsA, dimsB, dimsC, kernelName, operatorCode);
+
+                sb.AppendLine($"struct ConcreteOp_{kernelName} {{ __device__ __forceinline__ void operator()(float* a, float *b, float *c) const {{ {operatorCode} }} }};");
+                sb.AppendLine("extern \"C\" {");
+                sb.AppendLine($"   __global__ void {kernelName}(TensorInfo<{indexType}> tensorA, TensorInfo<{indexType}> tensorB, TensorInfo<{indexType}> tensorC, __int64 totalElements)");
+                sb.AppendLine("   {");
+
+                sb.AppendLine($"      for ({indexType} linearIndex = blockIdx.x * blockDim.x + threadIdx.x;linearIndex < totalElements;linearIndex += gridDim.x * blockDim.x)");
+                sb.AppendLine("      {");
+                sb.AppendLine($"         const {indexType} aOffset = IndexToOffset < {indexType}, {dimsA}>::get(linearIndex, tensorA);");
+                sb.AppendLine($"         const {indexType} bOffset = IndexToOffset < {indexType}, {dimsB}>::get(linearIndex, tensorB);");
+                sb.AppendLine($"         const {indexType} cOffset = IndexToOffset < {indexType}, {dimsC}>::get(linearIndex, tensorC);");
+                sb.AppendLine($"         ConcreteOp_{kernelName}()(&tensorA.data[aOffset], &tensorB.data[bOffset], &tensorC.data[cOffset]);");
+                sb.AppendLine("      }");
+                sb.AppendLine("   }");
+                sb.AppendLine("}");
+
             }
         }
 
@@ -61,7 +104,22 @@ namespace TensorSharp.CUDA.DeviceCode
                 string dimsB = spec.TensorDims[1].ToString();
                 string dimsC = spec.TensorDims[2].ToString();
                 string dimsD = spec.TensorDims[3].ToString();
-                sb.AppendFormat("APPLY_TTTT({0}, {1}, {2}, {3}, {4}, {5}, {6})\n", indexType, dimsA, dimsB, dimsC, dimsD, kernelName, operatorCode);
+
+                sb.AppendLine($"struct ConcreteOp_{kernelName} {{ __device__ __forceinline__ void operator()(float* a, float *b, float *c, float *d) const {{ {operatorCode} }} }};");
+                sb.AppendLine("extern \"C\" {");
+                sb.AppendLine($"   __global__ void {kernelName}(TensorInfo<{indexType}> tensorA, TensorInfo<{indexType}> tensorB, TensorInfo<{indexType}> tensorC, TensorInfo<{indexType}> tensorD, __int64 totalElements)");
+                sb.AppendLine("   {");
+
+                sb.AppendLine($"      for ({indexType} linearIndex = blockIdx.x * blockDim.x + threadIdx.x;linearIndex < totalElements;linearIndex += gridDim.x * blockDim.x)");
+                sb.AppendLine("      {");
+                sb.AppendLine($"         const {indexType} aOffset = IndexToOffset < {indexType}, {dimsA}>::get(linearIndex, tensorA);");
+                sb.AppendLine($"         const {indexType} bOffset = IndexToOffset < {indexType}, {dimsB}>::get(linearIndex, tensorB);");
+                sb.AppendLine($"         const {indexType} cOffset = IndexToOffset < {indexType}, {dimsC}>::get(linearIndex, tensorC);");
+                sb.AppendLine($"         const {indexType} dOffset = IndexToOffset < {indexType}, {dimsD}>::get(linearIndex, tensorD);");
+                sb.AppendLine($"         ConcreteOp_{kernelName}()(&tensorA.data[aOffset], &tensorB.data[bOffset], &tensorC.data[cOffset], &tensorD.data[dOffset]);");
+                sb.AppendLine("      }");
+                sb.AppendLine("   }");
+                sb.AppendLine("}");
             }
         }
 
@@ -76,7 +134,23 @@ namespace TensorSharp.CUDA.DeviceCode
                 string dimsC = spec.TensorDims[2].ToString();
                 string dimsD = spec.TensorDims[3].ToString();
                 string dimsE = spec.TensorDims[4].ToString();
-                sb.AppendFormat("APPLY_TTTTT({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7})\n", indexType, dimsA, dimsB, dimsC, dimsD, dimsE, kernelName, operatorCode);
+
+                sb.AppendLine($"struct ConcreteOp_{kernelName} {{ __device__ __forceinline__ void operator()(float* a, float *b, float *c, float *d, float *e) const {{ {operatorCode} }} }};");
+                sb.AppendLine("extern \"C\" {");
+                sb.AppendLine($"   __global__ void {kernelName}(TensorInfo<{indexType}> tensorA, TensorInfo<{indexType}> tensorB, TensorInfo<{indexType}> tensorC, TensorInfo<{indexType}> tensorD, TensorInfo<{indexType}> tensorE, __int64 totalElements)");
+                sb.AppendLine("   {");
+
+                sb.AppendLine($"      for ({indexType} linearIndex = blockIdx.x * blockDim.x + threadIdx.x;linearIndex < totalElements;linearIndex += gridDim.x * blockDim.x)");
+                sb.AppendLine("      {");
+                sb.AppendLine($"         const {indexType} aOffset = IndexToOffset < {indexType}, {dimsA}>::get(linearIndex, tensorA);");
+                sb.AppendLine($"         const {indexType} bOffset = IndexToOffset < {indexType}, {dimsB}>::get(linearIndex, tensorB);");
+                sb.AppendLine($"         const {indexType} cOffset = IndexToOffset < {indexType}, {dimsC}>::get(linearIndex, tensorC);");
+                sb.AppendLine($"         const {indexType} dOffset = IndexToOffset < {indexType}, {dimsD}>::get(linearIndex, tensorD);");
+                sb.AppendLine($"         const {indexType} eOffset = IndexToOffset < {indexType}, {dimsE}>::get(linearIndex, tensorE);");
+                sb.AppendLine($"         ConcreteOp_{kernelName}()(&tensorA.data[aOffset], &tensorB.data[bOffset], &tensorC.data[cOffset], &tensorD.data[dOffset], &tensorE.data[eOffset]);");
+                sb.AppendLine("      }");
+                sb.AppendLine("   }");
+                sb.AppendLine("}");
             }
         }
         public void AddApplyTS(string kernelBaseName, string operatorCode)
@@ -86,7 +160,25 @@ namespace TensorSharp.CUDA.DeviceCode
                 string kernelName = GetMangledName(kernelBaseName, spec);
                 string indexType = spec.Use32BitIndices ? ApplySpecialization.IndexType32 : ApplySpecialization.IndexType64;
                 string dimsA = spec.TensorDims[0].ToString();
-                sb.AppendFormat("APPLY_TS({0}, {1}, {2}, {3})\n", indexType, dimsA, kernelName, operatorCode);
+
+                sb.AppendLine($"struct ConcreteOp_{kernelName} {{");
+                sb.AppendLine("float b;");
+                sb.AppendLine($"__device__ ConcreteOp_{kernelName}(float bVal) {{ this->b = bVal; }}");
+                sb.AppendLine($"__device__ __forceinline__ void operator()(float* a) const {{ {operatorCode} }}");
+                sb.AppendLine("};");
+
+                sb.AppendLine("extern \"C\" {");
+                sb.AppendLine($"   __global__ void {kernelName}(TensorInfo<{indexType}> a, float b, __int64 totalElements)");
+                sb.AppendLine("   {");
+
+                sb.AppendLine($"      for ({indexType} linearIndex = blockIdx.x * blockDim.x + threadIdx.x;linearIndex < totalElements;linearIndex += gridDim.x * blockDim.x)");
+                sb.AppendLine("      {");
+                sb.AppendLine($"         const {indexType} aOffset = IndexToOffset < {indexType}, {dimsA}>::get(linearIndex, a);");
+                sb.AppendLine($"         ConcreteOp_{kernelName} op = ConcreteOp_{kernelName}(b);");
+                sb.AppendLine($"         op(&a.data[aOffset]);");
+                sb.AppendLine("      }");
+                sb.AppendLine("   }");
+                sb.AppendLine("}");
             }
         }
 
@@ -97,7 +189,25 @@ namespace TensorSharp.CUDA.DeviceCode
                 string kernelName = GetMangledName(kernelBaseName, spec);
                 string indexType = spec.Use32BitIndices ? ApplySpecialization.IndexType32 : ApplySpecialization.IndexType64;
                 string dimsA = spec.TensorDims[0].ToString();
-                sb.AppendFormat("APPLY_TSS({0}, {1}, {2}, {3})\n", indexType, dimsA, kernelName, operatorCode);
+
+                sb.AppendLine($"struct ConcreteOp_{kernelName} {{");
+                sb.AppendLine("float b;");
+                sb.AppendLine("float c;");
+                sb.AppendLine($"__device__ ConcreteOp_{kernelName}(float bVal, float cVal) {{ this->b = bVal; this->c = cVal; }}");
+                sb.AppendLine($"__device__ __forceinline__ void operator()(float* a) const {{ {operatorCode} }}");
+                sb.AppendLine("};");
+
+                sb.AppendLine("extern \"C\" {");
+                sb.AppendLine($"   __global__ void {kernelName}(TensorInfo<{indexType}> a, float b, float c, __int64 totalElements)");
+                sb.AppendLine("   {");
+                sb.AppendLine($"      for ({indexType} linearIndex = blockIdx.x * blockDim.x + threadIdx.x;linearIndex < totalElements;linearIndex += gridDim.x * blockDim.x)");
+                sb.AppendLine("      {");
+                sb.AppendLine($"         const {indexType} aOffset = IndexToOffset < {indexType}, {dimsA}>::get(linearIndex, a);");
+                sb.AppendLine($"         ConcreteOp_{kernelName} op = ConcreteOp_{kernelName}(b, c);");
+                sb.AppendLine($"         op(&a.data[aOffset]);");
+                sb.AppendLine("      }");
+                sb.AppendLine("   }");
+                sb.AppendLine("}");
             }
         }
 
@@ -109,7 +219,25 @@ namespace TensorSharp.CUDA.DeviceCode
                 string indexType = spec.Use32BitIndices ? ApplySpecialization.IndexType32 : ApplySpecialization.IndexType64;
                 string dimsA = spec.TensorDims[0].ToString();
                 string dimsB = spec.TensorDims[1].ToString();
-                sb.AppendFormat("APPLY_TTS({0}, {1}, {2}, {3}, {4})\n", indexType, dimsA, dimsB, kernelName, operatorCode);
+
+                sb.AppendLine($"struct ConcreteOp_{kernelName} {{");
+                sb.AppendLine("float c;");
+                sb.AppendLine($"__device__ ConcreteOp_{kernelName}(float cVal) {{ this->c = cVal; }}");
+                sb.AppendLine($"__device__ __forceinline__ void operator()(float* a, float *b) const {{ {operatorCode} }} }};");
+
+                sb.AppendLine("extern \"C\" {");
+                sb.AppendLine($"   __global__ void {kernelName}(TensorInfo<{indexType}> tensorA, TensorInfo<{indexType}> tensorB, float c, __int64 totalElements)");
+                sb.AppendLine("   {");
+                sb.AppendLine($"      for ({indexType} linearIndex = blockIdx.x * blockDim.x + threadIdx.x;linearIndex < totalElements;linearIndex += gridDim.x * blockDim.x)");
+                sb.AppendLine("      {");
+                sb.AppendLine($"         const {indexType} aOffset = IndexToOffset < {indexType}, {dimsA}>::get(linearIndex, tensorA);");
+                sb.AppendLine($"         const {indexType} bOffset = IndexToOffset < {indexType}, {dimsB}>::get(linearIndex, tensorB);");
+                sb.AppendLine($"         ConcreteOp_{kernelName} op = ConcreteOp_{kernelName}(c);");
+                sb.AppendLine($"         op(&tensorA.data[aOffset], &tensorB.data[bOffset]);");
+                sb.AppendLine("      }");
+                sb.AppendLine("   }");
+                sb.AppendLine("}");
+
             }
         }
 
@@ -121,7 +249,25 @@ namespace TensorSharp.CUDA.DeviceCode
                 string indexType = spec.Use32BitIndices ? ApplySpecialization.IndexType32 : ApplySpecialization.IndexType64;
                 string dimsA = spec.TensorDims[0].ToString();
                 string dimsB = spec.TensorDims[1].ToString();
-                sb.AppendFormat("APPLY_TTSS({0}, {1}, {2}, {3}, {4})\n", indexType, dimsA, dimsB, kernelName, operatorCode);
+
+                sb.AppendLine($"struct ConcreteOp_{kernelName} {{");
+                sb.AppendLine("float c;");
+                sb.AppendLine("float d;");
+                sb.AppendLine($"__device__ ConcreteOp_{kernelName}(float cVal, float dVal) {{ this->c = cVal; this->d = dVal; }}");
+                sb.AppendLine($"__device__ __forceinline__ void operator()(float* a, float *b) const {{ {operatorCode} }} }};");
+
+                sb.AppendLine("extern \"C\" {");
+                sb.AppendLine($"   __global__ void {kernelName}(TensorInfo<{indexType}> tensorA, TensorInfo<{indexType}> tensorB, float c, float d, __int64 totalElements)");
+                sb.AppendLine("   {");
+                sb.AppendLine($"      for ({indexType} linearIndex = blockIdx.x * blockDim.x + threadIdx.x;linearIndex < totalElements;linearIndex += gridDim.x * blockDim.x)");
+                sb.AppendLine("      {");
+                sb.AppendLine($"         const {indexType} aOffset = IndexToOffset < {indexType}, {dimsA}>::get(linearIndex, tensorA);");
+                sb.AppendLine($"         const {indexType} bOffset = IndexToOffset < {indexType}, {dimsB}>::get(linearIndex, tensorB);");
+                sb.AppendLine($"         ConcreteOp_{kernelName} op = ConcreteOp_{kernelName}(c, d);");
+                sb.AppendLine($"         op(&tensorA.data[aOffset], &tensorB.data[bOffset]);");
+                sb.AppendLine("      }");
+                sb.AppendLine("   }");
+                sb.AppendLine("}");
             }
         }
 
@@ -134,51 +280,27 @@ namespace TensorSharp.CUDA.DeviceCode
                 string dimsA = spec.TensorDims[0].ToString();
                 string dimsB = spec.TensorDims[1].ToString();
                 string dimsC = spec.TensorDims[2].ToString();
-                sb.AppendFormat("APPLY_TTTS({0}, {1}, {2}, {3}, {4}, {5})\n", indexType, dimsA, dimsB, dimsC, kernelName, operatorCode);
+
+                sb.AppendLine($"struct ConcreteOp_{kernelName} {{");
+                sb.AppendLine("float d;");
+                sb.AppendLine($"__device__ ConcreteOp_{kernelName}(float dVal) {{ this->d = dVal; }}");
+                sb.AppendLine($"__device__ __forceinline__ void operator()(float* a, float *b, float *c) const {{ {operatorCode} }} }};");
+
+                sb.AppendLine("extern \"C\" {");
+                sb.AppendLine($"   __global__ void {kernelName}(TensorInfo<{indexType}> tensorA, TensorInfo<{indexType}> tensorB, TensorInfo<{indexType}> tensorC, float d, __int64 totalElements)");
+                sb.AppendLine("   {");
+                sb.AppendLine($"      for ({indexType} linearIndex = blockIdx.x * blockDim.x + threadIdx.x;linearIndex < totalElements;linearIndex += gridDim.x * blockDim.x)");
+                sb.AppendLine("      {");
+                sb.AppendLine($"         const {indexType} aOffset = IndexToOffset < {indexType}, {dimsA}>::get(linearIndex, tensorA);");
+                sb.AppendLine($"         const {indexType} bOffset = IndexToOffset < {indexType}, {dimsB}>::get(linearIndex, tensorB);");
+                sb.AppendLine($"         const {indexType} cOffset = IndexToOffset < {indexType}, {dimsC}>::get(linearIndex, tensorC);");
+                sb.AppendLine($"         ConcreteOp_{kernelName} op = ConcreteOp_{kernelName}(d);");
+                sb.AppendLine($"         op(&tensorA.data[aOffset], &tensorB.data[bOffset], &tensorC.data[cOffset]);");
+                sb.AppendLine("      }");
+                sb.AppendLine("   }");
+                sb.AppendLine("}");
             }
         }
-
-        //public void AddApplyTTTSS(string kernelBaseName, string operatorCode)
-        //{
-        //    foreach (var spec in ApplySpecialization.AllSpecializations(3))
-        //    {
-        //        var kernelName = GetMangledName(kernelBaseName, spec);
-        //        var indexType = spec.Use32BitIndices ? ApplySpecialization.IndexType32 : ApplySpecialization.IndexType64;
-        //        var dimsA = spec.TensorDims[0].ToString();
-        //        var dimsB = spec.TensorDims[1].ToString();
-        //        var dimsC = spec.TensorDims[2].ToString();
-        //        sb.AppendFormat("APPLY_TTTSS({0}, {1}, {2}, {3}, {4}, {5})\n", indexType, dimsA, dimsB, dimsC, kernelName, operatorCode);
-        //    }
-        //}
-
-        //public void AddApplyTTTTSS(string kernelBaseName, string operatorCode)
-        //{
-        //    foreach (var spec in ApplySpecialization.AllSpecializations(4))
-        //    {
-        //        var kernelName = GetMangledName(kernelBaseName, spec);
-        //        var indexType = spec.Use32BitIndices ? ApplySpecialization.IndexType32 : ApplySpecialization.IndexType64;
-        //        var dimsA = spec.TensorDims[0].ToString();
-        //        var dimsB = spec.TensorDims[1].ToString();
-        //        var dimsC = spec.TensorDims[2].ToString();
-        //        var dimsD = spec.TensorDims[3].ToString();
-        //        sb.AppendFormat("APPLY_TTTTS({0}, {1}, {2}, {3}, {4}, {5}, {6})\n", indexType, dimsA, dimsB, dimsC, dimsD, kernelName, operatorCode);
-        //    }
-        //}
-
-        //public void AddApplyTTTTS(string kernelBaseName, string operatorCode)
-        //{
-        //    foreach (var spec in ApplySpecialization.AllSpecializations(4))
-        //    {
-        //        var kernelName = GetMangledName(kernelBaseName, spec);
-        //        var indexType = spec.Use32BitIndices ? ApplySpecialization.IndexType32 : ApplySpecialization.IndexType64;
-        //        var dimsA = spec.TensorDims[0].ToString();
-        //        var dimsB = spec.TensorDims[1].ToString();
-        //        var dimsC = spec.TensorDims[2].ToString();
-        //        var dimsD = spec.TensorDims[3].ToString();
-        //        sb.AppendFormat("APPLY_TTTTS({0}, {1}, {2}, {3}, {4}, {5}, {6})\n", indexType, dimsA, dimsB, dimsC, dimsD, kernelName, operatorCode);
-        //    }
-        //}
-
 
         public void AddReduce(string kernelBaseName, string modifyOpCode, string reduceOpCode)
         {

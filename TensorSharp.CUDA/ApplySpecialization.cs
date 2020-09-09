@@ -34,7 +34,7 @@ namespace TensorSharp.CUDA
                         return -2;
                     }
 
-                    return tensor.DimensionCount > 3 ? -1 : tensor.DimensionCount;
+                    return -1; // tensor.DimensionCount > 3 ? -1 : tensor.DimensionCount;
                 })
                 .ToArray();
             }
@@ -91,7 +91,7 @@ namespace TensorSharp.CUDA
             }
         }
 
-        private static readonly int[] All32BitTensorDims = new int[] { -2, -1, 1, 2, 3 };
+        private static readonly int[] All32BitTensorDims = new int[] { -2, -1 }; //, 1, 2, 3 };
 
         private static IEnumerable<T[]> CombinationsOf<T>(T[] possibleValues, int count)
         {

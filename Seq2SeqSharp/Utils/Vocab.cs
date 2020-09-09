@@ -127,7 +127,7 @@ namespace Seq2SeqSharp
         /// </summary>
         /// <param name="trainCorpus"></param>
         /// <param name="minFreq"></param>
-        public Vocab(ParallelCorpus trainCorpus, int minFreq = 1)
+        public Vocab(IEnumerable<SntPairBatch> trainCorpus, int minFreq = 1)
         {
             Logger.WriteLine($"Building vocabulary from given training corpus.");
             // count up all words

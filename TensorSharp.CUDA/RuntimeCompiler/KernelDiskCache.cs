@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AdvUtils;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
@@ -53,9 +54,12 @@ namespace TensorSharp.CUDA.RuntimeCompiler
             }
             else
             {
+                WriteCudaCppToFile(key, fullSourceCode);
+
                 ptx = compile(fullSourceCode);
                 memoryCachedKernels.Add(key, ptx);
                 WriteToFile(key, ptx);
+
                 return ptx;
             }
         }
@@ -64,7 +68,17 @@ namespace TensorSharp.CUDA.RuntimeCompiler
         private void WriteToFile(string key, byte[] ptx)
         {
             string filePath = FilePathFromKey(key);
+
+            Logger.WriteLine($"Writing PTX code to '{filePath}'");
             System.IO.File.WriteAllBytes(filePath, ptx);
+        }
+
+        private void WriteCudaCppToFile(string key, string sourceCode)
+        {           
+            string filePath = FilePathFromKey(key) + ".cu";
+
+            Logger.WriteLine($"Writing cuda source code to '{filePath}'");
+            System.IO.File.WriteAllText(filePath, sourceCode);
         }
 
         private bool TryGetFromFile(string key, out byte[] ptx)
@@ -87,6 +101,19 @@ namespace TensorSharp.CUDA.RuntimeCompiler
 
         private string KeyFromFilePath(string filepath)
         {
+            string[] fileExts = new string[] { ".ptx", ".cu" };
+
+            foreach (string ext in fileExts)
+            {
+                if (filepath.EndsWith(ext, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    filepath = filepath.Substring(0, filepath.Length - ext.Length);
+                }
+            }
+
+     //       return filepath;
+           
+
             return Path.GetFileNameWithoutExtension(filepath);
         }
 

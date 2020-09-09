@@ -1,4 +1,5 @@
-﻿using ManagedCuda;
+﻿using AdvUtils;
+using ManagedCuda;
 using System;
 using System.Collections.Generic;
 
@@ -35,15 +36,25 @@ namespace TensorSharp.CUDA.ContextState
         {
             lock (locker)
             {
-                if (activeKernels.TryGetValue(Tuple.Create(context, ptx, kernelName), out CudaKernel value))
+                try
                 {
-                    return value;
+                    if (activeKernels.TryGetValue(Tuple.Create(context, ptx, kernelName), out CudaKernel value))
+                    {
+                        return value;
+                    }
+                    else
+                    {
+                        value = context.LoadKernelPTX(ptx, kernelName);
+                        activeKernels.Add(Tuple.Create(context, ptx, kernelName), value);
+                        return value;
+                    }
                 }
-                else
+                catch (Exception err)
                 {
-                    value = context.LoadKernelPTX(ptx, kernelName);
-                    activeKernels.Add(Tuple.Create(context, ptx, kernelName), value);
-                    return value;
+                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: '{err.Message}'");
+                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Call stack: '{err.StackTrace}'");
+
+                    throw err;
                 }
             }
         }

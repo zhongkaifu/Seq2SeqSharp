@@ -41,15 +41,9 @@
     <ProjectReference Include="..\TensorSharp\TensorSharp.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="ManagedCuda-102">
-      <Version>10.2.41</Version>
-    </PackageReference>
-    <PackageReference Include="ManagedCuda-CUBLAS">
-      <Version>10.2.41</Version>
-    </PackageReference>
-    <PackageReference Include="ManagedCuda-NVRTC">
-      <Version>10.2.41</Version>
-    </PackageReference>
+    <PackageReference Include="ManagedCuda-11" Version="11.0.43" />
+    <PackageReference Include="ManagedCuda-CUBLAS" Version="11.0.43" />
+    <PackageReference Include="ManagedCuda-NVRTC" Version="11.0.43" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
   </ItemGroup>
