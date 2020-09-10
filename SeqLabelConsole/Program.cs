@@ -68,10 +68,10 @@ namespace SeqLabelConsole
             if (mode == ModeEnums.Train)
             {
                 // Load train corpus
-                ParallelCorpus trainCorpus = new ParallelCorpus(opts.TrainCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength, addBOSEOS: false);
+                SequenceLabelingCorpus trainCorpus = new SequenceLabelingCorpus(opts.TrainCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxSentLength);
 
                 // Load valid corpus
-                ParallelCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new ParallelCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength, addBOSEOS: false);
+                SequenceLabelingCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new SequenceLabelingCorpus(opts.ValidCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxSentLength);
 
                 // Load or build vocabulary
                 Vocab vocab = null;
@@ -104,13 +104,13 @@ namespace SeqLabelConsole
                     //New training
                     sl = new SequenceLabel(hiddenDim: opts.HiddenSize, embeddingDim: opts.WordVectorSize, encoderLayerDepth: opts.EncoderLayerDepth, multiHeadNum: opts.MultiHeadNum,
                         encoderType: encoderType,
-                        dropoutRatio: opts.DropoutRatio, deviceIds: deviceIds, processorType: processorType, modelFilePath: opts.ModelFilePath, vocab: vocab);
+                        dropoutRatio: opts.DropoutRatio, deviceIds: deviceIds, processorType: processorType, modelFilePath: opts.ModelFilePath, vocab: vocab, maxSntSize: opts.MaxSentLength);
                 }
                 else
                 {
                     //Incremental training
                     Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
-                    sl = new SequenceLabel(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds, dropoutRatio: opts.DropoutRatio);
+                    sl = new SequenceLabel(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds, dropoutRatio: opts.DropoutRatio, maxSntSize: opts.MaxSentLength);
                 }
 
                 // Add event handler for monitoring
@@ -126,7 +126,7 @@ namespace SeqLabelConsole
                 Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPath}'");
 
                 // Load valid corpus
-                ParallelCorpus validCorpus = new ParallelCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength, opts.MaxSentLength, false);
+                SequenceLabelingCorpus validCorpus = new SequenceLabelingCorpus(opts.ValidCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
 
                 Vocab vocab = new Vocab(validCorpus);
                 // Create metrics
@@ -136,7 +136,7 @@ namespace SeqLabelConsole
                     metrics.Add(new SequenceLabelFscoreMetric(word));
                 }
 
-                sl = new SequenceLabel(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds);
+                sl = new SequenceLabel(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds, maxSntSize: opts.MaxSentLength);
                 sl.Valid(validCorpus: validCorpus, metrics: metrics);
             }
             else if (mode == ModeEnums.Test)
@@ -144,7 +144,7 @@ namespace SeqLabelConsole
                 Logger.WriteLine($"Test model '{opts.ModelFilePath}' by input corpus '{opts.InputTestFile}'");
 
                 //Test trained model
-                sl = new SequenceLabel(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds);
+                sl = new SequenceLabel(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds, maxSntSize: opts.MaxSentLength);
 
                 List<string> outputLines = new List<string>();
                 string[] data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
@@ -156,14 +156,6 @@ namespace SeqLabelConsole
 
                 File.WriteAllLines(opts.OutputTestFile, outputLines);
             }
-            //else if (mode == ModeEnums.VisualizeNetwork)
-            //{
-            //    ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth, 
-            //        vocab: new Vocab(), srcEmbeddingFilePath: null, tgtEmbeddingFilePath: null, modelFilePath: opts.ModelFilePath, dropoutRatio: opts.DropoutRatio,
-            //        processorType: processorType, deviceIds: new int[1] { 0 }, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType);
-
-            //    ss.VisualizeNeuralNetwork(opts.VisualizeNNFilePath);
-            //}
             else
             {
                 argParser.Usage();

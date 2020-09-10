@@ -110,7 +110,7 @@ namespace Seq2SeqConsole
         public float Beta1 = 0.9f;
 
         [Arg("The beta2 for optimizer", "Beta2")]
-        public float Beta2 = 0.999f;
+        public float Beta2 = 0.98f;
 
         [Arg("Apply coverage model in decoder", "EnableCoverageModel")]
         public bool EnableCoverageModel = true;
@@ -129,5 +129,8 @@ namespace Seq2SeqConsole
 
         [Arg("The ratio of memory usage", "MemoryUsageRatio")]
         public float MemoryUsageRatio = 0.95f;
+
+        [Arg("The options for CUDA NVRTC compiler. Options are split by space. For example: \"--use_fast_math --gpu-architecture=compute_60\"", "CompilerOptions")]
+        public string CompilerOptions = "--use_fast_math";
     }
 }

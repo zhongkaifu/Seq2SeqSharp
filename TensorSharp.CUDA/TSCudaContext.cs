@@ -35,18 +35,8 @@ namespace TensorSharp.CUDA
         private readonly CudaKernelCache kernelCache = new CudaKernelCache();
 
 
-        public TSCudaContext(int[] deviceIds, float memoryUsageRatio = 0.9f)
+        public TSCudaContext(int[] deviceIds, float memoryUsageRatio = 0.9f, string[] compilerOptions = null)
         {
-            //try
-            //{
-            //    this.deviceCount = CudaContext.GetDeviceCount();
-            //}
-            //catch
-            //{
-            //    // CudaContext.GetDeviceCount() throws if CUDA drivers are not installed
-            //    this.deviceCount = 0;
-            //}
-
             this.deviceIds = deviceIds;
 
             devices = new DeviceState[deviceIds.Length];
@@ -54,19 +44,10 @@ namespace TensorSharp.CUDA
             {
                 devices[i] = new DeviceState(deviceIds[i], memoryUsageRatio);
             }
-
-
-            //     if (deviceCount > 0)
-            //   {
             p2pAccess = EnablePeerAccess(devices.Select(x => x.CudaContext).ToArray(), devices[0].CudaContext);
-            //}
-            //else
-            //{
-            //    p2pAccess = new bool[0, 0];
-            //}
 
             diskCache = new RuntimeCompiler.KernelDiskCache(Path.Combine(Environment.CurrentDirectory, CacheDir));
-            compiler = new RuntimeCompiler.CudaCompiler(diskCache);
+            compiler = new RuntimeCompiler.CudaCompiler(diskCache, compilerOptions);
 
             OpRegistry.RegisterAssembly(Assembly.GetExecutingAssembly());
         }

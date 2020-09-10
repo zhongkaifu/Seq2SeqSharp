@@ -33,11 +33,11 @@ namespace Seq2SeqSharp.Tools
         private SortedList<string, IMultiProcessorNetworkWrapper> m_name2network;
         DateTime m_lastCheckPointDateTime = DateTime.Now;
 
-        public BaseSeq2SeqFramework(int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f)
+        public BaseSeq2SeqFramework(int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, string[] compilerOptions = null)
         {
             m_deviceIds = deviceIds;
             m_modelFilePath = modelFilePath;
-            TensorAllocator.InitDevices(processorType, m_deviceIds, memoryUsageRatio);
+            TensorAllocator.InitDevices(processorType, m_deviceIds, memoryUsageRatio, compilerOptions);
         }
 
         public IComputeGraph CreateComputGraph(int deviceIdIdx, bool needBack = true)

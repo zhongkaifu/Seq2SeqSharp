@@ -14,7 +14,7 @@ namespace Seq2SeqSharp
         private static ProcessorTypeEnums m_archType;
 
 
-        public static void InitDevices(ProcessorTypeEnums archType, int[] ids, float memoryUsageRatio = 0.9f)
+        public static void InitDevices(ProcessorTypeEnums archType, int[] ids, float memoryUsageRatio = 0.9f, string[] compilerOptions = null)
         {
             m_archType = archType;
             if (m_archType == ProcessorTypeEnums.GPU)
@@ -26,7 +26,7 @@ namespace Seq2SeqSharp
                     Logger.WriteLine($"Initialize device '{id}'");
                 }
 
-                m_cudaContext = new TSCudaContext(m_deviceIds, memoryUsageRatio);
+                m_cudaContext = new TSCudaContext(m_deviceIds, memoryUsageRatio, compilerOptions);
                 m_cudaContext.Precompile(Console.Write);
                 m_cudaContext.CleanUnusedPTX();
 

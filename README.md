@@ -67,7 +67,8 @@ Parameters:
 **-MaxEpochNum**: Maxmium epoch number during training. Default is 100  
 **-MaxSrcSentLength**: Maxmium sentence length on source side. Default is 32 tokens  
 **-MaxTgtSentLength**: Maxmium sentence length on target side. Default is 32 tokens  
-**-WarmUpSteps**: The number of steps for warming up. Default is 8,000  
+**-WarmUpSteps**: The number of steps for warming up. Default is 8,000 
+**-CompilerOptions**: The options for CUDA NVRTC compiler. Options are split by space. For example: "--use_fast_math --gpu-architecture=compute_60" means to use fast math libs and run on Pascal and above GPUs  
 Note that:  
   1) if "-SrcVocab" and "-TgtVocab" are empty, vocabulary will be built from training corpus.  
   2) Txt2Vec for external embedding model building can get downloaded from https://github.com/zhongkaifu/Txt2Vec  
@@ -151,7 +152,8 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
 "VisualizeNNFilePath":null,
 "Beta1":0.9,
 "Beta2":0.98,
-"EnableCoverageModel":true
+"EnableCoverageModel":true,
+"CompilerOptions":"--use_fast_math --gpu-architecture=compute_60"
 }
 ```
 

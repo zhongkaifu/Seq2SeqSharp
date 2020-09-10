@@ -1,5 +1,8 @@
-﻿using System;
+﻿using AdvUtils;
+using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -10,10 +13,12 @@ namespace TensorSharp.CUDA.RuntimeCompiler
     {
         private readonly Dictionary<string, string> includes = new Dictionary<string, string>();
         private readonly KernelDiskCache diskCache;
+        private readonly string[] m_options;
 
-        public CudaCompiler(KernelDiskCache diskCache)
+        public CudaCompiler(KernelDiskCache diskCache, string[] options = null)
         {
             this.diskCache = diskCache;
+            m_options = options;
             RegisterAttributeHeaders(Assembly.GetExecutingAssembly());
         }
 
@@ -38,9 +43,16 @@ namespace TensorSharp.CUDA.RuntimeCompiler
 
             try
             {
-                rtc.Compile(new string[] { "--use_fast_math" });
-
-                //rtc.Compile(new string[] { });
+                if (m_options == null || m_options.Length == 0)
+                {
+                    rtc.Compile(new string[] { });
+                }
+                else
+                {
+                    Logger.WriteLine($"Compiler Options: {String.Join(" ", m_options)}");
+                    rtc.Compile(m_options);
+                    //rtc.Compile(new string[] { "--use_fast_math", "--gpu-architecture=compute_60" });
+                }
             }
             catch
             {

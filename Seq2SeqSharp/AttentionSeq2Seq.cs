@@ -56,8 +56,9 @@ namespace Seq2SeqSharp
         private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
 
         public AttentionSeq2Seq(string modelFilePath, ProcessorTypeEnums processorType, int[] deviceIds, float dropoutRatio = 0.0f, 
-            bool isSrcEmbTrainable = true, bool isTgtEmbTrainable = true, bool isEncoderTrainable = true, bool isDecoderTrainable = true, int maxSrcSntSize = 128, int maxTgtSntSize = 128, float memoryUsageRatio = 0.9f, ShuffleEnums shuffleType = ShuffleEnums.Random)
-            : base(deviceIds, processorType, modelFilePath, memoryUsageRatio)
+            bool isSrcEmbTrainable = true, bool isTgtEmbTrainable = true, bool isEncoderTrainable = true, bool isDecoderTrainable = true, 
+            int maxSrcSntSize = 128, int maxTgtSntSize = 128, float memoryUsageRatio = 0.9f, ShuffleEnums shuffleType = ShuffleEnums.Random, string[] compilerOptions = null)
+            : base(deviceIds, processorType, modelFilePath, memoryUsageRatio, compilerOptions)
         {
             m_dropoutRatio = dropoutRatio;
             m_isSrcEmbTrainable = isSrcEmbTrainable;
@@ -73,8 +74,9 @@ namespace Seq2SeqSharp
 
         public AttentionSeq2Seq(int embeddingDim, int hiddenDim, int encoderLayerDepth, int decoderLayerDepth, Vocab vocab, string srcEmbeddingFilePath, string tgtEmbeddingFilePath,
             string modelFilePath, float dropoutRatio, int multiHeadNum, ProcessorTypeEnums processorType, EncoderTypeEnums encoderType, DecoderTypeEnums decoderType, bool enableCoverageModel, int[] deviceIds,
-            bool isSrcEmbTrainable = true, bool isTgtEmbTrainable = true, bool isEncoderTrainable = true, bool isDecoderTrainable = true, int maxSrcSntSize = 128, int maxTgtSntSize = 128, float memoryUsageRatio = 0.9f, ShuffleEnums shuffleType = ShuffleEnums.Random)
-            : base(deviceIds, processorType, modelFilePath, memoryUsageRatio)
+            bool isSrcEmbTrainable = true, bool isTgtEmbTrainable = true, bool isEncoderTrainable = true, bool isDecoderTrainable = true, 
+            int maxSrcSntSize = 128, int maxTgtSntSize = 128, float memoryUsageRatio = 0.9f, ShuffleEnums shuffleType = ShuffleEnums.Random, string[] compilerOptions = null)
+            : base(deviceIds, processorType, modelFilePath, memoryUsageRatio, compilerOptions)
         {
             m_modelMetaData = new Seq2SeqModelMetaData(hiddenDim, embeddingDim, encoderLayerDepth, decoderLayerDepth, multiHeadNum, encoderType, decoderType, vocab, enableCoverageModel);
             m_dropoutRatio = dropoutRatio;

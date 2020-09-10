@@ -34,12 +34,6 @@ namespace SeqLabelConsole
         [Arg("The external embedding model file path for source side.", "SrcEmbedding")]
         public string SrcEmbeddingModelFilePath = null;
 
-        [Arg("Source language name.", "SrcLang")]
-        public string SrcLang;
-
-        [Arg("Target language name.", "TgtLang")]
-        public string TgtLang;
-
         [Arg("Training corpus folder path", "TrainCorpusPath")]
         public string TrainCorpusPath;
 
@@ -83,13 +77,10 @@ namespace SeqLabelConsole
         public int MaxEpochNum = 100;
 
         [Arg("Maxmium sentence length", "MaxSentLength")]
-        public int MaxSentLength = 32;
+        public int MaxSentLength = 128;
 
         [Arg("The number of steps for warming up", "WarmUpSteps")]
         public int WarmUpSteps = 8000;
-
-        [Arg("The file path of dumped neural network (.png file)", "VisNNFile")]
-        public string VisualizeNNFilePath;
 
         [Arg("The file path of config file for parameters", "ConfigFilePath")]
         public string ConfigFilePath = string.Empty;
@@ -98,6 +89,6 @@ namespace SeqLabelConsole
         public float Beta1 = 0.9f;
 
         [Arg("The beta2 for optimizer", "Beta2")]
-        public float Beta2 = 0.999f;
+        public float Beta2 = 0.98f;
     }
 }
