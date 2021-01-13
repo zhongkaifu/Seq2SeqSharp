@@ -19,7 +19,7 @@ namespace Seq2SeqSharp
         private readonly IWeightTensor Vb;
 
 
-        private readonly IWeightTensor QKV;
+   //     private readonly IWeightTensor QKV;
 
         private readonly LayerNormalization layerNormQ;
 
@@ -29,9 +29,9 @@ namespace Seq2SeqSharp
         private readonly string m_name;
         private readonly float m_dropoutRatio;
         private readonly float m_inputDim;
-        private readonly bool m_sharedQKV = false;
+      //  private readonly bool m_sharedQKV = false;
 
-        public MultiHeadAttention(string name, int multiHeadNum, int hiddenDim, int inputDim, float dropoutRatio, int deviceId, bool isTrainable, bool sharedQKV = false)
+        public MultiHeadAttention(string name, int multiHeadNum, int hiddenDim, int inputDim, float dropoutRatio, int deviceId, bool isTrainable)
         {
             m_name = name;
             m_hiddenDim = hiddenDim;
@@ -39,13 +39,13 @@ namespace Seq2SeqSharp
             m_multiHeadNum = multiHeadNum;
             m_d = m_hiddenDim / m_multiHeadNum;
             m_dropoutRatio = dropoutRatio;
-            m_sharedQKV = sharedQKV;
+           // m_sharedQKV = sharedQKV;
 
             W0 = new WeightTensor(new long[2] { hiddenDim, hiddenDim }, deviceId, name: $"{name}.{nameof(W0)}", isTrainable: isTrainable, normal: NormType.Uniform);
             b0 = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(b0)}", isTrainable: isTrainable);
 
-            if (m_sharedQKV == false)
-            {
+            //if (m_sharedQKV == false)
+            //{
                 Q = new WeightTensor(new long[2] { inputDim, hiddenDim }, deviceId, name: $"{name}.{nameof(Q)}", isTrainable: isTrainable, normal: NormType.Uniform);
                 Qb = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(Qb)}", isTrainable: isTrainable);
 
@@ -54,11 +54,11 @@ namespace Seq2SeqSharp
 
                 V = new WeightTensor(new long[2] { inputDim, hiddenDim }, deviceId, name: $"{name}.{nameof(V)}", isTrainable: isTrainable, normal: NormType.Uniform);
                 Vb = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(Vb)}", isTrainable: isTrainable);
-            }
-            else
-            {
-                QKV = new WeightTensor(new long[] { 3, inputDim, hiddenDim }, deviceId, name: $"{name}.{nameof(QKV)}", isTrainable: isTrainable, normal: NormType.Uniform);
-            }
+            //}
+            //else
+            //{
+            //    QKV = new WeightTensor(new long[] { 3, inputDim, hiddenDim }, deviceId, name: $"{name}.{nameof(QKV)}", isTrainable: isTrainable, normal: NormType.Uniform);
+            //}
 
             layerNormQ = new LayerNormalization($"{name}.{nameof(layerNormQ)}", m_hiddenDim, deviceId, isTrainable);
         }
@@ -74,10 +74,10 @@ namespace Seq2SeqSharp
         /// <returns>Transformered output tensor</returns>
         public IWeightTensor Perform(IWeightTensor inputQ, IWeightTensor inputK, IWeightTensor inputV, IWeightTensor keyMask, int batchSize, IComputeGraph graph)
         {
-            if (m_sharedQKV)
-            {
-                throw new ArgumentException($"Layer '{m_name}' is in shared QKV mode, please call antoher Perform function with single input tensor.");
-            }
+            //if (m_sharedQKV)
+            //{
+            //    throw new ArgumentException($"Layer '{m_name}' is in shared QKV mode, please call antoher Perform function with single input tensor.");
+            //}
 
             using (IComputeGraph g = graph.CreateSubGraph($"{m_name}_MultiHeadAttention"))
             {
@@ -88,78 +88,54 @@ namespace Seq2SeqSharp
                 int seqLenV = inputV.Rows / batchSize;
 
                 IWeightTensor inputQNorm = layerNormQ.Norm(inputQ, g);
+                if (inputK == inputQ)
+                {
+                    inputK = inputQNorm;
+                }
+                if (inputV == inputQ)
+                {
+                    inputV = inputQNorm;
+                }
+
+
                 //Input projections
-                float scale = 1.0f / (float)(m_inputDim);
+                float scale = 1.0f; // / (float)(m_inputDim);
                 IWeightTensor allQ = g.View(g.Affine(inputQNorm, Q, Qb, scale), dims: new long[] { batchSize, seqLenQ, m_multiHeadNum, m_d });
                 IWeightTensor allK = g.View(g.Affine(inputK, K, Kb, scale), dims: new long[] { batchSize, seqLenK, m_multiHeadNum, m_d });
                 IWeightTensor allV = g.View(g.Affine(inputV, V, Vb, scale), dims: new long[] { batchSize, seqLenV, m_multiHeadNum, m_d });
 
                 //Multi-head attentions
-                IWeightTensor Qs = g.View(g.Permute(allQ, 2, 0, 1, 3), dims: new long[] { m_multiHeadNum * batchSize, seqLenQ, m_d });
-                IWeightTensor Ks = g.View(g.Permute(allK, 2, 0, 3, 1), dims: new long[] { m_multiHeadNum * batchSize, m_d, seqLenK });
-                IWeightTensor Vs = g.View(g.Permute(allV, 2, 0, 1, 3), dims: new long[] { m_multiHeadNum * batchSize, seqLenV, m_d });
+                IWeightTensor Qs = g.View(g.AsContiguous(g.Transpose(allQ, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, m_d });
+                IWeightTensor Ks = g.View(g.AsContiguous(g.Transpose(g.AsContiguous(g.Transpose(allK, 1, 2)), 2, 3)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenK });
+                IWeightTensor Vs = g.View(g.AsContiguous(g.Transpose(allV, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenV, m_d });
 
                 // Scaled softmax
-                scale = 1.0f / (float)(m_d);
-                IWeightTensor attn = g.MulBatch(Qs, Ks, m_multiHeadNum * batchSize, scale);
-                IWeightTensor softmax = g.Softmax(attn, keyMask, inPlace: true);
-                IWeightTensor o = g.View(g.MulBatch(softmax, Vs, m_multiHeadNum * batchSize), dims: new long[] { m_multiHeadNum, batchSize, seqLenQ, m_d });
-
-                IWeightTensor W = g.View(g.Permute(o, 1, 2, 0, 3), dims: new long[] { batchSize * seqLenQ, m_multiHeadNum * m_d });
-
-                // Output projection
-                IWeightTensor finalAttResults = g.Dropout(g.Affine(W, W0, b0), batchSize, m_dropoutRatio, inPlace: true);
-
-                return graph.Add(finalAttResults, inputQ);
-            }
-        }
+                scale = 1.0f / (float)(Math.Sqrt(m_d));
+                IWeightTensor attn = g.MulBatch(Qs, Ks, batchSize * m_multiHeadNum, scale);
 
 
-        public IWeightTensor Perform(IWeightTensor inputQ, IWeightTensor keyMask, int batchSize, IComputeGraph graph)
-        {
-            if (m_sharedQKV == false)
-            {
-                throw new ArgumentException($"Layer '{m_name}' is not in shared QKV mode, please call another Perform function with three separated input tensors.");
-            }
-
-            using (IComputeGraph g = graph.CreateSubGraph($"{m_name}_MultiHeadAttention_SharedQKV"))
-            {
-                int seqLenQ = inputQ.Rows / batchSize;
-                IWeightTensor inputQNorm = layerNormQ.Norm(inputQ, g);
-
-                //Input projections
-                float scale = 1.0f / (float)(m_inputDim);
-                IWeightTensor mulQ, mulK, mulV;
-
-                using (IWeightTensor inputQNormView = g.View(inputQNorm, dims: new long[] { 1, inputQ.Rows, inputQ.Columns }))
+                if (keyMask != null)
                 {
-                    using (IWeightTensor inputQNormViewExp = g.Expand(inputQNormView, dims: new long[] { 3, inputQ.Rows, inputQ.Columns }))
+                    using (var keyMaskView = g.View(keyMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenK }))
                     {
-                        using (IWeightTensor mulQKV = g.MulBatch(inputQNormViewExp, QKV, 3, scale))
+                        using (var keyMaskViewExp = g.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK }))
                         {
-                            mulQ = g.Select(mulQKV, 0, 0);
-                            mulK = g.Select(mulQKV, 0, 1);
-                            mulV = g.Select(mulQKV, 0, 2);
+                            using (var keyMaskViewExpConti = g.AsContiguous(keyMaskViewExp, runGradient: false))
+                            {
+                                using (var keyMaskViewExpContiView = g.View(keyMaskViewExpConti, runGradient: false, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenK }))
+                                {
+                                    attn = g.Add(attn, keyMaskViewExpContiView, runGradient1: true, runGradient2: false);
+                                }
+                            }
                         }
-                    }
+                    }                            
                 }
 
-                IWeightTensor allQ = g.View(mulQ, dims: new long[] { batchSize, seqLenQ, m_multiHeadNum, m_d });
-                IWeightTensor allK = g.View(mulK, dims: new long[] { batchSize, seqLenQ, m_multiHeadNum, m_d });
-                IWeightTensor allV = g.View(mulV, dims: new long[] { batchSize, seqLenQ, m_multiHeadNum, m_d });
+                IWeightTensor softmax = g.Softmax(attn, inPlace: true);
 
-                //Multi-head attentions
-                IWeightTensor Qs = g.View(g.Permute(allQ, 2, 0, 1, 3), dims: new long[] { m_multiHeadNum * batchSize, seqLenQ, m_d });
-                IWeightTensor Ks = g.View(g.Permute(allK, 2, 0, 3, 1), dims: new long[] { m_multiHeadNum * batchSize, m_d, seqLenQ });
-                IWeightTensor Vs = g.View(g.Permute(allV, 2, 0, 1, 3), dims: new long[] { m_multiHeadNum * batchSize, seqLenQ, m_d });
+                IWeightTensor o = g.View(g.MulBatch(softmax, Vs, batchSize * m_multiHeadNum), dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, m_d });
 
-                // Scaled softmax
-                scale = 1.0f / (float)(m_d);
-                IWeightTensor attn = g.MulBatch(Qs, Ks, m_multiHeadNum * batchSize, scale);
-                IWeightTensor softmax = g.Softmax(attn, keyMask, inPlace: true);
-                IWeightTensor o = g.View(g.MulBatch(softmax, Vs, m_multiHeadNum * batchSize), dims: new long[] { m_multiHeadNum, batchSize, seqLenQ, m_d });
-
-                IWeightTensor W = g.View(g.Permute(o, 1, 2, 0, 3), dims: new long[] { batchSize * seqLenQ, m_multiHeadNum * m_d });
+                IWeightTensor W = g.View(g.AsContiguous(g.Transpose(o, 1, 2)), dims: new long[] { batchSize * seqLenQ, m_multiHeadNum * m_d });
 
                 // Output projection
                 IWeightTensor finalAttResults = g.Dropout(g.Affine(W, W0, b0), batchSize, m_dropoutRatio, inPlace: true);
@@ -167,6 +143,60 @@ namespace Seq2SeqSharp
                 return graph.Add(finalAttResults, inputQ);
             }
         }
+
+
+        //public IWeightTensor Perform(IWeightTensor inputQ, IWeightTensor keyMask, int batchSize, IComputeGraph graph)
+        //{
+        //    if (m_sharedQKV == false)
+        //    {
+        //        throw new ArgumentException($"Layer '{m_name}' is not in shared QKV mode, please call another Perform function with three separated input tensors.");
+        //    }
+
+        //    using (IComputeGraph g = graph.CreateSubGraph($"{m_name}_MultiHeadAttention_SharedQKV"))
+        //    {
+        //        int seqLenQ = inputQ.Rows / batchSize;
+        //        IWeightTensor inputQNorm = layerNormQ.Norm(inputQ, g);
+
+        //        //Input projections
+        //        float scale = 1.0f; // / (float)(m_inputDim);
+        //        IWeightTensor mulQ, mulK, mulV;
+
+        //        using (IWeightTensor inputQNormView = g.View(inputQNorm, dims: new long[] { 1, inputQ.Rows, inputQ.Columns }))
+        //        {
+        //            using (IWeightTensor inputQNormViewExp = g.Expand(inputQNormView, dims: new long[] { 3, inputQ.Rows, inputQ.Columns }))
+        //            {
+        //                using (IWeightTensor mulQKV = g.MulBatch(inputQNormViewExp, QKV, null, 3, scale))
+        //                {
+        //                    mulQ = g.Select(mulQKV, 0, 0);
+        //                    mulK = g.Select(mulQKV, 0, 1);
+        //                    mulV = g.Select(mulQKV, 0, 2);
+        //                }
+        //            }
+        //        }
+
+        //        IWeightTensor allQ = g.View(mulQ, dims: new long[] { batchSize, seqLenQ, m_multiHeadNum, m_d });
+        //        IWeightTensor allK = g.View(mulK, dims: new long[] { batchSize, seqLenQ, m_multiHeadNum, m_d });
+        //        IWeightTensor allV = g.View(mulV, dims: new long[] { batchSize, seqLenQ, m_multiHeadNum, m_d });
+
+        //        //Multi-head attentions
+        //        IWeightTensor Qs = g.View(g.Permute(allQ, 2, 0, 1, 3), dims: new long[] { m_multiHeadNum * batchSize, seqLenQ, m_d });
+        //        IWeightTensor Ks = g.View(g.Permute(allK, 2, 0, 3, 1), dims: new long[] { m_multiHeadNum * batchSize, m_d, seqLenQ });
+        //        IWeightTensor Vs = g.View(g.Permute(allV, 2, 0, 1, 3), dims: new long[] { m_multiHeadNum * batchSize, seqLenQ, m_d });
+
+        //        // Scaled softmax
+        //        scale = 1.0f / (float)(Math.Sqrt(m_d));
+        //        IWeightTensor attn = g.MulBatch(Qs, Ks, null, m_multiHeadNum * batchSize, scale);
+        //        IWeightTensor softmax = g.Softmax(attn, keyMask, inPlace: true);
+        //        IWeightTensor o = g.View(g.MulBatch(softmax, Vs, null, m_multiHeadNum * batchSize), dims: new long[] { m_multiHeadNum, batchSize, seqLenQ, m_d });
+
+        //        IWeightTensor W = g.View(g.Permute(o, 1, 2, 0, 3), dims: new long[] { batchSize * seqLenQ, m_multiHeadNum * m_d });
+
+        //        // Output projection
+        //        IWeightTensor finalAttResults = g.Dropout(g.Affine(W, W0, b0), batchSize, m_dropoutRatio, inPlace: true);
+
+        //        return graph.Add(finalAttResults, inputQ);
+        //    }
+        //}
 
 
         public virtual List<IWeightTensor> getParams()
@@ -177,12 +207,12 @@ namespace Seq2SeqSharp
                 b0
             };
 
-            if (m_sharedQKV)
-            {
-                response.Add(QKV);
-            }
-            else
-            {
+            //if (m_sharedQKV)
+            //{
+            //    response.Add(QKV);
+            //}
+            //else
+            //{
                 response.Add(Q);
                 response.Add(Qb);
 
@@ -191,7 +221,7 @@ namespace Seq2SeqSharp
 
                 response.Add(V);
                 response.Add(Vb);
-            }
+        //    }
 
             response.AddRange(layerNormQ.getParams());
 
@@ -201,12 +231,12 @@ namespace Seq2SeqSharp
 
         public void Save(Stream stream)
         {
-            if (m_sharedQKV)
-            {
-                QKV.Save(stream);
-            }
-            else
-            {
+            //if (m_sharedQKV)
+            //{
+            //    QKV.Save(stream);
+            //}
+            //else
+            //{
                 Q.Save(stream);
                 Qb.Save(stream);
 
@@ -215,7 +245,7 @@ namespace Seq2SeqSharp
 
                 V.Save(stream);
                 Vb.Save(stream);
-            }
+          //  }
 
             W0.Save(stream);
             b0.Save(stream);
@@ -228,12 +258,12 @@ namespace Seq2SeqSharp
 
         public void Load(Stream stream)
         {
-            if (m_sharedQKV)
-            {
-                QKV.Load(stream);
-            }
-            else
-            {
+            //if (m_sharedQKV)
+            //{
+            //    QKV.Load(stream);
+            //}
+            //else
+            //{
                 Q.Load(stream);
                 Qb.Load(stream);
 
@@ -242,7 +272,7 @@ namespace Seq2SeqSharp
 
                 V.Load(stream);
                 Vb.Load(stream);
-            }
+         //   }
 
             W0.Load(stream);
             b0.Load(stream);

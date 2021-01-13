@@ -19,6 +19,8 @@ namespace TensorSharp.CUDA.KernelOps
             TSCudaContext context = CudaHelpers.TSContextForTensor(src);
             CudaContext cudaContext = context.CudaContextForDevice(deviceId);
 
+            cudaContext.SetCurrent();
+
             if (src.DimensionCount > TSCudaContext.MaxDims)
             {
                 throw new InvalidOperationException("Tensors with dimension count > " + TSCudaContext.MaxDims + " are not supported");

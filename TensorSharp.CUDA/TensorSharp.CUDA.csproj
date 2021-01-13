@@ -43,6 +43,7 @@
   <ItemGroup>
     <PackageReference Include="ManagedCuda-11" Version="11.0.43" />
     <PackageReference Include="ManagedCuda-CUBLAS" Version="11.0.43" />
+    <PackageReference Include="ManagedCuda-CURAND" Version="11.0.43" />
     <PackageReference Include="ManagedCuda-NVRTC" Version="11.0.43" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />

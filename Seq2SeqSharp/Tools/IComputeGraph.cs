@@ -8,8 +8,10 @@ namespace Seq2SeqSharp
     {
         IComputeGraph CreateSubGraph(string name);
 
+        IWeightTensor Transpose(IWeightTensor w, int dim1, int dim2);
+
         IWeightTensor MulBatch(IWeightTensor m1, IWeightTensor m2, int batchSize, float alpha = 1.0f);
-        IWeightTensor Mul(IWeightTensor w1, IWeightTensor w2);
+        IWeightTensor Mul(IWeightTensor w1, IWeightTensor w2, float alpha = 1.0f);
         IWeightTensor EltMul(IWeightTensor w1, IWeightTensor w2);
         IWeightTensor Add(IWeightTensor w1, IWeightTensor w2, bool runGradient1 = true, bool runGradient2 = true);
         IWeightTensor Tanh(IWeightTensor w);
@@ -19,6 +21,7 @@ namespace Seq2SeqSharp
         IWeightTensor EltMulMulAdd(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3, IWeightTensor w4);
         IWeightTensor TransposeBatch(IWeightTensor m, int batchSize);
         IWeightTensor Permute(IWeightTensor w, params int[] dims);
+        IWeightTensor AsContiguous(IWeightTensor w, bool runGradient = true);
         IWeightTensor View(IWeightTensor w, bool runGradient = true, params long[] dims);
         IWeightTensor Expand(IWeightTensor w, bool runGradient = true, params long[] dims);
 
@@ -39,7 +42,7 @@ namespace Seq2SeqSharp
         IWeightTensor Transpose(IWeightTensor w);
         IWeightTensor Mul(IWeightTensor w, float v);
         IWeightTensor AddMul(IWeightTensor w1, IWeightTensor w2, float v, bool runGradientW1 = true, bool runGradientW2 = true);
-        IWeightTensor LayerNorm(IWeightTensor src, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-09f);
+        IWeightTensor LayerNorm(IWeightTensor src, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-9f);
         IWeightTensor AddLayerNorm(IWeightTensor src1, IWeightTensor src2, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-09f);
 
         void Backward();

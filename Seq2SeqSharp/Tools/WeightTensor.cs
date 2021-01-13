@@ -108,7 +108,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, NormType normal = NormType.None, bool fanIn = false, bool fanOut = false, IComputeGraph graphToBind = null)
+        public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, NormType normal = NormType.None, bool fanIn = false, bool fanOut = false, IComputeGraph graphToBind = null, NormType NormType = default)
         {
             Name = name;
             DeviceId = deviceId;

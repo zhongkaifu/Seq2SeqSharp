@@ -77,7 +77,7 @@ __global__ void gLNormalization(float* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          float t = alpha[id] * ((sp[id] - mean) / sigma);
+          float t = alpha[id] * (sp[id] - mean) / sigma;
           if(beta)
             t += beta[id];
           so[id] = t;
@@ -177,7 +177,7 @@ __global__ void gLayerNormalizationGrad(float* gradX,
 
           float valX = gamma[id] * grad_x;
           float sign = (0.f < valX) - (valX < 0.f);
-          valX = fabs(valX) > 1000 ? sign * 1000 : valX;
+          valX = fabs(valX) > 1000.0f ? sign * 1000.0f : valX;
 
           gradXRow[id] += valX;
           atomicAdd(gradGamma + id, adjRow[id] * x_hat);
@@ -459,7 +459,7 @@ __global__ void gAddLayerNormalizationGrad(float* gradX1,
 
           float valX = gamma[id] * grad_x;
           float sign = (0.f < valX) - (valX < 0.f);
-          valX = fabs(valX) > 1000 ? sign * 1000 : valX;
+          valX = fabs(valX) > 1000.0f ? sign * 1000.0f : valX;
 
           gradX1Row[id] += valX;
           gradX2Row[id] += valX;
@@ -488,34 +488,22 @@ __global__ void Adam(float* __restrict__ w, float* __restrict__ g, float* __rest
       float* sv = v + j * cols;
       float* sm = m + j * cols;
 
+      float bias_correction1 = 1.0 / (1.0 - powf(decay_rate_m, iter));
+      float bias_correction2 = 1.0 / (1.0 - powf(decay_rate_v, iter));
+      float adapted_learning_rate = step_size * bias_correction1 * rsqrtf(bias_correction2);
+
+
       for(int tid = 0; tid < cols; tid += blockDim.x) 
       {        
         int i = tid + threadIdx.x;
         if(i < cols)
         {
-          // float g = sg[i] / batchSize;
-           
-           //if (g > clipval)
-           //{
-           //    g = clipval;
-           //}
-           //if (g < -clipval)
-           //{
-           //    g = -clipval;
-           //}
-
-           float g = sg[i];
-
+           float g = (sg[i] * clipval) / batchSize;
            sm[i] = sm[i] * decay_rate_m + (1.0 - decay_rate_m) * g;
            sv[i] = sv[i] * decay_rate_v + (1.0 - decay_rate_v) * g * g;
 
            //float m_cap = sm[i] / (1.0 - powf(decay_rate_m, iter));
            //float v_cap = sv[i] / (1.0 - powf(decay_rate_v, iter));
-
-
-           float bias_correction1 = 1.0 / (1.0 - powf(decay_rate_m, iter));
-           float bias_correction2 = 1.0 / (1.0 - powf(decay_rate_v, iter));
-           float adapted_learning_rate = step_size * bias_correction1 * rsqrtf(bias_correction2);
 
 
            sw[i] -= adapted_learning_rate * sm[i] / (sqrtf(sv[i]) + eps);
@@ -698,7 +686,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
     if(j < rows) {
       float* so = out + j * cols;
       const float* sp = in + j * cols;
-      const float* mp = mask + (j % maskRows) * cols;
+      const float* mp = mask + j * cols;
 
       extern __shared__ float _share[];     
       float* _max = _share;
@@ -731,7 +719,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
       _sum[threadIdx.x] = 0.0;
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
-        if(i < cols && mp[i] == 0.0f) {         
+        if(i < cols && mp[i] == 0.0f) { 
           float ex = expf(sp[i] - max);
           so[i] = ex;
           _sum[threadIdx.x] += ex;

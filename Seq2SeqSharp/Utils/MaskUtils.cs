@@ -15,10 +15,7 @@ namespace Seq2SeqSharp.Utils
         public static IWeightTensor BuildPadSelfMask(IComputeGraph g, int paddedLength, List<int> originalLengths, int deviceId)
         {
             float[] buf = new float[originalLengths.Count * paddedLength * paddedLength];
-            for (int i = 0; i < buf.Length; i++)
-            {
-                buf[i] = -1e30f;
-            }
+            Array.Fill(buf, -99999999.0f);
 
             for (int k = 0; k < originalLengths.Count; k++)
             {
@@ -40,7 +37,8 @@ namespace Seq2SeqSharp.Utils
         public static IWeightTensor BuildPadSelfTriMask(IComputeGraph g, int paddedLength, List<int> originalLengths, int deviceId)
         {
             float[] buf = new float[originalLengths.Count * paddedLength * paddedLength];
-            Array.Fill(buf, -1e30f);
+            Array.Fill(buf, -99999999.0f);
+
 
             for (int k = 0; k < originalLengths.Count; k++)
             {
@@ -65,14 +63,6 @@ namespace Seq2SeqSharp.Utils
             WeightTensor tensor = new WeightTensor(new long[] { originalLengths.Count, paddedLength, paddedLength }, deviceId, $"TriMask_{deviceId}", isTrainable: false);
             tensor.SetWeightArray(buf);
 
-
-            //WeightTensor tensor = new WeightTensor(new long[] { originalLengths.Count, paddedLength, paddedLength }, deviceId, $"TriMask_{deviceId}", isTrainable: false);
-            //using (Tensor originalLengthsTensor = new Tensor(TensorAllocator.Allocator(deviceId), DType.Int32, 1, originalLengths.Count))
-            //{
-            //    originalLengthsTensor.SetElementsAsInt(originalLengths.ToArray());
-            //    tensor.TWeight = Ops.BuildPadSelfTriMask(originalLengthsTensor, originalLengths.Count, paddedLength);
-            //}
-
             return tensor;
         }
 
@@ -81,7 +71,8 @@ namespace Seq2SeqSharp.Utils
         public static IWeightTensor BuildSrcTgtMask(IComputeGraph g, int srcPaddedLength, int tgtPaddedLength, List<int> tgtOriginalLengths, List<int> srcOriginalLengths, int deviceId)
         {
             float[] buf = new float[tgtOriginalLengths.Count * tgtPaddedLength * srcPaddedLength];
-            Array.Fill(buf, -1e30f);
+            Array.Fill(buf, -99999999.0f);
+
 
             for (int k = 0; k < tgtOriginalLengths.Count; k++) // batch size
             {
@@ -100,23 +91,6 @@ namespace Seq2SeqSharp.Utils
             tensor.SetWeightArray(buf);
 
             return tensor;
-
-            //WeightTensor tensor = new WeightTensor(new long[] { tgtOriginalLengths.Count, tgtPaddedLength, srcPaddedLength }, deviceId, $"SrcTgtMask_{deviceId}", isTrainable: false);
-
-            //using (Tensor srcOriginalLengthsTensor = new Tensor(TensorAllocator.Allocator(deviceId), DType.Int32, 1, srcOriginalLengths.Count))
-            //{
-            //    using (Tensor tgtOriginalLengthsTensor = new Tensor(TensorAllocator.Allocator(deviceId), DType.Int32, 1, tgtOriginalLengths.Count))
-            //    {
-            //        srcOriginalLengthsTensor.SetElementsAsInt(srcOriginalLengths.ToArray());
-            //        tgtOriginalLengthsTensor.SetElementsAsInt(tgtOriginalLengths.ToArray());
-
-            //        tensor.TWeight = Ops.BuildSrcTgtMask(srcOriginalLengthsTensor, tgtOriginalLengthsTensor, srcOriginalLengths.Count, srcPaddedLength, tgtPaddedLength);
-
-            //        return tensor;
-            //    }
-            //}
-
-
         }
     }
 }

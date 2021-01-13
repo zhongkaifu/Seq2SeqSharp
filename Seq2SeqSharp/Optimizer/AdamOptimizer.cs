@@ -35,6 +35,7 @@ namespace Seq2SeqSharp
         {
             Dictionary<int, List<IWeightTensor>> id2Models = new Dictionary<int, List<IWeightTensor>>();
             HashSet<string> setWeightsName = new HashSet<string>();
+
             foreach (IWeightTensor item in model)
             {
                 if (!item.IsTrainable)
@@ -80,8 +81,27 @@ namespace Seq2SeqSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void UpdateWeightsTensor(WeightTensor m, int batchSize, float step_size, float clipval, float regc, int iter)
         {
-            // Ops.RMSProp(m.TWeight, m.TGradient, m.TV, batchSize, step_size, clipval, regc, decay_rate, smooth_eps);
-            Ops.Adam(m.TWeight, m.TGradient, m_cacheName2V[m.Name], m_cacheName2M[m.Name], batchSize, step_size, clipval, regc, m_beta2, m_beta1, iter, m_smoothEps);
+            try
+            {
+                float clip_coef = 1.0f;
+
+                //float normVal = Ops.NormAll(m.TGradient, 2.0f);
+                //float clip_coef = 0.5f / (normVal + 1e-6f);
+                //if (clip_coef > 1.0f)
+                //{
+                //    clip_coef = 1.0f;
+                //}
+
+                // Ops.RMSProp(m.TWeight, m.TGradient, m.TV, batchSize, step_size, clipval, regc, decay_rate, smooth_eps);
+                Ops.Adam(m.TWeight, m.TGradient, m_cacheName2V[m.Name], m_cacheName2M[m.Name], batchSize, step_size, clip_coef, regc, m_beta2, m_beta1, iter, m_smoothEps);
+            }
+            catch (Exception err)
+            {
+                Logger.WriteLine(Logger.Level.err, $"Exception: '{err.Message}'");
+                Logger.WriteLine(Logger.Level.err, $"Call stack: '{err.StackTrace}'");
+
+                throw err;
+            }
         }
 
     }

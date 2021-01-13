@@ -18,10 +18,10 @@
             result.AddReduceAll("minAll", identity, "return min(a, b);");
             result.AddReduceAll("maxAll", identity, "return max(a, b);");
 
-            result.AddReduceAll("e0_norm", "return a != 0 ? 1 : 0;", "return a + b;");
-            result.AddReduceAll("e1_norm", "return fabsf(a);", "return a + b;");
-            result.AddReduceAll("e2_norm", "return a * a;", "return a + b;");
-            result.AddReduceAllNorm("en_norm");
+            result.AddReduceAll("e0_normAll", "return a != 0 ? 1 : 0;", "return a + b;");
+            result.AddReduceAll("e1_normAll", "return fabsf(a);", "return a + b;");
+            result.AddReduceAll("e2_normAll", "return a * a;", "return a + b;");
+            result.AddReduceAllNorm("en_normAll");
 
             result.AddReduceAllSubSquare("subSquare");
 

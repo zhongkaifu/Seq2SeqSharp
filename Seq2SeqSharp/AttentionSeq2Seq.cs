@@ -142,29 +142,23 @@ namespace Seq2SeqSharp
             else
             {
                 m_decoder = new MultiProcessorNetworkWrapper<IDecoder>(
-                    new TransformerDecoder("TransformerDecoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.EmbeddingDim, modelMetaData.Vocab.TargetWordSize, modelMetaData.EncoderLayerDepth, m_dropoutRatio, raDeviceIds.GetNextItem(),
+                    new TransformerDecoder("TransformerDecoder", modelMetaData.MultiHeadNum, contextDim, contextDim, modelMetaData.Vocab.TargetWordSize, modelMetaData.EncoderLayerDepth, m_dropoutRatio, raDeviceIds.GetNextItem(),
                     isTrainable: m_isDecoderTrainable), DeviceIds);
             }
 
             if (modelMetaData.EncoderType == EncoderTypeEnums.Transformer || modelMetaData.DecoderType == DecoderTypeEnums.Transformer)
             {
-                m_posEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(BuildPositionWeightTensor(Math.Max(m_maxSrcSntSize, m_maxTgtSntSize) + 2, modelMetaData.EmbeddingDim, raDeviceIds.GetNextItem(), "PosEmbedding", false), DeviceIds, true);
+                m_posEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(BuildPositionWeightTensor(Math.Max(m_maxSrcSntSize, m_maxTgtSntSize) + 2, contextDim, raDeviceIds.GetNextItem(), "PosEmbedding", false), DeviceIds, true);
             }
             else
             {
                 m_posEmbedding = null;
             }
 
-            m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.SourceWordSize, modelMetaData.EmbeddingDim }, raDeviceIds.GetNextItem(), normal: NormType.Normal, fanOut: true, name: "SrcEmbeddings", isTrainable: m_isSrcEmbTrainable), DeviceIds);
-            m_tgtEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.TargetWordSize, modelMetaData.EmbeddingDim }, raDeviceIds.GetNextItem(), normal: NormType.Normal, fanOut: true, name: "TgtEmbeddings", isTrainable: m_isTgtEmbTrainable), DeviceIds);
+            m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.SourceWordSize, modelMetaData.EmbeddingDim }, raDeviceIds.GetNextItem(), normal: NormType.Uniform, fanOut: false, name: "SrcEmbeddings", isTrainable: m_isSrcEmbTrainable), DeviceIds);
+            m_tgtEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.TargetWordSize, contextDim }, raDeviceIds.GetNextItem(), normal: NormType.Uniform, fanOut: false, name: "TgtEmbeddings", isTrainable: m_isTgtEmbTrainable), DeviceIds);
 
             return true;
-        }
-
-
-        private double CalAngle(double position, double hid_idx, int d_hid)
-        {
-            return position / Math.Pow(10000, 2 * (hid_idx / 2) / d_hid);
         }
 
         private WeightTensor BuildPositionWeightTensor(int row, int column, int deviceId, string name = "", bool isTrainable = false)
@@ -172,12 +166,17 @@ namespace Seq2SeqSharp
             WeightTensor t = new WeightTensor(new long[2] { row, column }, deviceId, name: name, isTrainable: isTrainable);
             float[] posWeights = new float[row * column];
 
+            float numTimescales = (float)column / 2;
+            float logTimescaleIncrement = (float)(Math.Log(10000.0f) / (numTimescales - 1.0f));
+
             for (int p = 0; p < row; ++p)
             {
-                for (int i = 0; i < column; i += 2)
-                {               
-                    posWeights[p * column + i] = (float)Math.Sin(CalAngle(p, i, column));
-                    posWeights[p * column + i + 1] = (float)Math.Cos(CalAngle(p, i, column));
+                for (int i = 0; i < numTimescales; i ++)
+                {
+                    float v = (float)(p * Math.Exp(i * -logTimescaleIncrement));
+
+                    posWeights[p * column + i] = (float)Math.Sin(v);
+                    posWeights[p * column + (int)numTimescales + i] = (float)Math.Cos(v);
                 }
             }
 
@@ -413,7 +412,7 @@ namespace Seq2SeqSharp
 
                     IWeightTensor decOutput = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g);
 
-                    using (IWeightTensor probs = g.Softmax(decOutput, runGradients: false, inPlace: true))
+                    using (IWeightTensor probs = g.Softmax(decOutput, runGradients: false, inPlace: false))
                     {
                         if (isTraining)
                         {
@@ -483,15 +482,19 @@ namespace Seq2SeqSharp
 
         private IWeightTensor AddPositionEmbedding(IComputeGraph g, IWeightTensor posEmbedding, int batchSize, int seqLen, IWeightTensor inputEmbs)
         {
+            var Column = posEmbedding.Columns;
+
+            inputEmbs = g.Mul(inputEmbs, (float)Math.Sqrt(m_modelMetaData.HiddenDim));
+
             using (var posEmbeddingPeek = g.PeekRow(posEmbedding, 0, seqLen, false))
             {
-                using (var posEmbeddingPeekView = g.View(posEmbeddingPeek, runGradient: false, dims: new long[] { 1, seqLen, m_modelMetaData.EmbeddingDim }))
+                using (var posEmbeddingPeekView = g.View(posEmbeddingPeek, runGradient: false, dims: new long[] { 1, seqLen, Column }))
                 {
-                    using (var posEmbeddingPeekViewExp = g.Expand(posEmbeddingPeekView, runGradient: false, dims: new long[] { batchSize, seqLen, m_modelMetaData.EmbeddingDim }))
+                    using (var posEmbeddingPeekViewExp = g.Expand(posEmbeddingPeekView, runGradient: false, dims: new long[] { batchSize, seqLen, Column }))
                     {
-                        inputEmbs = g.View(inputEmbs, dims: new long[] { batchSize, seqLen, m_modelMetaData.EmbeddingDim });
+                        inputEmbs = g.View(inputEmbs, dims: new long[] { batchSize, seqLen, Column });
                         inputEmbs = g.Add(inputEmbs, posEmbeddingPeekViewExp, true, false);
-                        inputEmbs = g.View(inputEmbs, dims: new long[] { batchSize * seqLen, m_modelMetaData.EmbeddingDim });
+                        inputEmbs = g.View(inputEmbs, dims: new long[] { batchSize * seqLen, Column });
                     }
                 }
             }

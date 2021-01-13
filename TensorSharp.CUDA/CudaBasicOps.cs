@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AdvUtils;
+using System;
 using TensorSharp.Core;
 using TensorSharp.CUDA.DeviceCode;
 using TensorSharp.CUDA.KernelOps;
@@ -32,21 +33,21 @@ namespace TensorSharp.CUDA
         }
 
 
-        /*
-        public Tensor NewContiguous(Tensor src)
-        {
-            var result = new Tensor(src.Allocator, src.ElementType, (long[])src.Sizes.Clone());
-            Copy(result, src);
-            return result;
-        }
+        
+        //public Tensor NewContiguous(Tensor src)
+        //{
+        //    var result = new Tensor(src.Allocator, src.ElementType, (long[])src.Sizes.Clone());
+        //    Copy(result, src);
+        //    return result;
+        //}
 
-        public Tensor AsContiguous(Tensor src)
-        {
-            if (src.IsContiguous())
-                return src.CopyRef();
-            else
-                return NewContiguous(src);
-        }
+        //public Tensor AsContiguous(Tensor src)
+        //{
+        //    if (src.IsContiguous())
+        //        return src.CopyRef();
+        //    else
+        //        return NewContiguous(src);
+        //}
 
         public Tensor Concat(Tensor result, int dimension, params Tensor[] inputs)
         {
@@ -54,17 +55,19 @@ namespace TensorSharp.CUDA
         }
 
 
-        public float SumAll(Tensor src) { using (var resultTensor = SumAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
-        public float ProdAll(Tensor src) { using (var resultTensor = ProdAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
-        public float MinAll(Tensor src) { using (var resultTensor = MinAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
-        public float MaxAll(Tensor src) { using (var resultTensor = MaxAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
+        //public float SumAll(Tensor src) { using (var resultTensor = SumAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
+        //public float ProdAll(Tensor src) { using (var resultTensor = ProdAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
+        //public float MinAll(Tensor src) { using (var resultTensor = MinAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
+        //public float MaxAll(Tensor src) { using (var resultTensor = MaxAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
 
-        public float MeanAll(Tensor src) { using (var resultTensor = MeanAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
-        public float VarAll(Tensor src) { using (var resultTensor = VarAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
-        public float StdAll(Tensor src) { using (var resultTensor = StdAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
-        public float NormAll(Tensor src, float value) { using (var resultTensor = NormAll(null, src, value)) { return resultTensor.GetElementAsFloat(0); } }
+        //public float MeanAll(Tensor src) { using (var resultTensor = MeanAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
+        //public float VarAll(Tensor src) { using (var resultTensor = VarAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
+        //public float StdAll(Tensor src) { using (var resultTensor = StdAll(null, src)) { return resultTensor.GetElementAsFloat(0); } }
 
-        */
+        //[RegisterOpStorageType("normall", typeof(CudaStorage))]
+        //public float NormAll(Tensor src, float value) { using (var resultTensor = NormAll(null, src, value)) { return resultTensor.GetElementAsFloat(0); } }
+
+       
 
 
 
@@ -598,21 +601,22 @@ namespace TensorSharp.CUDA
         {
             if (value == 0)
             {
-                return ReduceAllOp.Invoke(cudaReduceAllKernels, 0.0f, ReduceInitType.GivenValue, "e0_norm", result, src);
+                return ReduceAllOp.Invoke(cudaReduceAllKernels, 0.0f, ReduceInitType.GivenValue, "e0_normAll", result, src);
             }
             else if (value == 1)
             {
-                return ReduceAllOp.Invoke(cudaReduceAllKernels, 0.0f, ReduceInitType.GivenValue, "e1_norm", result, src);
+                return ReduceAllOp.Invoke(cudaReduceAllKernels, 0.0f, ReduceInitType.GivenValue, "e1_normAll", result, src);
             }
             else if (value == 2)
             {
-                Tensor writeTarget = ReduceAllOp.Invoke(cudaReduceAllKernels, 0.0f, ReduceInitType.GivenValue, "e2_norm", result, src);
+
+                Tensor writeTarget = ReduceAllOp.Invoke(cudaReduceAllKernels, 0.0f, ReduceInitType.GivenValue, "e2_normAll", result, src);
                 Pow(writeTarget, writeTarget, 0.5f);
                 return writeTarget;
             }
             else
             {
-                Tensor writeTarget = ReduceAllOp.Invoke(cudaReduceAllKernels, 0.0f, ReduceInitType.GivenValue, "en_norm", result, src, value);
+                Tensor writeTarget = ReduceAllOp.Invoke(cudaReduceAllKernels, 0.0f, ReduceInitType.GivenValue, "en_normAll", result, src, value);
                 Pow(writeTarget, writeTarget, 1.0f / value);
                 return writeTarget;
             }

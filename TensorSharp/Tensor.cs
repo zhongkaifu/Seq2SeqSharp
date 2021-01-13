@@ -361,11 +361,11 @@ namespace TensorSharp
                 throw new ArgumentOutOfRangeException("dimension2");
             }
 
-            if (dimension1 == dimension2)
-            {
-                storage.AddRef();
-                return this;
-            }
+            //if (dimension1 == dimension2)
+            //{
+            //    storage.AddRef();
+            //    return this;
+            //}
 
             long[] newSizes = (long[])sizes.Clone();
             long[] newStrides = (long[])strides.Clone();

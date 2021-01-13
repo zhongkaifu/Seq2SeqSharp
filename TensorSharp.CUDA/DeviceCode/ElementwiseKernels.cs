@@ -33,10 +33,10 @@
 
             AppendTTTSFunc(result, "maskfill", "MaskFill");
 
-            //result.AddApplyTS("t1_pow", "*a = powf(*a, b);");
-            //result.AddApplyTTS("t2_pow", "*a = powf(*b, c);");
-            //result.AddApplyTS("t1_tpow", "*a = powf(b, *a);");
-            //result.AddApplyTTS("t2_tpow", "*a = powf(c, *b);");
+            result.AddApplyTS("t1_pow", "*a = powf(*a, b);");
+            result.AddApplyTTS("t2_pow", "*a = powf(*b, c);");
+            result.AddApplyTS("t1_tpow", "*a = powf(b, *a);");
+            result.AddApplyTTS("t2_tpow", "*a = powf(c, *b);");
 
             result.AddApplyTTTS("lerp", "*a = Lerp(*b, *c, d);");
 
