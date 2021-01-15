@@ -182,58 +182,68 @@ namespace TensorSharp.CUDA
         [RegisterOpStorageType("addmm", typeof(CudaStorage))]
         public Tensor Addmm(Tensor result, float beta, Tensor src, float alpha, Tensor m1, Tensor m2)
         {
-            TSCudaContext context = CudaHelpers.TSContextForTensor(src);
-            if (src.ElementType != m1.ElementType || src.ElementType != m2.ElementType || (result != null && result.ElementType != src.ElementType))
+            try
             {
-                throw new InvalidOperationException("All tensors must have the same element type");
-            }
+                TSCudaContext context = CudaHelpers.TSContextForTensor(src);
+                if (src.ElementType != m1.ElementType || src.ElementType != m2.ElementType || (result != null && result.ElementType != src.ElementType))
+                {
+                    throw new InvalidOperationException("All tensors must have the same element type");
+                }
 
-            if (result != null && !(result.Storage is CudaStorage))
+                if (result != null && !(result.Storage is CudaStorage))
+                {
+                    throw new ArgumentException("result must be a CUDA tensor", "result");
+                }
+
+                if (!(m1.Storage is CudaStorage))
+                {
+                    throw new ArgumentException("m1 must be a CUDA tensor", "m1");
+                }
+
+                if (!(m2.Storage is CudaStorage))
+                {
+                    throw new ArgumentException("m2 must be a CUDA tensor", "m2");
+                }
+
+                if (src.DimensionCount != 2)
+                {
+                    throw new ArgumentException("src must be a matrix", "src");
+                }
+
+                if (m1.DimensionCount != 2)
+                {
+                    throw new ArgumentException("m1 must be a matrix", "m1");
+                }
+
+                if (m2.DimensionCount != 2)
+                {
+                    throw new ArgumentException("m2 must be a matrix", "m2");
+                }
+
+                if (src.Sizes[0] != m1.Sizes[0] || src.Sizes[1] != m2.Sizes[1] || m1.Sizes[1] != m2.Sizes[0])
+                {
+                    throw new InvalidOperationException($"Size mismatch, srcSize0 = {src.Sizes[0]}, m1Size0 = {m1.Sizes[0]}, srcSize1 = {src.Sizes[1]}, m2Size1 = {m2.Sizes[1]}, m1Size1 = '{m1.Sizes[1]}', m2Size0 = '{m2.Sizes[0]}'");
+                }
+
+                Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
+
+                if (writeTarget != src)
+                {
+                    Ops.Copy(writeTarget, src);
+                }
+
+                CudaMatrixMulMM.Gemm(context, alpha, m1, m2, beta, writeTarget);
+
+
+                return writeTarget;
+            }
+            catch (Exception err)
             {
-                throw new ArgumentException("result must be a CUDA tensor", "result");
+                Logger.WriteLine($"Exception in Addmm: '{err.Message}'");
+                Logger.WriteLine($"Call stack: '{err.StackTrace}'");
+
+                throw err;
             }
-
-            if (!(m1.Storage is CudaStorage))
-            {
-                throw new ArgumentException("m1 must be a CUDA tensor", "m1");
-            }
-
-            if (!(m2.Storage is CudaStorage))
-            {
-                throw new ArgumentException("m2 must be a CUDA tensor", "m2");
-            }
-
-            if (src.DimensionCount != 2)
-            {
-                throw new ArgumentException("src must be a matrix", "src");
-            }
-
-            if (m1.DimensionCount != 2)
-            {
-                throw new ArgumentException("m1 must be a matrix", "m1");
-            }
-
-            if (m2.DimensionCount != 2)
-            {
-                throw new ArgumentException("m2 must be a matrix", "m2");
-            }
-
-            if (src.Sizes[0] != m1.Sizes[0] || src.Sizes[1] != m2.Sizes[1] || m1.Sizes[1] != m2.Sizes[0])
-            {
-                throw new InvalidOperationException($"Size mismatch, srcSize0 = {src.Sizes[0]}, m1Size0 = {m1.Sizes[0]}, srcSize1 = {src.Sizes[1]}, m2Size1 = {m2.Sizes[1]}, m1Size1 = '{m1.Sizes[1]}', m2Size0 = '{m2.Sizes[0]}'");
-            }
-
-            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
-
-            if (writeTarget != src)
-            {
-                Ops.Copy(writeTarget, src);
-            }
-
-            CudaMatrixMulMM.Gemm(context, alpha, m1, m2, beta, writeTarget);
-
-
-            return writeTarget;
         }
 
 

@@ -6,7 +6,8 @@ namespace Seq2SeqSharp
     public class Seq2SeqModelMetaData : IModelMetaData
     {
         public int HiddenDim;
-        public int EmbeddingDim;
+        public int SrcEmbeddingDim;
+        public int TgtEmbeddingDim;
         public int EncoderLayerDepth;
         public int DecoderLayerDepth;
         public int MultiHeadNum;
@@ -20,10 +21,11 @@ namespace Seq2SeqSharp
 
         }
 
-        public Seq2SeqModelMetaData(int hiddenDim, int embeddingDim, int encoderLayerDepth, int decoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, DecoderTypeEnums decoderType, Vocab vocab, bool enableCoverageModel)
+        public Seq2SeqModelMetaData(int hiddenDim, int srcEmbeddingDim, int tgtEmbeddingDim, int encoderLayerDepth, int decoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, DecoderTypeEnums decoderType, Vocab vocab, bool enableCoverageModel)
         {
             HiddenDim = hiddenDim;
-            EmbeddingDim = embeddingDim;
+            SrcEmbeddingDim = srcEmbeddingDim;
+            TgtEmbeddingDim = tgtEmbeddingDim;
             EncoderLayerDepth = encoderLayerDepth;
             DecoderLayerDepth = decoderLayerDepth;
             MultiHeadNum = multiHeadNum;

@@ -40,7 +40,7 @@ namespace Seq2SeqSharp
 
             if (hiddenDim != inputDim)
             {
-                throw new ArgumentException($"hiddenDim is not equal to inputDim in TransformerEncoder.");
+                throw new ArgumentException($"hiddenDim is not equal to inputDim in TransformerDecoder.");
             }
 
             m_selfAttns.Add(new MultiHeadAttention($"{name}.SelfAttn_0", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId, isTrainable: isTrainable));

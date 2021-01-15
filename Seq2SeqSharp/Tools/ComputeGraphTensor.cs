@@ -1,6 +1,7 @@
 ﻿//using Microsoft.Msagl.Drawing;
 //using Microsoft.Msagl.Layout.Incremental;
 //using Microsoft.Msagl.Layout.Layered;
+using AdvUtils;
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -1087,6 +1088,7 @@ namespace Seq2SeqSharp.Tools
             int sx = 0;
             int sy = 0;
 
+          //  Logger.WriteLine("Start to add for concatColums");
             foreach (IWeightTensor item in wl)
             {
                 WeightTensor m = item as WeightTensor;
@@ -1095,10 +1097,16 @@ namespace Seq2SeqSharp.Tools
 
                 twl.Add(m.TWeight);
                 srcNameList.Add(item.Name);
+
+
+            //    Logger.WriteLine($"ConcatColums: Add '{item.Name}' ({m.Rows}, {m.Columns})");
             }
+           // Logger.WriteLine($"End to add for concatColums. ({sx}, {sy})");
+
 
             string srcNames = string.Join("_", srcNameList);
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sx, sy, m_deviceId, name: $"{GetHashString(srcNames)}.ConcatColumns", graphToBind: this);
+                                              
             VisualizeNodes(wl, res);
 
             Ops.Concat(res.TWeight, 1, twl.ToArray());

@@ -48,6 +48,8 @@ OPS_API int TS_AddTanh3(TensorRef* result, TensorRef* srcX, TensorRef* srcY, Ten
 OPS_API int TS_AddTanhD(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ);
 OPS_API int TS_AddReluD(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ);
 
+OPS_API int TS_ReluD(TensorRef* result, TensorRef* srcW, TensorRef* srcG);
+
 OPS_API int TS_AddMul(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ);
 OPS_API int TS_AddMulV(TensorRef* result, TensorRef* srcX, TensorRef* srcY, float v);
 

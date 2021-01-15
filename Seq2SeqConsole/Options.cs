@@ -7,8 +7,11 @@ namespace Seq2SeqConsole
         [Arg("Task name. It could be Train, Valid, Test, DumpVocab or Help", "TaskName")]
         public string TaskName = "Help";
 
-        [Arg("The vector size of encoded source word.", "WordVectorSize")]
-        public int WordVectorSize = 128;
+        [Arg("The embedding dim in source side", "SrcEmbeddingDim")]
+        public int SrcEmbeddingDim = 128;
+
+        [Arg("The embedding dim in target side", "TgtEmbeddingDim")]
+        public int TgtEmbeddingDim = 128;
 
         [Arg("The hidden layer size of encoder and decoder.", "HiddenSize")]
         public int HiddenSize = 128;

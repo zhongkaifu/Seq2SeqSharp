@@ -105,6 +105,7 @@ namespace Seq2SeqSharp.Tools
 
         private readonly Random rnd = new Random(DateTime.Now.Millisecond);
 
+
         private void Shuffle(List<RawSntPair> rawSntPairs)
         {
             if (m_shuffleEnums == ShuffleEnums.Random)
@@ -131,6 +132,7 @@ namespace Seq2SeqSharp.Tools
                 {
                     dict.Add(length, new List<RawSntPair>());
                 }
+
                 dict[length].Add(item);
             }
 
@@ -150,19 +152,36 @@ namespace Seq2SeqSharp.Tools
                 }
             });
 
-            SortedDictionary<int, List<RawSntPair>> sdict = new SortedDictionary<int, List<RawSntPair>>(); //<The bucket size, sentence pair set>
-            foreach (KeyValuePair<int, List<RawSntPair>> pair in dict)
+
+            //Split large bucket to smaller buckets
+            Dictionary<int, List<RawSntPair>> dictSB = new Dictionary<int, List<RawSntPair>>();
+
+            foreach (var pair in dict)
             {
-                if (sdict.ContainsKey(pair.Value.Count) == false)
+                if (pair.Value.Count <= m_batchSize)
                 {
-                    sdict.Add(pair.Value.Count, new List<RawSntPair>());
+                    dictSB.Add(pair.Key, pair.Value);
                 }
-                sdict[pair.Value.Count].AddRange(pair.Value);
+                else
+                {
+                    int N = pair.Value.Count / m_batchSize;
+
+                    for (int i = 0; i < N; i++)
+                    {
+                        var pairs = pair.Value.GetRange(i * m_batchSize, m_batchSize);
+                        dictSB.Add(pair.Key + 10000 * i, pairs);
+                    }
+
+                    if (pair.Value.Count % m_batchSize != 0)
+                    {
+                        dictSB.Add(pair.Key + 10000 * N, pair.Value.GetRange(m_batchSize * N, pair.Value.Count % m_batchSize));
+                    }
+                }
             }
 
             rawSntPairs.Clear();
 
-            int[] keys = sdict.Keys.ToArray();
+            int[] keys = dictSB.Keys.ToArray();
             for (int i = 0; i < keys.Length; i++)
             {
                 int idx = rnd.Next(0, keys.Length);
@@ -173,7 +192,7 @@ namespace Seq2SeqSharp.Tools
 
             foreach (int key in keys)
             {
-                rawSntPairs.AddRange(sdict[key]);
+                rawSntPairs.AddRange(dictSB[key]);
             }
 
         }
@@ -376,11 +395,11 @@ namespace Seq2SeqSharp.Tools
                         sntPair.TgtSnt = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
 
-                        if ((lastTgtSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInTgt && lastTgtSntLen != sntPair.TgtSnt.Length) || 
-                            (lastSrcSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInSrc && lastSrcSntLen != sntPair.SrcSnt.Length) ||                            
+                        if ((lastTgtSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInTgt && lastTgtSntLen != sntPair.TgtSnt.Length) ||
+                            (lastSrcSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInSrc && lastSrcSntLen != sntPair.SrcSnt.Length) ||
                             outputs.Count > maxOutputsSize)
                         {
-                           // InnerShuffle(outputs);
+                            // InnerShuffle(outputs);
                             for (int i = 0; i < outputs.Count; i += m_batchSize)
                             {
                                 int size = Math.Min(m_batchSize, outputs.Count - i);
@@ -396,7 +415,7 @@ namespace Seq2SeqSharp.Tools
                         lastTgtSntLen = sntPair.TgtSnt.Length;
                     }
 
-                   // InnerShuffle(outputs);
+                    // InnerShuffle(outputs);
                     for (int i = 0; i < outputs.Count; i += m_batchSize)
                     {
                         int size = Math.Min(m_batchSize, outputs.Count - i);

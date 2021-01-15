@@ -341,6 +341,10 @@ namespace TensorSharp.Cpu
         [RegisterOpStorageType("addrelud", typeof(CpuStorage))]
         public Tensor AddReluD(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ) { return NativeWrapper.InvokeNullableResultElementwise(addreluD_func, result, srcX, srcY, srcZ); }
 
+        private readonly MethodInfo relud_func = NativeWrapper.GetMethod("TS_ReluD");
+        [RegisterOpStorageType("relud", typeof(CpuStorage))]
+        public Tensor ReluD(Tensor result, Tensor w, Tensor g) { return NativeWrapper.InvokeNullableResultElementwise(relud_func, result, w, g); }
+
         private readonly MethodInfo add_func = NativeWrapper.GetMethod("TS_Add");
         [RegisterOpStorageType("addv", typeof(CpuStorage))]
         public Tensor Add(Tensor result, Tensor lhs, float rhs) { return NativeWrapper.InvokeNullableResultElementwise(add_func, result, lhs, rhs); }

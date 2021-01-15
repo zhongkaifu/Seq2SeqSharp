@@ -42,14 +42,16 @@ You can use Seq2SeqConsole tool to train, test and visualize models.
 Here is the command line to train a model:  
 **Seq2SeqConsole.exe -TaskName Train [parameters...]**  
 Parameters:  
-**-WordVectorSize**: The vector size of encoded source word.  
-**-HiddenSize**: The hidden layer size of encoder and decoder.    
+**-SrcEmbeddingDim**: The embedding dim of source side. Default is 128  
+**-TgtEmbeddingDim**: The embedding dim of target side. Default is 128  
+**-HiddenSize**: The hidden layer dim of encoder and decoder.  Default is 128    
 **-LearningRate**: Learning rate. Default is 0.001  
 **-EncoderLayerDepth**: The network depth in encoder. The default depth is 1.  
 **-DecoderLayerDepth**: The network depth in decoder. The default depth is 1.  
 **-EncoderType**: The type of encoder. It supports BiLSTM and Transformer.  
-**-MultiHeadNum**: The number of multi-heads in Transformer encoder.  
-**-ModelFilePath**: The trained model file path.  
+**-DecoderType**: The type of decoder. It supports AttentionLSTM and Transformer.  
+**-MultiHeadNum**: The number of multi-heads in Transformer encoder and decoder.  
+**-ModelFilePath**: The model file path for training and testing.  
 **-SrcVocab**: The vocabulary file path for source side.  
 **-TgtVocab**: The vocabulary file path for target side.  
 **-SrcEmbedding**: The external embedding model file path for source side. It is built by Txt2Vec project.  
@@ -60,9 +62,10 @@ Parameters:
 **-ValidCorpusPath**: valid corpus folder path  
 **-ShuffleBlockSize**: The block size for corpus shuffle. The default value is -1 which means we shuffle entire corpus.  
 **-GradClip**: The clip gradients.  
-**-BatchSize**: Mini-batch size. Default is 1.  
+**-BatchSize**: Batch size for training. Default is 1.  
+**-ValBatchSize**: Batch size for testing. Default is 1.  
 **-Dropout**: Dropout ratio. Defaul is 0.1  
-**-ProcessorType**: Processor type: CPU or GPU  
+**-ProcessorType**: Processor type: CPU or GPU(Cuda)  
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
 **-MaxEpochNum**: Maxmium epoch number during training. Default is 100  
 **-MaxSrcSentLength**: Maxmium sentence length on source side. Default is 32 tokens  
@@ -117,43 +120,45 @@ Then it will visualize the network looks like below:
 You can also keep all parameters into a json file and run Seq2SeqConsole.exe -ConfigFilePath <config_file_path> Here is an example for training.  
 ```json
 {
-"TaskName":"Train",
-"WordVectorSize":1024,
-"HiddenSize":1024,
-"StartLearningRate":0.001,
-"WeightsUpdateCount":0,
-"EncoderLayerDepth":6,
-"DecoderLayerDepth":6,
-"ModelFilePath":"seq2seq.model",
-"SrcVocab":"corpus\\vocab.enu",
-"TgtVocab":"corpus\\vocab.chs",
-"SrcEmbeddingModelFilePath":null,
-"TgtEmbeddingModelFilePath":null,
-"SrcLang":"ENU",
-"TgtLang":"CHS",
-"TrainCorpusPath":"corpus",
-"ValidCorpusPath":"corpus_valid",
-"InputTestFile":null,
-"OutputTestFile":null,
-"ShuffleBlockSize":-1,
-"GradClip":3.0,
-"BatchSize":128,
-"ValBatchSize":64,
-"DropoutRatio":0.1,
-"ProcessorType":"GPU",
-"EncoderType":"Transformer",
-"MultiHeadNum":16,
-"DeviceIds":"0,1,2,3",
-"BeamSearch":1,
-"MaxEpochNum":100,
-"MaxSrcSentLength":64,
-"MaxTgtSentLength":64,
-"WarmUpSteps":8000,
-"VisualizeNNFilePath":null,
-"Beta1":0.9,
-"Beta2":0.98,
-"EnableCoverageModel":true,
-"CompilerOptions":"--use_fast_math --gpu-architecture=compute_60"
+        "TaskName":"Train",
+        "SrcEmbeddingDim":512,
+        "TgtEmbeddingDim":512,
+        "HiddenSize":512,
+        "StartLearningRate":0.0004,
+        "WeightsUpdateCount":0,
+        "EncoderLayerDepth":6,
+        "DecoderLayerDepth":6,
+        "ModelFilePath":"seq2seq.model",
+        "SrcVocab":null,
+        "TgtVocab":null,
+        "SrcEmbeddingModelFilePath":null,
+        "TgtEmbeddingModelFilePath":null,
+        "SrcLang":"ENU",
+        "TgtLang":"CHS",
+        "TrainCorpusPath":"corpus",
+        "ValidCorpusPath":"corpus_valid",
+        "InputTestFile":null,
+        "OutputTestFile":null,
+        "ShuffleBlockSize":-1,
+        "GradClip":5.0,
+        "BatchSize":256,
+        "ValBatchSize":16,
+        "DropoutRatio":0.0,
+        "ProcessorType":"GPU",
+        "EncoderType":"Transformer",
+        "DecoderType":"Transformer",
+        "MultiHeadNum":8,
+        "DeviceIds":"0,1,2,3",
+        "BeamSearch":1,
+        "MaxEpochNum":100,
+        "MaxSrcSentLength":100,
+        "MaxTgtSentLength":100,
+        "WarmUpSteps":8000,
+        "VisualizeNNFilePath":null,
+        "Beta1":0.9,
+        "Beta2":0.98,
+        "EnableCoverageModel":false,
+        "CompilerOptions":"--use_fast_math --gpu-architecture=compute_70"
 }
 ```
 
