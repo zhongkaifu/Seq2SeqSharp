@@ -25,7 +25,7 @@ namespace Seq2SeqSharp
         {
             m_name = name;
 
-            m_Wxh = new WeightTensor(new long[2] { dim + hdim, hdim * 4 }, deviceId, normal: NormType.Uniform, name: $"{name}.{nameof(m_Wxh)}", isTrainable: isTrainable);
+            m_Wxh = new WeightTensor(new long[2] { dim + hdim, hdim * 4 }, deviceId, normType: NormType.Uniform, name: $"{name}.{nameof(m_Wxh)}", isTrainable: isTrainable);
             m_b = new WeightTensor(new long[2] { 1, hdim * 4 }, 0, deviceId, name: $"{name}.{nameof(m_b)}", isTrainable: isTrainable);
 
             m_hdim = hdim;

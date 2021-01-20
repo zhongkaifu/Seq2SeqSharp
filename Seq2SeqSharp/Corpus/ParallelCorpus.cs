@@ -505,31 +505,6 @@ namespace Seq2SeqSharp.Tools
             return r;
         }
 
-
-        /// <summary>
-        /// Shuffle given sentence pairs and return the length of the longgest source sentence
-        /// </summary>
-        /// <param name="sntPairs"></param>
-        /// <returns></returns>
-        //private int InnerShuffle(List<SntPair> sntPairs)
-        //{
-        //    int maxSrcLen = 0;
-        //    for (int i = 0; i < sntPairs.Count; i++)
-        //    {
-        //        if (sntPairs[i].SrcSnt.Length > maxSrcLen)
-        //        {
-        //            maxSrcLen = sntPairs[i].SrcSnt.Length;
-        //        }
-
-        //        int idx = rnd.Next(0, sntPairs.Count);
-        //        SntPair tmp = sntPairs[i];
-        //        sntPairs[i] = sntPairs[idx];
-        //        sntPairs[idx] = tmp;
-        //    }
-
-        //    return maxSrcLen;
-        //}
-
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();

@@ -674,8 +674,6 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.Transpose(dim1, dim2);
-            res.Sizes = res.TWeight.Sizes;
-
             if (m_needsBackprop)
             {
                 Action backward = () =>
@@ -701,8 +699,6 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.Transpose();
-            res.Sizes = res.TWeight.Sizes;
-
             if (m_needsBackprop)
             {
                 Action backward = () =>
@@ -1046,7 +1042,6 @@ namespace Seq2SeqSharp.Tools
                     using (Tensor tW2 = Ops.AsContiguous(tWViewPermute))
                     {
                         res.TWeight = tW2.View(m.Rows, m.Columns);
-                        res.Sizes = res.TWeight.Sizes;
                     }
                 }
             }
@@ -1187,8 +1182,6 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.Permute(dims);
-            res.Sizes = res.TWeight.Sizes;
-
             if (m_needsBackprop)
             {
                 Action backward = () =>
@@ -1272,8 +1265,6 @@ namespace Seq2SeqSharp.Tools
             //  VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.View(dims);
-            res.Sizes = res.TWeight.Sizes;
-
             if (m_needsBackprop)
             {
                 Action backward = () =>

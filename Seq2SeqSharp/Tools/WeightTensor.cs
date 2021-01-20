@@ -47,6 +47,10 @@ namespace Seq2SeqSharp.Tools
 
         private string m_GradientSetName = "None";
 
+        private bool m_fanIn = false;
+        private bool m_fanOut = false;
+        private NormType m_normType = NormType.None;
+
         public Tensor TWeight
         {
             get
@@ -71,7 +75,22 @@ namespace Seq2SeqSharp.Tools
                 }
 
                 m_TWeight = value;
-                releasedWeight = false;
+
+                if (m_TWeight != null)
+                {
+                    Sizes = m_TWeight.Sizes;
+                    if (m_TGradient != null)
+                    {
+                        for (int i = 0; i < Sizes.Length; i++)
+                        {
+                            if (Sizes[i] != m_TGradient.Sizes[i])
+                            {
+                                throw new Exception($"The shape between weights and gradients are different. Name = '{Name}'");
+                            }
+                        }
+                    }
+                    releasedWeight = false;
+                }
             }
         }
 
@@ -103,18 +122,36 @@ namespace Seq2SeqSharp.Tools
                 }
 
                 m_TGradient = value;
-                releasedGradient = false;
+
+                if (m_TGradient != null)
+                {
+                    Sizes = m_TGradient.Sizes;
+                    if (m_TWeight != null)
+                    {
+                        for (int i = 0; i < Sizes.Length; i++)
+                        {
+                            if (Sizes[i] != m_TWeight.Sizes[i])
+                            {
+                                throw new Exception($"The shape between weights and gradients are different. Name = '{Name}'");
+                            }
+                        }
+                    }
+                    releasedGradient = false;
+                }
             }
         }
 
 
-        public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, NormType normal = NormType.None, bool fanIn = false, bool fanOut = false, IComputeGraph graphToBind = null, NormType NormType = default)
+        public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, NormType normType = NormType.None, bool fanIn = false, bool fanOut = false, IComputeGraph graphToBind = null)
         {
             Name = name;
             DeviceId = deviceId;
             IsTrainable = isTrainable;
             m_allocator = TensorAllocator.Allocator(DeviceId);
             Sizes = sizes;
+            m_fanIn = fanIn;
+            m_fanOut = fanOut;
+            m_normType = normType;
 
             if (graphToBind != null)
             {
@@ -122,7 +159,7 @@ namespace Seq2SeqSharp.Tools
                 m_computeGraphToBind.Bind(this);
             }
 
-            if (normal == NormType.Uniform)
+            if (normType == NormType.Uniform)
             {
                 var scale = (float)Math.Sqrt(6.0 / (double)(Rows + Columns));
 
@@ -138,7 +175,7 @@ namespace Seq2SeqSharp.Tools
                 float[] w = TensorSharp.RandomGenerator.BuildRandomUniformWeight(Sizes, -scale, scale);
                 SetWeightArray(w);               
             }
-            else if (normal == NormType.Normal)
+            else if (normType == NormType.Normal)
             {
                 float[] w = TensorSharp.RandomGenerator.BuildRandomUniformWeight(Sizes, -1.0f, 1.0f);
                 SetWeightArray(w);
@@ -173,7 +210,7 @@ namespace Seq2SeqSharp.Tools
 
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
-            return new WeightTensor(Sizes, deviceId, Name, IsTrainable);
+            return new WeightTensor(Sizes, deviceId, Name, IsTrainable, normType: m_normType, fanIn: m_fanIn, fanOut: m_fanOut);
         }
 
         public void ZeroGradient()
