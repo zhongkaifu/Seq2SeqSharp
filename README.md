@@ -186,39 +186,65 @@ B_PER E_PER S_NOR S_NOR S_NOR S_NOR S_NOR S_NOR
 # Release Package  
 You can download the release package from (here)[https://github.com/zhongkaifu/Seq2SeqSharp/releases/tag/20210125] . The release package includes Seq2SeqSharp binary files, model file and test files. The model was trained for English to Chinese translation. It's an encoder-decoder model using 4 Transformer layers (hidden dim: 512, embedding dim: 512). The training config file is also included in the package. Test input file contains one English sentence per line, and the test reference file has one Chinese sentence per line. All sentences were already encoded to subwords by SentencePiece, so the package also includes the model and vocabulary of SentencePiece.  
 
+
 (SentencePiece)[https://github.com/google/sentencepiece] is a subword level tokenization tool from Google. Given raw text, it can build model and vocabulary at subword level, encode text from word level to subword level or decode subword text back to word level. Subword level tokenization could significantly reduce vocabulary size which is useful for OOV and decoding performance improvement for many systems, especially low resource systems. Subword level tokenization and SentencePiece are optional for Seq2SeqSharp. You can tokenize input text to any type of tokens and send them to Seq2SeqSharp or let Seq2SeqSharp generate them.  
+
 
 The model in the release package was trained by training corpus processed by SentencePiece, so inputs and outputs text of this model needs to be pre-processed by SentencePiece. Again, you could train your model with/without SentencePiece. It's totally optional.  
 
+
 Here are steps on how to play it.  
+
 0. Preparation  
+
    0.1 Install Nvidia driver and Cuda 11  
+
       Windows: Download (Nvidia driver)[https://www.nvidia.com/Download/index.aspx] and (Cuda 11)[https://developer.nvidia.com/cuda-11.1.0-download-archive], and then install them.  
+
       Linux: You can use apt to update drivers and cuda, for example: sudo apt install nvidia-driver-440  
 
    0.2 Install dotNet core  
+
       Windows: Download (.NET Core)[https://docs.microsoft.com/en-us/dotnet/core/] and install.  
+
       Linux: You can use the following apt-get commands to download and install it:  
+
          sudo apt-get update  
+
          sudo apt-get install -y apt-transport-https  
+
          sudo apt-get update  
+
          sudo apt-get install -y aspnetcore-runtime-3.1  
 
+
    0.3 Install SentencePiece (optional)  
+
       You can follow instructions on (SentencePiece github)[https://github.com/google/sentencepiece] to download and install it. It supports both Windows and Linux.  
 
+
 1. Run SentencePiece to encode raw input English text to subword (optional)  
+
    You can run the following example command for encoding: spm_encode --model=enuSpm.model test_raw.txt > test_spm.txt  
+
    The test input files in the release package are already encoded, so you do not have to do it.   
 
+
+
 2. Run Seq2SeqSharp to translate the above input text from English to Chinese  
+
    You can run the following command for translation.  
-      Seq2SeqConsole.exe -TaskName Test -ModelFilePath seq2seq_mt.model -InputTestFile test_spm.txt -OutputTestFile out.txt -MaxSrcSentLength 100 -MaxTgtSentLength 100 -ProcessorType CPU   
+
+      Seq2SeqConsole.exe -TaskName Test -ModelFilePath seq2seq_mt.model -InputTestFile test_spm.txt -OutputTestFile out.txt -MaxSrcSentLength 100 -MaxTgtSentLength 100 -ProcessorType CPU  
+
 
 3. Run SentencePiece to decode output Chinese text (optional)  
+
    You can run the following command for decoding: spm_decode --model=chsSpm.model out.txt > out_raw.txt    
 
+
 4. Check quality by comparing output Chinese text with reference text  
+
  
 
 # Build Your Layers  
