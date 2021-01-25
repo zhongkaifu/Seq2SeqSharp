@@ -183,6 +183,44 @@ In train01.label.snt, we will have the following label sequences:
 S_ORG S_NOR S_NOR S_NOR S_LOC S_NOR  
 B_PER E_PER S_NOR S_NOR S_NOR S_NOR S_NOR S_NOR  
 
+# Release Package  
+You can download the release package from (here)[https://github.com/zhongkaifu/Seq2SeqSharp/releases/tag/20210125] . The release package includes Seq2SeqSharp binary files, model file and test files. The model was trained for English to Chinese translation. It's an encoder-decoder model using 4 Transformer layers (hidden dim: 512, embedding dim: 512). The training config file is also included in the package. Test input file contains one English sentence per line, and the test reference file has one Chinese sentence per line. All sentences were already encoded to subwords by SentencePiece, so the package also includes the model and vocabulary of SentencePiece.  
+
+(SentencePiece)[https://github.com/google/sentencepiece] is a subword level tokenization tool from Google. Given raw text, it can build model and vocabulary at subword level, encode text from word level to subword level or decode subword text back to word level. Subword level tokenization could significantly reduce vocabulary size which is useful for OOV and decoding performance improvement for many systems, especially low resource systems. Subword level tokenization and SentencePiece are optional for Seq2SeqSharp. You can tokenize input text to any type of tokens and send them to Seq2SeqSharp or let Seq2SeqSharp generate them.  
+
+The model in the release package was trained by training corpus processed by SentencePiece, so inputs and outputs text of this model needs to be pre-processed by SentencePiece. Again, you could train your model with/without SentencePiece. It's totally optional.  
+
+Here are steps on how to play it.  
+0. Preparation  
+   0.1 Install Nvidia driver and Cuda 11  
+      Windows: Download (Nvidia driver)[https://www.nvidia.com/Download/index.aspx] and (Cuda 11)[https://developer.nvidia.com/cuda-11.1.0-download-archive], and then install them.  
+      Linux: You can use apt to update drivers and cuda, for example: sudo apt install nvidia-driver-440  
+
+   0.2 Install dotNet core  
+      Windows: Download (.NET Core)[https://docs.microsoft.com/en-us/dotnet/core/] and install.  
+      Linux: You can use the following apt-get commands to download and install it:  
+         sudo apt-get update  
+         sudo apt-get install -y apt-transport-https  
+         sudo apt-get update  
+         sudo apt-get install -y aspnetcore-runtime-3.1  
+
+   0.3 Install SentencePiece (optional)  
+      You can follow instructions on (SentencePiece github)[https://github.com/google/sentencepiece] to download and install it. It supports both Windows and Linux.  
+
+1. Run SentencePiece to encode raw input English text to subword (optional)  
+   You can run the following example command for encoding: spm_encode --model=enuSpm.model test_raw.txt > test_spm.txt  
+   The test input files in the release package are already encoded, so you do not have to do it.   
+
+2. Run Seq2SeqSharp to translate the above input text from English to Chinese  
+   You can run the following command for translation.  
+      Seq2SeqConsole.exe -TaskName Test -ModelFilePath seq2seq_mt.model -InputTestFile test_spm.txt -OutputTestFile out.txt -MaxSrcSentLength 100 -MaxTgtSentLength 100 -ProcessorType CPU   
+
+3. Run SentencePiece to decode output Chinese text (optional)  
+   You can run the following command for decoding: spm_decode --model=chsSpm.model out.txt > out_raw.txt    
+
+4. Check quality by comparing output Chinese text with reference text  
+ 
+
 # Build Your Layers  
 Benefit from automatic differentiation, tensor based compute graph and other features, you can easily build your customized layers by a few code. The only thing you need to implment is forward part, and the framework will automatically build the corresponding backward part for you, and make the network could run on multi-GPUs or CPUs.  
 Here is an example about **attentioned based LSTM cells**.  
@@ -222,54 +260,77 @@ Here is an example about **attentioned based LSTM cells**.
 ```
 Another example about **scaled multi-heads attention** component which is the core part in **Transformer** model.  
 ```c#
-        /// <summary>
+       /// <summary>
         /// Scaled multi-heads attention component with skip connectioned feed forward layers
         /// </summary>
         /// <param name="inputQ">The input Q tensor</param>
         /// <param name="inputK">The input K tensor</param>
         /// <param name="inputV">The input V tensor</param>
+        /// <param name="keyMask">The mask for softmax</param>
         /// <param name="batchSize">Batch size of input data set</param>
         /// <param name="graph">The instance of computing graph</param>
         /// <returns>Transformered output tensor</returns>
-        public IWeightTensor Perform(IWeightTensor inputQ, IWeightTensor inputK, IWeightTensor inputV, int batchSize, IComputeGraph graph)
+        public IWeightTensor Perform(IWeightTensor inputQ, IWeightTensor inputK, IWeightTensor inputV, IWeightTensor keyMask, int batchSize, IComputeGraph graph)
         {
-            using (IComputeGraph g = graph.CreateSubGraph(m_name))
+            using (IComputeGraph g = graph.CreateSubGraph($"{m_name}_MultiHeadAttention"))
             {
-                int seqLen = inputQ.Rows / batchSize;
-                IWeightTensor inputQNorm = layerNorm1.Norm(inputQ, g);
+                int seqLenQ = inputQ.Rows / batchSize;
+
+                // SeqLenK must be euqal to SeqLenV
+                int seqLenK = inputK.Rows / batchSize;
+                int seqLenV = inputV.Rows / batchSize;
+
+                IWeightTensor inputQNorm = layerNormQ.Norm(inputQ, g);
+                if (inputK == inputQ)
+                {
+                    inputK = inputQNorm;
+                }
+                if (inputV == inputQ)
+                {
+                    inputV = inputQNorm;
+                }
 
                 //Input projections
-                IWeightTensor allQ = g.View(g.Affine(inputQNorm, Q, Qb), batchSize, seqLen, m_multiHeadNum, m_d);
-                IWeightTensor allK = g.View(g.Affine(inputK, K, Kb), batchSize, seqLen, m_multiHeadNum, m_d);
-                IWeightTensor allV = g.View(g.Affine(inputV, V, Vb), batchSize, seqLen, m_multiHeadNum, m_d);
+                float scale = 1.0f;
+                IWeightTensor allQ = g.View(g.Affine(inputQNorm, Q, Qb, scale), dims: new long[] { batchSize, seqLenQ, m_multiHeadNum, m_d });
+                IWeightTensor allK = g.View(g.Affine(inputK, K, Kb, scale), dims: new long[] { batchSize, seqLenK, m_multiHeadNum, m_d });
+                IWeightTensor allV = g.View(g.Affine(inputV, V, Vb, scale), dims: new long[] { batchSize, seqLenV, m_multiHeadNum, m_d });
 
                 //Multi-head attentions
-                IWeightTensor Qs = g.View(g.Permute(allQ, 2, 0, 1, 3), m_multiHeadNum * batchSize, seqLen, m_d);
-                IWeightTensor Ks = g.View(g.Permute(allK, 2, 0, 3, 1), m_multiHeadNum * batchSize, m_d, seqLen);
-                IWeightTensor Vs = g.View(g.Permute(allV, 2, 0, 1, 3), m_multiHeadNum * batchSize, seqLen, m_d);
+                IWeightTensor Qs = g.View(g.AsContiguous(g.Transpose(allQ, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, m_d });
+                IWeightTensor Ks = g.View(g.AsContiguous(g.Transpose(g.Transpose(allK, 1, 2), 2, 3)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenK });
+                IWeightTensor Vs = g.View(g.AsContiguous(g.Transpose(allV, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenV, m_d });
 
                 // Scaled softmax
-                float scale = 1.0f / (float)Math.Sqrt(m_d);
-                IWeightTensor attn = g.MulBatch(Qs, Ks, m_multiHeadNum * batchSize, scale);
-                IWeightTensor attn2 = g.View(attn, m_multiHeadNum * batchSize * seqLen, seqLen);
+                scale = 1.0f / (float)(Math.Sqrt(m_d));
+                IWeightTensor attn = g.MulBatch(Qs, Ks, batchSize * m_multiHeadNum, scale);
 
-                IWeightTensor softmax = g.Softmax(attn2, inPlace: true);
-                IWeightTensor softmax2 = g.View(softmax, m_multiHeadNum * batchSize, seqLen, seqLen);
-                IWeightTensor o = g.View(g.MulBatch(softmax2, Vs, m_multiHeadNum * batchSize), m_multiHeadNum, batchSize, seqLen, m_d);
-                IWeightTensor W = g.View(g.Permute(o, 1, 2, 0, 3), batchSize * seqLen, m_multiHeadNum * m_d);
+                if (keyMask != null)
+                {
+                    using (var keyMaskView = g.View(keyMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenK }))
+                    {
+                        using (var keyMaskViewExp = g.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK }))
+                        {
+                            using (var keyMaskViewExpConti = g.AsContiguous(keyMaskViewExp, runGradient: false))
+                            {
+                                using (var keyMaskViewExpContiView = g.View(keyMaskViewExpConti, runGradient: false, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenK }))
+                                {
+                                    attn = g.Add(attn, keyMaskViewExpContiView, runGradient1: true, runGradient2: false);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                IWeightTensor softmax = g.Softmax(attn, inPlace: true);
+
+                IWeightTensor o = g.View(g.MulBatch(softmax, Vs, batchSize * m_multiHeadNum), dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, m_d });
+                IWeightTensor W = g.View(g.AsContiguous(g.Transpose(o, 1, 2)), dims: new long[] { batchSize * seqLenQ, m_multiHeadNum * m_d });
 
                 // Output projection
                 IWeightTensor finalAttResults = g.Dropout(g.Affine(W, W0, b0), batchSize, m_dropoutRatio, inPlace: true);
 
-                //Feed forward
-                IWeightTensor ffnResult = feedForwardLayer1.Process(finalAttResults, batchSize, g);
-                IWeightTensor reluFFNResult = g.Relu(ffnResult);
-                IWeightTensor ffn2Result = feedForwardLayer2.Process(reluFFNResult, batchSize, g);
-
-                //Skip connection and layer normaliztion
-                IWeightTensor addFFNResult = graph.Add(ffn2Result, inputQ);
-
-                return addFFNResult;
+                return graph.Add(finalAttResults, inputQ);
             }
         }
 ```

@@ -55,6 +55,7 @@ namespace Seq2SeqSharp
         /// <param name="inputQ">The input Q tensor</param>
         /// <param name="inputK">The input K tensor</param>
         /// <param name="inputV">The input V tensor</param>
+        /// <param name="keyMask">The mask for softmax</param>
         /// <param name="batchSize">Batch size of input data set</param>
         /// <param name="graph">The instance of computing graph</param>
         /// <returns>Transformered output tensor</returns>
@@ -78,7 +79,6 @@ namespace Seq2SeqSharp
                     inputV = inputQNorm;
                 }
 
-
                 //Input projections
                 float scale = 1.0f;
                 IWeightTensor allQ = g.View(g.Affine(inputQNorm, Q, Qb, scale), dims: new long[] { batchSize, seqLenQ, m_multiHeadNum, m_d });
@@ -93,7 +93,6 @@ namespace Seq2SeqSharp
                 // Scaled softmax
                 scale = 1.0f / (float)(Math.Sqrt(m_d));
                 IWeightTensor attn = g.MulBatch(Qs, Ks, batchSize * m_multiHeadNum, scale);
-
 
                 if (keyMask != null)
                 {
@@ -115,7 +114,6 @@ namespace Seq2SeqSharp
                 IWeightTensor softmax = g.Softmax(attn, inPlace: true);
 
                 IWeightTensor o = g.View(g.MulBatch(softmax, Vs, batchSize * m_multiHeadNum), dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, m_d });
-
                 IWeightTensor W = g.View(g.AsContiguous(g.Transpose(o, 1, 2)), dims: new long[] { batchSize * seqLenQ, m_multiHeadNum * m_d });
 
                 // Output projection
