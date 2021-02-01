@@ -236,6 +236,59 @@ namespace Seq2SeqSharp
             }
         }
 
+        public List<List<string>> ConvertTargetIdsToString(List<List<int>> seqs)
+        {
+            List<List<string>> result = new List<List<string>>();
+            lock (locker)
+            {
+                foreach (var seq in seqs)
+                {
+                    List<string> r = new List<string>();
+                    foreach (int idx in seq)
+                    {
+                        if (!m_tgtIndexToWord.TryGetValue(idx, out string letter))
+                        {
+                            letter = ParallelCorpus.UNK;
+                        }
+                        r.Add(letter);
+                    }
+
+                    result.Add(r);
+                }
+            }
+
+            return result;
+        }
+
+        public List<List<List<string>>> ConvertTargetIdsToString(List<List<List<int>>> beam2seqs)
+        {
+            List<List<List<string>>> result = new List<List<List<string>>>();
+            lock (locker)
+            {
+                foreach (var seqs in beam2seqs)
+                {
+                    List<List<string>> b = new List<List<string>>();
+                    foreach (var seq in seqs)
+                    {
+                        List<string> r = new List<string>();
+                        foreach (int idx in seq)
+                        {
+                            if (!m_tgtIndexToWord.TryGetValue(idx, out string letter))
+                            {
+                                letter = ParallelCorpus.UNK;
+                            }
+                            r.Add(letter);
+                        }
+
+                        b.Add(r);
+                    }
+                    result.Add(b);
+                }
+            }
+
+            return result;
+        }
+
         public int GetSourceWordIndex(string word, bool logUnk = false)
         {
             lock (locker)
@@ -252,6 +305,36 @@ namespace Seq2SeqSharp
             }
         }
 
+        public List<List<int>> GetSourceWordIndex(List<List<string>> seqs, bool logUnk = false)
+        {
+            List<List<int>> result = new List<List<int>>();
+              
+            lock (locker)
+            {
+                foreach (var seq in seqs)
+                {
+                    List<int> r = new List<int>();
+                    foreach (var word in seq)
+                    {
+                        if (!SrcWordToIndex.TryGetValue(word, out int id))
+                        {
+                            id = (int)SENTTAGS.UNK;
+                            if (logUnk)
+                            {
+                                Logger.WriteLine($"Source word '{word}' is UNK");
+                            }
+                        }
+                        r.Add(id);
+                    }
+
+                    result.Add(r);
+                }
+            }
+
+            return result;
+        }
+
+
         public int GetTargetWordIndex(string word, bool logUnk = false)
         {
             lock (locker)
@@ -267,6 +350,35 @@ namespace Seq2SeqSharp
                 }
                 return id;
             }
+        }
+
+        public List<List<int>> GetTargetWordIndex(List<List<string>> seqs, bool logUnk = false)
+        {
+            List<List<int>> result = new List<List<int>>();
+
+            lock (locker)
+            {
+                foreach (var seq in seqs)
+                {
+                    List<int> r = new List<int>();
+                    foreach (var word in seq)
+                    {
+                        if (!TgtWordToIndex.TryGetValue(word, out int id))
+                        {
+                            id = (int)SENTTAGS.UNK;
+                            if (logUnk)
+                            {
+                                Logger.WriteLine($"Target word '{word}' is UNK");
+                            }
+                        }
+                        r.Add(id);
+                    }
+
+                    result.Add(r);
+                }
+            }
+
+            return result;
         }
     }
 }

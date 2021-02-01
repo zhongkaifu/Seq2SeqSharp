@@ -45,14 +45,6 @@ OPS_API int TS_Softmax(
 	int rows,
 	int cols);
 
-OPS_API int TS_SoftmaxMask(
-	TensorRef* out_,
-	TensorRef* in_,
-	TensorRef* mask_,
-	int rows,
-	int cols,
-	int maskRows);
-
 OPS_API int TS_SoftmaxGrad(
 	TensorRef* grad_,
 	TensorRef* adj_,
@@ -79,48 +71,6 @@ void Softmax(TensorRef* out, TensorRef* in, int rows, int cols) {
 			T ex = expf(sp[i] - max);
 			so[i] = ex;
 			sum += ex;
-		}
-
-		for (int i = 0; i < cols; ++i) {
-			so[i] /= sum;
-		}
-	}
-}
-
-
-template<typename T>
-void SoftmaxMask(TensorRef* out, TensorRef* in, TensorRef* mask, int rows, int cols, int maskRows) {
-	T* pOut = (T*)out->buffer;
-	T* pIn = (T*)in->buffer;
-	T* pMask = (T*)mask->buffer;
-
-	for (int j = 0; j < rows; ++j) {
-		T* so = pOut + j * cols;
-		T* sp = pIn + j * cols;
-		T* mp = pMask + (j % maskRows) * cols;
-
-		T max = sp[0];
-		for (int i = 1; i < cols; ++i)
-		{
-			if (mp[i] == 0.0f)
-			{
-				max = std::max(max, sp[i]);
-			}
-		}
-
-		T sum = 0.f;
-		for (int i = 0; i < cols; ++i)
-		{
-			if (mp[i] == 0.0f)
-			{
-				T ex = expf(sp[i] - max);
-				so[i] = ex;
-				sum += ex;
-			}
-			else
-			{
-				so[i] = 0.0f;
-			}
 		}
 
 		for (int i = 0; i < cols; ++i) {

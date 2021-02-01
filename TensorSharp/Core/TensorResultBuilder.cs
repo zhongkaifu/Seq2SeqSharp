@@ -18,7 +18,9 @@ namespace TensorSharp.Core
                 {
                     string message = string.Format("output tensor does not match requirements. Tensor must have sizes {0}{1}",
                         string.Join(", ", requiredSizes),
-                        requireContiguous ? "; and must be contiguous" : "");
+                        requireContiguous ? "; and must be contiguous. " : ". ");
+
+                    message += $"Tensor's actual shape is '{string.Join(", ", maybeResult.Sizes)}' and contiguous = '{maybeResult.IsContiguous()}'";
 
                     throw new InvalidOperationException(message);
                 }

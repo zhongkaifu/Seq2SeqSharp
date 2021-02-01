@@ -67,31 +67,7 @@ namespace TensorSharp.CUDA
         //[RegisterOpStorageType("normall", typeof(CudaStorage))]
         //public float NormAll(Tensor src, float value) { using (var resultTensor = NormAll(null, src, value)) { return resultTensor.GetElementAsFloat(0); } }
 
-       
-
-
-
-        [RegisterOpStorageType("buildpadselftrimask", typeof(CudaStorage))]
-        public Tensor BuildPadSelfTriMask(Tensor originalLengths, int batchSize, int paddedLength)
-        {
-            return advFuncKernels.BuildPadSelfTriMask(originalLengths, batchSize, paddedLength);
-        }
-
-
-        [RegisterOpStorageType("buildsrctgtmask", typeof(CudaStorage))]
-        public Tensor BuildSrcTgtMask(Tensor originalSrcLengths, Tensor originalTgtLengths, int batchSize, int paddedSrcLength, int paddedTgtLength)
-        {
-            return advFuncKernels.BuildSrcTgtMask(originalSrcLengths, originalTgtLengths, batchSize, paddedSrcLength, paddedTgtLength);
-        }
-
-
-
-        [RegisterOpStorageType("updatecost", typeof(CudaStorage))]
-        public Tensor UpdateCost(Tensor costs, Tensor weight, Tensor ids)
-        {
-            return advFuncKernels.UpdateCost(costs, weight, ids);
-        }
-
+      
         [RegisterOpArgCount("copy")]
         public void CopyGpu(
             [OpArgStorageType(typeof(CudaStorage))] Tensor result,
@@ -225,7 +201,7 @@ namespace TensorSharp.CUDA
                     throw new InvalidOperationException($"Size mismatch, srcSize0 = {src.Sizes[0]}, m1Size0 = {m1.Sizes[0]}, srcSize1 = {src.Sizes[1]}, m2Size1 = {m2.Sizes[1]}, m1Size1 = '{m1.Sizes[1]}', m2Size0 = '{m2.Sizes[0]}'");
                 }
 
-                Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
+                Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
 
                 if (writeTarget != src)
                 {
@@ -533,11 +509,6 @@ namespace TensorSharp.CUDA
 
         [RegisterOpStorageType("softmax", typeof(CudaStorage))]
         public Tensor Softmax(Tensor result, Tensor src) { return advFuncKernels.Softmax(result, src); }
-
-
-        [RegisterOpStorageType("softmaxmask", typeof(CudaStorage))]
-        public Tensor SoftmaxMask(Tensor result, Tensor src, Tensor mask) { return advFuncKernels.SoftmaxMask(result, src, mask); }
-
 
         [RegisterOpStorageType("softmaxgrad", typeof(CudaStorage))]
         public Tensor SoftmaxGrad(Tensor grad, Tensor adj, Tensor val, bool addGrad = true) { return advFuncKernels.SoftmaxGrad(grad, adj, val, addGrad); }

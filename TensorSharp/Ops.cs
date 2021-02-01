@@ -77,24 +77,6 @@ namespace TensorSharp
             }
         }
 
-
-        public static Tensor UpdateCost(Tensor costs, Tensor weight, Tensor ids)
-        {
-            return (Tensor)OpRegistry.Invoke("updatecost", costs, weight, ids);
-        }
-
-        public static Tensor BuildPadSelfTriMask(Tensor originalLengths, int batchSize, int paddedLength)
-        {
-            return (Tensor)OpRegistry.Invoke("buildpadselftrimask", originalLengths, batchSize, paddedLength);
-        }
-
-
-        public static Tensor BuildSrcTgtMask(Tensor originalSrcLengths, Tensor originalTgtLengths, int batchSize, int paddedSrcLength, int paddedTgtLength)
-        {
-            return (Tensor)OpRegistry.Invoke("buildsrctgtmask", originalSrcLengths, originalTgtLengths, batchSize, paddedSrcLength, paddedTgtLength);
-        }
-
-
         public static void Copy(Tensor result, Tensor src) { OpRegistry.Invoke("copy", result, src); }
         public static void Fill(Tensor result, float value) { OpRegistry.Invoke("fill", result, value); }
 
@@ -211,11 +193,7 @@ namespace TensorSharp
 
 
         public static Tensor Softmax(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("softmax", result, src); }
-
-        public static Tensor SoftmaxMask(Tensor result, Tensor src, Tensor mask) { return (Tensor)OpRegistry.Invoke("softmaxmask", result, src, mask); }
-
         public static Tensor SoftmaxGrad(Tensor grad, Tensor adj, Tensor val, bool addGrad = true) { return (Tensor)OpRegistry.Invoke("softmaxgrad", grad, adj, val, addGrad); }
-
 
 
         public static Tensor LayerNorm(Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-09f) { return (Tensor)OpRegistry.Invoke("layernorm", result, src, alpha, beta, eps); }

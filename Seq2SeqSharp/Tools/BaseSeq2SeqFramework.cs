@@ -12,6 +12,41 @@ using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.Tools
 {
+    public class NetworkResult
+    {
+        public float Cost;
+        public List<List<List<string>>> Beam2Batch2Output; // (beam_size, batch_size, seq_len)
+
+
+        public void RemoveDuplicatedEOS()
+        {
+            if (Beam2Batch2Output != null)
+            {
+                foreach (var item in Beam2Batch2Output)
+                {
+                    RemoveDuplicatedEOS(item);
+                }
+            }
+        }
+
+        private void RemoveDuplicatedEOS(List<List<string>> snts)
+        {
+            foreach (var snt in snts)
+            {
+                for (int i = 0; i < snt.Count; i++)
+                {
+                    if (snt[i] == ParallelCorpus.EOS)
+                    {
+                        snt.RemoveRange(i, snt.Count - i);
+                        snt.Add(ParallelCorpus.EOS);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+
     /// <summary>
     /// This is a framework for neural network training. It includes many core parts, such as backward propagation, parameters updates, 
     /// memory management, computing graph managment, corpus shuffle & batching, I/O for model, logging & monitoring, checkpoints.
@@ -106,7 +141,7 @@ namespace Seq2SeqSharp.Tools
         }
 
         internal void TrainOneEpoch(int ep, IEnumerable<SntPairBatch> trainCorpus, IEnumerable<SntPairBatch> validCorpus, ILearningRate learningRate, AdamOptimizer solver, List<IMetric> metrics, IModelMetaData modelMetaData,
-            Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice)
+            Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice)
         {
             int processedLineInTotal = 0;
             DateTime startDateTime = DateTime.Now;
@@ -260,7 +295,7 @@ namespace Seq2SeqSharp.Tools
             m_avgCostPerWordInTotalInLastEpoch = avgCostPerWordInTotal;
         }
 
-        private (float, int, int, int) RunNetwork(Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice, List<SntPairBatch> sntPairBatchs, int batchSplitFactor)
+        private (float, int, int, int) RunNetwork(Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice, List<SntPairBatch> sntPairBatchs, int batchSplitFactor)
         {
             float cost = 0.0f;
             int processedLine = 0;
@@ -294,19 +329,19 @@ namespace Seq2SeqSharp.Tools
                             tLenInBatch += sntPairBatch_i.SntPairs[j].TgtSnt.Length;
                         }
 
-                        float lcost = 0.0f;
+                        NetworkResult nr;
                         // Create a new computing graph instance
                         using (IComputeGraph computeGraph_i = CreateComputGraph(i))
                         {
                             // Run forward part
-                            lcost = ForwardOnSingleDevice(computeGraph_i, srcTkns, tgtTkns, i, true);
+                            nr = ForwardOnSingleDevice(computeGraph_i, srcTkns, tgtTkns, i, true);
                             // Run backward part and compute gradients
                             computeGraph_i.Backward();
                         }
 
                         lock (locker)
                         {
-                            cost += lcost;
+                            cost += nr.Cost;
                             srcWordCnts += sLenInBatch;
                             tgtWordCnts += tLenInBatch;
                             processedLine += batchSegSize;
@@ -329,7 +364,7 @@ namespace Seq2SeqSharp.Tools
             return (cost, srcWordCnts, tgtWordCnts, processedLine);
         }
 
-        private void CreateCheckPoint(IEnumerable<SntPairBatch> validCorpus, List<IMetric> metrics, IModelMetaData modelMetaData, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice, double avgCostPerWordInTotal)
+        private void CreateCheckPoint(IEnumerable<SntPairBatch> validCorpus, List<IMetric> metrics, IModelMetaData modelMetaData, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice, double avgCostPerWordInTotal)
         {
             if (validCorpus != null)
             {
@@ -346,27 +381,29 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        internal List<List<string>> RunTest(List<List<string>> inputTokens, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> ForwardOnSingleDevice)
+        internal List<List<List<string>>> RunTest(List<List<string>> inputTokens, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice)
         {
             List<List<string>> hypTkns = new List<List<string>>();
             hypTkns.Add(new List<string>());
             hypTkns[0].Add(ParallelCorpus.BOS);
 
+            NetworkResult nr = null;
             try
             {
                 // Create a new computing graph instance
                 using (IComputeGraph computeGraph = CreateComputGraph(DeviceIds[0], needBack: false))
                 {
                     // Run forward part
-                    ForwardOnSingleDevice(computeGraph, inputTokens, hypTkns, DeviceIds[0], false);
+                    nr = ForwardOnSingleDevice(computeGraph, inputTokens, hypTkns, DeviceIds[0], false);
                 }
             }
             catch (Exception err)
             {
                 Logger.WriteLine(Logger.Level.err, $"Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                throw err;
             }
-       
-            return hypTkns;
+
+            return nr.Beam2Batch2Output;
         }
 
         /// <summary>
@@ -377,7 +414,7 @@ namespace Seq2SeqSharp.Tools
         /// <param name="metrics">A set of metrics. The first one is the primary metric</param>
         /// <param name="outputToFile">It indicates if valid corpus and results should be dumped to files</param>
         /// <returns>true if we get a better result on primary metric, otherwise, false</returns>
-        internal bool RunValid(IEnumerable<SntPairBatch> validCorpus, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> RunNetwork, List<IMetric> metrics, bool outputToFile = false)
+        internal bool RunValid(IEnumerable<SntPairBatch> validCorpus, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> RunNetwork, List<IMetric> metrics, bool outputToFile = false)
         {
             List<string> srcSents = new List<string>();
             List<string> refSents = new List<string>();
@@ -406,8 +443,6 @@ namespace Seq2SeqSharp.Tools
                 RunValidParallel(RunNetwork, metrics, outputToFile, srcSents, refSents, hypSents, sntPairBatchs);
             }
 
-
-
             Logger.WriteLine($"Metrics result:");
             foreach (IMetric metric in metrics)
             {
@@ -435,7 +470,7 @@ namespace Seq2SeqSharp.Tools
             return false;
         }
 
-        private void RunValidParallel(Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, float> RunNetwork, List<IMetric> metrics, bool outputToFile, List<string> srcSents, List<string> refSents, List<string> hypSents, List<SntPairBatch> sntPairBatchs)
+        private void RunValidParallel(Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> RunNetwork, List<IMetric> metrics, bool outputToFile, List<string> srcSents, List<string> refSents, List<string> hypSents, List<SntPairBatch> sntPairBatchs)
         {
             // Run forward on all available processors
             Parallel.For(0, m_deviceIds.Length, i =>
@@ -454,14 +489,16 @@ namespace Seq2SeqSharp.Tools
                 }
 
                 // Create a new computing graph instance
+                NetworkResult nr;
                 using (IComputeGraph computeGraph = CreateComputGraph(i, needBack: false))
                 {
                     // Run forward part
-                    RunNetwork(computeGraph, srcTkns, hypTkns, i, false);
+                    nr = RunNetwork(computeGraph, srcTkns, hypTkns, i, false);
                 }
 
                 lock (locker)
                 {
+                    hypTkns = nr.Beam2Batch2Output[0];
 
                     for (int j = 0; j < hypTkns.Count; j++)
                     {

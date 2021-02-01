@@ -78,10 +78,11 @@ namespace Seq2SeqSharp
                     inputs = m_encoders[k].Perform(inputs, inputs, inputs, srcSelfMask, batchSize, subg);
                     inputs = m_posFFNs[k].Perform(inputs, batchSize, subg);
                 }
+
+                inputs = layerNorm.Norm(inputs, subg);
+
                 inputs.UnbindFromComputeGraph();
             }
-
-            inputs = layerNorm.Norm(inputs, g);
 
             return inputs;
         }

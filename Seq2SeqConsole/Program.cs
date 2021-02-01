@@ -147,25 +147,24 @@ namespace Seq2SeqConsole
                 }
                 else if (mode == ModeEnums.Test)
                 {
-                    Logger.WriteLine($"Test model '{opts.ModelFilePath}' by input corpus '{opts.InputTestFile}'");
+                    Logger.WriteLine($"Test model: '{opts.ModelFilePath}'");
+                    Logger.WriteLine($"Test set: '{opts.InputTestFile}'");
+                    Logger.WriteLine($"Processor type: '{processorType}'");
+                    Logger.WriteLine($"Max source sentence length: '{opts.MaxSrcSentLength}'");
+                    Logger.WriteLine($"Max target sentence length: '{opts.MaxTgtSentLength}'");
+                    Logger.WriteLine($"Beam search size: '{opts.BeamSearchSize}'");
 
                     //Test trained model
                     ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds, memoryUsageRatio: opts.MemoryUsageRatio, 
-                        shuffleType: shuffleType, maxSrcSntSize: opts.MaxSrcSentLength, maxTgtSntSize: opts.MaxTgtSentLength, compilerOptions: cudaCompilerOptions);
+                        shuffleType: shuffleType, maxSrcSntSize: opts.MaxSrcSentLength, maxTgtSntSize: opts.MaxTgtSentLength, compilerOptions: cudaCompilerOptions, beamSearchSize: opts.BeamSearchSize);
 
                     List<string> outputLines = new List<string>();
                     string[] data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
                     foreach (string line in data_sents_raw1)
                     {
-                        if (opts.BeamSearch > 1)
+                        var outputBeamTokensBatch = ss.Test(ParallelCorpus.ConstructInputTokens(line.ToLower().Trim().Split(' ').ToList()));
+                        foreach (var outputTokensBatch in outputBeamTokensBatch)
                         {
-                            // Below support beam search
-                            List<List<string>> outputWordsList = ss.Predict(line.ToLower().Trim().Split(' ').ToList(), opts.BeamSearch);
-                            outputLines.AddRange(outputWordsList.Select(x => string.Join(" ", x)));
-                        }
-                        else
-                        {
-                            var outputTokensBatch = ss.Test(ParallelCorpus.ConstructInputTokens(line.ToLower().Trim().Split(' ').ToList()));
                             outputLines.AddRange(outputTokensBatch.Select(x => String.Join(" ", x)));
                         }
                     }

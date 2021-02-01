@@ -14,9 +14,9 @@ namespace Seq2SeqSharp.Tools
 
         int DeviceId { get; set; }
 
-        float GetWeightAt(int offset);
-        void SetWeightAt(float val, int offset);
-        void SetGradientAt(float val, int offset);
+        float GetWeightAt(long[] indices);
+        void SetWeightAt(float val, long[] indices);
+        void SetGradientAt(float val, long[] indices);
 
         void CopyWeightsToGradients(IWeightTensor src);
 
@@ -38,6 +38,10 @@ namespace Seq2SeqSharp.Tools
         float[] ToWeightArray();
 
         void UnbindFromComputeGraph();
+
+        bool IsWeightNull();
+        bool IsGradientNull();
+
 
     }
 }

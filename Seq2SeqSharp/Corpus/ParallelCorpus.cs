@@ -487,6 +487,40 @@ namespace Seq2SeqSharp.Tools
         }
 
 
+        /// <summary>
+        /// Pad given sentences to the same length and return their original length
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static List<int> PadSentences(List<List<int>> s, int tokenToPad, int maxLen = -1)
+        {
+            List<int> originalLengths = new List<int>();
+
+            if (maxLen <= 0)
+            {
+                foreach (List<int> item in s)
+                {
+                    if (item.Count > maxLen)
+                    {
+                        maxLen = item.Count;
+                    }
+                }
+            }
+
+            for (int i = 0; i < s.Count; i++)
+            {
+                int count = s[i].Count;
+                originalLengths.Add(count);
+
+                for (int j = 0; j < maxLen - count; j++)
+                {
+                    s[i].Add(tokenToPad);
+                }
+            }
+
+            return originalLengths;
+        }
+
         public static List<List<string>> LeftShiftSnts(List<List<string>> input, string lastTokenToPad)
         {
             List<List<string>> r = new List<List<string>>();
@@ -494,6 +528,24 @@ namespace Seq2SeqSharp.Tools
             foreach (var seq in input)
             {
                 List<string> rseq = new List<string>();
+
+                rseq.AddRange(seq);
+                rseq.RemoveAt(0);
+                rseq.Add(lastTokenToPad);
+
+                r.Add(rseq);
+            }
+
+            return r;
+        }
+
+        public static List<List<int>> LeftShiftSnts(List<List<int>> input, int lastTokenToPad)
+        {
+            List<List<int>> r = new List<List<int>>();
+
+            foreach (var seq in input)
+            {
+                List<int> rseq = new List<int>();
 
                 rseq.AddRange(seq);
                 rseq.RemoveAt(0);

@@ -186,10 +186,6 @@ namespace TensorSharp.Cpu
 
 
         [DllImport(dll, CallingConvention = cc)]
-        public static extern int TS_SoftmaxMask(IntPtr out_, IntPtr in_, IntPtr mask_, int rows, int cols, int maskRows);
-
-
-        [DllImport(dll, CallingConvention = cc)]
         public static extern int TS_SoftmaxGrad(IntPtr grad_, IntPtr adj_, IntPtr val_, int rows, int cols, bool addGrad);
 
 
@@ -209,10 +205,5 @@ namespace TensorSharp.Cpu
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Gather(IntPtr result, IntPtr src, int dim, IntPtr indices);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Scatter(IntPtr result, IntPtr src, int dim, IntPtr indices);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_ScatterFill(IntPtr result, float value, int dim, IntPtr indices);
-
-
-        [DllImport(dll, CallingConvention = cc)]
-        public static extern int TS_UpdateCost(IntPtr tw, IntPtr tids, IntPtr tc, int rows, int cols);
-
     }
 }

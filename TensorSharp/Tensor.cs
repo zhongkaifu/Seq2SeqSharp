@@ -117,6 +117,11 @@ namespace TensorSharp
             return new Tensor(sizes, strides, storage, storageOffset);
         }
 
+        public bool IsOwnerExclusive()
+        {
+            return storage.IsOwnerExclusive();
+        }
+
         public string Format()
         {
             return TensorFormatting.Format(this);

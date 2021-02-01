@@ -76,7 +76,7 @@ Note that:
   1) if "-SrcVocab" and "-TgtVocab" are empty, vocabulary will be built from training corpus.  
   2) Txt2Vec for external embedding model building can get downloaded from https://github.com/zhongkaifu/Txt2Vec  
 
-Example: Seq2SeqConsole.exe -TaskName Train -WordVectorSize 512 -HiddenSize 512 -LearningRate 0.002 -ModelFilePath seq2seq.model -TrainCorpusPath .\corpus -ValidCorpusPath .\corpus_valid -SrcLang ENU -TgtLang CHS -BatchSize 256 -ProcessorType GPU -EncoderType Transformer -EncoderLayerDepth 6 -DecoderLayerDepth 2 -MultiHeadNum 8 -DeviceIds 0,1,2,3,4,5,6,7  
+Example: Seq2SeqConsole.exe -TaskName Train -SrcEmbeddingDim 512 -TgtEmbeddingDim 512 -HiddenSize 512 -LearningRate 0.002 -ModelFilePath seq2seq.model -TrainCorpusPath .\corpus -ValidCorpusPath .\corpus_valid -SrcLang ENU -TgtLang CHS -BatchSize 256 -ProcessorType GPU -EncoderType Transformer -EncoderLayerDepth 6 -DecoderLayerDepth 2 -MultiHeadNum 8 -DeviceIds 0,1,2,3,4,5,6,7  
 
 During training, the iteration information will be printed out and logged as follows:  
 info,9/26/2019 3:38:24 PM Update = '15600' Epoch = '0' LR = '0.002000', Current Cost = '2.817434', Avg Cost = '3.551963', SentInTotal = '31948800', SentPerMin = '52153.52', WordPerSec = '39515.27'  
@@ -100,9 +100,9 @@ Parameters:
 **-ModelFilePath**: The trained model file path. 
 **-ProcessorType**: Architecture type: CPU or GPU 
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
-**-BeamSearch**: Beam search size. Default is 1  
+**-BeamSearchSize**: Beam search size. Default is 1  
 
-Example: Seq2SeqConsole.exe -TaskName Test -ModelFilePath seq2seq.model -InputTestFile test.txt -OutputTestFile result.txt -ProcessorType CPU -BeamSearch 5  
+Example: Seq2SeqConsole.exe -TaskName Test -ModelFilePath seq2seq.model -InputTestFile test.txt -OutputTestFile result.txt -ProcessorType CPU -BeamSearchSize 5  
 
 Here is the command line to visualize network  
 **Seq2SeqConsole.exe -TaskName VisualizeNetwork [parameters...]**  
@@ -149,7 +149,7 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
         "DecoderType":"Transformer",
         "MultiHeadNum":8,
         "DeviceIds":"0,1,2,3",
-        "BeamSearch":1,
+        "BeamSearchSize":1,
         "MaxEpochNum":100,
         "MaxSrcSentLength":100,
         "MaxTgtSentLength":100,
