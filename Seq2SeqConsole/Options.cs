@@ -135,5 +135,8 @@ namespace Seq2SeqConsole
 
         [Arg("The options for CUDA NVRTC compiler. Options are split by space. For example: \"--use_fast_math --gpu-architecture=compute_60\"", "CompilerOptions")]
         public string CompilerOptions = "--use_fast_math";
+
+        [Arg("The weights optimizer during training. It supports Adam and RMSProp. Adam is default", "Optimizer")]
+        public string Optimizer = "Adam";
     }
 }

@@ -73,10 +73,33 @@ namespace Seq2SeqSharp
         {
             using (IComputeGraph subg = g.CreateSubGraph($"{m_name}_Encoder"))
             {
+                IWeightTensor maskTensor = null;
+                if (srcSelfMask != null)
+                {
+                    int seqLen = inputs.Rows / batchSize;
+
+                    using (var keyMaskView = subg.View(srcSelfMask, runGradient: false, dims: new long[] { batchSize, 1, seqLen, seqLen }))
+                    {
+                        using (var keyMaskViewExp = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLen, seqLen }))
+                        {
+                            using (var keyMaskViewExpConti = subg.AsContiguous(keyMaskViewExp, runGradient: false))
+                            {
+                                maskTensor = subg.View(keyMaskViewExpConti, runGradient: false, dims: new long[] { batchSize * m_multiHeadNum, seqLen, seqLen });
+                            }
+                        }
+                    }
+                }
+
                 for (int k = 0; k < m_encoders.Count; k++)
                 {
-                    inputs = m_encoders[k].Perform(inputs, inputs, inputs, srcSelfMask, batchSize, subg);
+                    inputs = m_encoders[k].Perform(inputs, inputs, inputs, maskTensor, batchSize, subg);
                     inputs = m_posFFNs[k].Perform(inputs, batchSize, subg);
+                }
+
+                if (maskTensor != null)
+                {
+                    maskTensor.Dispose();
+                    maskTensor = null;
                 }
 
                 inputs = layerNorm.Norm(inputs, subg);

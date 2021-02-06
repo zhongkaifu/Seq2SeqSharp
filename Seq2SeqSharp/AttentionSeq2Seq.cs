@@ -2,6 +2,7 @@
 
 using AdvUtils;
 using Seq2SeqSharp.Metrics;
+using Seq2SeqSharp.Optimizer;
 using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
 using System;
@@ -195,7 +196,7 @@ namespace Seq2SeqSharp
             }
         }
 
-        public void Train(int maxTrainingEpoch, ParallelCorpus trainCorpus, ParallelCorpus validCorpus, ILearningRate learningRate, List<IMetric> metrics, AdamOptimizer optimizer)
+        public void Train(int maxTrainingEpoch, ParallelCorpus trainCorpus, ParallelCorpus validCorpus, ILearningRate learningRate, List<IMetric> metrics, IOptimizer optimizer)
         {
             Logger.WriteLine("Start to train...");
             for (int i = 0; i < maxTrainingEpoch; i++)

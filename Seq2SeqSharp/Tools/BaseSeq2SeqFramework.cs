@@ -1,5 +1,6 @@
 ﻿using AdvUtils;
 using Seq2SeqSharp.Metrics;
+using Seq2SeqSharp.Optimizer;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -140,7 +141,7 @@ namespace Seq2SeqSharp.Tools
             return modelMetaData;
         }
 
-        internal void TrainOneEpoch(int ep, IEnumerable<SntPairBatch> trainCorpus, IEnumerable<SntPairBatch> validCorpus, ILearningRate learningRate, AdamOptimizer solver, List<IMetric> metrics, IModelMetaData modelMetaData,
+        internal void TrainOneEpoch(int ep, IEnumerable<SntPairBatch> trainCorpus, IEnumerable<SntPairBatch> validCorpus, ILearningRate learningRate, IOptimizer solver, List<IMetric> metrics, IModelMetaData modelMetaData,
             Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice)
         {
             int processedLineInTotal = 0;

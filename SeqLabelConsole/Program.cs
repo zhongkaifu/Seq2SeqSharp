@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using Seq2SeqSharp;
 using Seq2SeqSharp.Metrics;
+using Seq2SeqSharp.Optimizer;
 using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
@@ -90,7 +91,15 @@ namespace SeqLabelConsole
                 ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);
 
                 // Create optimizer
-                AdamOptimizer optimizer = new AdamOptimizer(opts.GradClip, opts.Beta1, opts.Beta2);
+                IOptimizer optimizer = null;
+                if (String.Equals(opts.Optimizer, "Adam", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    optimizer = new AdamOptimizer(opts.GradClip, opts.Beta1, opts.Beta2);
+                }
+                else
+                {
+                    optimizer = new RMSPropOptimizer(opts.GradClip, opts.Beta1);
+                }
 
                 // Create metrics
                 List<IMetric> metrics = new List<IMetric>();

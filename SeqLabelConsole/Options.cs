@@ -90,5 +90,8 @@ namespace SeqLabelConsole
 
         [Arg("The beta2 for optimizer", "Beta2")]
         public float Beta2 = 0.98f;
+
+        [Arg("The weights optimizer during training. It supports Adam and RMSProp. Adam is default", "Optimizer")]
+        public string Optimizer = "Adam";
     }
 }

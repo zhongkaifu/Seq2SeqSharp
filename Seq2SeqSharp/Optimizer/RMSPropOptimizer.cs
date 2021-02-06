@@ -10,25 +10,21 @@ using TensorSharp;
 namespace Seq2SeqSharp.Optimizer
 {
 
-    public class AdamOptimizer : IOptimizer
+    public class RMSPropOptimizer : IOptimizer
     {
-        private static float m_beta1 = 0.9f;
-        private static float m_beta2 = 0.98f;
+        public static float m_decayRate = 0.999f;
         private static readonly float m_smoothEps = 1e-9f;
         private readonly ConcurrentDictionary<string, Tensor> m_cacheName2V;
-        private readonly ConcurrentDictionary<string, Tensor> m_cacheName2M;
         private readonly float m_clipval;
 
-        public AdamOptimizer(float clipval, float beta1 = 0.9f, float beta2 = 0.98f)
+        public RMSPropOptimizer(float clipval, float decayRate = 0.999f)
         {
-            Logger.WriteLine($"Creating Adam optimizer. GradClip = '{clipval}', Beta1 = '{beta1}', Beta2 = '{beta2}'");
+            Logger.WriteLine($"Creating RMSProp optimizer. GradClip = '{clipval}', LR decay rate = '{decayRate}'");
 
             m_cacheName2V = new ConcurrentDictionary<string, Tensor>();
-            m_cacheName2M = new ConcurrentDictionary<string, Tensor>();
 
             m_clipval = clipval;
-            m_beta1 = beta1;
-            m_beta2 = beta2;
+            m_decayRate = decayRate;
         }
 
         public void UpdateWeights(List<IWeightTensor> model, int batchSize, float step_size, float regc, int iter)
@@ -61,9 +57,6 @@ namespace Seq2SeqSharp.Optimizer
                     m_cacheName2V[item.Name] = new Tensor(allocator, DType.Float32, item.Sizes);
                     Ops.Fill(m_cacheName2V[item.Name], 0.0f);
 
-                    m_cacheName2M[item.Name] = new Tensor(allocator, DType.Float32, item.Sizes);
-                    Ops.Fill(m_cacheName2M[item.Name], 0.0f);
-
                     Logger.WriteLine($"Added weight '{item.Name}' to optimizer.");
                 }
             }
@@ -83,16 +76,7 @@ namespace Seq2SeqSharp.Optimizer
         {
             try
             {
-                //float clip_coef = 1.0f;
-
-                //float normVal = Ops.NormAll(m.TGradient, 2.0f);
-                //float clip_coef = 0.5f / (normVal + 1e-6f);
-                //if (clip_coef > 1.0f)
-                //{
-                //    clip_coef = 1.0f;
-                //}
-
-                Ops.Adam(m.TWeight, m.TGradient, m_cacheName2V[m.Name], m_cacheName2M[m.Name], batchSize, step_size, m_clipval, regc, m_beta2, m_beta1, iter, m_smoothEps);
+                Ops.RMSProp(m.TWeight, m.TGradient, m_cacheName2V[m.Name], batchSize, step_size, m_clipval, regc, m_decayRate, m_smoothEps);
             }
             catch (Exception err)
             {

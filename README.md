@@ -70,8 +70,10 @@ Parameters:
 **-MaxEpochNum**: Maxmium epoch number during training. Default is 100  
 **-MaxSrcSentLength**: Maxmium sentence length on source side. Default is 32 tokens  
 **-MaxTgtSentLength**: Maxmium sentence length on target side. Default is 32 tokens  
-**-WarmUpSteps**: The number of steps for warming up. Default is 8,000 
+**-WarmUpSteps**: The number of steps for warming up. Default is 8,000  
 **-CompilerOptions**: The options for CUDA NVRTC compiler. Options are split by space. For example: "--use_fast_math --gpu-architecture=compute_60" means to use fast math libs and run on Pascal and above GPUs  
+**-Optimizer**: The weights optimizer during training. It supports Adam and RMSProp. Adam is default  
+
 Note that:  
   1) if "-SrcVocab" and "-TgtVocab" are empty, vocabulary will be built from training corpus.  
   2) Txt2Vec for external embedding model building can get downloaded from https://github.com/zhongkaifu/Txt2Vec  
@@ -158,7 +160,8 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
         "Beta1":0.9,
         "Beta2":0.98,
         "EnableCoverageModel":false,
-        "CompilerOptions":"--use_fast_math --gpu-architecture=compute_70"
+        "CompilerOptions":"--use_fast_math --gpu-architecture=compute_70",
+        "Optimizer":"Adam"
 }
 ```
 
@@ -480,54 +483,68 @@ Now you already have your customized network and you can play it. See Progream.c
 # How To Play Your Network  
 In Seq2SeqConsole project, it shows you how to initialize and play (train, valid or test) your network. Here are few steps about how to do it.  
 ```c#
-                // Load train corpus
-                Corpus trainCorpus = new Corpus(opts.TrainCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
-                // Load valid corpus
-                Corpus validCorpus = new Corpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
+        // Load train corpus
+        ParallelCorpus trainCorpus = new ParallelCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
+            maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, shuffleEnums: shuffleType);
+        // Load valid corpus
+        ParallelCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new ParallelCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxSrcSentLength, opts.MaxTgtSentLength, shuffleEnums: shuffleType);
 
-                // Load or build vocabulary
-                Vocab vocab = null;
-                if (!String.IsNullOrEmpty(opts.SrcVocab) && !String.IsNullOrEmpty(opts.TgtVocab))
-                {
-                    // Vocabulary files are specified, so we load them
-                    vocab = new Vocab(opts.SrcVocab, opts.TgtVocab);
-                }
-                else
-                {
-                    // We don't specify vocabulary, so we build it from train corpus
-                    vocab = new Vocab(trainCorpus);
-                }
+        // Create learning rate
+        ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);
 
-                // Create learning rate
-                ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);
+        // Create optimizer
+        IOptimizer optimizer = null;
+        if (String.Equals(opts.Optimizer, "Adam", StringComparison.InvariantCultureIgnoreCase))
+        {
+            optimizer = new AdamOptimizer(opts.GradClip, opts.Beta1, opts.Beta2);
+        }
+        else
+        {
+            optimizer = new RMSPropOptimizer(opts.GradClip, opts.Beta1);
+        }
 
-                // Create optimizer
-                Optimizer optimizer = new Optimizer(opts.GradClip);
+        // Create metrics
+        List<IMetric> metrics = new List<IMetric>
+        {
+            new BleuMetric(),
+            new LengthRatioMetric()
+        };
 
-                // Create metrics
-                List<IMetric> metrics = new List<IMetric>();
-                metrics.Add(new BleuMetric());
-                metrics.Add(new LengthRatioMetric());
+        if (!String.IsNullOrEmpty(opts.ModelFilePath) && File.Exists(opts.ModelFilePath))
+        {
+            //Incremental training
+            Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
+            ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, dropoutRatio: opts.DropoutRatio, deviceIds: deviceIds,
+            isSrcEmbTrainable: opts.IsSrcEmbeddingTrainable, isTgtEmbTrainable: opts.IsTgtEmbeddingTrainable, isEncoderTrainable: opts.IsEncoderTrainable, isDecoderTrainable: opts.IsDecoderTrainable,
+            maxSrcSntSize: opts.MaxSrcSentLength, maxTgtSntSize: opts.MaxTgtSentLength, memoryUsageRatio: opts.MemoryUsageRatio, shuffleType: shuffleType, compilerOptions: cudaCompilerOptions);
+        }
+        else
+        {
+            // Load or build vocabulary
+            Vocab vocab = null;
+            if (!string.IsNullOrEmpty(opts.SrcVocab) && !string.IsNullOrEmpty(opts.TgtVocab))
+            {
+                // Vocabulary files are specified, so we load them
+                vocab = new Vocab(opts.SrcVocab, opts.TgtVocab);
+            }
+            else
+            {
+                // We don't specify vocabulary, so we build it from train corpus
+                vocab = new Vocab(trainCorpus);
+            }
 
-                if (File.Exists(opts.ModelFilePath) == false)
-                {
-                    //New training
-                    ss = new AttentionSeq2Seq(embeddingDim: opts.WordVectorSize, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth,
-                        srcEmbeddingFilePath: opts.SrcEmbeddingModelFilePath, tgtEmbeddingFilePath: opts.TgtEmbeddingModelFilePath, vocab: vocab, modelFilePath: opts.ModelFilePath, 
-                        dropoutRatio: opts.DropoutRatio, processorType: processorType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType);
-                }
-                else
-                {
-                    //Incremental training
-                    Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
-                    ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, dropoutRatio: opts.DropoutRatio, deviceIds: deviceIds);
-                }
+            //New training
+            ss = new AttentionSeq2Seq(srcEmbeddingDim: opts.SrcEmbeddingDim, tgtEmbeddingDim: opts.TgtEmbeddingDim, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth,
+                srcEmbeddingFilePath: opts.SrcEmbeddingModelFilePath, tgtEmbeddingFilePath: opts.TgtEmbeddingModelFilePath, vocab: vocab, modelFilePath: opts.ModelFilePath,
+                dropoutRatio: opts.DropoutRatio, processorType: processorType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType, decoderType: decoderType,
+                maxSrcSntSize: opts.MaxSrcSentLength, maxTgtSntSize: opts.MaxTgtSentLength, enableCoverageModel: opts.EnableCoverageModel, memoryUsageRatio: opts.MemoryUsageRatio, shuffleType: shuffleType, compilerOptions: cudaCompilerOptions);
+        }
 
-                // Add event handler for monitoring
-                ss.IterationDone += ss_IterationDone;
+        // Add event handler for monitoring
+        ss.IterationDone += ss_IterationDone;
 
-                // Kick off training
-                ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, metrics: metrics);
+        // Kick off training
+        ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, metrics: metrics);
 ```
 
 # Todo List  

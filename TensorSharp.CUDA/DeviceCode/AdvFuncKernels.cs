@@ -401,13 +401,19 @@ __global__ void Adam(float* __restrict__ w, float* __restrict__ g, float* __rest
         int i = tid + threadIdx.x;
         if(i < cols)
         {
-           float g = (sg[i] * clipval) / batchSize;
+           float g = sg[i] / batchSize;
+
+           if (g > clipval)
+           {
+               g = clipval;
+           }
+           if (g < -clipval)
+           {
+               g = -clipval;
+           }
+
            sm[i] = sm[i] * decay_rate_m + (1.0 - decay_rate_m) * g;
            sv[i] = sv[i] * decay_rate_v + (1.0 - decay_rate_v) * g * g;
-
-           //float m_cap = sm[i] / (1.0 - powf(decay_rate_m, iter));
-           //float v_cap = sv[i] / (1.0 - powf(decay_rate_v, iter));
-
 
            sw[i] -= adapted_learning_rate * sm[i] / (sqrtf(sv[i]) + eps);
 

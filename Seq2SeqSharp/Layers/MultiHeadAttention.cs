@@ -96,19 +96,21 @@ namespace Seq2SeqSharp
 
                 if (keyMask != null)
                 {
-                    using (var keyMaskView = g.View(keyMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenK }))
-                    {
-                        using (var keyMaskViewExp = g.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK }))
-                        {
-                            using (var keyMaskViewExpConti = g.AsContiguous(keyMaskViewExp, runGradient: false))
-                            {
-                                using (var keyMaskViewExpContiView = g.View(keyMaskViewExpConti, runGradient: false, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenK }))
-                                {
-                                    attn = g.Add(attn, keyMaskViewExpContiView, runGradient1: true, runGradient2: false);
-                                }
-                            }
-                        }
-                    }
+                    //using (var keyMaskView = g.View(keyMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenK }))
+                    //{
+                    //    using (var keyMaskViewExp = g.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK }))
+                    //    {
+                    //        using (var keyMaskViewExpConti = g.AsContiguous(keyMaskViewExp, runGradient: false))
+                    //        {
+                    //            using (var keyMaskViewExpContiView = g.View(keyMaskViewExpConti, runGradient: false, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenK }))
+                    //            {
+                    //                attn = g.Add(attn, keyMaskViewExpContiView, runGradient1: true, runGradient2: false);
+                    //            }
+                    //        }
+                    //    }
+                    //}
+
+                    attn = g.Add(attn, keyMask, runGradient1: true, runGradient2: false);
                 }
 
                 IWeightTensor softmax = g.Softmax(attn, inPlace: true);
