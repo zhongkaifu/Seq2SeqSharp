@@ -476,61 +476,74 @@ namespace Seq2SeqSharp.Tools
             // Run forward on all available processors
             Parallel.For(0, m_deviceIds.Length, i =>
             {
-                SntPairBatch sntPairBatch = sntPairBatchs[i];
-
-                // Construct sentences for encoding and decoding
-                List<List<string>> srcTkns = new List<List<string>>();
-                List<List<string>> refTkns = new List<List<string>>();
-                List<List<string>> hypTkns = new List<List<string>>();
-                for (int j = 0; j < sntPairBatch.BatchSize; j++)
+                try
                 {
-                    srcTkns.Add(sntPairBatch.SntPairs[j].SrcSnt.ToList());
-                    refTkns.Add(sntPairBatch.SntPairs[j].TgtSnt.ToList());
-                    hypTkns.Add(new List<string>() { ParallelCorpus.BOS });
-                }
-
-                // Create a new computing graph instance
-                NetworkResult nr;
-                using (IComputeGraph computeGraph = CreateComputGraph(i, needBack: false))
-                {
-                    // Run forward part
-                    nr = RunNetwork(computeGraph, srcTkns, hypTkns, i, false);
-                }
-
-                lock (locker)
-                {
-                    hypTkns = nr.Beam2Batch2Output[0];
-
-                    for (int j = 0; j < hypTkns.Count; j++)
+                    if (i >= sntPairBatchs.Count)
                     {
-                        foreach (IMetric metric in metrics)
-                        {
-                            if (j < 0 || j >= refTkns.Count)
-                            {
-                                throw new InvalidDataException($"Ref token only has '{refTkns.Count}' batch, however, it try to access batch '{j}'. Hyp token has '{hypTkns.Count}' tokens, Batch Size = '{sntPairBatch.BatchSize}'");
-                            }
-
-                            if (j < 0 || j >= hypTkns.Count)
-                            {
-                                throw new InvalidDataException($"Hyp token only has '{hypTkns.Count}' batch, however, it try to access batch '{j}'. Ref token has '{refTkns.Count}' tokens, Batch Size = '{sntPairBatch.BatchSize}'");
-                            }
-
-                            metric.Evaluate(new List<List<string>>() { refTkns[j] }, hypTkns[j]);
-                        }
+                        return;
                     }
 
-                    if (outputToFile)
+                    SntPairBatch sntPairBatch = sntPairBatchs[i];
+
+                    // Construct sentences for encoding and decoding
+                    List<List<string>> srcTkns = new List<List<string>>();
+                    List<List<string>> refTkns = new List<List<string>>();
+                    List<List<string>> hypTkns = new List<List<string>>();
+                    for (int j = 0; j < sntPairBatch.BatchSize; j++)
                     {
-                        for (int j = 0; j < srcTkns.Count; j++)
+                        srcTkns.Add(sntPairBatch.SntPairs[j].SrcSnt.ToList());
+                        refTkns.Add(sntPairBatch.SntPairs[j].TgtSnt.ToList());
+                        hypTkns.Add(new List<string>() { ParallelCorpus.BOS });
+                    }
+
+                    // Create a new computing graph instance
+                    NetworkResult nr;
+                    using (IComputeGraph computeGraph = CreateComputGraph(i, needBack: false))
+                    {
+                        // Run forward part
+                        nr = RunNetwork(computeGraph, srcTkns, hypTkns, i, false);
+                    }
+
+                    lock (locker)
+                    {
+                        hypTkns = nr.Beam2Batch2Output[0];
+
+                        for (int j = 0; j < hypTkns.Count; j++)
                         {
-                            srcSents.Add(string.Join(" ", srcTkns[j]));
-                            refSents.Add(string.Join(" ", refTkns[j]));
-                            hypSents.Add(string.Join(" ", hypTkns[j]));
+                            foreach (IMetric metric in metrics)
+                            {
+                                if (j < 0 || j >= refTkns.Count)
+                                {
+                                    throw new InvalidDataException($"Ref token only has '{refTkns.Count}' batch, however, it try to access batch '{j}'. Hyp token has '{hypTkns.Count}' tokens, Batch Size = '{sntPairBatch.BatchSize}'");
+                                }
+
+                                if (j < 0 || j >= hypTkns.Count)
+                                {
+                                    throw new InvalidDataException($"Hyp token only has '{hypTkns.Count}' batch, however, it try to access batch '{j}'. Ref token has '{refTkns.Count}' tokens, Batch Size = '{sntPairBatch.BatchSize}'");
+                                }
+
+                                metric.Evaluate(new List<List<string>>() { refTkns[j] }, hypTkns[j]);
+                            }
+                        }
+
+                        if (outputToFile)
+                        {
+                            for (int j = 0; j < srcTkns.Count; j++)
+                            {
+                                srcSents.Add(string.Join(" ", srcTkns[j]));
+                                refSents.Add(string.Join(" ", refTkns[j]));
+                                hypSents.Add(string.Join(" ", hypTkns[j]));
+                            }
                         }
                     }
                 }
+                catch (Exception err)
+                {
+                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: '{err.Message}'");
+                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Call stack: '{err.StackTrace}'");
 
-
+                    throw err;
+                }
             });
         }
 

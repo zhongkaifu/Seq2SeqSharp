@@ -91,9 +91,9 @@ namespace Seq2SeqSharp.Tools
 
         public int BatchSize => m_batchSize;
 
-        public const string EOS = "<END>";
-        public const string BOS = "<START>";
-        public const string UNK = "<UNK>";
+        public const string EOS = "</s>";
+        public const string BOS = "<s>";
+        public const string UNK = "<unk>";
 
         private bool m_showTokenDist = true;
         private ShuffleEnums m_shuffleEnums;
