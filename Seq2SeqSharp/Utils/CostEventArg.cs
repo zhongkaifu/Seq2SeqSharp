@@ -4,7 +4,6 @@ namespace Seq2SeqSharp
 {
     public class CostEventArg : EventArgs
     {
-        public float CostPerWord { get; set; }
         public double AvgCostInTotal { get; set; }
 
         public int Epoch { get; set; }

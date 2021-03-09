@@ -267,14 +267,14 @@ namespace Seq2SeqSharp.Tools
                             break;
                         }
 
-                        line = line.ToLower().Trim();
+                        line = line.Trim();
                         if (m_addBOSEOS)
                         {
                             line = $"{BOS} {line} {EOS}";
                         }
                         sntPair.SrcSnt = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
-                        line = srTgt.ReadLine().ToLower().Trim();
+                        line = srTgt.ReadLine().Trim();
                         if (m_addBOSEOS)
                         {
                             line = $"{BOS} {line} {EOS}";

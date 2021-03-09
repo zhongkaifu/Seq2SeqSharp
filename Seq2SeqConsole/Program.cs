@@ -18,24 +18,20 @@ namespace Seq2SeqConsole
         {
             CostEventArg ep = e as CostEventArg;
 
-            if (float.IsInfinity(ep.CostPerWord) == false)
+            TimeSpan ts = DateTime.Now - ep.StartDateTime;
+            double sentPerMin = 0;
+            double wordPerSec = 0;
+            if (ts.TotalMinutes > 0)
             {
-                TimeSpan ts = DateTime.Now - ep.StartDateTime;
-                double sentPerMin = 0;
-                double wordPerSec = 0;
-                if (ts.TotalMinutes > 0)
-                {
-                    sentPerMin = ep.ProcessedSentencesInTotal / ts.TotalMinutes;
-                }
-
-                if (ts.TotalSeconds > 0)
-                {
-                    wordPerSec = ep.ProcessedWordsInTotal / ts.TotalSeconds;
-                }
-
-                Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate.ToString("F6")}, Cost = {ep.CostPerWord.ToString("F4")}, AvgCost = {ep.AvgCostInTotal.ToString("F4")}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin.ToString("F")}, WordPerSec = {wordPerSec.ToString("F")}");
+                sentPerMin = ep.ProcessedSentencesInTotal / ts.TotalMinutes;
             }
 
+            if (ts.TotalSeconds > 0)
+            {
+                wordPerSec = ep.ProcessedWordsInTotal / ts.TotalSeconds;
+            }
+
+            Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate.ToString("F6")}, AvgCost = {ep.AvgCostInTotal.ToString("F4")}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin.ToString("F")}, WordPerSec = {wordPerSec.ToString("F")}");
         }
 
         public static string GetTimeStamp(DateTime timeStamp)
@@ -114,20 +110,28 @@ namespace Seq2SeqConsole
                         Vocab vocab = null;
                         if (!string.IsNullOrEmpty(opts.SrcVocab) && !string.IsNullOrEmpty(opts.TgtVocab))
                         {
+                            Logger.WriteLine($"Loading source vocabulary from '{opts.SrcVocab}' and target vocabulary from '{opts.TgtVocab}'. Shared vocabulary is '{opts.SharedEmbeddings}'");
+                            if (opts.SharedEmbeddings == true && (opts.SrcVocab != opts.TgtVocab))
+                            {
+                                throw new ArgumentException("The source and target vocabularies must be identical if their embeddings are shared.");
+                            }
+
                             // Vocabulary files are specified, so we load them
                             vocab = new Vocab(opts.SrcVocab, opts.TgtVocab);
                         }
                         else
                         {
+                            Logger.WriteLine($"Building vocabulary from training corpus. Shared vocabulary is '{opts.SharedEmbeddings}'");
                             // We don't specify vocabulary, so we build it from train corpus
-                            vocab = new Vocab(trainCorpus);
+                            vocab = new Vocab(trainCorpus, sharedVocab: opts.SharedEmbeddings);
                         }
 
                         //New training
                         ss = new AttentionSeq2Seq(srcEmbeddingDim: opts.SrcEmbeddingDim, tgtEmbeddingDim: opts.TgtEmbeddingDim, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth,
                             srcEmbeddingFilePath: opts.SrcEmbeddingModelFilePath, tgtEmbeddingFilePath: opts.TgtEmbeddingModelFilePath, vocab: vocab, modelFilePath: opts.ModelFilePath,
                             dropoutRatio: opts.DropoutRatio, processorType: processorType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType, decoderType: decoderType,
-                            maxSrcSntSize: opts.MaxSrcSentLength, maxTgtSntSize: opts.MaxTgtSentLength, enableCoverageModel: opts.EnableCoverageModel, memoryUsageRatio: opts.MemoryUsageRatio, shuffleType: shuffleType, compilerOptions: cudaCompilerOptions);
+                            maxSrcSntSize: opts.MaxSrcSentLength, maxTgtSntSize: opts.MaxTgtSentLength, enableCoverageModel: opts.EnableCoverageModel, memoryUsageRatio: opts.MemoryUsageRatio, 
+                            shuffleType: shuffleType, compilerOptions: cudaCompilerOptions, sharedEmbeddings: opts.SharedEmbeddings);
                     }
 
                     // Add event handler for monitoring
@@ -170,7 +174,7 @@ namespace Seq2SeqConsole
                     string[] data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
                     foreach (string line in data_sents_raw1)
                     {
-                        var outputBeamTokensBatch = ss.Test(ParallelCorpus.ConstructInputTokens(line.ToLower().Trim().Split(' ').ToList()));
+                        var outputBeamTokensBatch = ss.Test(ParallelCorpus.ConstructInputTokens(line.Trim().Split(' ').ToList()));
                         foreach (var outputTokensBatch in outputBeamTokensBatch)
                         {
                             outputLines.AddRange(outputTokensBatch.Select(x => String.Join(" ", x)));

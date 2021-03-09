@@ -17,24 +17,20 @@ namespace SeqLabelConsole
         {
             CostEventArg ep = e as CostEventArg;
 
-            if (float.IsInfinity(ep.CostPerWord) == false)
+            TimeSpan ts = DateTime.Now - ep.StartDateTime;
+            double sentPerMin = 0;
+            double wordPerSec = 0;
+            if (ts.TotalMinutes > 0)
             {
-                TimeSpan ts = DateTime.Now - ep.StartDateTime;
-                double sentPerMin = 0;
-                double wordPerSec = 0;
-                if (ts.TotalMinutes > 0)
-                {
-                    sentPerMin = ep.ProcessedSentencesInTotal / ts.TotalMinutes;
-                }
-
-                if (ts.TotalSeconds > 0)
-                {
-                    wordPerSec = ep.ProcessedWordsInTotal / ts.TotalSeconds;
-                }
-
-                Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate.ToString("F6")}, Cost = {ep.CostPerWord.ToString("F4")}, AvgCost = {ep.AvgCostInTotal.ToString("F4")}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin.ToString("F")}, WordPerSec = {wordPerSec.ToString("F")}");
+                sentPerMin = ep.ProcessedSentencesInTotal / ts.TotalMinutes;
             }
 
+            if (ts.TotalSeconds > 0)
+            {
+                wordPerSec = ep.ProcessedWordsInTotal / ts.TotalSeconds;
+            }
+
+            Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate.ToString("F6")}, AvgCost = {ep.AvgCostInTotal.ToString("F4")}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin.ToString("F")}, WordPerSec = {wordPerSec.ToString("F")}");
         }
 
         public static string GetTimeStamp(DateTime timeStamp)
@@ -159,7 +155,7 @@ namespace SeqLabelConsole
                 string[] data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
                 foreach (string line in data_sents_raw1)
                 {
-                    List<List<string>> outputTokensBatch = sl.Test(ParallelCorpus.ConstructInputTokens(line.ToLower().Trim().Split(' ').ToList(), false));
+                    List<List<string>> outputTokensBatch = sl.Test(ParallelCorpus.ConstructInputTokens(line.Trim().Split(' ').ToList(), false));
                     outputLines.AddRange(outputTokensBatch.Select(x => string.Join(" ", x)));
                 }
 

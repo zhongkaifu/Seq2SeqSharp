@@ -15,7 +15,7 @@ namespace Seq2SeqSharp.Utils
 
             inputEmbs = g.Mul(inputEmbs, (float)Math.Sqrt(inputEmbs.Columns));
 
-            using (var posEmbeddingPeek = g.PeekRow(posEmbedding, 0, seqLen, false))
+            using (var posEmbeddingPeek = g.Peek(posEmbedding, 0, 0, seqLen, false))
             {
                 using (var posEmbeddingPeekView = g.View(posEmbeddingPeek, runGradient: false, dims: new long[] { 1, seqLen, Column }))
                 {

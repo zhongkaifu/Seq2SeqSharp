@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using TensorSharp;
 
 namespace Seq2SeqSharp
 {
@@ -37,8 +38,10 @@ namespace Seq2SeqSharp
         // Trainable parameters including networks and tensors
         private MultiProcessorNetworkWrapper<IWeightTensor> m_srcEmbedding; //The embeddings over devices for target
         private MultiProcessorNetworkWrapper<IWeightTensor> m_tgtEmbedding; //The embeddings over devices for source
-        private MultiProcessorNetworkWrapper<IEncoder> m_encoder; //The encoders over devices. It can be LSTM, BiLSTM or Transformer
-        private MultiProcessorNetworkWrapper<IDecoder> m_decoder; //The LSTM decoders over devices        
+        private MultiProcessorNetworkWrapper<IWeightTensor> m_sharedEmbedding; //The embeddings over devices for both source and target
+
+        private MultiProcessorNetworkWrapper<IEncoder> m_encoder; //The encoders over devices.
+        private MultiProcessorNetworkWrapper<IDecoder> m_decoder; //The LSTM decoders over devices
 
         private MultiProcessorNetworkWrapper<IWeightTensor> m_posEmbedding;
 
@@ -77,10 +80,10 @@ namespace Seq2SeqSharp
         public AttentionSeq2Seq(int srcEmbeddingDim, int tgtEmbeddingDim, int hiddenDim, int encoderLayerDepth, int decoderLayerDepth, Vocab vocab, string srcEmbeddingFilePath, string tgtEmbeddingFilePath,
             string modelFilePath, float dropoutRatio, int multiHeadNum, ProcessorTypeEnums processorType, EncoderTypeEnums encoderType, DecoderTypeEnums decoderType, bool enableCoverageModel, int[] deviceIds,
             bool isSrcEmbTrainable = true, bool isTgtEmbTrainable = true, bool isEncoderTrainable = true, bool isDecoderTrainable = true, 
-            int maxSrcSntSize = 128, int maxTgtSntSize = 128, float memoryUsageRatio = 0.9f, ShuffleEnums shuffleType = ShuffleEnums.Random, string[] compilerOptions = null)
+            int maxSrcSntSize = 128, int maxTgtSntSize = 128, float memoryUsageRatio = 0.9f, ShuffleEnums shuffleType = ShuffleEnums.Random, string[] compilerOptions = null, bool sharedEmbeddings = false)
             : base(deviceIds, processorType, modelFilePath, memoryUsageRatio, compilerOptions)
         {
-            m_modelMetaData = new Seq2SeqModelMetaData(hiddenDim, srcEmbeddingDim, tgtEmbeddingDim, encoderLayerDepth, decoderLayerDepth, multiHeadNum, encoderType, decoderType, vocab, enableCoverageModel);
+            m_modelMetaData = new Seq2SeqModelMetaData(hiddenDim, srcEmbeddingDim, tgtEmbeddingDim, encoderLayerDepth, decoderLayerDepth, multiHeadNum, encoderType, decoderType, vocab, enableCoverageModel, sharedEmbeddings);
             m_dropoutRatio = dropoutRatio;
 
             m_isSrcEmbTrainable = isSrcEmbTrainable;
@@ -144,7 +147,7 @@ namespace Seq2SeqSharp
             else
             {
                 m_decoder = new MultiProcessorNetworkWrapper<IDecoder>(
-                    new TransformerDecoder("TransformerDecoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.TgtEmbeddingDim, modelMetaData.Vocab.TargetWordSize, modelMetaData.EncoderLayerDepth, m_dropoutRatio, raDeviceIds.GetNextItem(),
+                    new TransformerDecoder("TransformerDecoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.TgtEmbeddingDim, modelMetaData.Vocab.TargetWordSize, modelMetaData.DecoderLayerDepth, m_dropoutRatio, raDeviceIds.GetNextItem(),
                     isTrainable: m_isDecoderTrainable), DeviceIds);
             }
 
@@ -157,11 +160,24 @@ namespace Seq2SeqSharp
                 m_posEmbedding = null;
             }
 
-            Logger.WriteLine($"Creating embeddings for source side. Shape = '({modelMetaData.Vocab.SourceWordSize} ,{modelMetaData.SrcEmbeddingDim})'");
-            m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.SourceWordSize, modelMetaData.SrcEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SrcEmbeddings", isTrainable: m_isSrcEmbTrainable), DeviceIds);
+            if (modelMetaData.SharedEmbeddings)
+            {
+                Logger.WriteLine($"Creating shared embeddings for both source side and target side. Shape = '({modelMetaData.Vocab.SourceWordSize} ,{modelMetaData.SrcEmbeddingDim})'");
+                m_sharedEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.SourceWordSize, modelMetaData.SrcEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SharedEmbeddings", isTrainable: m_isSrcEmbTrainable), DeviceIds);
 
-            Logger.WriteLine($"Creating embeddings for target side. Shape = '({modelMetaData.Vocab.TargetWordSize} ,{modelMetaData.TgtEmbeddingDim})'");
-            m_tgtEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.TargetWordSize, modelMetaData.TgtEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "TgtEmbeddings", isTrainable: m_isTgtEmbTrainable), DeviceIds);
+                m_srcEmbedding = null;
+                m_tgtEmbedding = null;
+            }
+            else
+            {
+                Logger.WriteLine($"Creating embeddings for source side. Shape = '({modelMetaData.Vocab.SourceWordSize} ,{modelMetaData.SrcEmbeddingDim})'");
+                m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.SourceWordSize, modelMetaData.SrcEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SrcEmbeddings", isTrainable: m_isSrcEmbTrainable), DeviceIds);
+
+                Logger.WriteLine($"Creating embeddings for target side. Shape = '({modelMetaData.Vocab.TargetWordSize} ,{modelMetaData.TgtEmbeddingDim})'");
+                m_tgtEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.TargetWordSize, modelMetaData.TgtEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "TgtEmbeddings", isTrainable: m_isTgtEmbTrainable), DeviceIds);
+
+                m_sharedEmbedding = null;
+            }
 
             return true;
         }
@@ -224,8 +240,11 @@ namespace Seq2SeqSharp
         /// <returns></returns>
         private (IEncoder, IDecoder, IWeightTensor, IWeightTensor, IWeightTensor) GetNetworksOnDeviceAt(int deviceIdIdx)
         {
-            return (m_encoder.GetNetworkOnDevice(deviceIdIdx), m_decoder.GetNetworkOnDevice(deviceIdIdx), m_srcEmbedding.GetNetworkOnDevice(deviceIdIdx),
-                m_tgtEmbedding.GetNetworkOnDevice(deviceIdIdx), m_posEmbedding == null ? null : m_posEmbedding.GetNetworkOnDevice(deviceIdIdx));
+            return (m_encoder.GetNetworkOnDevice(deviceIdIdx), 
+                    m_decoder.GetNetworkOnDevice(deviceIdIdx), 
+                    m_modelMetaData.SharedEmbeddings ? m_sharedEmbedding.GetNetworkOnDevice(deviceIdIdx) : m_srcEmbedding.GetNetworkOnDevice(deviceIdIdx),
+                    m_modelMetaData.SharedEmbeddings ? m_sharedEmbedding.GetNetworkOnDevice(deviceIdIdx) : m_tgtEmbedding.GetNetworkOnDevice(deviceIdIdx), 
+                    m_posEmbedding == null ? null : m_posEmbedding.GetNetworkOnDevice(deviceIdIdx));
         }
 
         /// <summary>
@@ -246,20 +265,13 @@ namespace Seq2SeqSharp
             encoder.Reset(computeGraph.GetWeightFactory(), srcSnts.Count);
             decoder.Reset(computeGraph.GetWeightFactory(), srcSnts.Count);
 
-
             List<int> originalSrcLengths = ParallelCorpus.PadSentences(srcSnts);
             int srcSeqPaddedLen = srcSnts[0].Count;
-            int batchSize = srcSnts.Count;
-            IWeightTensor srcSelfMask = m_shuffleType == ShuffleEnums.NoPaddingInSrc ? null : MaskUtils.BuildPadSelfMask(computeGraph, srcSeqPaddedLen, originalSrcLengths, DeviceIds[deviceIdIdx]); // The length of source sentences are same in a single mini-batch, so we don't have source mask.
+            IWeightTensor srcSelfMask = m_shuffleType == ShuffleEnums.NoPaddingInSrc ? null : computeGraph.BuildPadSelfMask(srcSeqPaddedLen, originalSrcLengths); // The length of source sentences are same in a single mini-batch, so we don't have source mask.
 
             // Encoding input source sentences
             var srcTokensList = m_modelMetaData.Vocab.GetSourceWordIndex(srcSnts);
             IWeightTensor encOutput = Encode(computeGraph, srcTokensList, encoder, srcEmbedding, srcSelfMask, posEmbedding, originalSrcLengths);
-
-            if (srcSelfMask != null)
-            {
-                srcSelfMask.Dispose();
-            }
 
             // Generate output decoder sentences
             var tgtTokensList = m_modelMetaData.Vocab.GetTargetWordIndex(tgtSnts);
@@ -274,7 +286,7 @@ namespace Seq2SeqSharp
             {
                 if (isTraining)
                 {
-                    (var c, var tmp) = DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, tgtEmbedding, posEmbedding, batchSize, DeviceIds[deviceIdIdx], originalSrcLengths, isTraining);
+                    (var c, var tmp) = DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, tgtEmbedding, posEmbedding, DeviceIds[deviceIdIdx], originalSrcLengths, isTraining);
                     nr.Cost = c;
                     nr.Beam2Batch2Output = null;
                 }
@@ -282,7 +294,7 @@ namespace Seq2SeqSharp
                 {
                     List<List<List<int>>> beam2batch2tgtTokens = new List<List<List<int>>>(); // (beam_search_size, batch_size, tgt_token_size)
                     beam2batch2tgtTokens.Add(tgtTokensList);
-
+                    int batchSize = srcSnts.Count;
                     for (int i = 0; i < m_maxTgtSntSize; i++)
                     {
                         List<List<BeamSearchStatus>> batch2beam2seq = new List<List<BeamSearchStatus>>(); //(batch_size, beam_search_size)
@@ -295,7 +307,7 @@ namespace Seq2SeqSharp
                         {
                             using (var g = computeGraph.CreateSubGraph($"TransformerDecoder_Step_{i}"))
                             {
-                                (var cost2, var bssSeqList) = DecodeTransformer(batch2tgtTokens, g, encOutput, decoder as TransformerDecoder, tgtEmbedding, posEmbedding, batchSize, DeviceIds[deviceIdIdx], originalSrcLengths, isTraining, beamSearchSize: m_beamSearchSize);
+                                (var cost2, var bssSeqList) = DecodeTransformer(batch2tgtTokens, g, encOutput, decoder as TransformerDecoder, tgtEmbedding, posEmbedding, DeviceIds[deviceIdIdx], originalSrcLengths, isTraining, beamSearchSize: m_beamSearchSize);
 
                                 for (int j = 0; j < m_beamSearchSize; j++)
                                 {
@@ -355,141 +367,144 @@ namespace Seq2SeqSharp
         /// Encode source sentences and output encoded weights
         /// </summary>
         /// <param name="g"></param>
-        /// <param name="srcSeqs"></param>
+        /// <param name="seqs"></param>
         /// <param name="encoder"></param>
         /// <param name="reversEncoder"></param>
-        /// <param name="Embedding"></param>
+        /// <param name="embeddings"></param>
         /// <returns></returns>
-        private IWeightTensor Encode(IComputeGraph g, List<List<int>> srcSeqs, IEncoder encoder, IWeightTensor Embedding, IWeightTensor srcSelfMask, IWeightTensor posEmbedding, List<int> originalSrcLengths)
+        private IWeightTensor Encode(IComputeGraph g, List<List<int>> seqs, IEncoder encoder, IWeightTensor embeddings, IWeightTensor selfMask, IWeightTensor posEmbeddings, List<int> seqOriginalLengths)
         {
-            int seqLen = srcSeqs[0].Count;
-            int batchSize = srcSeqs.Count;
+         //   int seqLen = srcSeqs[0].Count;
+            int batchSize = seqs.Count;
 
-            List<IWeightTensor> inputs = new List<IWeightTensor>();
+            //List<IWeightTensor> inputs = new List<IWeightTensor>();
 
-            // Generate batch-first based input embeddings
-            for (int j = 0; j < batchSize; j++)
-            {
-                int originalLength = originalSrcLengths[j];
-                for (int i = 0; i < seqLen; i++)
-                {
-                    var emb = g.PeekRow(Embedding, srcSeqs[j][i], runGradients: i < originalLength ? true : false);
+            //// Generate batch-first based input embeddings
+            //for (int j = 0; j < batchSize; j++)
+            //{
+            //    int originalLength = originalSrcLengths[j];
+            //    for (int i = 0; i < seqLen; i++)
+            //    {
+            //        var emb = g.PeekRow(Embedding, srcSeqs[j][i], runGradients: i < originalLength ? true : false);
 
-                    inputs.Add(emb);
-                }
-            }
+            //        inputs.Add(emb);
+            //    }
+            //}
 
-            var inputEmbs = g.ConcatRows(inputs);
+            //var inputEmbs = g.ConcatRows(inputs);
+
+
+            var inputEmbs = ExtractTokensEmbeddings(seqs, g, embeddings, seqOriginalLengths);
+
 
             if (m_modelMetaData.EncoderType == EncoderTypeEnums.Transformer)
             {
-                inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbedding, batchSize, inputEmbs, m_dropoutRatio);
+                inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbeddings, batchSize, inputEmbs, m_dropoutRatio);
             }
 
-            return encoder.Encode(inputEmbs, batchSize, g, srcSelfMask);
+            return encoder.Encode(inputEmbs, batchSize, g, selfMask);
         }
 
 
 
         private (float, List<List<BeamSearchStatus>>) DecodeTransformer(List<List<int>> tgtSeqs, IComputeGraph g, IWeightTensor encOutputs, TransformerDecoder decoder,
-            IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, int batchSize, int deviceId, List<int> srcOriginalLenghts, bool isTraining = true, int beamSearchSize = 1)
+            IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, int deviceId, List<int> srcOriginalLenghts, bool isTraining = true, int beamSearchSize = 1)
         {
             int eosTokenId = m_modelMetaData.Vocab.GetTargetWordIndex(ParallelCorpus.EOS, logUnk: true);
             float cost = 0.0f;
 
+            int batchSize = tgtSeqs.Count;
             var tgtOriginalLengths = ParallelCorpus.PadSentences(tgtSeqs, eosTokenId);
             int tgtSeqLen = tgtSeqs[0].Count;
             int srcSeqLen = encOutputs.Rows / batchSize;
 
-            using (IWeightTensor srcTgtMask = MaskUtils.BuildSrcTgtMask(g, srcSeqLen, tgtSeqLen, tgtOriginalLengths, srcOriginalLenghts, deviceId))
+            IWeightTensor srcTgtMask = g.BuildSrcTgtMask(srcSeqLen, tgtSeqLen, tgtOriginalLengths, srcOriginalLenghts);
+            IWeightTensor tgtSelfTriMask = g.BuildPadSelfTriMask(tgtSeqLen, tgtOriginalLengths);
+
+            IWeightTensor inputEmbs = ExtractTokensEmbeddings(tgtSeqs, g, tgtEmbedding, tgtOriginalLengths);
+            inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbedding, batchSize, inputEmbs, m_dropoutRatio);
+
+            IWeightTensor decOutput = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g);
+            IWeightTensor probs = g.Softmax(decOutput, runGradients: false, inPlace: true);
+
+            if (isTraining)
             {
-                using (IWeightTensor tgtSelfTriMask = MaskUtils.BuildPadSelfTriMask(g, tgtSeqLen, tgtOriginalLengths, deviceId))
+                var leftShiftTgtSeqs = ParallelCorpus.LeftShiftSnts(tgtSeqs, eosTokenId);
+                var scatterIdxTensor = g.BuildTensorFrom2DArray(leftShiftTgtSeqs, new long[] { leftShiftTgtSeqs.Count * leftShiftTgtSeqs[0].Count, 1 });
+                var gatherTensor = g.Gather(probs, scatterIdxTensor, 1);
+
+                var rnd = new TensorSharp.RandomGenerator();
+                int idx = rnd.NextSeed() % (batchSize * tgtSeqLen);
+                float score = gatherTensor.GetWeightAt(new long[] { idx, 0 });
+                cost += (float)-Math.Log(score);
+
+                var lossTensor = g.Add(gatherTensor, -1.0f, false);
+                TensorUtils.Scatter(probs, lossTensor, scatterIdxTensor, 1);
+
+                decOutput.CopyWeightsToGradients(probs);
+
+                return (cost, null);
+            }
+            else
+            {
+                // Transformer decoder with beam search at inference time
+                List<List<BeamSearchStatus>> bssSeqList = new List<List<BeamSearchStatus>>();
+                while (beamSearchSize > 0)
                 {
-                    List<IWeightTensor> inputs = new List<IWeightTensor>();
+                    // Output "i"th target word
+                    int[] targetIdx = g.Argmax(probs, 1);
+
+                    List<BeamSearchStatus> outputTgtSeqs = new List<BeamSearchStatus>();
                     for (int i = 0; i < batchSize; i++)
                     {
+                        BeamSearchStatus bss = new BeamSearchStatus();
+                        bss.OutputIds.AddRange(tgtSeqs[i]);
+                        bss.OutputIds.Add(targetIdx[i * tgtSeqLen + tgtSeqLen - 1]);
+
                         for (int j = 0; j < tgtSeqLen; j++)
                         {
-                            var emb = g.PeekRow(tgtEmbedding, tgtSeqs[i][j], runGradients: j < tgtOriginalLengths[i] ? true : false);
-                            inputs.Add(emb);
+                            var score = probs.GetWeightAt(new long[] { i * tgtSeqLen + j, targetIdx[i * tgtSeqLen + j] });
+                            bss.Score += (float)(-Math.Log(score));
                         }
+
+                        outputTgtSeqs.Add(bss);
                     }
-                    IWeightTensor inputEmbs = inputs.Count > 1 ? g.ConcatRows(inputs) : inputs[0];
 
-                    inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbedding, batchSize, inputEmbs, m_dropoutRatio);
-                    IWeightTensor decOutput = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g);
+                    bssSeqList.Add(outputTgtSeqs);
 
-                    using (IWeightTensor probs = g.Softmax(decOutput, runGradients: false, inPlace: true))
+                    beamSearchSize--;
+
+                    if (beamSearchSize > 0)
                     {
-                        if (isTraining)
+                        for (int i = 0; i < batchSize; i++)
                         {
-                            var leftShiftTgtSeqs = ParallelCorpus.LeftShiftSnts(tgtSeqs, eosTokenId);
-                            for (int i = 0; i < batchSize; i++)
+                            for (int j = 0; j < tgtSeqLen; j++)
                             {
-                                for (int j = 0; j < tgtSeqLen; j++)
-                                {
-                                    float score_i_j = probs.GetWeightAt(new long[] { i * tgtSeqLen + j, leftShiftTgtSeqs[i][j] });
-
-                                    if (j < tgtOriginalLengths[i])
-                                    {
-                                        cost += (float)-Math.Log(score_i_j);
-                                    }
-                                    probs.SetWeightAt(score_i_j - 1, new long[] { i * tgtSeqLen + j, leftShiftTgtSeqs[i][j] });
-                                }
+                                probs.SetWeightAt(0.0f, new long[] { i * tgtSeqLen + j, targetIdx[i * tgtSeqLen + j] });
                             }
-
-                            decOutput.CopyWeightsToGradients(probs);
-
-                            return (cost, null);
                         }
-                        else
-                        {
-                            List<List<BeamSearchStatus>> bssSeqList = new List<List<BeamSearchStatus>>();
-                            while (beamSearchSize > 0)
-                            {
-                                // Output "i"th target word
-                                int[] targetIdx = g.Argmax(probs, 1);
-
-                                List<BeamSearchStatus> outputTgtSeqs = new List<BeamSearchStatus>();
-                                for (int i = 0; i < batchSize; i++)
-                                {
-                                    BeamSearchStatus bss = new BeamSearchStatus();
-                                    bss.OutputIds.AddRange(tgtSeqs[i]);
-                                    bss.OutputIds.Add(targetIdx[i * tgtSeqLen + tgtSeqLen - 1]);
-
-                                    for (int j = 0; j < tgtSeqLen; j++)
-                                    {
-                                    //    bss.OutputIds.Add(targetIdx[i * tgtSeqLen + j]);
-                                        var score = probs.GetWeightAt(new long[] { i * tgtSeqLen + j, targetIdx[i * tgtSeqLen + j] });
-                                        bss.Score += (float)(-Math.Log(score));
-                                    }
-
-                                    outputTgtSeqs.Add(bss);
-                                }
-
-                                bssSeqList.Add(outputTgtSeqs);
-
-                                beamSearchSize--;
-
-                                if (beamSearchSize > 0)
-                                {
-                                    for (int i = 0; i < batchSize; i++)
-                                    {
-                                        for (int j = 0; j < tgtSeqLen; j++)
-                                        {
-                                            probs.SetWeightAt(0.0f, new long[] { i * tgtSeqLen + j, targetIdx[i * tgtSeqLen + j] });
-                                        }
-                                    }
-                                }
-                            }
-
-
-                            return (0.0f, bssSeqList);
-                        }
-
                     }
                 }
+                return (0.0f, bssSeqList);
             }
+        }
+
+        private static IWeightTensor ExtractTokensEmbeddings(List<List<int>> seqs, IComputeGraph g, IWeightTensor embeddingsTensor, List<int> seqOriginalLengths)
+        {
+            int batchSize = seqs.Count;
+            int seqLen = seqs[0].Count;
+
+            List<IWeightTensor> inputs = new List<IWeightTensor>();
+            for (int i = 0; i < batchSize; i++)
+            {
+                for (int j = 0; j < seqLen; j++)
+                {
+                    var emb = g.Peek(embeddingsTensor, 0, seqs[i][j], runGradients: j < seqOriginalLengths[i] ? true : false);
+                    inputs.Add(emb);
+                }
+            }
+            IWeightTensor inputEmbs = inputs.Count > 1 ? g.ConcatRows(inputs) : inputs[0];
+            return inputEmbs;
         }
 
 
@@ -527,7 +542,7 @@ namespace Seq2SeqSharp
                 List<IWeightTensor> inputs = new List<IWeightTensor>();
                 for (int j = 0; j < batchSize; j++)
                 {
-                    inputs.Add(g.PeekRow(tgtEmbedding, ix_inputs[j]));
+                    inputs.Add(g.Peek(tgtEmbedding, 0, ix_inputs[j]));
                 }
                 IWeightTensor inputsM = g.ConcatRows(inputs);
 

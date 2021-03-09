@@ -77,7 +77,7 @@ namespace Seq2SeqSharp
             List<IWeightTensor> inputs = new List<IWeightTensor>();
             for (int i = 0; i < seqLen; i++)
             {
-                IWeightTensor emb_i = g.PeekRow(rawInputs, i * batchSize, batchSize);
+                IWeightTensor emb_i = g.Peek(rawInputs, 0, i * batchSize, batchSize);
                 inputs.Add(emb_i);
             }
 

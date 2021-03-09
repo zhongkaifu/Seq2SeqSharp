@@ -150,6 +150,7 @@ namespace Seq2SeqSharp.Tools
             long srcWordCntsInTotal = 0;
             long tgtWordCntsInTotal = 0;
             double avgCostPerWordInTotal = 0.0;
+            int updatesInOneEpoch = 0;
 
             Logger.WriteLine($"Start to process training corpus.");
             List<SntPairBatch> sntPairBatchs = new List<SntPairBatch>();
@@ -180,18 +181,18 @@ namespace Seq2SeqSharp.Tools
                             //Optmize parameters
                             float lr = learningRate.GetCurrentLearningRate();
                             List<IWeightTensor> models = GetParametersFromDefaultDevice();
-                            solver.UpdateWeights(models, processedLine, lr, m_regc, m_weightsUpdateCount + 1);
 
+                            m_weightsUpdateCount++;
+                            solver.UpdateWeights(models, processedLine, lr, m_regc, m_weightsUpdateCount);
 
                             costInTotal += cost;
-                            avgCostPerWordInTotal = costInTotal / tgtWordCntsInTotal;
-                            m_weightsUpdateCount++;
+                            updatesInOneEpoch++;
+                            avgCostPerWordInTotal = costInTotal / updatesInOneEpoch;
                             if (IterationDone != null && m_weightsUpdateCount % 100 == 0)
                             {
                                 IterationDone(this, new CostEventArg()
                                 {
                                     LearningRate = lr,
-                                    CostPerWord = cost / tWordCnt,
                                     AvgCostInTotal = avgCostPerWordInTotal,
                                     Epoch = ep,
                                     Update = m_weightsUpdateCount,

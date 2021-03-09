@@ -201,7 +201,7 @@ namespace Seq2SeqSharp
                 {
                     int ix_source = m_modelMetaData.Vocab.GetSourceWordIndex(srcSnts[j][i], logUnk: true);
 
-                    var emb = g.PeekRow(Embedding, ix_source, runGradients: i < originalLength ? true : false);
+                    var emb = g.Peek(Embedding, 0, ix_source, runGradients: i < originalLength ? true : false);
 
                     inputs.Add(emb);
                 }

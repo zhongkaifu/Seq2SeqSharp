@@ -98,13 +98,15 @@ namespace Seq2SeqSharp
                 {
                     using (var keyMaskView = subg.View(tgtSelfMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenQ }))
                     {
-                        using (var keyMaskViewExp = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ }))
-                        {
-                            using (var keyMaskViewExpConti = subg.AsContiguous(keyMaskViewExp, runGradient: false))
-                            {
-                                selfMaskTensor = subg.View(keyMaskViewExpConti, runGradient: false, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenQ });
-                            }
-                        }
+                        selfMaskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ });
+
+                        //using (var keyMaskViewExp = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ }))
+                        //{
+                        //    using (var keyMaskViewExpConti = subg.AsContiguous(keyMaskViewExp, runGradient: false))
+                        //    {
+                        //        selfMaskTensor = subg.View(keyMaskViewExpConti, runGradient: false, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenQ });
+                        //    }
+                        //}
                     }
                 }
 
@@ -113,13 +115,14 @@ namespace Seq2SeqSharp
                 {
                     using (var keyMaskView = subg.View(srcTgtMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenK }))
                     {
-                        using (var keyMaskViewExp = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK }))
-                        {
-                            using (var keyMaskViewExpConti = subg.AsContiguous(keyMaskViewExp, runGradient: false))
-                            {
-                                crossMaskTensor = subg.View(keyMaskViewExpConti, runGradient: false, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenK });
-                            }
-                        }
+                        crossMaskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK });
+                        //using (var keyMaskViewExp = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK }))
+                        //{
+                        //    using (var keyMaskViewExpConti = subg.AsContiguous(keyMaskViewExp, runGradient: false))
+                        //    {
+                        //        crossMaskTensor = subg.View(keyMaskViewExpConti, runGradient: false, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenK });
+                        //    }
+                        //}
                     }
                 }
 

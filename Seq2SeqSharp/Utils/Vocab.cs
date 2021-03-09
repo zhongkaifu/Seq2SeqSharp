@@ -127,7 +127,7 @@ namespace Seq2SeqSharp
         /// </summary>
         /// <param name="trainCorpus"></param>
         /// <param name="minFreq"></param>
-        public Vocab(IEnumerable<SntPairBatch> trainCorpus, int minFreq = 1)
+        public Vocab(IEnumerable<SntPairBatch> trainCorpus, int minFreq = 1, bool sharedVocab = false)
         {
             Logger.WriteLine($"Building vocabulary from given training corpus.");
             // count up all words
@@ -146,6 +146,12 @@ namespace Seq2SeqSharp
                         string txti = item[i];
                         if (s_d.Keys.Contains(txti)) { s_d[txti] += 1; }
                         else { s_d.Add(txti, 1); }
+
+                        if (sharedVocab)
+                        {
+                            if (t_d.Keys.Contains(txti)) { t_d[txti] += 1; }
+                            else { t_d.Add(txti, 1); }
+                        }
                     }
 
                     string[] item2 = sntPair.TgtSnt;
@@ -154,6 +160,12 @@ namespace Seq2SeqSharp
                         string txti = item2[i];
                         if (t_d.Keys.Contains(txti)) { t_d[txti] += 1; }
                         else { t_d.Add(txti, 1); }
+
+                        if (sharedVocab)
+                        {
+                            if (s_d.Keys.Contains(txti)) { s_d[txti] += 1; }
+                            else { s_d.Add(txti, 1); }
+                        }
                     }
                 }
             }

@@ -37,6 +37,9 @@ namespace Seq2SeqConsole
         [Arg("The vocabulary file path for target side.", "TgtVocab")]
         public string TgtVocab = null;
 
+        [Arg("Sharing embeddings between source side and target side", "SharedEmbeddings")]
+        public bool SharedEmbeddings = false;
+
         [Arg("The external embedding model file path for source side.", "SrcEmbedding")]
         public string SrcEmbeddingModelFilePath = null;
 

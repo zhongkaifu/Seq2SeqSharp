@@ -241,7 +241,7 @@ namespace TensorSharp
         public static Tensor ScatterFill(Tensor result, float value, int dim, Tensor indices) { return (Tensor)OpRegistry.Invoke("scatter_fill", result, value, dim, indices); }
 
 
-        private static int? GetSeed(RandomGenerator src)
+        public static int? GetSeed(RandomGenerator src)
         {
             return src == null ? (int?)null : src.NextSeed();
         }

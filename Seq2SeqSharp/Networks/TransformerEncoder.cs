@@ -80,13 +80,15 @@ namespace Seq2SeqSharp
 
                     using (var keyMaskView = subg.View(srcSelfMask, runGradient: false, dims: new long[] { batchSize, 1, seqLen, seqLen }))
                     {
-                        using (var keyMaskViewExp = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLen, seqLen }))
-                        {
-                            using (var keyMaskViewExpConti = subg.AsContiguous(keyMaskViewExp, runGradient: false))
-                            {
-                                maskTensor = subg.View(keyMaskViewExpConti, runGradient: false, dims: new long[] { batchSize * m_multiHeadNum, seqLen, seqLen });
-                            }
-                        }
+                        maskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLen, seqLen });
+
+                        //using (var keyMaskViewExp = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLen, seqLen }))
+                        //{
+                        //    using (var keyMaskViewExpConti = subg.AsContiguous(keyMaskViewExp, runGradient: false))
+                        //    {
+                        //        maskTensor = subg.View(keyMaskViewExpConti, runGradient: false, dims: new long[] { batchSize * m_multiHeadNum, seqLen, seqLen });
+                        //    }
+                        //}
                     }
                 }
 

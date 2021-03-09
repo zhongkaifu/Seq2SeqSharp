@@ -12,6 +12,7 @@ namespace Seq2SeqSharp
         IWeightTensor Mul(IWeightTensor w1, IWeightTensor w2, float alpha = 1.0f);
         IWeightTensor EltMul(IWeightTensor w1, IWeightTensor w2);
         IWeightTensor Add(IWeightTensor w1, IWeightTensor w2, bool runGradient1 = true, bool runGradient2 = true);
+        IWeightTensor Add(IWeightTensor w1, float v, bool runGradient = true);
         IWeightTensor Tanh(IWeightTensor w);
         IWeightTensor Sigmoid(IWeightTensor w);
         IWeightTensor Relu(IWeightTensor w, bool inPlace = false);
@@ -23,7 +24,7 @@ namespace Seq2SeqSharp
         IWeightTensor Expand(IWeightTensor w, bool runGradient = true, params long[] dims);
         IWeightTensor AddTanh(IWeightTensor w1, IWeightTensor w2);
         IWeightTensor AddTanh(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3);
-        IWeightTensor PeekRow(IWeightTensor w, int ix, int num = 1, bool runGradients = true);
+        IWeightTensor Peek(IWeightTensor w, int dim, int ix, int num = 1, bool runGradients = true);
         IWeightTensor Dropout(IWeightTensor V, int batchSize, float drop_prob, bool inPlace = false);
         IWeightTensor Softmax(IWeightTensor w, bool runGradients = true, bool inPlace = false);
         IWeightTensor ConcatColumns(params IWeightTensor[] wl);
@@ -44,5 +45,17 @@ namespace Seq2SeqSharp
 
         void Bind(IWeightTensor w);
         void Unbind(IWeightTensor w);
+
+
+        IWeightTensor Gather(IWeightTensor src, IWeightTensor indices, int dim);
+        IWeightTensor Scatter(IWeightTensor source, IWeightTensor indices, int dim, bool runGradient = true, params long[] shape);
+        IWeightTensor Sub(float v, IWeightTensor w1, bool runGradient = true);
+
+        IWeightTensor BuildSrcTgtMask(int srcPaddedLength, int tgtPaddedLength, List<int> tgtOriginalLengths, List<int> srcOriginalLengths);
+        IWeightTensor BuildPadSelfTriMask(int paddedLength, List<int> originalLengths);
+
+        IWeightTensor BuildPadSelfMask(int paddedLength, List<int> originalLengths);
+
+        IWeightTensor BuildTensorFrom2DArray(List<List<int>> array, params long[] shape);
     }
 }

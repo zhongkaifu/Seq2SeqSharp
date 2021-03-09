@@ -92,28 +92,16 @@ namespace Seq2SeqSharp
 
                 // Scaled softmax
                 scale = 1.0f / (float)(Math.Sqrt(m_d));
-                IWeightTensor attn = g.MulBatch(Qs, Ks, batchSize * m_multiHeadNum, scale);
+                var attn = g.MulBatch(Qs, Ks, batchSize * m_multiHeadNum, scale);
+                attn = g.View(attn, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK });
 
                 if (keyMask != null)
                 {
-                    //using (var keyMaskView = g.View(keyMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenK }))
-                    //{
-                    //    using (var keyMaskViewExp = g.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK }))
-                    //    {
-                    //        using (var keyMaskViewExpConti = g.AsContiguous(keyMaskViewExp, runGradient: false))
-                    //        {
-                    //            using (var keyMaskViewExpContiView = g.View(keyMaskViewExpConti, runGradient: false, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenK }))
-                    //            {
-                    //                attn = g.Add(attn, keyMaskViewExpContiView, runGradient1: true, runGradient2: false);
-                    //            }
-                    //        }
-                    //    }
-                    //}
-
                     attn = g.Add(attn, keyMask, runGradient1: true, runGradient2: false);
                 }
 
-                IWeightTensor softmax = g.Softmax(attn, inPlace: true);
+                var softmax = g.Softmax(attn, inPlace: true);
+                softmax = g.View(softmax, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenK });
 
                 IWeightTensor o = g.View(g.MulBatch(softmax, Vs, batchSize * m_multiHeadNum), dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, m_d });
                 IWeightTensor W = g.View(g.AsContiguous(g.Transpose(o, 1, 2)), dims: new long[] { batchSize * seqLenQ, m_multiHeadNum * m_d });

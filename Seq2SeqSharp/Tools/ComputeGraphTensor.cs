@@ -378,6 +378,76 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+
+
+        public IWeightTensor Add(IWeightTensor w1, float v, bool runGradient = true)
+        {
+            WeightTensor m1 = w1 as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name)}.AddTV", graphToBind: this);
+
+            VisualizeNodes(new IWeightTensor[] { w1}, res);
+
+
+            Ops.Add(res.TWeight, m1.TWeight, v);
+
+            if (m_needsBackprop)
+            {
+                Action backward = () =>
+                {
+                    res.ReleaseWeight();
+
+                    if (runGradient)
+                    {
+                        if (res.TGradient.IsOwnerExclusive() && m1.IsGradientNull())
+                        {
+                            m1.TGradient = res.TGradient.CopyRef();
+                        }
+                        else
+                        {
+                            m1.CopyOrAddGradient(res);
+                        }
+                    }
+
+                    res.Dispose();
+                };
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
+
+
+        public IWeightTensor Sub(float v, IWeightTensor w1, bool runGradient = true)
+        {
+            WeightTensor m1 = w1 as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name)}.SubVT", graphToBind: this);
+
+            VisualizeNodes(new IWeightTensor[] { w1 }, res);
+
+            Ops.Sub(res.TWeight, v, m1.TWeight);         
+
+            if (m_needsBackprop)
+            {
+                Action backward = () =>
+                {
+                    res.ReleaseWeight();
+
+                    if (runGradient)
+                    {
+                        Ops.AddMulV(m1.TGradient, m1.TGradient, res.TGradient, -1.0f);
+                    }
+
+                    res.Dispose();
+                };
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
+
+
         public IWeightTensor Tanh(IWeightTensor w)
         {
             WeightTensor m = w as WeightTensor;
@@ -711,12 +781,16 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightTensor PeekRow(IWeightTensor w, int ix, int num = 1, bool runGradients = true)
+        public IWeightTensor Peek(IWeightTensor w, int dim, int ix, int num = 1, bool runGradients = true)
         {
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(num, m.Columns, m_deviceId, name: $"{GetHashString(w.Name)}.PeekRow", graphToBind: this);
-            res.TWeight = m.TWeight.Narrow(0, ix, num);
-            res.TGradient = runGradients ? m.TGradient.Narrow(0, ix, num) : null;
+
+            long[] sizes = (long[])m.Sizes.Clone();
+            sizes[dim] = num;
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Peek", graphToBind: this);
+            res.TWeight = m.TWeight.Narrow(dim, ix, num);
+            res.TGradient = runGradients ? m.TGradient.Narrow(dim, ix, num) : null;
 
             VisualizeNodes(w, res);
 
@@ -1158,6 +1232,39 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+        public IWeightTensor Scatter(IWeightTensor source, IWeightTensor indices, int dim, bool runGradient = true, params long[] shape)
+        {
+            WeightTensor s = source as WeightTensor;
+            WeightTensor i = indices as WeightTensor;
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(shape, m_deviceId, name: $"{GetHashString(s.Name + i.Name)}.Scatter", graphToBind: this);
+
+            Ops.Fill(res.TWeight, 0.0f);
+            Ops.Scatter(res.TWeight, s.TWeight, dim, i.TWeight);
+
+            if (m_needsBackprop)
+            {
+                Action backward = () =>
+                {
+                    if (runGradient)
+                    {
+                        res.ReleaseWeight();
+                        using (var tmp = Ops.Gather(null, res.TGradient, dim, i.TWeight))
+                        {
+                            s.CopyOrAddGradient(tmp);
+                        }
+                    }
+                    res.Dispose();
+                };
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
+
+
+
 
         public IWeightTensor Expand(IWeightTensor w, bool runGradient = true, params long[] dims)
         {
@@ -1336,6 +1443,169 @@ namespace Seq2SeqSharp.Tools
 
             return res;
         }
+
+
+        public IWeightTensor Gather(IWeightTensor src, IWeightTensor indices, int dim)
+        {
+            WeightTensor i = indices as WeightTensor;
+            WeightTensor s = src as WeightTensor;
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(indices.Sizes, m_deviceId, name: $"Gather_{m_deviceId}", graphToBind: this);
+            Ops.Gather(res.TWeight, s.TWeight, dim, i.TWeight);
+
+            if (m_needsBackprop)
+            {
+                Action backward = () =>
+                {
+                    res.Dispose();
+                };
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
+
+
+        public IWeightTensor BuildTensorFrom2DArray(List<List<int>> array, params long[] shape)
+        {
+            float[] buf = new float[array.Count * array[0].Count];
+            Array.Fill(buf, 0.0f);
+
+
+            for (int i = 0; i < array.Count; i++)
+            {
+                for (int j = 0; j < array[0].Count; j++)
+                {
+                    buf[i * array[0].Count + j] = array[i][j];
+                }
+            }
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(shape, m_deviceId, name: $"BuildTensorFrom2DArray_{m_deviceId}", graphToBind: this);
+            res.SetWeightArray(buf);
+
+            if (m_needsBackprop)
+            {
+                Action backward = () =>
+                {
+                    res.Dispose();
+                };
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
+
+        public IWeightTensor BuildPadSelfMask(int paddedLength, List<int> originalLengths)
+        {
+            float[] buf = new float[originalLengths.Count * paddedLength * paddedLength];
+            Array.Fill(buf, -99999999.0f);
+
+            for (int k = 0; k < originalLengths.Count; k++)
+            {
+                for (int i = 0; i < originalLengths[k]; i++)
+                {
+                    for (int j = 0; j < originalLengths[k]; j++)
+                    {
+                        buf[k * (paddedLength * paddedLength) + i * paddedLength + j] = 0.0f;
+                    }
+                }
+            }
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { originalLengths.Count, paddedLength, paddedLength }, m_deviceId, name: $"SelfMask_{m_deviceId}", graphToBind: this);
+            res.SetWeightArray(buf);
+
+            if (m_needsBackprop)
+            {
+                Action backward = () =>
+                {
+                    res.Dispose();
+                };
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
+
+        public IWeightTensor BuildPadSelfTriMask(int paddedLength, List<int> originalLengths)
+        {
+            float[] buf = new float[originalLengths.Count * paddedLength * paddedLength];
+            Array.Fill(buf, -99999999.0f);
+
+
+            for (int k = 0; k < originalLengths.Count; k++)
+            {
+                int offset_k = k * (paddedLength * paddedLength);
+                for (int i = 0; i < originalLengths[k]; i++)
+                {
+                    int offset_k_i = offset_k + i * paddedLength;
+                    for (int j = 0; j < originalLengths[k]; j++)
+                    {
+                        if (i >= j)
+                        {
+                            buf[offset_k_i + j] = 0.0f;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { originalLengths.Count, paddedLength, paddedLength }, m_deviceId, name: $"SelfTriMask_{m_deviceId}", graphToBind: this);
+            res.SetWeightArray(buf);
+
+            if (m_needsBackprop)
+            {
+                Action backward = () =>
+                {
+                    res.Dispose();
+                };
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
+
+
+        public IWeightTensor BuildSrcTgtMask(int srcPaddedLength, int tgtPaddedLength, List<int> tgtOriginalLengths, List<int> srcOriginalLengths)
+        {
+            float[] buf = new float[tgtOriginalLengths.Count * tgtPaddedLength * srcPaddedLength];
+            Array.Fill(buf, -99999999.0f);
+
+            for (int k = 0; k < tgtOriginalLengths.Count; k++) // batch size
+            {
+                int offset_k = k * (tgtPaddedLength * srcPaddedLength);
+                for (int i = 0; i < tgtOriginalLengths[k]; i++)
+                {
+                    int offset_k_i = offset_k + i * srcPaddedLength;
+                    for (int j = 0; j < srcOriginalLengths[k]; j++)
+                    {
+                        buf[offset_k_i + j] = 0.0f;
+                    }
+                }
+            }
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { tgtOriginalLengths.Count, tgtPaddedLength, srcPaddedLength }, m_deviceId, name: $"SrcTgtMask_{m_deviceId}", graphToBind: this);
+            res.SetWeightArray(buf);
+
+            if (m_needsBackprop)
+            {
+                Action backward = () =>
+                {
+                    res.Dispose();
+                };
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
+
 
         public void Dispose()
         {
