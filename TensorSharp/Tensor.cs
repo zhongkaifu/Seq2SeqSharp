@@ -174,7 +174,7 @@ namespace TensorSharp
         {
             if (indices.Length != DimensionCount)
             {
-                throw new ArgumentException("Number of indices must equal number of tensor dimensions");
+                throw new ArgumentException($"Number of indices must equal number of tensor dimensions. Tensor dim = '{DimensionCount}' and input indices length is '{indices.Length}'");
             }
 
             for (int i = 0; i < indices.Length; ++i)

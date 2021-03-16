@@ -131,7 +131,7 @@ namespace Seq2SeqConsole
                             srcEmbeddingFilePath: opts.SrcEmbeddingModelFilePath, tgtEmbeddingFilePath: opts.TgtEmbeddingModelFilePath, vocab: vocab, modelFilePath: opts.ModelFilePath,
                             dropoutRatio: opts.DropoutRatio, processorType: processorType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType, decoderType: decoderType,
                             maxSrcSntSize: opts.MaxSrcSentLength, maxTgtSntSize: opts.MaxTgtSentLength, enableCoverageModel: opts.EnableCoverageModel, memoryUsageRatio: opts.MemoryUsageRatio, 
-                            shuffleType: shuffleType, compilerOptions: cudaCompilerOptions, sharedEmbeddings: opts.SharedEmbeddings);
+                            shuffleType: shuffleType, compilerOptions: cudaCompilerOptions, sharedEmbeddings: opts.SharedEmbeddings, beamSearchSize: opts.BeamSearchSize);
                     }
 
                     // Add event handler for monitoring

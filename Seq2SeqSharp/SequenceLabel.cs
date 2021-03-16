@@ -160,7 +160,7 @@ namespace Seq2SeqSharp
                 else
                 {
                     // Output "i"th target word
-                    int[] targetIdx = g.Argmax(probs, 1);
+                    float[] targetIdx = g.Argmax(probs, 1).ToWeightArray();
                     List<string> targetWords = m_modelMetaData.Vocab.ConvertTargetIdsToString(targetIdx.ToList());
 
                     for (int k = 0; k < batchSize; k++)

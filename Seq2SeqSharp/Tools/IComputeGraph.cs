@@ -41,7 +41,7 @@ namespace Seq2SeqSharp
         void VisualizeNeuralNetToFile(string neuralNetPicFilePath);
         IWeightFactory GetWeightFactory();
 
-        int[] Argmax(IWeightTensor w, int dim);
+        IWeightTensor Argmax(IWeightTensor w, int dim);
 
         void Bind(IWeightTensor w);
         void Unbind(IWeightTensor w);
@@ -57,5 +57,8 @@ namespace Seq2SeqSharp
         IWeightTensor BuildPadSelfMask(int paddedLength, List<int> originalLengths);
 
         IWeightTensor BuildTensorFrom2DArray(List<List<int>> array, params long[] shape);
+
+        IWeightTensor Sum(IWeightTensor w, int dim, bool runGradient = true);
+        IWeightTensor Log(IWeightTensor w);
     }
 }

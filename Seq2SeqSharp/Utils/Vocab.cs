@@ -229,7 +229,7 @@ namespace Seq2SeqSharp
         }
 
 
-        public List<string> ConvertTargetIdsToString(List<int> idxs)
+        public List<string> ConvertTargetIdsToString(List<float> idxs)
         {
             lock (locker)
             {

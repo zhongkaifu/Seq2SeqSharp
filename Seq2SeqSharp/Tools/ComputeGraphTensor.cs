@@ -378,7 +378,52 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+        public IWeightTensor Sum(IWeightTensor w, int dim, bool runGradient = true)
+        {
+            WeightTensor m = w as WeightTensor;
+            var resultWeights = Ops.Sum(null, m.TWeight, dim);
 
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(resultWeights.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Sum", graphToBind: this);
+            res.TWeight = resultWeights;
+
+            if (m_needsBackprop)
+            {
+                Action backward = () =>
+                {
+                    res.ReleaseWeight();
+
+                    if (runGradient)
+                    {
+                        using (var tmp = res.TGradient.Expand(m.Sizes))
+                        {
+                            m.CopyOrAddGradient(tmp);
+                        }
+                    }
+                    res.Dispose();
+                };
+                m_backprop.Add(backward);
+            }
+
+            return res;
+
+        }
+
+        public IWeightTensor Log(IWeightTensor w)
+        {
+            WeightTensor m = w as WeightTensor;
+            var resultWeights = Ops.Log(null, m.TWeight);
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(resultWeights.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Log", graphToBind: this);
+            res.TWeight = resultWeights;
+
+            if (m_needsBackprop)
+            {
+                throw new NotSupportedException($"MinV operation doesn't support back propagation.");
+            }
+
+            return res;
+
+        }
 
         public IWeightTensor Add(IWeightTensor w1, float v, bool runGradient = true)
         {
@@ -723,23 +768,20 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public int[] Argmax(IWeightTensor w, int dim)
+        public IWeightTensor Argmax(IWeightTensor w, int dim)
         {
-            int[] idx = null;
             WeightTensor m = w as WeightTensor;
-            using (Tensor argMaxT = Ops.Argmax(null, m.TWeight, dim))
-            {
-                float[] res = new float[argMaxT.ElementCount()];
-                argMaxT.CopyToArray(res);
+            Tensor argMaxT = Ops.Argmax(null, m.TWeight, dim);
 
-                idx = new int[res.Length];
-                for (int i = 0; i < res.Length; i++)
-                {
-                    idx[i] = (int)res[i];
-                }
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(argMaxT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Argmax", graphToBind: this);
+            res.TWeight = argMaxT;
+
+            if (m_needsBackprop)
+            {
+                throw new NotSupportedException($"Argmax operation doesn't support back propagation.");
             }
 
-            return idx;
+            return res;
         }
 
 

@@ -59,7 +59,7 @@ namespace Seq2SeqSharp
         /// <param name="batchSize">Batch size of input data set</param>
         /// <param name="graph">The instance of computing graph</param>
         /// <returns>Transformered output tensor</returns>
-        public IWeightTensor Perform(IWeightTensor inputQ, IWeightTensor inputK, IWeightTensor inputV, IWeightTensor keyMask, int batchSize, IComputeGraph graph)
+        public (IWeightTensor, IWeightTensor) Perform(IWeightTensor inputQ, IWeightTensor inputK, IWeightTensor inputV, IWeightTensor keyMask, int batchSize, IComputeGraph graph, bool outputAttenWeights = false)
         {
             using (IComputeGraph g = graph.CreateSubGraph($"{m_name}_MultiHeadAttention"))
             {
@@ -100,16 +100,27 @@ namespace Seq2SeqSharp
                     attn = g.Add(attn, keyMask, runGradient1: true, runGradient2: false);
                 }
 
-                var softmax = g.Softmax(attn, inPlace: true);
-                softmax = g.View(softmax, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenK });
+                var attnProbs = g.Softmax(attn, inPlace: true);
 
-                IWeightTensor o = g.View(g.MulBatch(softmax, Vs, batchSize * m_multiHeadNum), dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, m_d });
+                IWeightTensor sumAttnWeights = null;
+                if (outputAttenWeights)
+                {
+                    //Merge all attention probs over multi-heads
+                    sumAttnWeights = graph.Sum(attnProbs, 1, runGradient: false);
+                    sumAttnWeights = graph.View(sumAttnWeights, false, new long[] { batchSize, seqLenQ, seqLenK });
+                }
+
+                attnProbs = g.View(attnProbs, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenK });
+
+                IWeightTensor o = g.View(g.MulBatch(attnProbs, Vs, batchSize * m_multiHeadNum), dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, m_d });
                 IWeightTensor W = g.View(g.AsContiguous(g.Transpose(o, 1, 2)), dims: new long[] { batchSize * seqLenQ, m_multiHeadNum * m_d });
 
                 // Output projection
                 IWeightTensor finalAttResults = g.Dropout(g.Affine(W, W0, b0), batchSize, m_dropoutRatio, inPlace: true);
+                IWeightTensor result = graph.Add(finalAttResults, inputQ);
 
-                return graph.Add(finalAttResults, inputQ);
+                
+                return (result, sumAttnWeights);
             }
         }
 

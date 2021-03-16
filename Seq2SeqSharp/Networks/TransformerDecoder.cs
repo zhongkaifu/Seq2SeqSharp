@@ -84,8 +84,9 @@ namespace Seq2SeqSharp
         /// <returns></returns>
         /// 
 
-        public IWeightTensor Decode(IWeightTensor tgtInputs, IWeightTensor encOutputBatchFirst, IWeightTensor tgtSelfMask, IWeightTensor srcTgtMask, int batchSize, IComputeGraph g)
+        public (IWeightTensor, IWeightTensor) Decode(IWeightTensor tgtInputs, IWeightTensor encOutputBatchFirst, IWeightTensor tgtSelfMask, IWeightTensor srcTgtMask, int batchSize, IComputeGraph g, bool outputAttnWeights = false)
         {
+            IWeightTensor attnProbs = null;
             using (IComputeGraph subg = g.CreateSubGraph($"{m_name}_Decoder"))
             {
                 int seqLenQ = tgtInputs.Rows / batchSize;
@@ -96,64 +97,38 @@ namespace Seq2SeqSharp
                 IWeightTensor selfMaskTensor = null;
                 if (tgtSelfMask != null)
                 {
-                    using (var keyMaskView = subg.View(tgtSelfMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenQ }))
-                    {
-                        selfMaskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ });
+                    var keyMaskView = subg.View(tgtSelfMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenQ });
+                    selfMaskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ });
 
-                        //using (var keyMaskViewExp = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ }))
-                        //{
-                        //    using (var keyMaskViewExpConti = subg.AsContiguous(keyMaskViewExp, runGradient: false))
-                        //    {
-                        //        selfMaskTensor = subg.View(keyMaskViewExpConti, runGradient: false, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenQ });
-                        //    }
-                        //}
-                    }
                 }
 
                 IWeightTensor crossMaskTensor = null;
                 if (srcTgtMask != null)
                 {
-                    using (var keyMaskView = subg.View(srcTgtMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenK }))
-                    {
-                        crossMaskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK });
-                        //using (var keyMaskViewExp = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK }))
-                        //{
-                        //    using (var keyMaskViewExpConti = subg.AsContiguous(keyMaskViewExp, runGradient: false))
-                        //    {
-                        //        crossMaskTensor = subg.View(keyMaskViewExpConti, runGradient: false, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenK });
-                        //    }
-                        //}
-                    }
+                    var keyMaskView = subg.View(srcTgtMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenK });
+                    crossMaskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK });
                 }
-
 
                 for (int k = 0; k < m_selfAttns.Count; k++)
                 {
-                    tgtInputs = m_selfAttns[k].Perform(tgtInputs, tgtInputs, tgtInputs, selfMaskTensor, batchSize, subg);
-                    tgtInputs = m_encAttns[k].Perform(tgtInputs, encOutputBatchFirst, encOutputBatchFirst, crossMaskTensor, batchSize, subg);
+                    (tgtInputs, attnProbs) = m_selfAttns[k].Perform(tgtInputs, tgtInputs, tgtInputs, selfMaskTensor, batchSize, subg, outputAttenWeights: false);
+                    (tgtInputs, attnProbs) = m_encAttns[k].Perform(tgtInputs, encOutputBatchFirst, encOutputBatchFirst, crossMaskTensor, batchSize, subg, outputAttenWeights: outputAttnWeights);
                     tgtInputs = m_posFFNs[k].Perform(tgtInputs, batchSize, subg);
                 }
 
-                if (selfMaskTensor != null)
-                {
-                    selfMaskTensor.Dispose();
-                    selfMaskTensor = null;
-                }
-
-                if (crossMaskTensor != null)
-                {
-                    crossMaskTensor.Dispose();
-                    crossMaskTensor = null;
-                }
                 tgtInputs = layerNorm.Norm(tgtInputs, subg);
 
                 tgtInputs.UnbindFromComputeGraph();
+                if (attnProbs != null)
+                {
+                    attnProbs.UnbindFromComputeGraph();
+                }
             }
             
 
             tgtInputs = m_decoderFFLayer.Process(tgtInputs, batchSize, g);
 
-            return tgtInputs;
+            return (tgtInputs, attnProbs);
         }
 
         public INeuralUnit CloneToDeviceAt(int deviceId)

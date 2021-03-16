@@ -12,79 +12,6 @@ namespace TensorSharp.CUDA.DeviceCode
     public class GatherScatterKernels : CudaCode
     {
         public static readonly string Code = @"
-
-// Compute the offsets into the given tensors for a linear index. For the 't2'
-// tensor, dimension 'dim' is skipped. The tensors are assumed to have the same
-// size (with the exception of 't2' in dimension 'dim').
-// This version uses a static number of dimensions.
-template <typename IndexType, int Dims>
-struct IndexToScatterGatherOffsets {
-  static __device__ void compute(
-      IndexType linearId, const int dim,
-      const TensorInfo<IndexType>& index, IndexType* indexOffset,
-      const TensorInfo<IndexType>& t1, IndexType* t1Offset,
-      const TensorInfo<IndexType>& t2, IndexType* t2Offset) {
-    for (int d = Dims - 1; d >= 0; d--) {
-      IndexType curDimIndex = linearId % index.sizes[d];
-      *indexOffset += curDimIndex * index.strides[d];
-      *t1Offset += curDimIndex * t1.strides[d];
-      if (d != dim) {
-        *t2Offset += curDimIndex * t2.strides[d];
-      }
-      linearId /= index.sizes[d];
-    }
-  }
-
-  static __device__ void compute(
-      IndexType linearId, const int dim,
-      const TensorInfo<IndexType>& index, IndexType* indexOffset,
-      const TensorInfo<IndexType>& t2, IndexType* t2Offset) {
-    for (int d = Dims - 1; d >= 0; d--) {
-      IndexType curDimIndex = linearId % index.sizes[d];
-      *indexOffset += curDimIndex * index.strides[d];
-      if (d != dim) {
-        *t2Offset += curDimIndex * t2.strides[d];
-      }
-      linearId /= index.sizes[d];
-    }
-  }
-};
-
-// Same as above but using a dynamic number of dimensions.
-template <typename IndexType>
-struct IndexToScatterGatherOffsets<IndexType, -1> {
-  static __device__ void compute(
-      IndexType linearId, const int dim,
-      const TensorInfo<IndexType>& index, IndexType* indexOffset,
-      const TensorInfo<IndexType>& t1, IndexType* t1Offset,
-      const TensorInfo<IndexType>& t2, IndexType* t2Offset) {
-    for (int d = index.dims - 1; d >= 0; d--) {
-      IndexType curDimIndex = linearId % index.sizes[d];
-      *indexOffset += curDimIndex * index.strides[d];
-      *t1Offset += curDimIndex * t1.strides[d];
-      if (d != dim) {
-        *t2Offset += curDimIndex * t2.strides[d];
-      }
-      linearId /= index.sizes[d];
-    }
-  }
-
-  static __device__ void compute(
-      IndexType linearId, const int dim,
-      const TensorInfo<IndexType>& index, IndexType* indexOffset,
-      const TensorInfo<IndexType>& t2, IndexType* t2Offset) {
-    for (int d = index.dims - 1; d >= 0; d--) {
-      IndexType curDimIndex = linearId % index.sizes[d];
-      *indexOffset += curDimIndex * index.strides[d];
-      if (d != dim) {
-        *t2Offset += curDimIndex * t2.strides[d];
-      }
-      linearId /= index.sizes[d];
-    }
-  }
-};
-
-
 extern ""C"" {\
 __global__ void gather_kernel(
     TensorInfo<unsigned __int64> tensor,
@@ -149,45 +76,36 @@ __global__ void scatter_kernel(
 }
 }
 
-template <typename IndexType, int Dims>
+extern ""C"" {\
 __global__ void scatterFill_kernel(
-    TensorInfo<IndexType> tensor,
-    TensorInfo<IndexType> index,
+    TensorInfo<unsigned __int64> tensor,
+    TensorInfo<unsigned __int64> index,
     float value,
     const int dim,
-    const IndexType totalElements) {
-  for (IndexType linearId = blockIdx.x * blockDim.x + threadIdx.x;
+    const unsigned __int64 totalElements) {
+  for (unsigned __int64 linearId = blockIdx.x * blockDim.x + threadIdx.x;
        linearId < totalElements;
        linearId += gridDim.x * blockDim.x) {
-    IndexType tensorOffset = 0;
-    IndexType indexOffset = 0;
+    unsigned __int64 tensorOffset = 0;
+    unsigned __int64 indexOffset = 0;
 
-    IndexToScatterGatherOffsets<IndexType, Dims>::compute(linearId, dim,
-                                                          index, &indexOffset,
-                                                          tensor, &tensorOffset);
+    for (int d = index.dims - 1; d >= 0; d--) {
+      unsigned __int64 curDimIndex = linearId % index.sizes[d];
+      indexOffset += curDimIndex * index.strides[d];
+      if (d != dim) {
+        tensorOffset += curDimIndex * tensor.strides[d];
+      }
+      linearId /= index.sizes[d];
+    }
 
-    IndexType indexValue = (IndexType)index.data[indexOffset];
+    unsigned __int64 indexValue = (unsigned __int64)index.data[indexOffset];
     tensorOffset += indexValue * tensor.strides[dim];
 
     tensor.data[tensorOffset] = value;
   }
 }
-
-#define DECLARE_SCATTERFILL(KERNEL_NAME, INDEX_TYPE, DIMS) \
-    extern ""C"" {\
-        __global__ void KERNEL_NAME(\
-                                          TensorInfo<INDEX_TYPE> tensor,\
-                                          TensorInfo<INDEX_TYPE> indices,\
-                                          float value,\
-                                          const int dim,\
-                                          INDEX_TYPE totalElements)\
-        {\
-            scatterFill_kernel<INDEX_TYPE, DIMS>(tensor, indices, value, dim, totalElements);\
-        }\
-    }
+} 
 ";
-
-        private const string ScatterFillBaseName = "scatterFill_";
 
         public GatherScatterKernels() : base(GetCode(), "General", "ReduceApplyUtils")
         {
@@ -198,15 +116,6 @@ __global__ void scatterFill_kernel(
         {
             StringBuilder sb = new StringBuilder(Code);
             return sb.ToString();
-        }
-
-        private static string MakeKernelName(string baseName, bool is32, int dims)
-        {
-            return string.Format("{0}{1}_{2}",
-                baseName,
-                is32 ? "__int32" : "__int64",
-                dims.ToString().Replace('-', 'M')
-                );
         }
 
         public Tensor Gather(Tensor result, Tensor src, int dim, Tensor indices)
@@ -327,20 +236,8 @@ __global__ void scatterFill_kernel(
             dim3 block = ApplyUtils.GetApplyBlock();
             dim3 grid = ApplyUtils.GetApplyGrid(context.DeviceInfoForContext(cudaContext), nElement);
 
-            //if (ApplyUtils.CanUse32BitIndexMath(writeTarget) &&
-            //    ApplyUtils.CanUse32BitIndexMath(indices))
-            //{
-            //    int dims = indices.DimensionCount <= 3 ? indices.DimensionCount : -1;
-            //    string kernelName = MakeKernelName(ScatterFillBaseName, true, dims);
-            //    Invoke(context, cudaContext, kernelName, grid, block, 0, CUstream.NullStream, true,
-            //        writeTarget, indices, value, dim, (int)nElement);
-            //}
-            //else
-            //{
-                string kernelName = MakeKernelName(ScatterFillBaseName, false, -1);
-                Invoke(context, cudaContext, kernelName, grid, block, 0, CUstream.NullStream, false,
-                   writeTarget, indices, value, dim, nElement);
-//            }
+            Invoke(context, cudaContext, "scatterFill_kernel", grid, block, 0, CUstream.NullStream, false,
+               writeTarget, indices, value, dim, nElement);
 
             return writeTarget;
         }

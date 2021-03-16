@@ -77,36 +77,24 @@ namespace Seq2SeqSharp
                 if (srcSelfMask != null)
                 {
                     int seqLen = inputs.Rows / batchSize;
-
-                    using (var keyMaskView = subg.View(srcSelfMask, runGradient: false, dims: new long[] { batchSize, 1, seqLen, seqLen }))
-                    {
-                        maskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLen, seqLen });
-
-                        //using (var keyMaskViewExp = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLen, seqLen }))
-                        //{
-                        //    using (var keyMaskViewExpConti = subg.AsContiguous(keyMaskViewExp, runGradient: false))
-                        //    {
-                        //        maskTensor = subg.View(keyMaskViewExpConti, runGradient: false, dims: new long[] { batchSize * m_multiHeadNum, seqLen, seqLen });
-                        //    }
-                        //}
-                    }
+                    var keyMaskView = subg.View(srcSelfMask, runGradient: false, dims: new long[] { batchSize, 1, seqLen, seqLen });
+                    maskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLen, seqLen });
                 }
 
+                IWeightTensor attnProbs = null;
                 for (int k = 0; k < m_encoders.Count; k++)
                 {
-                    inputs = m_encoders[k].Perform(inputs, inputs, inputs, maskTensor, batchSize, subg);
+                    (inputs, attnProbs) = m_encoders[k].Perform(inputs, inputs, inputs, maskTensor, batchSize, subg, outputAttenWeights: false);
                     inputs = m_posFFNs[k].Perform(inputs, batchSize, subg);
-                }
-
-                if (maskTensor != null)
-                {
-                    maskTensor.Dispose();
-                    maskTensor = null;
                 }
 
                 inputs = layerNorm.Norm(inputs, subg);
 
                 inputs.UnbindFromComputeGraph();
+                if (attnProbs != null)
+                {
+                    attnProbs.UnbindFromComputeGraph();
+                }
             }
 
             return inputs;
