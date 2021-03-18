@@ -416,8 +416,8 @@ namespace Seq2SeqSharp
 
             if (isTraining)
             {
-                var leftShiftTgtSeqs = ParallelCorpus.LeftShiftSnts(tgtSeqs, eosTokenId);
-                var scatterIdxTensor = g.BuildTensorFrom2DArray(leftShiftTgtSeqs, new long[] { leftShiftTgtSeqs.Count * leftShiftTgtSeqs[0].Count, 1 });
+                var leftShiftTgtSeqs = g.LeftShiftTokens(tgtSeqs, eosTokenId);
+                var scatterIdxTensor = g.View(leftShiftTgtSeqs, false, new long[] { tgtSeqs.Count * tgtSeqs[0].Count, 1 });
                 var gatherTensor = g.Gather(probs, scatterIdxTensor, 1);
 
                 var rnd = new TensorSharp.RandomGenerator();
@@ -483,8 +483,8 @@ namespace Seq2SeqSharp
                     inputs.Add(emb);
                 }
             }
-            IWeightTensor inputEmbs = inputs.Count > 1 ? g.ConcatRows(inputs) : inputs[0];
-            return inputEmbs;
+
+            return g.ConcatRows(inputs);        
         }
 
 

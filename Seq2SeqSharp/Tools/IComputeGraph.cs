@@ -11,7 +11,7 @@ namespace Seq2SeqSharp
         IWeightTensor MulBatch(IWeightTensor m1, IWeightTensor m2, int batchSize, float alpha = 1.0f);
         IWeightTensor Mul(IWeightTensor w1, IWeightTensor w2, float alpha = 1.0f);
         IWeightTensor EltMul(IWeightTensor w1, IWeightTensor w2);
-        IWeightTensor Add(IWeightTensor w1, IWeightTensor w2, bool runGradient1 = true, bool runGradient2 = true);
+        IWeightTensor Add(IWeightTensor w1, IWeightTensor w2, bool runGradient1 = true, bool runGradient2 = true, bool inPlace = false);
         IWeightTensor Add(IWeightTensor w1, float v, bool runGradient = true);
         IWeightTensor Tanh(IWeightTensor w);
         IWeightTensor Sigmoid(IWeightTensor w);
@@ -37,6 +37,7 @@ namespace Seq2SeqSharp
         IWeightTensor LayerNorm(IWeightTensor src, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-9f);
         IWeightTensor AddLayerNorm(IWeightTensor src1, IWeightTensor src2, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-09f);
 
+        IWeightTensor Select(IWeightTensor src, int dim, int index);
         void Backward();
         void VisualizeNeuralNetToFile(string neuralNetPicFilePath);
         IWeightFactory GetWeightFactory();
@@ -56,7 +57,7 @@ namespace Seq2SeqSharp
 
         IWeightTensor BuildPadSelfMask(int paddedLength, List<int> originalLengths);
 
-        IWeightTensor BuildTensorFrom2DArray(List<List<int>> array, params long[] shape);
+        IWeightTensor LeftShiftTokens(List<List<int>> input, int lastTokenToPad);
 
         IWeightTensor Sum(IWeightTensor w, int dim, bool runGradient = true);
         IWeightTensor Log(IWeightTensor w);

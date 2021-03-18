@@ -39,10 +39,10 @@ namespace Seq2SeqSharp
                 throw new ArgumentException($"hiddenDim is not equal to inputDim in TransformerEncoder.");
             }
 
-            m_encoders.Add(new MultiHeadAttention($"{name}.SelfAttn_0", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId, isTrainable: isTrainable));
+            m_encoders.Add(new MultiHeadAttention($"{name}.SelfAttn_0", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId, isTrainable: isTrainable, sharedQKV: true));
             for (int i = 1; i < depth; i++)
             {
-                m_encoders.Add(new MultiHeadAttention($"{name}.SelfAttn_{i}", multiHeadNum, hiddenDim, hiddenDim, m_dropoutRatio, deviceId, isTrainable: isTrainable));              
+                m_encoders.Add(new MultiHeadAttention($"{name}.SelfAttn_{i}", multiHeadNum, hiddenDim, hiddenDim, m_dropoutRatio, deviceId, isTrainable: isTrainable, sharedQKV: true));              
             }
 
             for (int i = 0; i < depth; i++)
@@ -84,7 +84,7 @@ namespace Seq2SeqSharp
                 IWeightTensor attnProbs = null;
                 for (int k = 0; k < m_encoders.Count; k++)
                 {
-                    (inputs, attnProbs) = m_encoders[k].Perform(inputs, inputs, inputs, maskTensor, batchSize, subg, outputAttenWeights: false);
+                    (inputs, attnProbs) = m_encoders[k].Perform(inputs, maskTensor, batchSize, subg, outputAttenWeights: false);
                     inputs = m_posFFNs[k].Perform(inputs, batchSize, subg);
                 }
 

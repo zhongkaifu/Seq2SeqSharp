@@ -38,7 +38,7 @@ namespace Seq2SeqSharp
                 IWeightTensor ffn2Result = feedForwardLayer2.Process(reluFFNResult, batchSize, g);
 
                 //Skip connection and layer normaliztion
-                IWeightTensor addFFNResult = graph.Add(ffn2Result, input);
+                IWeightTensor addFFNResult = graph.Add(ffn2Result, input, inPlace: true);
 
                 return addFFNResult;
             }

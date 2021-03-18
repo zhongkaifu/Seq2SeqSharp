@@ -22,7 +22,7 @@ namespace Seq2SeqSharp.Utils
                     using (var posEmbeddingPeekViewExp = g.Expand(posEmbeddingPeekView, runGradient: false, dims: new long[] { batchSize, seqLen, Column }))
                     {
                         inputEmbs = g.View(inputEmbs, dims: new long[] { batchSize, seqLen, Column });
-                        inputEmbs = g.Add(inputEmbs, posEmbeddingPeekViewExp, true, false);
+                        inputEmbs = g.Add(inputEmbs, posEmbeddingPeekViewExp, runGradient1: true, runGradient2: false, inPlace: true);
                         inputEmbs = g.View(inputEmbs, dims: new long[] { batchSize * seqLen, Column });
                     }
                 }

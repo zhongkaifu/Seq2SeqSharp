@@ -329,11 +329,20 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightTensor Add(IWeightTensor w1, IWeightTensor w2, bool runGradient1 = true, bool runGradient2 = true)
+        public IWeightTensor Add(IWeightTensor w1, IWeightTensor w2, bool runGradient1 = true, bool runGradient2 = true, bool inPlace = false)
         {
             WeightTensor m1 = w1 as WeightTensor;
             WeightTensor m2 = w2 as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.Add", graphToBind: this);
+            WeightTensor res = null;
+
+            if (inPlace)
+            {
+                res = m1.CopyWeightsRef($"{GetHashString(w1.Name)}.Add");
+            }
+            else
+            {
+                res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.Add", graphToBind: this);
+            }
 
             VisualizeNodes(new IWeightTensor[] { w1, w2 }, res);
 
@@ -418,7 +427,7 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                throw new NotSupportedException($"MinV operation doesn't support back propagation.");
+                throw new NotSupportedException($"Log operation doesn't support back propagation.");
             }
 
             return res;
@@ -1507,23 +1516,48 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-
-
-        public IWeightTensor BuildTensorFrom2DArray(List<List<int>> array, params long[] shape)
+        public IWeightTensor Select(IWeightTensor src, int dim, int index)
         {
-            float[] buf = new float[array.Count * array[0].Count];
-            Array.Fill(buf, 0.0f);
+            WeightTensor s = src as WeightTensor;
+            var resTWeight = s.TWeight.Select(dim, index);
 
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(resTWeight.Sizes, m_deviceId, name: $"Select_{m_deviceId}", graphToBind: this);
+            res.TWeight = resTWeight;
 
-            for (int i = 0; i < array.Count; i++)
+            if (m_needsBackprop)
             {
-                for (int j = 0; j < array[0].Count; j++)
+                Action backward = () =>
                 {
-                    buf[i * array[0].Count + j] = array[i][j];
-                }
+                    res.ReleaseWeight();
+
+                    using (var tmpG = s.TGradient.Select(dim, index))
+                    {
+                        Ops.Add(tmpG, tmpG, res.TGradient);
+                    }
+                    res.Dispose();
+                };
+                m_backprop.Add(backward);
             }
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(shape, m_deviceId, name: $"BuildTensorFrom2DArray_{m_deviceId}", graphToBind: this);
+
+            return res;
+        }
+
+        public IWeightTensor LeftShiftTokens(List<List<int>> input, int lastTokenToPad)
+        {
+            float[] buf = new float[input.Count * input[0].Count];
+
+            for (int i = 0; i < input.Count; i++)
+            {
+                for (int j = 0; j < input[i].Count - 1; j++)
+                {
+                    buf[i * input[i].Count + j] = input[i][j + 1];
+                }
+
+                buf[(i + 1) * input[i].Count - 1] = lastTokenToPad;
+            }
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(input.Count, input[0].Count, m_deviceId, name: $"LeftShiftTokens_{m_deviceId}", graphToBind: this);
             res.SetWeightArray(buf);
 
             if (m_needsBackprop)
@@ -1538,7 +1572,6 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-
         public IWeightTensor BuildPadSelfMask(int paddedLength, List<int> originalLengths)
         {
             float[] buf = new float[originalLengths.Count * paddedLength * paddedLength];
@@ -1548,10 +1581,13 @@ namespace Seq2SeqSharp.Tools
             {
                 for (int i = 0; i < originalLengths[k]; i++)
                 {
-                    for (int j = 0; j < originalLengths[k]; j++)
-                    {
-                        buf[k * (paddedLength * paddedLength) + i * paddedLength + j] = 0.0f;
-                    }
+                    //for (int j = 0; j < originalLengths[k]; j++)
+                    //{
+                    //    buf[k * (paddedLength * paddedLength) + i * paddedLength + j] = 0.0f;
+                    //}
+
+
+                    Array.Fill(buf, 0.0f, k * (paddedLength * paddedLength) + i * paddedLength, originalLengths[k]);
                 }
             }
 
@@ -1574,27 +1610,17 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor BuildPadSelfTriMask(int paddedLength, List<int> originalLengths)
         {
             float[] buf = new float[originalLengths.Count * paddedLength * paddedLength];
-            Array.Fill(buf, -99999999.0f);
-
-
             for (int k = 0; k < originalLengths.Count; k++)
             {
                 int offset_k = k * (paddedLength * paddedLength);
                 for (int i = 0; i < originalLengths[k]; i++)
                 {
                     int offset_k_i = offset_k + i * paddedLength;
-                    for (int j = 0; j < originalLengths[k]; j++)
-                    {
-                        if (i >= j)
-                        {
-                            buf[offset_k_i + j] = 0.0f;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
+                    Array.Fill(buf, 0.0f, offset_k_i, i + 1);
+                    Array.Fill(buf, -99999999.0f, offset_k_i + i + 1, paddedLength - (i + 1));
                 }
+
+                Array.Fill(buf, -99999999.0f, offset_k + originalLengths[k] * paddedLength, (paddedLength - originalLengths[k]) * paddedLength);
             }
 
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { originalLengths.Count, paddedLength, paddedLength }, m_deviceId, name: $"SelfTriMask_{m_deviceId}", graphToBind: this);
@@ -1617,7 +1643,6 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor BuildSrcTgtMask(int srcPaddedLength, int tgtPaddedLength, List<int> tgtOriginalLengths, List<int> srcOriginalLengths)
         {
             float[] buf = new float[tgtOriginalLengths.Count * tgtPaddedLength * srcPaddedLength];
-            Array.Fill(buf, -99999999.0f);
 
             for (int k = 0; k < tgtOriginalLengths.Count; k++) // batch size
             {
@@ -1625,11 +1650,11 @@ namespace Seq2SeqSharp.Tools
                 for (int i = 0; i < tgtOriginalLengths[k]; i++)
                 {
                     int offset_k_i = offset_k + i * srcPaddedLength;
-                    for (int j = 0; j < srcOriginalLengths[k]; j++)
-                    {
-                        buf[offset_k_i + j] = 0.0f;
-                    }
+                    Array.Fill(buf, 0.0f, offset_k_i, srcOriginalLengths[k]);
+                    Array.Fill(buf, -99999999.0f, offset_k_i + srcOriginalLengths[k], srcPaddedLength - srcOriginalLengths[k]);
                 }
+
+                Array.Fill(buf, -99999999.0f, offset_k + tgtOriginalLengths[k] * srcPaddedLength, (tgtPaddedLength - tgtOriginalLengths[k]) * srcPaddedLength);
             }
 
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { tgtOriginalLengths.Count, tgtPaddedLength, srcPaddedLength }, m_deviceId, name: $"SrcTgtMask_{m_deviceId}", graphToBind: this);
@@ -1663,16 +1688,6 @@ namespace Seq2SeqSharp.Tools
                 {
                     m_weightTensorFactory.Dispose();
                 }
-
-                //if (m_setEdges != null)
-                //{
-                //    m_setEdges.Clear();
-                //}
-
-                //if (m_name2SubGraph != null)
-                //{
-                //    m_name2SubGraph.Clear();
-                //}
             }
             else
             {

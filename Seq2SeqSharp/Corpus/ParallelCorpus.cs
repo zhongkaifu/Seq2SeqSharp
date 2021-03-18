@@ -539,23 +539,6 @@ namespace Seq2SeqSharp.Tools
             return r;
         }
 
-        public static List<List<int>> LeftShiftSnts(List<List<int>> input, int lastTokenToPad)
-        {
-            List<List<int>> r = new List<List<int>>();
-
-            foreach (var seq in input)
-            {
-                List<int> rseq = new List<int>();
-
-                rseq.AddRange(seq);
-                rseq.RemoveAt(0);
-                rseq.Add(lastTokenToPad);
-
-                r.Add(rseq);
-            }
-
-            return r;
-        }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
