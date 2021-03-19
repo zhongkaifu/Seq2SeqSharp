@@ -125,7 +125,7 @@ namespace Seq2SeqSharp
                 IWeightTensor attenSoftmax = g.View(attenSoftmax1, dims: new long[] { batchSize, 1, srcSeqLen });
                 IWeightTensor inputs2 = g.View(attnPre.encOutput, dims: new long[] { batchSize, srcSeqLen, attnPre.encOutput.Columns });
 
-                IWeightTensor contexts = graph.MulBatch(attenSoftmax, inputs2, batchSize);
+                IWeightTensor contexts = graph.MulBatch(attenSoftmax, inputs2);
 
                 contexts = graph.View(contexts, dims: new long[] { batchSize, attnPre.encOutput.Columns });
 

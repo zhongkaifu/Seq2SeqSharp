@@ -564,31 +564,26 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightTensor MulBatch(IWeightTensor m1, IWeightTensor m2, int batchSize, float alpha = 1.0f)
+        public IWeightTensor MulBatch(IWeightTensor m1, IWeightTensor m2, float alpha = 1.0f)
         {
             WeightTensor t1 = m1 as WeightTensor;
             WeightTensor t2 = m2 as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { batchSize, t1.TWeight.Sizes[1], t2.TWeight.Sizes[2] }, m_deviceId, name: $"{GetHashString(m1.Name, m2.Name)}.MulBatch", graphToBind: this);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { t1.TWeight.Sizes[0], t1.TWeight.Sizes[1], t2.TWeight.Sizes[2] }, m_deviceId, name: $"{GetHashString(m1.Name, m2.Name)}.MulBatch", graphToBind: this);
             VisualizeNodes(new IWeightTensor[] { m1, m2 }, res);
 
-            Tensor t1W = t1.TWeight;
-            Tensor t2W = t2.TWeight;
-
-            Ops.AddmmBatch(res.TWeight, 0.0f, res.TWeight, alpha, t1W, t2W);
-
-
+            Ops.AddmmBatch(res.TWeight, 0.0f, res.TWeight, alpha, t1.TWeight, t2.TWeight);
             if (m_needsBackprop)
             {
                 Action backward = () =>
                 {
                     res.ReleaseWeight();
 
-                    using (Tensor tW2 = t2W.Transpose(1, 2))
+                    using (Tensor tW2 = t2.TWeight.Transpose(1, 2))
                     {
                         Ops.AddmmBatch(t1.TGradient, 1.0f, t1.TGradient, alpha, res.TGradient, tW2);
                     }
 
-                    using (Tensor tW1 = t1W.Transpose(1, 2))
+                    using (Tensor tW1 = t1.TWeight.Transpose(1, 2))
                     {
                         Ops.AddmmBatch(t2.TGradient, 1.0f, t2.TGradient, alpha, tW1, res.TGradient);
                     }

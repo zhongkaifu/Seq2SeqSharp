@@ -80,8 +80,7 @@ namespace Seq2SeqSharp
                 IWeightTensor inputQNorm = layerNormQ.Norm(inputQ, g);
 
                 //Input projections
-                float scale = 1.0f;
-                var weightedQKV = g.View(g.Affine(inputQNorm, QKV, QKVb, scale), dims: new long[] {batchSize, seqLenQ, 3, m_multiHeadNum, m_d });
+                var weightedQKV = g.View(g.Affine(inputQNorm, QKV, QKVb), dims: new long[] {batchSize, seqLenQ, 3, m_multiHeadNum, m_d });
                 var allQ = g.Select(weightedQKV, 2, 0);
                 var allK = g.Select(weightedQKV, 2, 1);
                 var allV = g.Select(weightedQKV, 2, 2);
@@ -93,8 +92,8 @@ namespace Seq2SeqSharp
                 IWeightTensor Vs = g.View(g.AsContiguous(g.Transpose(allV, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, m_d });
 
                 // Scaled softmax
-                scale = 1.0f / (float)(Math.Sqrt(m_d));
-                var attn = g.MulBatch(Qs, Ks, batchSize * m_multiHeadNum, scale);
+                float scale = 1.0f / (float)(Math.Sqrt(m_d));
+                var attn = g.MulBatch(Qs, Ks, scale);
                 attn = g.View(attn, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ });
 
                 if (keyMask != null)
@@ -114,7 +113,7 @@ namespace Seq2SeqSharp
 
                 attnProbs = g.View(attnProbs, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenQ });
 
-                IWeightTensor o = g.View(g.MulBatch(attnProbs, Vs, batchSize * m_multiHeadNum), dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, m_d });
+                IWeightTensor o = g.View(g.MulBatch(attnProbs, Vs), dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, m_d });
                 IWeightTensor W = g.View(g.AsContiguous(g.Transpose(o, 1, 2)), dims: new long[] { batchSize * seqLenQ, m_multiHeadNum * m_d });
 
                 // Output projection
@@ -150,10 +149,9 @@ namespace Seq2SeqSharp
                 IWeightTensor inputQNorm = layerNormQ.Norm(inputQ, g);
 
                 //Input projections
-                float scale = 1.0f;
-                IWeightTensor allQ = g.View(g.Affine(inputQNorm, Q, Qb, scale), dims: new long[] { batchSize, seqLenQ, m_multiHeadNum, m_d });
-                IWeightTensor allK = g.View(g.Affine(inputK, K, Kb, scale), dims: new long[] { batchSize, seqLenK, m_multiHeadNum, m_d });
-                IWeightTensor allV = g.View(g.Affine(inputV, V, Vb, scale), dims: new long[] { batchSize, seqLenV, m_multiHeadNum, m_d });
+                IWeightTensor allQ = g.View(g.Affine(inputQNorm, Q, Qb), dims: new long[] { batchSize, seqLenQ, m_multiHeadNum, m_d });
+                IWeightTensor allK = g.View(g.Affine(inputK, K, Kb), dims: new long[] { batchSize, seqLenK, m_multiHeadNum, m_d });
+                IWeightTensor allV = g.View(g.Affine(inputV, V, Vb), dims: new long[] { batchSize, seqLenV, m_multiHeadNum, m_d });
 
                 //Multi-head attentions
                 IWeightTensor Qs = g.View(g.AsContiguous(g.Transpose(allQ, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, m_d });
@@ -161,8 +159,8 @@ namespace Seq2SeqSharp
                 IWeightTensor Vs = g.View(g.AsContiguous(g.Transpose(allV, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenV, m_d });
 
                 // Scaled softmax
-                scale = 1.0f / (float)(Math.Sqrt(m_d));
-                var attn = g.MulBatch(Qs, Ks, batchSize * m_multiHeadNum, scale);
+                float scale = 1.0f / (float)(Math.Sqrt(m_d));
+                var attn = g.MulBatch(Qs, Ks, scale);
                 attn = g.View(attn, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK });
 
                 if (keyMask != null)
@@ -182,7 +180,7 @@ namespace Seq2SeqSharp
 
                 attnProbs = g.View(attnProbs, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenK });
 
-                IWeightTensor o = g.View(g.MulBatch(attnProbs, Vs, batchSize * m_multiHeadNum), dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, m_d });
+                IWeightTensor o = g.View(g.MulBatch(attnProbs, Vs), dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, m_d });
                 IWeightTensor W = g.View(g.AsContiguous(g.Transpose(o, 1, 2)), dims: new long[] { batchSize * seqLenQ, m_multiHeadNum * m_d });
 
                 // Output projection
