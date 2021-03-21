@@ -44,6 +44,8 @@ namespace Seq2SeqSharp
 
         IWeightTensor Argmax(IWeightTensor w, int dim);
 
+        IWeightTensor IndexSelect(IWeightTensor s, float[] idxs);
+
         void Bind(IWeightTensor w);
         void Unbind(IWeightTensor w);
 

@@ -53,6 +53,22 @@ OPS_API int TS_SoftmaxGrad(
 	int cols,
 	bool addGrad);
 
+
+OPS_API int TS_IndexSelect(
+	TensorRef* result_,
+	TensorRef* src_,
+	TensorRef* indice_,
+	int rows,
+	int cols);
+
+OPS_API int TS_IndexSelectGrad(
+	TensorRef* grad_,
+	TensorRef* adj_,
+	TensorRef* indice_,
+	int rows,
+	int cols);
+
+
 template<typename T>
 void Softmax(TensorRef* out, TensorRef* in, int rows, int cols) {
 	T * pOut = (T*)out->buffer;
@@ -108,6 +124,47 @@ void SoftmaxGrad(TensorRef* grad_, TensorRef* adj_, TensorRef* val_, int rows, i
 		}
 	}
 }
+
+
+
+template<typename T>
+void IndexSelect(TensorRef* result_, TensorRef* src_, TensorRef* indice_, int rows, int cols)
+{
+	T* result = (T*)result_->buffer;
+	T* src = (T*)src_->buffer;
+	T* indice = (T*)indice_->buffer;
+
+	for (int j = 0; j < rows; j++) {
+
+		int srcIdx = indice[j];
+		T* resultRow = result + j * cols;
+		T* srcRow = src + srcIdx * cols;
+
+		for (int i = 0; i < cols; ++i) {
+			resultRow[i] = srcRow[i];
+		}
+	}
+}
+
+template<typename T>
+void IndexSelectGrad(TensorRef* grad_, TensorRef* adj_, TensorRef* indice_, int rows, int cols)
+{
+	T* grad = (T*)grad_->buffer;
+	T* adj = (T*)adj_->buffer;
+	T* indice = (T*)indice_->buffer;
+
+	for (int j = 0; j < rows; j++) {
+
+		int gradIdx = indice[j];
+		T* adjRow = adj + j * cols;
+		T* gradRow = grad + gradIdx * cols;
+
+		for (int i = 0; i < cols; ++i) {
+			gradRow[i] += adjRow[i];
+		}
+	}
+}
+
 
 
 // note: due to write issues, this one cannot be parallelized as well as unfolded_copy

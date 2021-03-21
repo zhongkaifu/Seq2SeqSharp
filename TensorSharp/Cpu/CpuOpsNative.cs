@@ -190,6 +190,13 @@ namespace TensorSharp.Cpu
 
 
         [DllImport(dll, CallingConvention = cc)]
+        public static extern int TS_IndexSelect(IntPtr result_, IntPtr src_, IntPtr indice_, int rows, int cols);
+
+        [DllImport(dll, CallingConvention = cc)]
+        public static extern int TS_IndexSelectGrad(IntPtr grad_, IntPtr adj_, IntPtr indice_, int rows, int cols);
+
+
+        [DllImport(dll, CallingConvention = cc)]
         public static extern int TS_RMSProp(IntPtr tw, IntPtr tg, IntPtr tc, int rows, int cols, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps);
 
         [DllImport(dll, CallingConvention = cc)]

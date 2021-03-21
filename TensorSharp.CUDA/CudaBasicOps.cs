@@ -507,6 +507,15 @@ namespace TensorSharp.CUDA
         public Tensor Var(Tensor result, Tensor src, int dimension, bool normByN) { return varStdKernels.Var(result, src, dimension, normByN); }
 
 
+
+        [RegisterOpStorageType("indexselect", typeof(CudaStorage))]
+        public Tensor IndexSelect(Tensor result, Tensor src, Tensor indice) { return advFuncKernels.IndexSelect(result, src, indice); }
+
+        [RegisterOpStorageType("indexselectgrad", typeof(CudaStorage))]
+        public Tensor IndexSelectGrad(Tensor grad, Tensor adj, Tensor indice) { return advFuncKernels.IndexSelectGrad(grad, adj, indice); }
+
+
+
         [RegisterOpStorageType("softmax", typeof(CudaStorage))]
         public Tensor Softmax(Tensor result, Tensor src) { return advFuncKernels.Softmax(result, src); }
 

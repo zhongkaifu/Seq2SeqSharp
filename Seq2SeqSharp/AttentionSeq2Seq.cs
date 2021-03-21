@@ -474,17 +474,32 @@ namespace Seq2SeqSharp
             int batchSize = seqs.Count;
             int seqLen = seqs[0].Count;
 
-            List<IWeightTensor> inputs = new List<IWeightTensor>();
+            //List<IWeightTensor> inputs = new List<IWeightTensor>();
+            //for (int i = 0; i < batchSize; i++)
+            //{
+            //    for (int j = 0; j < seqLen; j++)
+            //    {
+            //        var emb = g.Peek(embeddingsTensor, 0, seqs[i][j], runGradients: j < seqOriginalLengths[i] ? true : false);
+            //        inputs.Add(emb);
+            //    }
+            //}
+
+            //return g.ConcatRows(inputs);        
+
+            float[] idxs = new float[batchSize * seqLen];
             for (int i = 0; i < batchSize; i++)
             {
                 for (int j = 0; j < seqLen; j++)
                 {
-                    var emb = g.Peek(embeddingsTensor, 0, seqs[i][j], runGradients: j < seqOriginalLengths[i] ? true : false);
-                    inputs.Add(emb);
+                    //var emb = g.Peek(embeddingsTensor, 0, seqs[i][j], runGradients: j < seqOriginalLengths[i] ? true : false);
+                    //inputs.Add(emb);
+
+                    idxs[i * seqLen + j] = seqs[i][j];
                 }
             }
 
-            return g.ConcatRows(inputs);        
+            return g.IndexSelect(embeddingsTensor, idxs);
+
         }
 
 

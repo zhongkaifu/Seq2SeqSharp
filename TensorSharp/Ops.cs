@@ -196,6 +196,9 @@ namespace TensorSharp
         public static Tensor SoftmaxGrad(Tensor grad, Tensor adj, Tensor val, bool addGrad = true) { return (Tensor)OpRegistry.Invoke("softmaxgrad", grad, adj, val, addGrad); }
 
 
+        public static Tensor IndexSelect(Tensor result, Tensor src, Tensor indice) { return (Tensor)OpRegistry.Invoke("indexselect", result, src, indice); }
+        public static Tensor IndexSelectGrad(Tensor grad, Tensor adj, Tensor indice) { return (Tensor)OpRegistry.Invoke("indexselectgrad", grad, adj, indice); }
+
         public static Tensor LayerNorm(Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-09f) { return (Tensor)OpRegistry.Invoke("layernorm", result, src, alpha, beta, eps); }
         public static Tensor LayerNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps = 1e-09f) { return (Tensor)OpRegistry.Invoke("layernormgrad", outGrad, alphaGrad, betaGrad, inGrad, y, x, alpha, beta, eps); }
 
@@ -235,7 +238,7 @@ namespace TensorSharp
         public static float NormAll(Tensor src, float value) { using (Tensor resultTensor = NormAll(null, src, value)) { return resultTensor.GetElementAsFloat(0); } }
 
 
-        public static Tensor IndexSelect(Tensor result, Tensor src, int dim, Tensor indices) { return (Tensor)OpRegistry.Invoke("index_select", result, src, dim, indices); }
+     //   public static Tensor IndexSelect(Tensor result, Tensor src, int dim, Tensor indices) { return (Tensor)OpRegistry.Invoke("index_select", result, src, dim, indices); }
         public static Tensor Gather(Tensor result, Tensor src, int dim, Tensor indices) { return (Tensor)OpRegistry.Invoke("gather", result, src, dim, indices); }
         public static Tensor Scatter(Tensor result, Tensor src, int dim, Tensor indices) { return (Tensor)OpRegistry.Invoke("scatter", result, src, dim, indices); }
         public static Tensor ScatterFill(Tensor result, float value, int dim, Tensor indices) { return (Tensor)OpRegistry.Invoke("scatter_fill", result, value, dim, indices); }

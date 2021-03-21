@@ -5,7 +5,7 @@ namespace TensorSharp.CUDA
     [OpsClass]
     public class CudaIndexingOps
     {
-        private readonly IndexSelectKernels indexSelect = new IndexSelectKernels();
+    //    private readonly IndexSelectKernels indexSelect = new IndexSelectKernels();
         private readonly GatherScatterKernels gather = new GatherScatterKernels();
 
 
@@ -13,8 +13,8 @@ namespace TensorSharp.CUDA
         {
         }
 
-        [RegisterOpStorageType("index_select", typeof(CudaStorage))]
-        public Tensor IndexSelect(Tensor result, Tensor src, int dimension, Tensor indices) { return indexSelect.IndexSelect(result, src, dimension, indices); }
+        //[RegisterOpStorageType("index_select", typeof(CudaStorage))]
+        //public Tensor IndexSelect(Tensor result, Tensor src, int dimension, Tensor indices) { return indexSelect.IndexSelect(result, src, dimension, indices); }
 
         [RegisterOpStorageType("gather", typeof(CudaStorage))]
         public Tensor Gather(Tensor result, Tensor src, int dimension, Tensor indices) { return gather.Gather(result, src, dimension, indices); }

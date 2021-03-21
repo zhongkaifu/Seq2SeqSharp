@@ -594,6 +594,54 @@ namespace TensorSharp.Cpu
             NativeWrapper.InvokeTypeMatch(addlayerNormGrad_func, writeTarget1, writeTarget2, gradGamma_, gradBeta_, adj_, y_, x1_, x2_, gamma_, beta_, (int)adj_.Sizes[0], (int)adj_.Sizes[1], eps);
         }
 
+
+        private readonly MethodInfo indexselect_func = NativeWrapper.GetMethod("TS_IndexSelect");
+        [RegisterOpStorageType("indexselect", typeof(CpuStorage))]
+        public Tensor IndexSelect(Tensor result, Tensor src, Tensor indice)
+        {
+            int ndim = result.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(result.Sizes, result.Strides);
+            long cols = result.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, new long[] { indice.Sizes[0], src.Sizes[1] });
+            NativeWrapper.InvokeTypeMatch(indexselect_func, writeTarget, src, indice, (int)rows, (int)cols);
+            return writeTarget;
+        }
+
+
+        private readonly MethodInfo indexselectgrad_func = NativeWrapper.GetMethod("TS_IndexSelectGrad");
+        [RegisterOpStorageType("indexselectgrad", typeof(CpuStorage))]
+        public Tensor IndexSelectGrad(Tensor grad, Tensor adj, Tensor indice)
+        {
+            if (grad == null)
+            {
+                throw new ArgumentNullException($"Tensor grad should not be null.");
+            }
+
+            int ndim = adj.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(adj.Sizes, adj.Strides);
+            long cols = adj.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+            NativeWrapper.InvokeTypeMatch(indexselectgrad_func, grad, adj, indice, (int)rows, (int)cols);
+            return grad;
+        }
+
+
+
         private readonly MethodInfo softmax_func = NativeWrapper.GetMethod("TS_Softmax");
         [RegisterOpStorageType("softmax", typeof(CpuStorage))]
         public Tensor Softmax(Tensor result, Tensor src)

@@ -954,6 +954,38 @@ namespace Seq2SeqSharp.Tools
             //bitmap.Dispose();
         }
 
+
+        public IWeightTensor IndexSelect(IWeightTensor s, float[] idxs)
+        {
+            WeightTensor src = s as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { idxs.Length, s.Sizes[^1] }, m_deviceId, name: $"{GetHashString(src.Name)}.IndexSelect", graphToBind: this);
+
+            Tensor indice = new Tensor(TensorAllocator.Allocator(m_deviceId), DType.Float32, idxs.Length);
+            indice.CopyFrom(idxs);
+            Ops.IndexSelect(res.TWeight, src.TWeight, indice);
+
+            if (m_needsBackprop)
+            {
+                Action backward = () =>
+                {
+                    res.ReleaseWeight();
+
+                    Ops.IndexSelectGrad(src.TGradient, res.TGradient, indice);
+
+
+                    res.Dispose();
+                    indice.Dispose();
+                };
+                m_backprop.Add(backward);
+            }
+            else
+            {
+                indice.Dispose();
+            }
+
+            return res;
+        }
+
         public IWeightTensor ConcatRows(List<IWeightTensor> wl)
         {
             if (wl.Count == 1)

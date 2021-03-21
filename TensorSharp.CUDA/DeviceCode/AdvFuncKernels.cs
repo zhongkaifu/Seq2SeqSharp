@@ -468,6 +468,46 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 }
 
 
+  __global__ void IndexSelect(float* result, float* src, float *indice, int rows, int cols)
+  {
+    for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+
+      const int srcIdx = indice[j];
+      float* resultRow = result + j * cols;
+      float* srcRow = src + srcIdx * cols;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+        resultRow[id] = srcRow[id];
+        }
+      }
+    }
+  }
+}
+
+  __global__ void IndexSelectGrad(float* grad, float* adj, float *indice, int rows, int cols)
+  {
+    for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+
+      const int gradIdx = indice[j];
+      float* adjRow = adj + j * cols;
+      float* gradRow = grad + gradIdx * cols;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+        gradRow[id] += adjRow[id];
+        }
+      }
+    }
+  }
+}
+
   __global__ void gSoftmaxGrad(float* grad, float* adj, float* val, int rows, int cols, int addGrad)
   {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -771,6 +811,70 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
         }
 
 
+
+        private void IndexSelect(TSCudaContext context, Tensor result, Tensor src, Tensor indice)
+        {
+            CudaContext cudaContext = context.CudaContextForTensor(src);
+
+            cudaContext.SetCurrent();
+
+            int ndim = result.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(result.Sizes, result.Strides);
+            long cols = result.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+
+            dim3 threads = new dim3((uint)Math.Min(512, rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+
+            CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
+            CUdeviceptr srcPtr = CudaHelpers.GetBufferStart(src);
+            CUdeviceptr indicePtr = CudaHelpers.GetBufferStart(indice);
+
+
+            Invoke(context, cudaContext, "IndexSelect", grid, threads, threads.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, indicePtr, rows, cols);
+
+        }
+
+
+        private void IndexSelectGrad(TSCudaContext context, Tensor grad, Tensor adj, Tensor indice)
+        {
+            CudaContext cudaContext = context.CudaContextForTensor(adj);
+
+            cudaContext.SetCurrent();
+
+            int ndim = adj.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(adj.Sizes, adj.Strides);
+            long cols = adj.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+
+            dim3 threads = new dim3((uint)Math.Min(512, rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+
+            CUdeviceptr gradPtr = CudaHelpers.GetBufferStart(grad);
+            CUdeviceptr adjPtr = CudaHelpers.GetBufferStart(adj);
+            CUdeviceptr indicePtr = CudaHelpers.GetBufferStart(indice);
+
+
+            Invoke(context, cudaContext, "IndexSelectGrad", grid, threads, threads.x * sizeof(float), CUstream.NullStream, gradPtr, adjPtr, indicePtr, rows, cols);
+
+        }
+
+
+
         private void Softmax(TSCudaContext context, Tensor result, Tensor src)
         {
             CudaContext cudaContext = context.CudaContextForTensor(src);
@@ -912,6 +1016,29 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(grad);
             SoftmaxGrad(context, grad, adj, val, addGrad);
+
+            return grad;
+        }
+
+
+        public Tensor IndexSelect(Tensor result, Tensor src, Tensor indice)
+        {
+            TSCudaContext context = CudaHelpers.TSContextForTensor(src);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, new long[] { indice.Sizes[0], src.Sizes[1] });
+            IndexSelect(context, writeTarget, src, indice);
+
+            return writeTarget;
+        }
+
+        public Tensor IndexSelectGrad(Tensor grad, Tensor adj, Tensor indice)
+        {
+            if (grad == null)
+            {
+                throw new ArgumentNullException($"Tensor grad should not be null.");
+            }
+
+            TSCudaContext context = CudaHelpers.TSContextForTensor(adj);
+            IndexSelectGrad(context, grad, adj, indice);
 
             return grad;
         }
