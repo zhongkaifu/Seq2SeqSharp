@@ -77,8 +77,10 @@ namespace Seq2SeqSharp
                 if (srcSelfMask != null)
                 {
                     int seqLen = inputs.Rows / batchSize;
-                    var keyMaskView = subg.View(srcSelfMask, runGradient: false, dims: new long[] { batchSize, 1, seqLen, seqLen });
-                    maskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLen, seqLen });
+                    using (var keyMaskView = subg.View(srcSelfMask, runGradient: false, dims: new long[] { batchSize, 1, seqLen, seqLen }))
+                    {
+                        maskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLen, seqLen });
+                    }
                 }
 
                 IWeightTensor attnProbs = null;
@@ -94,6 +96,11 @@ namespace Seq2SeqSharp
                 if (attnProbs != null)
                 {
                     attnProbs.UnbindFromComputeGraph();
+                }
+
+                if (maskTensor != null)
+                {
+                    maskTensor.Dispose();
                 }
             }
 

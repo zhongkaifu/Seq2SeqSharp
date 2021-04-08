@@ -133,6 +133,7 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
         "ModelFilePath":"seq2seq.model",
         "SrcVocab":null,
         "TgtVocab":null,
+        "SharedEmbeddings":false,
         "SrcEmbeddingModelFilePath":null,
         "TgtEmbeddingModelFilePath":null,
         "SrcLang":"ENU",
@@ -218,7 +219,7 @@ Here are steps on how to play it.  
 
          sudo apt-get update  
 
-         sudo apt-get install -y aspnetcore-runtime-3.1  
+         sudo apt-get install -y aspnetcore-runtime-5.0  
 
 
    0.3 Install SentencePiece (optional)  
@@ -246,9 +247,32 @@ Here are steps on how to play it.  
    You can run the following command for decoding: spm_decode --model=chsSpm.model out.txt > out_raw.txt    
 
 
-4. Check quality by comparing output Chinese text with reference text  
+4. Check quality by comparing output Chinese text with reference text   
 
- 
+# Build From Source Code  
+Besides using the release package, you could also build Seq2SeqSharp from source code. It has just two steps:  
+
+1. Clone the project from github: git clone https://github.com/zhongkaifu/Seq2SeqSharp.git  
+2. Build all projects: dotnet build Seq2SeqSharp.sln --configuration Release  
+
+# Using different CUDA versions and .NET versions  
+Seq2SeqSharp uses CUDA 11.x and .NET 5.0 by default, but you can still use different versions of them. It has already been tested on .NET core 3.1, CUDA 10.x and some other versions.  
+
+For different CUDA versions, you need to change the versions of ManagedCUDA to the corresponding versions. They are all in *.project files. For example: The following settings are in TensorSharp.CUDA.project for CUDA 10.2  
+    <PackageReference Include="ManagedCuda-102">  
+      <Version>10.2.41</Version>  
+    </PackageReference>  
+    <PackageReference Include="ManagedCuda-CUBLAS">  
+      <Version>10.2.41</Version>  
+    </PackageReference>  
+    <PackageReference Include="ManagedCuda-NVRTC">  
+      <Version>10.2.41</Version>  
+    </PackageReference>  
+
+For different .NET versions, you need to modify target framework in *.csproj files. Here is an example to use .net core 3.1 as target framework in Seq2SeqSharp.csproj file.  
+    <PropertyGroup>  
+      <TargetFramework>netcoreapp3.1</TargetFramework>  
+    </PropertyGroup>  
 
 # Build Your Layers  
 Benefit from automatic differentiation, tensor based compute graph and other features, you can easily build your customized layers by a few code. The only thing you need to implment is forward part, and the framework will automatically build the corresponding backward part for you, and make the network could run on multi-GPUs or CPUs.  

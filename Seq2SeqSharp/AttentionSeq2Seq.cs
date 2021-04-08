@@ -160,7 +160,7 @@ namespace Seq2SeqSharp
 
             if (modelMetaData.EncoderType == EncoderTypeEnums.Transformer || modelMetaData.DecoderType == DecoderTypeEnums.Transformer)
             {
-                m_posEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(PositionEmbedding.BuildPositionWeightTensor(Math.Max(m_maxSrcSntSize, m_maxTgtSntSize) + 2, contextDim, raDeviceIds.GetNextItem(), "PosEmbedding", false), DeviceIds, true);
+                m_posEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(PositionEmbedding.BuildPositionWeightTensor(Math.Max(m_maxSrcSntSize, m_maxTgtSntSize) + 2, contextDim, DeviceIds[0], "PosEmbedding", false), DeviceIds, true);
             }
             else
             {
@@ -293,7 +293,8 @@ namespace Seq2SeqSharp
             {
                 if (isTraining)
                 {
-                    (var c, var tmp) = DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, tgtEmbedding, posEmbedding, originalSrcLengths, isTraining);
+                    (var c, var tmp) = DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, tgtEmbedding, posEmbedding, 
+                                                         m_shuffleType == ShuffleEnums.NoPaddingInSrc ? null : originalSrcLengths, isTraining);
                     nr.Cost = c;
                     nr.Beam2Batch2Output = null;
                 }
@@ -314,7 +315,8 @@ namespace Seq2SeqSharp
                         {
                             using (var g = computeGraph.CreateSubGraph($"TransformerDecoder_Step_{i}"))
                             {
-                                (var cost2, var bssSeqList) = DecodeTransformer(batch2tgtTokens, g, encOutput, decoder as TransformerDecoder, tgtEmbedding, posEmbedding, originalSrcLengths, isTraining, beamSearchSize: m_beamSearchSize);
+                                (var cost2, var bssSeqList) = DecodeTransformer(batch2tgtTokens, g, encOutput, decoder as TransformerDecoder, tgtEmbedding, posEmbedding, 
+                                                                                m_shuffleType == ShuffleEnums.NoPaddingInSrc ? null : originalSrcLengths, isTraining, beamSearchSize: m_beamSearchSize);
 
                                 for (int j = 0; j < m_beamSearchSize; j++)
                                 {
@@ -405,13 +407,18 @@ namespace Seq2SeqSharp
             int tgtSeqLen = tgtSeqs[0].Count;
             int srcSeqLen = encOutputs.Rows / batchSize;
 
-            IWeightTensor srcTgtMask = g.BuildSrcTgtMask(srcSeqLen, tgtSeqLen, tgtOriginalLengths, srcOriginalLenghts);
-            IWeightTensor tgtSelfTriMask = g.BuildPadSelfTriMask(tgtSeqLen, tgtOriginalLengths);
+            IWeightTensor decOutput = null;
+            IWeightTensor decEncAttnProbs = null;
+            using (IWeightTensor srcTgtMask = g.BuildSrcTgtMask(srcSeqLen, tgtSeqLen, tgtOriginalLengths, srcOriginalLenghts))
+            {
+                using (IWeightTensor tgtSelfTriMask = g.BuildPadSelfTriMask(tgtSeqLen, tgtOriginalLengths))
+                {
+                    IWeightTensor inputEmbs = ExtractTokensEmbeddings(tgtSeqs, g, tgtEmbedding, tgtOriginalLengths);
+                    inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbedding, batchSize, inputEmbs, m_dropoutRatio);
+                    (decOutput, decEncAttnProbs) = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g, outputAttnWeights: false);
+                }
+            }
 
-            IWeightTensor inputEmbs = ExtractTokensEmbeddings(tgtSeqs, g, tgtEmbedding, tgtOriginalLengths);
-            inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbedding, batchSize, inputEmbs, m_dropoutRatio);
-
-            (IWeightTensor decOutput, IWeightTensor decEncAttnProbs) = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g, outputAttnWeights: false);
             IWeightTensor probs = g.Softmax(decOutput, runGradients: false, inPlace: true);
 
             if (isTraining)
@@ -474,26 +481,11 @@ namespace Seq2SeqSharp
             int batchSize = seqs.Count;
             int seqLen = seqs[0].Count;
 
-            //List<IWeightTensor> inputs = new List<IWeightTensor>();
-            //for (int i = 0; i < batchSize; i++)
-            //{
-            //    for (int j = 0; j < seqLen; j++)
-            //    {
-            //        var emb = g.Peek(embeddingsTensor, 0, seqs[i][j], runGradients: j < seqOriginalLengths[i] ? true : false);
-            //        inputs.Add(emb);
-            //    }
-            //}
-
-            //return g.ConcatRows(inputs);        
-
             float[] idxs = new float[batchSize * seqLen];
             for (int i = 0; i < batchSize; i++)
             {
                 for (int j = 0; j < seqLen; j++)
                 {
-                    //var emb = g.Peek(embeddingsTensor, 0, seqs[i][j], runGradients: j < seqOriginalLengths[i] ? true : false);
-                    //inputs.Add(emb);
-
                     idxs[i * seqLen + j] = seqs[i][j];
                 }
             }

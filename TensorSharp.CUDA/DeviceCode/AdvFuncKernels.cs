@@ -416,8 +416,6 @@ __global__ void Adam(float* __restrict__ w, float* __restrict__ g, float* __rest
            sv[i] = sv[i] * decay_rate_v + (1.0 - decay_rate_v) * g * g;
 
            sw[i] -= adapted_learning_rate * sm[i] / (sqrtf(sv[i]) + eps);
-
-           sg[i] = 0;
         }
       }
     }
@@ -459,16 +457,13 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
            g = g * rsqrtf(sc[i] + eps);
 
            sw[i] -= g * step_size + sw[i] * regc;
-
-           sg[i] = 0;
         }
       }
     }
   }
 }
 
-
-  __global__ void IndexSelect(float* result, float* src, float *indice, int rows, int cols)
+  __global__ void IndexSelect(float* __restrict__ result, float* __restrict__ src, float* __restrict__ indice, int rows, int cols)
   {
     for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -488,7 +483,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
   }
 }
 
-  __global__ void IndexSelectGrad(float* grad, float* adj, float *indice, int rows, int cols)
+  __global__ void IndexSelectGrad(float* __restrict__ grad, float* __restrict__ adj, float* __restrict__ indice, int rows, int cols)
   {
     for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;

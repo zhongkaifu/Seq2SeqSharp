@@ -219,10 +219,19 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public IWeightTensor Mul(IWeightTensor w, float v)
+        public IWeightTensor Mul(IWeightTensor w, float v, bool inPlace = false)
         {
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.MulV", graphToBind: this);
+            WeightTensor res = null;
+
+            if (inPlace)
+            {
+                res = m.CopyWeightsRef($"{GetHashString(m.Name)}.MulV");
+            }
+            else
+            {
+                res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.MulV", graphToBind: this);
+            }
 
             VisualizeNodes(w, res);
 
@@ -234,7 +243,15 @@ namespace Seq2SeqSharp.Tools
                 {
                     res.ReleaseWeight();
 
-                    Ops.AddMulV(m.TGradient, m.TGradient, res.TGradient, v);
+                    if (inPlace && res.TGradient.IsOwnerExclusive() && m.IsGradientNull())
+                    {
+                        m.TGradient = res.TGradient.CopyRef();
+                        Ops.Mul(m.TGradient, res.TGradient, v);
+                    }
+                    else
+                    {
+                        Ops.AddMulV(m.TGradient, m.TGradient, res.TGradient, v);
+                    }
 
                     res.Dispose();
                 };
@@ -1667,18 +1684,26 @@ namespace Seq2SeqSharp.Tools
 
 
 
-        public IWeightTensor BuildSrcTgtMask(int srcPaddedLength, int tgtPaddedLength, List<int> tgtOriginalLengths, List<int> srcOriginalLengths)
+        public IWeightTensor BuildSrcTgtMask(int srcPaddedLength, int tgtPaddedLength, List<int> tgtOriginalLengths, List<int> srcOriginalLengths = null)
         {
             float[] buf = new float[tgtOriginalLengths.Count * tgtPaddedLength * srcPaddedLength];
 
             for (int k = 0; k < tgtOriginalLengths.Count; k++) // batch size
             {
                 int offset_k = k * (tgtPaddedLength * srcPaddedLength);
-                for (int i = 0; i < tgtOriginalLengths[k]; i++)
+
+                if (srcOriginalLengths == null)
                 {
-                    int offset_k_i = offset_k + i * srcPaddedLength;
-                    Array.Fill(buf, 0.0f, offset_k_i, srcOriginalLengths[k]);
-                    Array.Fill(buf, -99999999.0f, offset_k_i + srcOriginalLengths[k], srcPaddedLength - srcOriginalLengths[k]);
+                    Array.Fill(buf, 0.0f, offset_k, tgtOriginalLengths[k] * srcPaddedLength);
+                }
+                else
+                {
+                    for (int i = 0; i < tgtOriginalLengths[k]; i++)
+                    {
+                        int offset_k_i = offset_k + i * srcPaddedLength;
+                        Array.Fill(buf, 0.0f, offset_k_i, srcOriginalLengths[k]);
+                        Array.Fill(buf, -99999999.0f, offset_k_i + srcOriginalLengths[k], srcPaddedLength - srcOriginalLengths[k]);
+                    }
                 }
 
                 Array.Fill(buf, -99999999.0f, offset_k + tgtOriginalLengths[k] * srcPaddedLength, (tgtPaddedLength - tgtOriginalLengths[k]) * srcPaddedLength);

@@ -97,16 +97,19 @@ namespace Seq2SeqSharp
                 IWeightTensor selfMaskTensor = null;
                 if (tgtSelfMask != null)
                 {
-                    var keyMaskView = subg.View(tgtSelfMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenQ });
-                    selfMaskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ });
-
+                    using (var keyMaskView = subg.View(tgtSelfMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenQ }))
+                    {
+                        selfMaskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ });
+                    }
                 }
 
                 IWeightTensor crossMaskTensor = null;
                 if (srcTgtMask != null)
                 {
-                    var keyMaskView = subg.View(srcTgtMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenK });
-                    crossMaskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK });
+                    using (var keyMaskView = subg.View(srcTgtMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenK }))
+                    {
+                        crossMaskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK });
+                    }
                 }
 
                 for (int k = 0; k < m_selfAttns.Count; k++)
@@ -122,6 +125,16 @@ namespace Seq2SeqSharp
                 if (attnProbs != null)
                 {
                     attnProbs.UnbindFromComputeGraph();
+                }
+
+                if (selfMaskTensor != null)
+                {
+                    selfMaskTensor.Dispose();
+                }
+
+                if (crossMaskTensor != null)
+                {
+                    crossMaskTensor.Dispose();
                 }
             }
             

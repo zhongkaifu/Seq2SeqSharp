@@ -33,7 +33,7 @@ namespace Seq2SeqSharp
         (IWeightTensor r1, IWeightTensor r2, IWeightTensor r3) SplitColumns(IWeightTensor w, int size1, int size2, int size3);
         IWeightTensor ConcatRows(List<IWeightTensor> wl);
         IWeightTensor Transpose(IWeightTensor w);
-        IWeightTensor Mul(IWeightTensor w, float v);
+        IWeightTensor Mul(IWeightTensor w, float v, bool inPlace = false);
         IWeightTensor LayerNorm(IWeightTensor src, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-9f);
         IWeightTensor AddLayerNorm(IWeightTensor src1, IWeightTensor src2, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-09f);
 
@@ -54,7 +54,7 @@ namespace Seq2SeqSharp
         IWeightTensor Scatter(IWeightTensor source, IWeightTensor indices, int dim, bool runGradient = true, params long[] shape);
         IWeightTensor Sub(float v, IWeightTensor w1, bool runGradient = true);
 
-        IWeightTensor BuildSrcTgtMask(int srcPaddedLength, int tgtPaddedLength, List<int> tgtOriginalLengths, List<int> srcOriginalLengths);
+        IWeightTensor BuildSrcTgtMask(int srcPaddedLength, int tgtPaddedLength, List<int> tgtOriginalLengths, List<int> srcOriginalLengths = null);
         IWeightTensor BuildPadSelfTriMask(int paddedLength, List<int> originalLengths);
 
         IWeightTensor BuildPadSelfMask(int paddedLength, List<int> originalLengths);
