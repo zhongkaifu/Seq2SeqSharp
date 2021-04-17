@@ -47,26 +47,19 @@ namespace Seq2SeqConsole
                 ShowOptions(args);
 
                 //Parse command line
-                Options opts = new Options();
+                Seq2SeqOptions opts = new Seq2SeqOptions();
                 ArgParser argParser = new ArgParser(args, opts);
 
                 if (string.IsNullOrEmpty(opts.ConfigFilePath) == false)
                 {
                     Logger.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
-                    opts = JsonConvert.DeserializeObject<Options>(File.ReadAllText(opts.ConfigFilePath));
+                    opts = JsonConvert.DeserializeObject<Seq2SeqOptions>(File.ReadAllText(opts.ConfigFilePath));
                 }
 
-                AttentionSeq2Seq ss = null;
-                ProcessorTypeEnums processorType = (ProcessorTypeEnums)Enum.Parse(typeof(ProcessorTypeEnums), opts.ProcessorType);
-                EncoderTypeEnums encoderType = (EncoderTypeEnums)Enum.Parse(typeof(EncoderTypeEnums), opts.EncoderType);
-                DecoderTypeEnums decoderType = (DecoderTypeEnums)Enum.Parse(typeof(DecoderTypeEnums), opts.DecoderType);
+                Seq2Seq ss = null;
                 ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.TaskName);
                 ShuffleEnums shuffleType = (ShuffleEnums)Enum.Parse(typeof(ShuffleEnums), opts.ShuffleType);
 
-                string[] cudaCompilerOptions = String.IsNullOrEmpty(opts.CompilerOptions) ? null : opts.CompilerOptions.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-                //Parse device ids from options          
-                int[] deviceIds = opts.DeviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
                 if (mode == ModeEnums.Train)
                 {
                     // Load train corpus
@@ -100,9 +93,7 @@ namespace Seq2SeqConsole
                     {
                         //Incremental training
                         Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
-                        ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, dropoutRatio: opts.DropoutRatio, deviceIds: deviceIds,
-                            isSrcEmbTrainable: opts.IsSrcEmbeddingTrainable, isTgtEmbTrainable: opts.IsTgtEmbeddingTrainable, isEncoderTrainable: opts.IsEncoderTrainable, isDecoderTrainable: opts.IsDecoderTrainable,
-                            maxSrcSntSize: opts.MaxSrcSentLength, maxTgtSntSize: opts.MaxTgtSentLength, memoryUsageRatio: opts.MemoryUsageRatio, shuffleType: shuffleType, compilerOptions: cudaCompilerOptions);
+                        ss = new Seq2Seq(opts);
                     }
                     else
                     {
@@ -127,11 +118,7 @@ namespace Seq2SeqConsole
                         }
 
                         //New training
-                        ss = new AttentionSeq2Seq(srcEmbeddingDim: opts.SrcEmbeddingDim, tgtEmbeddingDim: opts.TgtEmbeddingDim, hiddenDim: opts.HiddenSize, encoderLayerDepth: opts.EncoderLayerDepth, decoderLayerDepth: opts.DecoderLayerDepth,
-                            srcEmbeddingFilePath: opts.SrcEmbeddingModelFilePath, tgtEmbeddingFilePath: opts.TgtEmbeddingModelFilePath, vocab: vocab, modelFilePath: opts.ModelFilePath,
-                            dropoutRatio: opts.DropoutRatio, processorType: processorType, deviceIds: deviceIds, multiHeadNum: opts.MultiHeadNum, encoderType: encoderType, decoderType: decoderType,
-                            maxSrcSntSize: opts.MaxSrcSentLength, maxTgtSntSize: opts.MaxTgtSentLength, enableCoverageModel: opts.EnableCoverageModel, memoryUsageRatio: opts.MemoryUsageRatio, 
-                            shuffleType: shuffleType, compilerOptions: cudaCompilerOptions, sharedEmbeddings: opts.SharedEmbeddings, beamSearchSize: opts.BeamSearchSize);
+                        ss = new Seq2Seq(opts, vocab);
                     }
 
                     // Add event handler for monitoring
@@ -154,21 +141,19 @@ namespace Seq2SeqConsole
                     // Load valid corpus
                     ParallelCorpus validCorpus = new ParallelCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxSrcSentLength, opts.MaxTgtSentLength, shuffleEnums: shuffleType);
 
-                    ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds, memoryUsageRatio: opts.MemoryUsageRatio, shuffleType: shuffleType, compilerOptions: cudaCompilerOptions);
+                    ss = new Seq2Seq(opts);
                     ss.Valid(validCorpus: validCorpus, metrics: metrics);
                 }
                 else if (mode == ModeEnums.Test)
                 {
                     Logger.WriteLine($"Test model: '{opts.ModelFilePath}'");
                     Logger.WriteLine($"Test set: '{opts.InputTestFile}'");
-                    Logger.WriteLine($"Processor type: '{processorType}'");
                     Logger.WriteLine($"Max source sentence length: '{opts.MaxSrcSentLength}'");
                     Logger.WriteLine($"Max target sentence length: '{opts.MaxTgtSentLength}'");
                     Logger.WriteLine($"Beam search size: '{opts.BeamSearchSize}'");
 
                     //Test trained model
-                    ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds, memoryUsageRatio: opts.MemoryUsageRatio,
-                        shuffleType: shuffleType, maxSrcSntSize: opts.MaxSrcSentLength, maxTgtSntSize: opts.MaxTgtSentLength, compilerOptions: cudaCompilerOptions, beamSearchSize: opts.BeamSearchSize);
+                    ss = new Seq2Seq(opts);
 
                     List<string> outputLines = new List<string>();
                     string[] data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
@@ -181,11 +166,11 @@ namespace Seq2SeqConsole
                         }
                     }
 
-                    File.WriteAllLines(opts.OutputTestFile, outputLines);
+                    File.WriteAllLines(opts.OutputFile, outputLines);
                 }
                 else if (mode == ModeEnums.DumpVocab)
                 {
-                    ss = new AttentionSeq2Seq(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds, compilerOptions: cudaCompilerOptions);
+                    ss = new Seq2Seq(opts);
                     ss.DumpVocabToFiles(opts.SrcVocab, opts.TgtVocab);
                 }
                 else

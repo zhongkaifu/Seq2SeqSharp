@@ -94,6 +94,7 @@ namespace Seq2SeqSharp.Tools
         public const string EOS = "</s>";
         public const string BOS = "<s>";
         public const string UNK = "<unk>";
+        public const string SEP = "[SEP]";
 
         private bool m_showTokenDist = true;
         private ShuffleEnums m_shuffleEnums;

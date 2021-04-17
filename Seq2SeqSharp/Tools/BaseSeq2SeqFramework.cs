@@ -69,6 +69,16 @@ namespace Seq2SeqSharp.Tools
         private SortedList<string, IMultiProcessorNetworkWrapper> m_name2network;
         DateTime m_lastCheckPointDateTime = DateTime.Now;
 
+        public BaseSeq2SeqFramework(string deviceIds, string strProcessorType, string modelFilePath, float memoryUsageRatio = 0.9f, string compilerOptions = null)
+        {
+            m_deviceIds = deviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
+            ProcessorTypeEnums processorType = (ProcessorTypeEnums)Enum.Parse(typeof(ProcessorTypeEnums), strProcessorType);
+            string[] cudaCompilerOptions = String.IsNullOrEmpty(compilerOptions) ? null : compilerOptions.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            m_modelFilePath = modelFilePath;
+            TensorAllocator.InitDevices(processorType, m_deviceIds, memoryUsageRatio, cudaCompilerOptions);
+        }
+
         public BaseSeq2SeqFramework(int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, string[] compilerOptions = null)
         {
             m_deviceIds = deviceIds;

@@ -228,6 +228,19 @@ namespace Seq2SeqSharp
             File.WriteAllLines(fileName, lines);
         }
 
+        public string GetSourceString(int idx)
+        {
+            lock (locker)
+            {
+                string letter = ParallelCorpus.UNK;
+                if (m_srcIndexToWord.ContainsKey(idx))
+                {
+                    letter = m_srcIndexToWord[idx];
+                }
+
+                return letter;
+            }
+        }
 
         public List<string> ConvertTargetIdsToString(List<float> idxs)
         {

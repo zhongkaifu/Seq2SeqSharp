@@ -16,6 +16,7 @@ namespace Seq2SeqSharp
         public Vocab Vocab;
         public bool EnableCoverageModel = true;
         public bool SharedEmbeddings = false;
+        public bool EnableSegmentEmbeddings = false;
 
         public Seq2SeqModelMetaData()
         {
@@ -23,7 +24,7 @@ namespace Seq2SeqSharp
         }
 
         public Seq2SeqModelMetaData(int hiddenDim, int srcEmbeddingDim, int tgtEmbeddingDim, int encoderLayerDepth, int decoderLayerDepth, int multiHeadNum, 
-            EncoderTypeEnums encoderType, DecoderTypeEnums decoderType, Vocab vocab, bool enableCoverageModel, bool sharedEmbeddings)
+            EncoderTypeEnums encoderType, DecoderTypeEnums decoderType, Vocab vocab, bool enableCoverageModel, bool sharedEmbeddings, bool enableSegmentEmbeddings)
         {
             HiddenDim = hiddenDim;
             SrcEmbeddingDim = srcEmbeddingDim;
@@ -36,6 +37,7 @@ namespace Seq2SeqSharp
             Vocab = vocab;
             EnableCoverageModel = enableCoverageModel;
             SharedEmbeddings = sharedEmbeddings;
+            EnableSegmentEmbeddings = enableSegmentEmbeddings;
         }
     }
 }

@@ -5,9 +5,10 @@ Seq2SeqSharp is a tensor based fast & flexible encoder-decoder deep neural netwo
 
 # Features  
 Pure C# framework   
-Bi-directional LSTM encoder  
-Attention based LSTM decoder with coverage model  
 Transformer encoder and decoder  
+Attention based LSTM decoder with coverage model  
+Bi-directional LSTM encoder  
+Support multi-platforms, such as Windows, Linux, Mac and others  
 Built-in several networks for sequence-to-sequence task and sequence-labeling task  
 Graph based neural network  
 Automatic differentiation  
@@ -20,12 +21,11 @@ Mini-batch
 Dropout  
 RMSProp and Adam optmization  
 Embedding & Pre-trained model 
-Metrics, such as BLEU score, Length ratio, F1 score and so on  
+Built-in metrics and extendable, such as BLEU score, Length ratio, F1 score and so on  
 Auto data shuffling  
 Auto vocabulary building  
 Beam search decoder  
 Visualize neural network  
-Support both Windows and Linux  
 
 # Architecture  
 Here is the architecture of Seq2SeqSharp  
@@ -573,5 +573,4 @@ In Seq2SeqConsole project, it shows you how to initialize and play (train, valid
 
 # Todo List  
 If you are interested in below items, please let me know. Becuase African proverb says "If you want to go fast, go alone. If you want to go far, go together" :)  
-Support Half-Float Type (FP16)  
 And More...  
