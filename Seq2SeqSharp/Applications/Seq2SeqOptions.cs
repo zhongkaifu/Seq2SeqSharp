@@ -55,7 +55,7 @@ namespace Seq2SeqSharp
         public int HiddenSize = 128;
 
         [Arg("The input file for test.", "InputTestFile")]
-        public string InputTestFile;
+        public string InputTestFile = null;
 
         [Arg("It indicates if the decoder is trainable", "IsDecoderTrainable")]
         public bool IsDecoderTrainable = true;
@@ -93,7 +93,7 @@ namespace Seq2SeqSharp
         public string Optimizer = "Adam";
 
         [Arg("The test result file.", "OutputFile")]
-        public string OutputFile;
+        public string OutputFile = null;
 
         [Arg("Processor type: GPU, CPU", "ProcessorType")]
         public string ProcessorType = "GPU";
@@ -138,13 +138,16 @@ namespace Seq2SeqSharp
         public string TgtVocab = null;
 
         [Arg("Training corpus folder path", "TrainCorpusPath")]
-        public string TrainCorpusPath;
+        public string TrainCorpusPath = null;
 
         [Arg("The batch size during validation", nameof(ValBatchSize))]
         public int ValBatchSize = 1;
 
         [Arg("Valid corpus folder path", "ValidCorpusPath")]
-        public string ValidCorpusPath;
+        public string ValidCorpusPath = null;
+
+        [Arg("The size of vocabulary", "VocabSize")]
+        public int VocabSize = 45000;
 
         [Arg("The number of steps for warming up", "WarmUpSteps")]
         public int WarmUpSteps = 8000;

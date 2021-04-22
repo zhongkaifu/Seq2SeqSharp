@@ -98,13 +98,15 @@ Here is the command line to test models
 **Seq2SeqConsole.exe -TaskName Test [parameters...]**  
 Parameters:  
 **-InputTestFile**: The input file for test.  
-**-OutputTestFile**: The test result file.  
+**-OutputFile**: The test result file.  
 **-ModelFilePath**: The trained model file path. 
 **-ProcessorType**: Architecture type: CPU or GPU 
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
 **-BeamSearchSize**: Beam search size. Default is 1  
+**-MaxSrcSentLength**: Maxmium sentence length on source side. Default is 32 tokens  
+**-MaxTgtSentLength**: Maxmium sentence length on target side. Default is 32 tokens  
 
-Example: Seq2SeqConsole.exe -TaskName Test -ModelFilePath seq2seq.model -InputTestFile test.txt -OutputTestFile result.txt -ProcessorType CPU -BeamSearchSize 5  
+Example: Seq2SeqConsole.exe -TaskName Test -ModelFilePath seq2seq.model -InputTestFile test.txt -OutputFile result.txt -ProcessorType CPU -BeamSearchSize 5 -MaxSrcSentLength 100 -MaxTgtSentLength 100  
 
 Here is the command line to visualize network  
 **Seq2SeqConsole.exe -TaskName VisualizeNetwork [parameters...]**  
@@ -122,47 +124,49 @@ Then it will visualize the network looks like below:
 You can also keep all parameters into a json file and run Seq2SeqConsole.exe -ConfigFilePath <config_file_path> Here is an example for training.  
 ```json
 {
-        "TaskName":"Train",
-        "SrcEmbeddingDim":512,
-        "TgtEmbeddingDim":512,
-        "HiddenSize":512,
-        "StartLearningRate":0.0004,
-        "WeightsUpdateCount":0,
-        "EncoderLayerDepth":6,
-        "DecoderLayerDepth":6,
-        "ModelFilePath":"seq2seq.model",
-        "SrcVocab":null,
-        "TgtVocab":null,
-        "SharedEmbeddings":false,
-        "SrcEmbeddingModelFilePath":null,
-        "TgtEmbeddingModelFilePath":null,
-        "SrcLang":"ENU",
-        "TgtLang":"CHS",
-        "TrainCorpusPath":"corpus",
-        "ValidCorpusPath":"corpus_valid",
-        "InputTestFile":null,
-        "OutputTestFile":null,
-        "ShuffleBlockSize":-1,
-        "GradClip":5.0,
         "BatchSize":256,
-        "ValBatchSize":16,
-        "DropoutRatio":0.0,
-        "ProcessorType":"GPU",
-        "EncoderType":"Transformer",
-        "DecoderType":"Transformer",
-        "MultiHeadNum":8,
-        "DeviceIds":"0,1,2,3",
         "BeamSearchSize":1,
+        "Beta1":0.9,
+        "Beta2":0.98,
+        "CompilerOptions":"--use_fast_math --gpu-architecture=compute_70",
+        "DecoderLayerDepth":6,
+        "DecoderType":"Transformer",
+        "DeviceIds":"0,1,2,3",
+        "DropoutRatio":0.0,
+        "EnableCoverageModel":false,
+        "EnableSegmentEmbeddings":false,
+        "EncoderLayerDepth":6,
+        "EncoderType":"Transformer",
+        "HiddenSize":512,
+        "InputTestFile":null,
+        "GradClip":5.0,
         "MaxEpochNum":100,
         "MaxSrcSentLength":100,
         "MaxTgtSentLength":100,
+        "ModelFilePath":"seq2seq.model",
+        "MultiHeadNum":8,
+        "Optimizer":"Adam",
+        "OutputFile":null,
+        "ProcessorType":"GPU",   
+        "SharedEmbeddings":false,     
+        "ShuffleBlockSize":-1,
+        "ShuffleType": "NoPaddingInSrc",
+        "SrcEmbeddingDim":512,
+        "SrcEmbeddingModelFilePath":null,
+        "SrcLang":"ENU",
+        "SrcVocab":null,
+        "StartLearningRate":0.0004,
+        "TaskName":"Train",        
+        "TgtEmbeddingDim":512,    
+        "TgtEmbeddingModelFilePath":null,
+        "TgtLang":"CHS",
+        "WeightsUpdateCount":0,                
+        "TgtVocab":null,
+        "TrainCorpusPath":"corpus",
+        "ValidCorpusPath":"corpus_valid",                
+        "ValBatchSize":16,                                   
         "WarmUpSteps":8000,
-        "VisualizeNNFilePath":null,
-        "Beta1":0.9,
-        "Beta2":0.98,
-        "EnableCoverageModel":false,
-        "CompilerOptions":"--use_fast_math --gpu-architecture=compute_70",
-        "Optimizer":"Adam"
+        "VisualizeNNFilePath":null            
 }
 ```
 
@@ -259,6 +263,7 @@ Besides using the release package, you could also build Seq2SeqSharp from source
 Seq2SeqSharp uses CUDA 11.x and .NET 5.0 by default, but you can still use different versions of them. It has already been tested on .NET core 3.1, CUDA 10.x and some other versions.  
 
 For different CUDA versions, you need to change the versions of ManagedCUDA to the corresponding versions. They are all in *.project files. For example: The following settings are in TensorSharp.CUDA.project for CUDA 10.2  
+```xml
     <PackageReference Include="ManagedCuda-102">  
       <Version>10.2.41</Version>  
     </PackageReference>  
@@ -268,11 +273,14 @@ For different CUDA versions, you need to change the versions of ManagedCUDA to t
     <PackageReference Include="ManagedCuda-NVRTC">  
       <Version>10.2.41</Version>  
     </PackageReference>  
+```
 
 For different .NET versions, you need to modify target framework in *.csproj files. Here is an example to use .net core 3.1 as target framework in Seq2SeqSharp.csproj file.  
+```xml
     <PropertyGroup>  
       <TargetFramework>netcoreapp3.1</TargetFramework>  
     </PropertyGroup>  
+```
 
 # Build Your Layers  
 Benefit from automatic differentiation, tensor based compute graph and other features, you can easily build your customized layers by a few code. The only thing you need to implment is forward part, and the framework will automatically build the corresponding backward part for you, and make the network could run on multi-GPUs or CPUs.  

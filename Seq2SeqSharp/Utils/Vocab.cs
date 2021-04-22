@@ -126,8 +126,8 @@ namespace Seq2SeqSharp
         /// Build vocabulary from training corpus
         /// </summary>
         /// <param name="trainCorpus"></param>
-        /// <param name="minFreq"></param>
-        public Vocab(IEnumerable<SntPairBatch> trainCorpus, int minFreq = 1, bool sharedVocab = false)
+        /// <param name="vocabSize"></param>
+        public Vocab(IEnumerable<SntPairBatch> trainCorpus, int vocabSize = 45000, bool sharedVocab = false)
         {
             Logger.WriteLine($"Building vocabulary from given training corpus.");
             // count up all words
@@ -170,38 +170,83 @@ namespace Seq2SeqSharp
                 }
             }
 
+            SortedDictionary<int, List<string>> s_sd = new SortedDictionary<int, List<string>>();
+            SortedDictionary<int, List<string>> t_sd = new SortedDictionary<int, List<string>>();
+
+            foreach (var kv in s_d)
+            {
+                if (s_sd.ContainsKey(kv.Value) == false)
+                {
+                    s_sd.Add(kv.Value, new List<string>());
+                }
+                s_sd[kv.Value].Add(kv.Key);
+            }
+
+            foreach (var kv in t_d)
+            {
+                if (t_sd.ContainsKey(kv.Value) == false)
+                {
+                    t_sd.Add(kv.Value, new List<string>());
+                }
+                t_sd[kv.Value].Add(kv.Key);
+            }
+
 
             int q = 3;
-            foreach (KeyValuePair<string, int> ch in s_d)
+            foreach (var kv in s_sd.Reverse())
             {
-                if (ch.Value >= minFreq && ParallelCorpus.IsPreDefinedToken(ch.Key) == false)
+                foreach (var token in kv.Value)
                 {
-                    // add word to vocab
-                    SrcWordToIndex[ch.Key] = q;
-                    m_srcIndexToWord[q] = ch.Key;
-                    m_srcVocab.Add(ch.Key);
-                    q++;
+                    if (ParallelCorpus.IsPreDefinedToken(token) == false)
+                    {
+                        // add word to vocab
+                        SrcWordToIndex[token] = q;
+                        m_srcIndexToWord[q] = token;
+                        m_srcVocab.Add(token);
+                        q++;
+
+                        if (q >= vocabSize)
+                        {
+                            break;
+                        }
+                    }
                 }
 
+                if (q >= vocabSize)
+                {
+                    break;
+                }
             }
-            Logger.WriteLine($"Source language Max term id = '{q}'");
 
+            Logger.WriteLine($"Original source vocabulary size = '{s_d.Count}', Truncated source vocabulary size = '{q}'");
 
             q = 3;
-            foreach (KeyValuePair<string, int> ch in t_d)
+            foreach (var kv in t_sd.Reverse())
             {
-                if (ch.Value >= minFreq && ParallelCorpus.IsPreDefinedToken(ch.Key) == false)
+                foreach (var token in kv.Value)
                 {
-                    // add word to vocab
-                    TgtWordToIndex[ch.Key] = q;
-                    m_tgtIndexToWord[q] = ch.Key;
-                    m_tgtVocab.Add(ch.Key);
-                    q++;
+                    if (ParallelCorpus.IsPreDefinedToken(token) == false)
+                    {
+                        // add word to vocab
+                        TgtWordToIndex[token] = q;
+                        m_tgtIndexToWord[q] = token;
+                        m_tgtVocab.Add(token);
+                        q++;
+
+                        if (q >= vocabSize)
+                        {
+                            break;
+                        }
+                    }
                 }
 
+                if (q >= vocabSize)
+                {
+                    break;
+                }
             }
 
-            Logger.WriteLine($"Target language Max term id = '{q}'");
+            Logger.WriteLine($"Original target vocabulary size = '{s_d.Count}', Truncated target vocabulary size = '{q}'");
         }
 
 
