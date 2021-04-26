@@ -219,7 +219,7 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public IWeightTensor Mul(IWeightTensor w, float v, bool inPlace = false)
+        public IWeightTensor Mul(IWeightTensor w, float v, bool inPlace = false, bool runGradient = true)
         {
             WeightTensor m = w as WeightTensor;
             WeightTensor res = null;
@@ -237,7 +237,7 @@ namespace Seq2SeqSharp.Tools
 
             Ops.Mul(res.TWeight, m.TWeight, v);
 
-            if (m_needsBackprop)
+            if (m_needsBackprop && runGradient)
             {
                 Action backward = () =>
                 {
@@ -795,6 +795,23 @@ namespace Seq2SeqSharp.Tools
             Tensor argMaxT = Ops.Argmax(null, m.TWeight, dim);
 
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(argMaxT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Argmax", graphToBind: this);
+            res.TWeight = argMaxT;
+
+            if (m_needsBackprop)
+            {
+                throw new NotSupportedException($"Argmax operation doesn't support back propagation.");
+            }
+
+            return res;
+        }
+
+
+        public IWeightTensor Max(IWeightTensor w, int dim)
+        {
+            WeightTensor m = w as WeightTensor;
+            Tensor argMaxT = Ops.Max(null, m.TWeight, dim);
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(argMaxT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Max", graphToBind: this);
             res.TWeight = argMaxT;
 
             if (m_needsBackprop)

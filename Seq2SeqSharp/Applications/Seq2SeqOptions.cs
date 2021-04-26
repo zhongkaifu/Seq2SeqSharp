@@ -92,6 +92,9 @@ namespace Seq2SeqSharp
         [Arg("The weights optimizer during training. It supports Adam and RMSProp. Adam is default", "Optimizer")]
         public string Optimizer = "Adam";
 
+        [Arg("It indicates if output alignment between target tokens and source tokens", "OutputAlignment")]
+        public bool OutputAlignment = false;
+
         [Arg("The test result file.", "OutputFile")]
         public string OutputFile = null;
 
@@ -105,7 +108,7 @@ namespace Seq2SeqSharp
         public int ShuffleBlockSize = -1;
 
         [Arg("Type of shuffling. It could be NoPaddingInSrc, NoPaddingInTgt and Random", "ShuffleType")]
-        public string ShuffleType = "NoPaddingInSrc";
+        public string ShuffleType = "Random";
 
         [Arg("The embedding dim in source side", "SrcEmbeddingDim")]
         public int SrcEmbeddingDim = 128;

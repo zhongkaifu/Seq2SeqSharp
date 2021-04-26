@@ -5,9 +5,22 @@ using System.Linq;
 
 namespace Seq2SeqSharp
 {
+    public class Alignment
+    {
+        public int SrcPos;
+        public float Score;
+
+        public Alignment(int srcPos, float score)
+        {
+            SrcPos = srcPos;
+            Score = score;
+        }
+    }
+
     public class BeamSearchStatus
     {
         public List<int> OutputIds;
+        public List<Alignment> AlignmentToSrc;
         public float Score;
 
         public List<IWeightTensor> HTs;
@@ -16,6 +29,7 @@ namespace Seq2SeqSharp
         public BeamSearchStatus()
         {
             OutputIds = new List<int>();
+            AlignmentToSrc = new List<Alignment>();
             HTs = new List<IWeightTensor>();
             CTs = new List<IWeightTensor>();
 

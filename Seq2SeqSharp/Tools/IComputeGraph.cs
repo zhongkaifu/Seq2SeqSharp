@@ -33,7 +33,7 @@ namespace Seq2SeqSharp
         (IWeightTensor r1, IWeightTensor r2, IWeightTensor r3) SplitColumns(IWeightTensor w, int size1, int size2, int size3);
         IWeightTensor ConcatRows(List<IWeightTensor> wl);
         IWeightTensor Transpose(IWeightTensor w);
-        IWeightTensor Mul(IWeightTensor w, float v, bool inPlace = false);
+        IWeightTensor Mul(IWeightTensor w, float v, bool inPlace = false, bool runGradient = true);
         IWeightTensor LayerNorm(IWeightTensor src, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-9f);
         IWeightTensor AddLayerNorm(IWeightTensor src1, IWeightTensor src2, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-09f);
 
@@ -42,6 +42,7 @@ namespace Seq2SeqSharp
         void VisualizeNeuralNetToFile(string neuralNetPicFilePath);
         IWeightFactory GetWeightFactory();
 
+        IWeightTensor Max(IWeightTensor w, int dim);
         IWeightTensor Argmax(IWeightTensor w, int dim);
 
         IWeightTensor IndexSelect(IWeightTensor s, float[] idxs);

@@ -94,7 +94,7 @@ namespace Seq2SeqSharp
 
         public List<List<string>> Test(List<List<string>> inputTokens)
         {
-            var rst = RunTest(inputTokens, RunForwardOnSingleDevice);
+            (var rst, var alignment) = RunTest(inputTokens, RunForwardOnSingleDevice);
 
             return rst[0];
         }

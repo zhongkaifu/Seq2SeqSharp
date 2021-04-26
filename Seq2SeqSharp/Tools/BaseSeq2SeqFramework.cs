@@ -17,7 +17,7 @@ namespace Seq2SeqSharp.Tools
     {
         public float Cost;
         public List<List<List<string>>> Beam2Batch2Output; // (beam_size, batch_size, seq_len)
-
+        public List<List<List<Alignment>>> Beam2Batch2Alignment; // (beam_size, batch_size, seq_len)
 
         public void RemoveDuplicatedEOS()
         {
@@ -393,11 +393,14 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        internal List<List<List<string>>> RunTest(List<List<string>> inputTokens, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice)
+        internal (List<List<List<string>>>, List<List<List<Alignment>>>) RunTest(List<List<string>> inputTokens, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice)
         {
             List<List<string>> hypTkns = new List<List<string>>();
-            hypTkns.Add(new List<string>());
-            hypTkns[0].Add(ParallelCorpus.BOS);
+
+            for (int i = 0; i < inputTokens.Count; i++)
+            {
+                hypTkns.Add(new List<string>() { ParallelCorpus.BOS });
+            }
 
             NetworkResult nr = null;
             try
@@ -415,7 +418,7 @@ namespace Seq2SeqSharp.Tools
                 throw err;
             }
 
-            return nr.Beam2Batch2Output;
+            return (nr.Beam2Batch2Output, nr.Beam2Batch2Alignment);
         }
 
         /// <summary>

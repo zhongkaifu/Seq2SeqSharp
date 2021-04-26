@@ -7,8 +7,10 @@ using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace Seq2SeqConsole
 {
@@ -151,22 +153,47 @@ namespace Seq2SeqConsole
                     Logger.WriteLine($"Max source sentence length: '{opts.MaxSrcSentLength}'");
                     Logger.WriteLine($"Max target sentence length: '{opts.MaxTgtSentLength}'");
                     Logger.WriteLine($"Beam search size: '{opts.BeamSearchSize}'");
+                    Logger.WriteLine($"Batch size: '{opts.BatchSize}'");
+                    Logger.WriteLine($"Shuffle type: '{opts.ShuffleType}'");
 
                     //Test trained model
                     ss = new Seq2Seq(opts);
-
+                
                     List<string> outputLines = new List<string>();
+                    List<string> alignments = new List<string>();
+                    List<List<string>> inputBatchs = new List<List<string>>();
+
                     string[] data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
+
+                    Stopwatch stopwatch = Stopwatch.StartNew();
                     foreach (string line in data_sents_raw1)
                     {
-                        var outputBeamTokensBatch = ss.Test(ParallelCorpus.ConstructInputTokens(line.Trim().Split(' ').ToList()));
-                        foreach (var outputTokensBatch in outputBeamTokensBatch)
+                        string nline = $"{ParallelCorpus.BOS} {line} {ParallelCorpus.EOS}";
+                        inputBatchs.Add(nline.Trim().Split(' ').ToList());
+
+                        if (inputBatchs.Count >= opts.BatchSize)
                         {
-                            outputLines.AddRange(outputTokensBatch.Select(x => String.Join(" ", x)));
+                            RunBatchTest(opts, ss, outputLines, alignments, inputBatchs);
+
+                            inputBatchs.Clear();
                         }
                     }
 
+                    if (inputBatchs.Count > 0)
+                    {
+                        RunBatchTest(opts, ss, outputLines, alignments, inputBatchs);
+                    }
+
+                    stopwatch.Stop();
+
+                    Logger.WriteLine($"Test mode execution time elapsed: '{stopwatch.Elapsed}'");
+
                     File.WriteAllLines(opts.OutputFile, outputLines);
+
+                    if (opts.OutputAlignment)
+                    {
+                        File.WriteAllLines(opts.OutputFile + ".alignment", alignments);
+                    }
                 }
                 else if (mode == ModeEnums.DumpVocab)
                 {
@@ -182,6 +209,33 @@ namespace Seq2SeqConsole
             {
                 Logger.WriteLine($"Exception: '{err.Message}'");
                 Logger.WriteLine($"Call stack: '{err.StackTrace}'");
+            }
+        }
+
+        private static void RunBatchTest(Seq2SeqOptions opts, Seq2Seq ss, List<string> outputLines, List<string> alignments, List<List<string>> inputBatchs)
+        {
+            (var outputBeamTokensBatch, var alignmentBeamTokensBatch) = ss.Test(inputBatchs); // shape [beam size, batch size, tgt token size]
+            for (int batchIdx = 0; batchIdx < opts.BatchSize; batchIdx++)
+            {
+                for (int beamIdx = 0; beamIdx < outputBeamTokensBatch.Count; beamIdx++)
+                {
+                    outputLines.Add(String.Join(" ", outputBeamTokensBatch[beamIdx][batchIdx]));
+
+                    if (opts.OutputAlignment)
+                    {
+                        StringBuilder sb = new StringBuilder();
+                        for (int tgtTknIdx = 0; tgtTknIdx < outputBeamTokensBatch[beamIdx][batchIdx].Count; tgtTknIdx++)
+                        {
+                            int srcIdx = alignmentBeamTokensBatch[beamIdx][batchIdx][tgtTknIdx].SrcPos;
+                            float score = alignmentBeamTokensBatch[beamIdx][batchIdx][tgtTknIdx].Score;
+                            sb.Append($"{outputBeamTokensBatch[beamIdx][batchIdx][tgtTknIdx]}_{inputBatchs[batchIdx][srcIdx]}_{score}");
+                            sb.Append(" ");
+                        }
+
+                        alignments.Add(sb.ToString().Trim());
+                    }
+                }
+
             }
         }
 
