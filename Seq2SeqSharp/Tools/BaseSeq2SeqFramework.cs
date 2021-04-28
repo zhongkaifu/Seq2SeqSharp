@@ -148,6 +148,9 @@ namespace Seq2SeqSharp.Tools
                 LoadParameters(fs);
             }
 
+            //For multi-GPUs, copying weights from default device to other all devices
+            CopyWeightsFromDefaultDeviceToAllOtherDevices();
+
             return modelMetaData;
         }
 
@@ -393,32 +396,130 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        internal (List<List<List<string>>>, List<List<List<Alignment>>>) RunTest(List<List<string>> inputTokens, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice)
+        internal (List<List<List<string>>>, List<List<List<Alignment>>>) RunTest(List<List<string>> inputTokens, int beamSearchSize, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice)
         {
-            List<List<string>> hypTkns = new List<List<string>>();
-
-            for (int i = 0; i < inputTokens.Count; i++)
-            {
-                hypTkns.Add(new List<string>() { ParallelCorpus.BOS });
-            }
-
-            NetworkResult nr = null;
             try
             {
-                // Create a new computing graph instance
-                using (IComputeGraph computeGraph = CreateComputGraph(DeviceIds[0], needBack: false))
+                List<List<List<string>>> beam2batch2tgtTkns = new List<List<List<string>>>();
+                List<List<List<Alignment>>> beam2batch2aligns = new List<List<List<Alignment>>>();
+                for (int i = 0; i < beamSearchSize; i++)
                 {
-                    // Run forward part
-                    nr = ForwardOnSingleDevice(computeGraph, inputTokens, hypTkns, DeviceIds[0], false);
+                    beam2batch2tgtTkns.Add(new List<List<string>>());
+                    beam2batch2tgtTkns[i] = new List<List<string>>();
+
+                    beam2batch2aligns.Add(new List<List<Alignment>>());
+                    beam2batch2aligns[i] = new List<List<Alignment>>();
+
+                    for (int j = 0; j < inputTokens.Count; j++)
+                    {
+                        beam2batch2tgtTkns[i].Add(new List<string>());
+                        beam2batch2aligns[i].Add(new List<Alignment>());
+                    }
                 }
+
+                int dataSizePerGPU = inputTokens.Count / m_deviceIds.Length;
+                int dataSizePerGPUMod = inputTokens.Count % m_deviceIds.Length;
+
+                if (dataSizePerGPU > 0)
+                {
+                    Parallel.For(0, m_deviceIds.Length, gpuIdx =>
+                    {
+                        try
+                        {
+                            List<List<string>> hypTkns = new List<List<string>>();
+                            for (int i = 0; i < dataSizePerGPU; i++)
+                            {
+                                hypTkns.Add(new List<string>() { ParallelCorpus.BOS });
+                            }
+
+                            List<List<string>> inputTkns_gpu = inputTokens.GetRange(gpuIdx * dataSizePerGPU, dataSizePerGPU);
+                            //lock (locker)
+                            //{
+                            //    var inputTkns_tmp = inputTokens.GetRange(gpuIdx * dataSizePerGPU, dataSizePerGPU);
+
+                            //    for (int i = 0; i < inputTkns_tmp.Count; i++)
+                            //    {
+                            //        inputTkns_gpu.Add(new List<string>());
+                            //        for (int j = 0; j < inputTkns_tmp[i].Count; j++)
+                            //        {
+                            //            inputTkns_gpu[i].Add(inputTkns_tmp[i][j]);
+                            //        }
+                            //    }
+                            //}
+
+                            NetworkResult nr = null;
+                            // Create a new computing graph instance
+                            using (IComputeGraph computeGraph = CreateComputGraph(gpuIdx, needBack: false))
+                            {
+                                // Run forward part
+                                nr = ForwardOnSingleDevice(computeGraph, inputTkns_gpu, hypTkns, gpuIdx, false);
+                            }
+
+                     //       lock (locker)
+                     //       {
+                                for (int j = 0; j < beamSearchSize; j++)
+                                {
+                                    for (int i = 0; i < dataSizePerGPU; i++)
+                                    {
+                                        beam2batch2tgtTkns[j][gpuIdx * dataSizePerGPU + i] = nr.Beam2Batch2Output[j][i];
+                                        beam2batch2aligns[j][gpuIdx * dataSizePerGPU + i] = nr.Beam2Batch2Alignment[j][i];
+                                    }
+                                }
+                       //     }
+                        }
+                        catch (Exception err)
+                        {
+                            Logger.WriteLine(Logger.Level.err, $"Test error at processor '{gpuIdx}'. Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                            throw err;
+                        }
+                    });
+                }
+
+                if (dataSizePerGPUMod > 0)
+                {
+                    List<List<string>> hypTkns = new List<List<string>>();
+                    for (int i = 0; i < dataSizePerGPUMod; i++)
+                    {
+                        hypTkns.Add(new List<string>() { ParallelCorpus.BOS });
+                    }
+
+
+                    List<List<string>> inputTkns_gpu = inputTokens.GetRange(m_deviceIds.Length * dataSizePerGPU, dataSizePerGPUMod);
+                    //var inputTkns_tmp = inputTokens.GetRange(m_deviceIds.Length * dataSizePerGPU, dataSizePerGPUMod);
+                    //for (int i = 0; i < inputTkns_tmp.Count; i++)
+                    //{
+                    //    inputTkns_gpu.Add(new List<string>());
+                    //    for (int j = 0; j < inputTkns_tmp[i].Count; j++)
+                    //    {
+                    //        inputTkns_gpu[i].Add(inputTkns_tmp[i][j]);
+                    //    }
+                    //}
+
+                    NetworkResult nr = null;
+                    // Create a new computing graph instance
+                    using (IComputeGraph computeGraph = CreateComputGraph(0, needBack: false))
+                    {
+                        // Run forward part
+                        nr = ForwardOnSingleDevice(computeGraph, inputTkns_gpu, hypTkns, 0, false);
+                    }
+
+                    for (int j = 0; j < beamSearchSize; j++)
+                    {
+                        for (int i = 0; i < dataSizePerGPUMod; i++)
+                        {
+                            beam2batch2tgtTkns[j][m_deviceIds.Length * dataSizePerGPU + i] = nr.Beam2Batch2Output[j][i];
+                            beam2batch2aligns[j][m_deviceIds.Length * dataSizePerGPU + i] = nr.Beam2Batch2Alignment[j][i];
+                        }
+                    }
+                }
+
+                return (beam2batch2tgtTkns, beam2batch2aligns);
             }
             catch (Exception err)
             {
                 Logger.WriteLine(Logger.Level.err, $"Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
                 throw err;
             }
-
-            return (nr.Beam2Batch2Output, nr.Beam2Batch2Alignment);
         }
 
         /// <summary>
@@ -441,6 +542,8 @@ namespace Seq2SeqSharp.Tools
             {
                 metric.ClearStatus();
             }
+
+            CopyWeightsFromDefaultDeviceToAllOtherDevices();
 
             List<SntPairBatch> sntPairBatchs = new List<SntPairBatch>();
             foreach (SntPairBatch item in validCorpus)

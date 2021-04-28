@@ -222,9 +222,9 @@ namespace Seq2SeqSharp
             RunValid(validCorpus, RunForwardOnSingleDevice, metrics, true);
         }
 
-        public (List<List<List<string>>>, List<List<List<Alignment>>>) Test(List<List<string>> inputTokens)
+        public (List<List<List<string>>>, List<List<List<Alignment>>>) Test(List<List<string>> inputTokens, int beamSearchSize)
         {
-            return RunTest(inputTokens, RunForwardOnSingleDevice);
+            return RunTest(inputTokens, beamSearchSize, RunForwardOnSingleDevice);
         }
 
         /// <summary>

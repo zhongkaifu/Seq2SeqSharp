@@ -125,8 +125,8 @@ namespace Seq2SeqSharp
         [Arg("Start Learning rate.", "StartLearningRate")]
         public float StartLearningRate = 0.0003f;
 
-        [Arg("Task name. It could be Train, Valid, Test, DumpVocab or Help", "TaskName")]
-        public string TaskName = "Help";
+        [Arg("Task to execute. It could be Train, Valid, Test, DumpVocab or Help", "Task")]
+        public string Task = "Help";
 
         [Arg("The embedding dim in target side", "TgtEmbeddingDim")]
         public int TgtEmbeddingDim = 128;

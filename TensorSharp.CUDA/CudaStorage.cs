@@ -125,6 +125,8 @@ namespace TensorSharp.CUDA
 
         public override void SetElementsAsFloat(long index, float[] value)
         {
+            context.SetCurrent();
+
             CUdeviceptr ptr = DevicePtrAtElement(index);
 
             if (ElementType == DType.Float32) { context.CopyToDevice(ptr, value); }

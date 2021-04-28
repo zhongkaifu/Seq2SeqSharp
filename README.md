@@ -14,8 +14,8 @@ Graph based neural network
 Automatic differentiation  
 Tensor based operations  
 Running on both CPUs and GPUs (CUDA)  
-Support Tensor Cores  
-Support multi-GPUs  
+Support tensor cores  
+Support multi-GPUs for training, validation and test  
 Optimized CUDA memory management for higher performance  
 Mini-batch  
 Dropout  
@@ -25,6 +25,7 @@ Built-in metrics and extendable, such as BLEU score, Length ratio, F1 score and 
 Auto data shuffling  
 Auto vocabulary building  
 Beam search decoder  
+Attention alignment generation between source side and target side  
 Visualize neural network  
 
 # Architecture  
@@ -40,7 +41,7 @@ Seq2SeqSharp provides two console tools that you can run for sequence-to-sequenc
 
 You can use Seq2SeqConsole tool to train, test and visualize models.  
 Here is the command line to train a model:  
-**Seq2SeqConsole.exe -TaskName Train [parameters...]**  
+**Seq2SeqConsole.exe -Task Train [parameters...]**  
 Parameters:  
 **-SrcEmbeddingDim**: The embedding dim of source side. Default is 128  
 **-TgtEmbeddingDim**: The embedding dim of target side. Default is 128  
@@ -78,24 +79,24 @@ Note that:
   1) if "-SrcVocab" and "-TgtVocab" are empty, vocabulary will be built from training corpus.  
   2) Txt2Vec for external embedding model building can get downloaded from https://github.com/zhongkaifu/Txt2Vec  
 
-Example: Seq2SeqConsole.exe -TaskName Train -SrcEmbeddingDim 512 -TgtEmbeddingDim 512 -HiddenSize 512 -LearningRate 0.002 -ModelFilePath seq2seq.model -TrainCorpusPath .\corpus -ValidCorpusPath .\corpus_valid -SrcLang ENU -TgtLang CHS -BatchSize 256 -ProcessorType GPU -EncoderType Transformer -EncoderLayerDepth 6 -DecoderLayerDepth 2 -MultiHeadNum 8 -DeviceIds 0,1,2,3,4,5,6,7  
+Example: Seq2SeqConsole.exe -Task Train -SrcEmbeddingDim 512 -TgtEmbeddingDim 512 -HiddenSize 512 -LearningRate 0.002 -ModelFilePath seq2seq.model -TrainCorpusPath .\corpus -ValidCorpusPath .\corpus_valid -SrcLang ENU -TgtLang CHS -BatchSize 256 -ProcessorType GPU -EncoderType Transformer -EncoderLayerDepth 6 -DecoderLayerDepth 2 -MultiHeadNum 8 -DeviceIds 0,1,2,3,4,5,6,7  
 
 During training, the iteration information will be printed out and logged as follows:  
 info,9/26/2019 3:38:24 PM Update = '15600' Epoch = '0' LR = '0.002000', Current Cost = '2.817434', Avg Cost = '3.551963', SentInTotal = '31948800', SentPerMin = '52153.52', WordPerSec = '39515.27'  
 info,9/26/2019 3:42:28 PM Update = '15700' Epoch = '0' LR = '0.002000', Current Cost = '2.800056', Avg Cost = '3.546863', SentInTotal = '32153600', SentPerMin = '52141.86', WordPerSec = '39523.83'  
 
 Here is the command line to valid models  
-**Seq2SeqConsole.exe -TaskName Valid [parameters...]**  
+**Seq2SeqConsole.exe -Task Valid [parameters...]**  
 Parameters:  
 **-ModelFilePath**: The trained model file path.  
 **-SrcLang**: Source language name.  
 **-TgtLang**: Target language name.  
 **-ValidCorpusPath**: valid corpus folder path  
 
-Example: Seq2SeqConsole.exe -TaskName Valid -ModelFilePath seq2seq.model -SrcLang ENU -TgtLang CHS -ValidCorpusPath .\corpus_valid  
+Example: Seq2SeqConsole.exe -Task Valid -ModelFilePath seq2seq.model -SrcLang ENU -TgtLang CHS -ValidCorpusPath .\corpus_valid  
 
 Here is the command line to test models  
-**Seq2SeqConsole.exe -TaskName Test [parameters...]**  
+**Seq2SeqConsole.exe -Task Test [parameters...]**  
 Parameters:  
 **-InputTestFile**: The input file for test.  
 **-OutputFile**: The test result file.  
@@ -106,17 +107,17 @@ Parameters:
 **-MaxSrcSentLength**: Maxmium sentence length on source side. Default is 32 tokens  
 **-MaxTgtSentLength**: Maxmium sentence length on target side. Default is 32 tokens  
 
-Example: Seq2SeqConsole.exe -TaskName Test -ModelFilePath seq2seq.model -InputTestFile test.txt -OutputFile result.txt -ProcessorType CPU -BeamSearchSize 5 -MaxSrcSentLength 100 -MaxTgtSentLength 100  
+Example: Seq2SeqConsole.exe -Task Test -ModelFilePath seq2seq.model -InputTestFile test.txt -OutputFile result.txt -ProcessorType CPU -BeamSearchSize 5 -MaxSrcSentLength 100 -MaxTgtSentLength 100  
 
 Here is the command line to visualize network  
-**Seq2SeqConsole.exe -TaskName VisualizeNetwork [parameters...]**  
+**Seq2SeqConsole.exe -Task VisualizeNetwork [parameters...]**  
 Parameters:  
 **-VisNNFile**: The output PNG file to visualize network  
 **-EncoderType**: The type of encoder. BiLSTM and Transformer are built-in and you can implement your own network and visualize it  
 **-EncoderLayerDepth**: The network depth in encoder. The default depth is 1.  
 **-DecoderLayerDepth**: The network depth in decoder. The default depth is 1.  
 
-Example: Seq2SeqConsole.exe -TaskName VisualizeNetwork -VisNNFile abc.png -EncoderType Transformer -EncoderLayerDepth 2 -DecoderLayerDepth 2  
+Example: Seq2SeqConsole.exe -Task VisualizeNetwork -VisNNFile abc.png -EncoderType Transformer -EncoderLayerDepth 2 -DecoderLayerDepth 2  
 
 Then it will visualize the network looks like below:  
 ![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/NetworkViz.png)
@@ -156,7 +157,7 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
         "SrcLang":"ENU",
         "SrcVocab":null,
         "StartLearningRate":0.0004,
-        "TaskName":"Train",        
+        "Task":"Train",        
         "TgtEmbeddingDim":512,    
         "TgtEmbeddingModelFilePath":null,
         "TgtLang":"CHS",
@@ -192,7 +193,7 @@ S_ORG S_NOR S_NOR S_NOR S_LOC S_NOR
 B_PER E_PER S_NOR S_NOR S_NOR S_NOR S_NOR S_NOR  
 
 # Release Package  
-You can download the release package from (here)[https://github.com/zhongkaifu/Seq2SeqSharp/releases/tag/20210125] . The release package includes Seq2SeqSharp binary files, model file and test files. The model was trained for English to Chinese translation. It's an encoder-decoder model using 4 Transformer layers (hidden dim: 512, embedding dim: 512). The training config file is also included in the package. Test input file contains one English sentence per line, and the test reference file has one Chinese sentence per line. All sentences were already encoded to subwords by SentencePiece, so the package also includes the model and vocabulary of SentencePiece.  
+You can download the release package from (here)[https://github.com/zhongkaifu/Seq2SeqSharp/releases/tag/20210125] . The release package includes Seq2SeqSharp binary files, model files and test files. For models, the release package includes many different models trained by Seq2SeqSharp, such as machine translation models between English and Chinese, Japanese, German, question-answer model for medical domain in Chinese and others. These models were trained using Transformer layers. The training config files are also included in the package. Test input file contains one sentence per line, and the corresponding reference file has one sentence per line. All sentences were already encoded to subwords by SentencePiece, so the package also includes the model and vocabulary of SentencePiece.  
 
 
 (SentencePiece)[https://github.com/google/sentencepiece] is a subword level tokenization tool from Google. Given raw text, it can build model and vocabulary at subword level, encode text from word level to subword level or decode subword text back to word level. Subword level tokenization could significantly reduce vocabulary size which is useful for OOV and decoding performance improvement for many systems, especially low resource systems. Subword level tokenization and SentencePiece are optional for Seq2SeqSharp. You can tokenize input text to any type of tokens and send them to Seq2SeqSharp or let Seq2SeqSharp generate them.  

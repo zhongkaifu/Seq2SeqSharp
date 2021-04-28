@@ -59,7 +59,7 @@ namespace Seq2SeqConsole
                 }
 
                 Seq2Seq ss = null;
-                ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.TaskName);
+                ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.Task);
                 ShuffleEnums shuffleType = (ShuffleEnums)Enum.Parse(typeof(ShuffleEnums), opts.ShuffleType);
 
                 if (mode == ModeEnums.Train)
@@ -155,6 +155,8 @@ namespace Seq2SeqConsole
                     Logger.WriteLine($"Beam search size: '{opts.BeamSearchSize}'");
                     Logger.WriteLine($"Batch size: '{opts.BatchSize}'");
                     Logger.WriteLine($"Shuffle type: '{opts.ShuffleType}'");
+                    Logger.WriteLine($"Device ids: '{opts.DeviceIds}'");
+
 
                     //Test trained model
                     ss = new Seq2Seq(opts);
@@ -162,16 +164,14 @@ namespace Seq2SeqConsole
                     List<string> outputLines = new List<string>();
                     List<string> alignments = new List<string>();
                     List<List<string>> inputBatchs = new List<List<string>>();
-
-                    string[] data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
-
+                 
                     Stopwatch stopwatch = Stopwatch.StartNew();
-                    foreach (string line in data_sents_raw1)
+                    foreach (string line in File.ReadLines(opts.InputTestFile))
                     {
                         string nline = $"{ParallelCorpus.BOS} {line} {ParallelCorpus.EOS}";
                         inputBatchs.Add(nline.Trim().Split(' ').ToList());
 
-                        if (inputBatchs.Count >= opts.BatchSize)
+                        if (inputBatchs.Count >= opts.BatchSize * ss.DeviceIds.Length)
                         {
                             RunBatchTest(opts, ss, outputLines, alignments, inputBatchs);
 
@@ -214,8 +214,8 @@ namespace Seq2SeqConsole
 
         private static void RunBatchTest(Seq2SeqOptions opts, Seq2Seq ss, List<string> outputLines, List<string> alignments, List<List<string>> inputBatchs)
         {
-            (var outputBeamTokensBatch, var alignmentBeamTokensBatch) = ss.Test(inputBatchs); // shape [beam size, batch size, tgt token size]
-            for (int batchIdx = 0; batchIdx < opts.BatchSize; batchIdx++)
+            (var outputBeamTokensBatch, var alignmentBeamTokensBatch) = ss.Test(inputBatchs, opts.BeamSearchSize); // shape [beam size, batch size, tgt token size]
+            for (int batchIdx = 0; batchIdx < inputBatchs.Count; batchIdx++)
             {
                 for (int beamIdx = 0; beamIdx < outputBeamTokensBatch.Count; beamIdx++)
                 {
@@ -228,7 +228,7 @@ namespace Seq2SeqConsole
                         {
                             int srcIdx = alignmentBeamTokensBatch[beamIdx][batchIdx][tgtTknIdx].SrcPos;
                             float score = alignmentBeamTokensBatch[beamIdx][batchIdx][tgtTknIdx].Score;
-                            sb.Append($"{outputBeamTokensBatch[beamIdx][batchIdx][tgtTknIdx]}_{inputBatchs[batchIdx][srcIdx]}_{score}");
+                            sb.Append($"{tgtTknIdx}_{srcIdx}_{score}");
                             sb.Append(" ");
                         }
 
@@ -242,7 +242,7 @@ namespace Seq2SeqConsole
         private static void ShowOptions(string[] args)
         {
             string commandLine = string.Join(" ", args);
-            Logger.WriteLine($"Seq2SeqSharp v2.2.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
+            Logger.WriteLine($"Seq2SeqSharp v2.3.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
             Logger.WriteLine($"Command Line = '{commandLine}'");
         }
     }
