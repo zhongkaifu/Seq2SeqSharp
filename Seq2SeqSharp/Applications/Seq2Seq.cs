@@ -306,7 +306,7 @@ namespace Seq2SeqSharp
                             {
                                 (var cost2, var bssSeqList) = DecodeTransformer(batch2tgtTokens, g, encOutput, decoder as TransformerDecoder, tgtEmbedding, posEmbedding, 
                                                                                 m_shuffleType == ShuffleEnums.NoPaddingInSrc ? null : originalSrcLengths, isTraining, beamSearchSize: m_options.BeamSearchSize, 
-                                                                                outputAlignmentSrcPos: m_options.OutputAlignment);
+                                                                                outputAlignmentSrcPos: m_options.OutputAlignment, outputSentScore: m_options.BeamSearchSize > 1);
 
                                 for (int j = 0; j < m_options.BeamSearchSize; j++)
                                 {
@@ -319,10 +319,13 @@ namespace Seq2SeqSharp
 
                         }
 
-                        // Keep top N result and drop all others
-                        for (int k = 0; k < batchSize; k++)
+                        if (m_options.BeamSearchSize > 1)
                         {
-                            batch2beam2seq[k] = BeamSearch.GetTopNBSS(batch2beam2seq[k], m_options.BeamSearchSize);
+                            // Keep top N result and drop all others
+                            for (int k = 0; k < batchSize; k++)
+                            {
+                                batch2beam2seq[k] = BeamSearch.GetTopNBSS(batch2beam2seq[k], m_options.BeamSearchSize);
+                            }
                         }
 
                         beam2batch2tgtTokens.Clear();
@@ -391,7 +394,7 @@ namespace Seq2SeqSharp
 
 
         private (float, List<List<BeamSearchStatus>>) DecodeTransformer(List<List<int>> tgtSeqs, IComputeGraph g, IWeightTensor encOutputs, TransformerDecoder decoder,
-            IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, List<int> srcOriginalLenghts, bool isTraining = true, int beamSearchSize = 1, bool outputAlignmentSrcPos = false)
+            IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, List<int> srcOriginalLenghts, bool isTraining = true, int beamSearchSize = 1, bool outputAlignmentSrcPos = false, bool outputSentScore = true)
         {
             int eosTokenId = m_modelMetaData.Vocab.GetTargetWordIndex(ParallelCorpus.EOS, logUnk: true);
             float cost = 0.0f;
@@ -441,10 +444,14 @@ namespace Seq2SeqSharp
                 {
                     // Output "i"th target word
                     var targetIdxTensor = g.Argmax(probs, 1);
-                    var gatherTensor = g.Gather(probs, targetIdxTensor, 1);
-                    gatherTensor = g.Log(gatherTensor);
-                    gatherTensor = g.View(gatherTensor, false, new long[] {batchSize, tgtSeqLen, 1 });
-                    gatherTensor = g.Sum(gatherTensor, 1, runGradient: false);
+                    IWeightTensor gatherTensor = null;
+                    if (outputSentScore)
+                    {
+                        gatherTensor = g.Gather(probs, targetIdxTensor, 1);
+                        gatherTensor = g.Log(gatherTensor);
+                        gatherTensor = g.View(gatherTensor, false, new long[] { batchSize, tgtSeqLen, 1 });
+                        gatherTensor = g.Sum(gatherTensor, 1, runGradient: false);
+                    }
 
                     float[] targetIdx = targetIdxTensor.ToWeightArray();
                     float[] alignmentSrcPos = null;
@@ -463,16 +470,13 @@ namespace Seq2SeqSharp
                     for (int i = 0; i < batchSize; i++)
                     {
                         BeamSearchStatus bss = new BeamSearchStatus();
+                        bss.OutputIds.AddRange(tgtSeqs[i]);
+                        bss.OutputIds.Add((int)(targetIdx[i * tgtSeqLen + tgtSeqLen - 1]));
 
-                        bss.OutputIds.Add((int)(tgtSeqs[i][0]));
-                        for (int j = 0; j < tgtSeqLen; j++)
+                        if (outputSentScore)
                         {
-                            bss.OutputIds.Add((int)(targetIdx[i * tgtSeqLen + j]));
+                            bss.Score = -1.0f * gatherTensor.GetWeightAt(new long[] { i, 0, 0 });
                         }
-
-                        //bss.OutputIds.AddRange(tgtSeqs[i]);
-                        //bss.OutputIds.Add((int)(targetIdx[i * tgtSeqLen + tgtSeqLen - 1]));
-                        bss.Score = -1.0f * gatherTensor.GetWeightAt(new long[] {i, 0, 0 });
 
                         if (outputAlignmentSrcPos)
                         {

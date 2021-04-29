@@ -1374,10 +1374,6 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-
-
-
-
         public IWeightTensor Expand(IWeightTensor w, bool runGradient = true, params long[] dims)
         {
 
@@ -1642,12 +1638,6 @@ namespace Seq2SeqSharp.Tools
             {
                 for (int i = 0; i < originalLengths[k]; i++)
                 {
-                    //for (int j = 0; j < originalLengths[k]; j++)
-                    //{
-                    //    buf[k * (paddedLength * paddedLength) + i * paddedLength + j] = 0.0f;
-                    //}
-
-
                     Array.Fill(buf, 0.0f, k * (paddedLength * paddedLength) + i * paddedLength, originalLengths[k]);
                 }
             }

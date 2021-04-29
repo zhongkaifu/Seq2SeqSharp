@@ -58,6 +58,9 @@ namespace Seq2SeqConsole
                     opts = JsonConvert.DeserializeObject<Seq2SeqOptions>(File.ReadAllText(opts.ConfigFilePath));
                 }
 
+                string strOpts = JsonConvert.SerializeObject(opts);
+                Logger.WriteLine($"Configs: {strOpts}");
+
                 Seq2Seq ss = null;
                 ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.Task);
                 ShuffleEnums shuffleType = (ShuffleEnums)Enum.Parse(typeof(ShuffleEnums), opts.ShuffleType);
@@ -158,22 +161,30 @@ namespace Seq2SeqConsole
                     Logger.WriteLine($"Device ids: '{opts.DeviceIds}'");
 
 
+                    if (File.Exists(opts.OutputFile))
+                    {
+                        Logger.WriteLine(Logger.Level.err, $"Output file '{opts.OutputFile}' exist. You should remove it before running this test.");
+                        return;
+                    }
+
                     //Test trained model
                     ss = new Seq2Seq(opts);
-                
-                    List<string> outputLines = new List<string>();
-                    List<string> alignments = new List<string>();
                     List<List<string>> inputBatchs = new List<List<string>>();
-                 
                     Stopwatch stopwatch = Stopwatch.StartNew();
                     foreach (string line in File.ReadLines(opts.InputTestFile))
                     {
-                        string nline = $"{ParallelCorpus.BOS} {line} {ParallelCorpus.EOS}";
+                        string truncatedLine = line.Length > opts.MaxSrcSentLength ? line.Substring(0, opts.MaxSrcSentLength) : line;
+                        string nline = $"{ParallelCorpus.BOS} {truncatedLine} {ParallelCorpus.EOS}";
                         inputBatchs.Add(nline.Trim().Split(' ').ToList());
 
                         if (inputBatchs.Count >= opts.BatchSize * ss.DeviceIds.Length)
                         {
-                            RunBatchTest(opts, ss, outputLines, alignments, inputBatchs);
+                            (var outputLines, var alignments) = RunBatchTest(opts, ss, inputBatchs);
+                            File.AppendAllLines(opts.OutputFile, outputLines);
+                            if (opts.OutputAlignment)
+                            {
+                                File.AppendAllLines(opts.OutputFile + ".alignment", alignments);
+                            }
 
                             inputBatchs.Clear();
                         }
@@ -181,19 +192,16 @@ namespace Seq2SeqConsole
 
                     if (inputBatchs.Count > 0)
                     {
-                        RunBatchTest(opts, ss, outputLines, alignments, inputBatchs);
+                        (var outputLines, var alignments) = RunBatchTest(opts, ss, inputBatchs);
+                        File.AppendAllLines(opts.OutputFile, outputLines);
+                        if (opts.OutputAlignment)
+                        {
+                            File.AppendAllLines(opts.OutputFile + ".alignment", alignments);
+                        }
                     }
-
                     stopwatch.Stop();
 
                     Logger.WriteLine($"Test mode execution time elapsed: '{stopwatch.Elapsed}'");
-
-                    File.WriteAllLines(opts.OutputFile, outputLines);
-
-                    if (opts.OutputAlignment)
-                    {
-                        File.WriteAllLines(opts.OutputFile + ".alignment", alignments);
-                    }
                 }
                 else if (mode == ModeEnums.DumpVocab)
                 {
@@ -212,8 +220,11 @@ namespace Seq2SeqConsole
             }
         }
 
-        private static void RunBatchTest(Seq2SeqOptions opts, Seq2Seq ss, List<string> outputLines, List<string> alignments, List<List<string>> inputBatchs)
+        private static (List<string>, List<string>) RunBatchTest(Seq2SeqOptions opts, Seq2Seq ss, List<List<string>> inputBatchs)
         {
+            List<string> outputLines = new List<string>();
+            List<string> alignments = new List<string>();
+
             (var outputBeamTokensBatch, var alignmentBeamTokensBatch) = ss.Test(inputBatchs, opts.BeamSearchSize); // shape [beam size, batch size, tgt token size]
             for (int batchIdx = 0; batchIdx < inputBatchs.Count; batchIdx++)
             {
@@ -235,8 +246,9 @@ namespace Seq2SeqConsole
                         alignments.Add(sb.ToString().Trim());
                     }
                 }
-
             }
+
+            return (outputLines, alignments);
         }
 
         private static void ShowOptions(string[] args)

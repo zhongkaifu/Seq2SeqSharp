@@ -433,20 +433,6 @@ namespace Seq2SeqSharp.Tools
                             }
 
                             List<List<string>> inputTkns_gpu = inputTokens.GetRange(gpuIdx * dataSizePerGPU, dataSizePerGPU);
-                            //lock (locker)
-                            //{
-                            //    var inputTkns_tmp = inputTokens.GetRange(gpuIdx * dataSizePerGPU, dataSizePerGPU);
-
-                            //    for (int i = 0; i < inputTkns_tmp.Count; i++)
-                            //    {
-                            //        inputTkns_gpu.Add(new List<string>());
-                            //        for (int j = 0; j < inputTkns_tmp[i].Count; j++)
-                            //        {
-                            //            inputTkns_gpu[i].Add(inputTkns_tmp[i][j]);
-                            //        }
-                            //    }
-                            //}
-
                             NetworkResult nr = null;
                             // Create a new computing graph instance
                             using (IComputeGraph computeGraph = CreateComputGraph(gpuIdx, needBack: false))
@@ -455,17 +441,14 @@ namespace Seq2SeqSharp.Tools
                                 nr = ForwardOnSingleDevice(computeGraph, inputTkns_gpu, hypTkns, gpuIdx, false);
                             }
 
-                     //       lock (locker)
-                     //       {
-                                for (int j = 0; j < beamSearchSize; j++)
+                            for (int j = 0; j < beamSearchSize; j++)
+                            {
+                                for (int i = 0; i < dataSizePerGPU; i++)
                                 {
-                                    for (int i = 0; i < dataSizePerGPU; i++)
-                                    {
-                                        beam2batch2tgtTkns[j][gpuIdx * dataSizePerGPU + i] = nr.Beam2Batch2Output[j][i];
-                                        beam2batch2aligns[j][gpuIdx * dataSizePerGPU + i] = nr.Beam2Batch2Alignment[j][i];
-                                    }
+                                    beam2batch2tgtTkns[j][gpuIdx * dataSizePerGPU + i] = nr.Beam2Batch2Output[j][i];
+                                    beam2batch2aligns[j][gpuIdx * dataSizePerGPU + i] = nr.Beam2Batch2Alignment[j][i];
                                 }
-                       //     }
+                            }
                         }
                         catch (Exception err)
                         {
@@ -485,16 +468,6 @@ namespace Seq2SeqSharp.Tools
 
 
                     List<List<string>> inputTkns_gpu = inputTokens.GetRange(m_deviceIds.Length * dataSizePerGPU, dataSizePerGPUMod);
-                    //var inputTkns_tmp = inputTokens.GetRange(m_deviceIds.Length * dataSizePerGPU, dataSizePerGPUMod);
-                    //for (int i = 0; i < inputTkns_tmp.Count; i++)
-                    //{
-                    //    inputTkns_gpu.Add(new List<string>());
-                    //    for (int j = 0; j < inputTkns_tmp[i].Count; j++)
-                    //    {
-                    //        inputTkns_gpu[i].Add(inputTkns_tmp[i][j]);
-                    //    }
-                    //}
-
                     NetworkResult nr = null;
                     // Create a new computing graph instance
                     using (IComputeGraph computeGraph = CreateComputGraph(0, needBack: false))
