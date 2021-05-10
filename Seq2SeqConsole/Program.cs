@@ -16,7 +16,19 @@ namespace Seq2SeqConsole
 {
     internal class Program
     {
-        private static void ss_IterationDone(object sender, EventArgs e)
+        private static Seq2SeqOptions opts = new Seq2SeqOptions();
+        private static void ss_EvaluationWatcher(object sender, EventArgs e)
+        {
+            EvaluationEventArg ep = e as EvaluationEventArg;
+            Logger.WriteLine(Logger.Level.info, ep.Color, ep.Message);
+
+            if (String.IsNullOrEmpty(opts.NotifyEmail) == false)
+            {
+                Email.Send(ep.Title, ep.Message, opts.NotifyEmail, new string[] { opts.NotifyEmail });
+            }
+        }
+
+        private static void ss_StatusUpdateWatcher(object sender, EventArgs e)
         {
             CostEventArg ep = e as CostEventArg;
 
@@ -49,7 +61,7 @@ namespace Seq2SeqConsole
                 ShowOptions(args);
 
                 //Parse command line
-                Seq2SeqOptions opts = new Seq2SeqOptions();
+             //   Seq2SeqOptions opts = new Seq2SeqOptions();
                 ArgParser argParser = new ArgParser(args, opts);
 
                 if (string.IsNullOrEmpty(opts.ConfigFilePath) == false)
@@ -127,7 +139,8 @@ namespace Seq2SeqConsole
                     }
 
                     // Add event handler for monitoring
-                    ss.IterationDone += ss_IterationDone;
+                    ss.StatusUpdateWatcher += ss_StatusUpdateWatcher;
+                    ss.EvaluationWatcher += ss_EvaluationWatcher;
 
                     // Kick off training
                     ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, metrics: metrics);
@@ -147,6 +160,7 @@ namespace Seq2SeqConsole
                     ParallelCorpus validCorpus = new ParallelCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxSrcSentLength, opts.MaxTgtSentLength, shuffleEnums: shuffleType);
 
                     ss = new Seq2Seq(opts);
+                    ss.EvaluationWatcher += ss_EvaluationWatcher;
                     ss.Valid(validCorpus: validCorpus, metrics: metrics);
                 }
                 else if (mode == ModeEnums.Test)
@@ -163,8 +177,8 @@ namespace Seq2SeqConsole
 
                     if (File.Exists(opts.OutputFile))
                     {
-                        Logger.WriteLine(Logger.Level.err, $"Output file '{opts.OutputFile}' exist. You should remove it before running this test.");
-                        return;
+                        Logger.WriteLine(Logger.Level.err, ConsoleColor.Yellow, $"Output file '{opts.OutputFile}' exist. Delete it.");
+                        File.Delete(opts.OutputFile);
                     }
 
                     //Test trained model
@@ -173,9 +187,14 @@ namespace Seq2SeqConsole
                     Stopwatch stopwatch = Stopwatch.StartNew();
                     foreach (string line in File.ReadLines(opts.InputTestFile))
                     {
-                        string truncatedLine = line.Length > opts.MaxSrcSentLength ? line.Substring(0, opts.MaxSrcSentLength) : line;
-                        string nline = $"{ParallelCorpus.BOS} {truncatedLine} {ParallelCorpus.EOS}";
-                        inputBatchs.Add(nline.Trim().Split(' ').ToList());
+                        List<string> tokens = line.Trim().Split(' ').ToList();
+                        if (tokens.Count > opts.MaxSrcSentLength - 2)
+                        {
+                            tokens = tokens.GetRange(0, opts.MaxSrcSentLength - 2);
+                        }
+                        tokens.Insert(0, ParallelCorpus.BOS);
+                        tokens.Add(ParallelCorpus.EOS);
+                        inputBatchs.Add(tokens);
 
                         if (inputBatchs.Count >= opts.BatchSize * ss.DeviceIds.Length)
                         {

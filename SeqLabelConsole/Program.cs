@@ -119,7 +119,7 @@ namespace SeqLabelConsole
                 }
 
                 // Add event handler for monitoring
-                sl.IterationDone += ss_IterationDone;
+                sl.StatusUpdateWatcher += ss_IterationDone;
 
                 // Kick off training
                 sl.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, metrics: metrics);

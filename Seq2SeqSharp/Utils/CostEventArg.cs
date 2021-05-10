@@ -17,4 +17,11 @@ namespace Seq2SeqSharp
 
         public float LearningRate { get; set; }
     }
+
+    public class EvaluationEventArg : EventArgs
+    {
+        public string Message;
+        public ConsoleColor Color;
+        public string Title;
+    }
 }

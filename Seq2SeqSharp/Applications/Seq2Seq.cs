@@ -267,6 +267,11 @@ namespace Seq2SeqSharp
             var srcTokensList = m_modelMetaData.Vocab.GetSourceWordIndex(srcSnts);
             IWeightTensor encOutput = Encode(computeGraph, srcTokensList, encoder, srcEmbedding, srcSelfMask, posEmbedding, originalSrcLengths, segmentEmbedding);
 
+            if (srcSelfMask != null)
+            {
+                srcSelfMask.Dispose();
+            }
+
             // Generate output decoder sentences
             var tgtTokensList = m_modelMetaData.Vocab.GetTargetWordIndex(tgtSnts);
 

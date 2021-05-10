@@ -89,6 +89,9 @@ namespace Seq2SeqSharp
         [Arg("The number of multi-heads in transformer model", "MultiHeadNum")]
         public int MultiHeadNum = 8;
 
+        [Arg("The email to notify evaluation result", "NotifyEmail")]
+        public string NotifyEmail = "";
+
         [Arg("The weights optimizer during training. It supports Adam and RMSProp. Adam is default", "Optimizer")]
         public string Optimizer = "Adam";
 

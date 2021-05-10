@@ -9,6 +9,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.Tools
@@ -55,7 +56,8 @@ namespace Seq2SeqSharp.Tools
     /// </summary>
     public abstract class BaseSeq2SeqFramework
     {
-        public event EventHandler IterationDone;
+        public event EventHandler StatusUpdateWatcher;
+        public event EventHandler EvaluationWatcher;
 
         private readonly int[] m_deviceIds;
         public int[] DeviceIds => m_deviceIds;
@@ -201,9 +203,9 @@ namespace Seq2SeqSharp.Tools
                             costInTotal += cost;
                             updatesInOneEpoch++;
                             avgCostPerWordInTotal = costInTotal / updatesInOneEpoch;
-                            if (IterationDone != null && m_weightsUpdateCount % 100 == 0)
+                            if (StatusUpdateWatcher != null && m_weightsUpdateCount % 100 == 0)
                             {
-                                IterationDone(this, new CostEventArg()
+                                StatusUpdateWatcher(this, new CostEventArg()
                                 {
                                     LearningRate = lr,
                                     AvgCostInTotal = avgCostPerWordInTotal,
@@ -305,8 +307,6 @@ namespace Seq2SeqSharp.Tools
             }
 
             Logger.WriteLine(Logger.Level.info, ConsoleColor.Green, $"Epoch '{ep}' took '{DateTime.Now - startDateTime}' time to finish. AvgCost = {avgCostPerWordInTotal.ToString("F6")}, AvgCostInLastEpoch = {m_avgCostPerWordInTotalInLastEpoch.ToString("F6")}");
-
-            //  CreateCheckPoint(validCorpus, metrics, modelMetaData, ForwardOnSingleDevice, avgCostPerWordInTotal);
             m_avgCostPerWordInTotalInLastEpoch = avgCostPerWordInTotal;
         }
 
@@ -534,10 +534,38 @@ namespace Seq2SeqSharp.Tools
                 RunValidParallel(RunNetwork, metrics, outputToFile, srcSents, refSents, hypSents, sntPairBatchs);
             }
 
-            Logger.WriteLine($"Metrics result:");
-            foreach (IMetric metric in metrics)
+            bool betterModel = false;
+            if (metrics.Count > 0)
             {
-                Logger.WriteLine(Logger.Level.info, ConsoleColor.DarkGreen, $"{metric.Name} = {metric.GetScoreStr()}");
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine($"Metrics result:");
+
+                foreach (IMetric metric in metrics)
+                {
+                    sb.AppendLine($"{metric.Name} = {metric.GetScoreStr()}");
+                }
+
+                if (metrics[0].GetPrimaryScore() > m_bestPrimaryScore)
+                {
+                    if (m_bestPrimaryScore > 0.0f)
+                    {
+                        sb.AppendLine($"We got a better score '{metrics[0].GetPrimaryScore().ToString("F")}' on primary metric '{metrics[0].Name}'. The previous score is '{m_bestPrimaryScore.ToString("F")}'");
+                    }
+
+                    //We have a better primary score on valid set
+                    m_bestPrimaryScore = metrics[0].GetPrimaryScore();
+                    betterModel = true;
+                }
+
+                if (EvaluationWatcher != null)
+                {
+                    EvaluationWatcher(this, new EvaluationEventArg()
+                    {
+                        Title = $"Evaluation result for model '{m_modelFilePath}'",
+                        Message = sb.ToString(),
+                        Color = ConsoleColor.Green
+                    }); ;
+                }
             }
 
             if (outputToFile)
@@ -547,18 +575,7 @@ namespace Seq2SeqSharp.Tools
                 File.WriteAllLines("valid_hyp.txt", hypSents);
             }
 
-            if (metrics.Count > 0)
-            {
-                if (metrics[0].GetPrimaryScore() > m_bestPrimaryScore)
-                {
-                    Logger.WriteLine(Logger.Level.info, ConsoleColor.Green, $"We got a better score '{metrics[0].GetPrimaryScore().ToString("F")}' on primary metric '{metrics[0].Name}'. The previous score is '{m_bestPrimaryScore.ToString("F")}'");
-                    //We have a better primary score on valid set
-                    m_bestPrimaryScore = metrics[0].GetPrimaryScore();
-                    return true;
-                }
-            }
-
-            return false;
+            return betterModel;
         }
 
         private void RunValidParallel(Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> RunNetwork, List<IMetric> metrics, bool outputToFile, List<string> srcSents, List<string> refSents, List<string> hypSents, List<SntPairBatch> sntPairBatchs)
