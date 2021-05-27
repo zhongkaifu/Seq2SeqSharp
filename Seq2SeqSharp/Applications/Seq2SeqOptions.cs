@@ -74,11 +74,17 @@ namespace Seq2SeqSharp
         [Arg("Maxmium epoch number during training. Default is 100", "MaxEpochNum")]
         public int MaxEpochNum = 100;
 
-        [Arg("Maxmium src sentence length", "MaxSrcSentLength")]
-        public int MaxSrcSentLength = 32;
+        [Arg("Maxmium src sentence length in valid and test set", "MaxSrcTestSentLength")]
+        public int MaxSrcTestSentLength = 32;
 
-        [Arg("Maxmium tgt sentence length", "MaxTgtSentLength")]
-        public int MaxTgtSentLength = 32;
+        [Arg("Maxmium src sentence length in training corpus", "MaxSrcTrainSentLength")]
+        public int MaxSrcTrainSentLength = 110;
+
+        [Arg("Maxmium tgt sentence length in valid and test set", "MaxTgtTestSentLength")]
+        public int MaxTgtTestSentLength = 32;
+
+        [Arg("Maxmium tgt sentence length in training corpus", "MaxTgtTrainSentLength")]
+        public int MaxTgtTrainSentLength = 110;
 
         [Arg("The ratio of memory usage", "MemoryUsageRatio")]
         public float MemoryUsageRatio = 0.95f;

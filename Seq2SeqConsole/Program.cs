@@ -81,9 +81,9 @@ namespace Seq2SeqConsole
                 {
                     // Load train corpus
                     ParallelCorpus trainCorpus = new ParallelCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
-                        maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, shuffleEnums: shuffleType);
+                        maxSrcSentLength: opts.MaxSrcTrainSentLength, maxTgtSentLength: opts.MaxTgtTrainSentLength, shuffleEnums: shuffleType);
                     // Load valid corpus
-                    ParallelCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new ParallelCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxSrcSentLength, opts.MaxTgtSentLength, shuffleEnums: shuffleType);
+                    ParallelCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new ParallelCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxSrcTestSentLength, opts.MaxTgtTestSentLength, shuffleEnums: shuffleType);
 
                     // Create learning rate
                     ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);
@@ -157,7 +157,7 @@ namespace Seq2SeqConsole
                 };
 
                     // Load valid corpus
-                    ParallelCorpus validCorpus = new ParallelCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxSrcSentLength, opts.MaxTgtSentLength, shuffleEnums: shuffleType);
+                    ParallelCorpus validCorpus = new ParallelCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxSrcTestSentLength, opts.MaxTgtTestSentLength, shuffleEnums: shuffleType);
 
                     ss = new Seq2Seq(opts);
                     ss.EvaluationWatcher += ss_EvaluationWatcher;
@@ -167,8 +167,8 @@ namespace Seq2SeqConsole
                 {
                     Logger.WriteLine($"Test model: '{opts.ModelFilePath}'");
                     Logger.WriteLine($"Test set: '{opts.InputTestFile}'");
-                    Logger.WriteLine($"Max source sentence length: '{opts.MaxSrcSentLength}'");
-                    Logger.WriteLine($"Max target sentence length: '{opts.MaxTgtSentLength}'");
+                    Logger.WriteLine($"Max source test sentence length: '{opts.MaxSrcTestSentLength}'");
+                    Logger.WriteLine($"Max target test sentence length: '{opts.MaxTgtTestSentLength}'");
                     Logger.WriteLine($"Beam search size: '{opts.BeamSearchSize}'");
                     Logger.WriteLine($"Batch size: '{opts.BatchSize}'");
                     Logger.WriteLine($"Shuffle type: '{opts.ShuffleType}'");
@@ -188,9 +188,9 @@ namespace Seq2SeqConsole
                     foreach (string line in File.ReadLines(opts.InputTestFile))
                     {
                         List<string> tokens = line.Trim().Split(' ').ToList();
-                        if (tokens.Count > opts.MaxSrcSentLength - 2)
+                        if (tokens.Count > opts.MaxSrcTestSentLength - 2)
                         {
-                            tokens = tokens.GetRange(0, opts.MaxSrcSentLength - 2);
+                            tokens = tokens.GetRange(0, opts.MaxSrcTestSentLength - 2);
                         }
                         tokens.Insert(0, ParallelCorpus.BOS);
                         tokens.Add(ParallelCorpus.EOS);

@@ -72,8 +72,8 @@ namespace Seq2SeqSharp
 
             Logger.WriteLine($"Encoder is trainable: '{options.IsEncoderTrainable}'");
             Logger.WriteLine($"Decoder is trainable: '{options.IsDecoderTrainable}'");
-            Logger.WriteLine($"Max source sentence length = '{options.MaxSrcSentLength}'");
-            Logger.WriteLine($"Max target sentence length = '{options.MaxTgtSentLength}'");
+            Logger.WriteLine($"Max source sentence length in training corpus = '{options.MaxSrcTrainSentLength}'");
+            Logger.WriteLine($"Max target sentence length in training corpus = '{options.MaxTgtTrainSentLength}'");
             Logger.WriteLine($"BeamSearch Size = '{options.BeamSearchSize}'");
             Logger.WriteLine($"Shared embeddings = '{options.SharedEmbeddings}'");
             Logger.WriteLine($"Enable segment embeddings = '{options.EnableSegmentEmbeddings}'");
@@ -137,7 +137,9 @@ namespace Seq2SeqSharp
 
             if (modelMetaData.EncoderType == EncoderTypeEnums.Transformer || modelMetaData.DecoderType == DecoderTypeEnums.Transformer)
             {
-                m_posEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(PositionEmbedding.BuildPositionWeightTensor(Math.Max(m_options.MaxSrcSentLength, m_options.MaxTgtSentLength) + 2, contextDim, DeviceIds[0], "PosEmbedding", false), DeviceIds, true);
+                m_posEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(PositionEmbedding.BuildPositionWeightTensor(
+                    Math.Max(Math.Max(m_options.MaxSrcTrainSentLength, m_options.MaxSrcTestSentLength), Math.Max(m_options.MaxTgtTrainSentLength, m_options.MaxTgtTestSentLength)) + 2, 
+                    contextDim, DeviceIds[0], "PosEmbedding", false), DeviceIds, true);
 
                 if (modelMetaData.EnableSegmentEmbeddings)
                 {
@@ -297,7 +299,7 @@ namespace Seq2SeqSharp
 
                     beam2batch2tgtTokens.Add(tgtTokensList);
                     int batchSize = srcSnts.Count;
-                    for (int i = 0; i < m_options.MaxTgtSentLength; i++)
+                    for (int i = 0; i < m_options.MaxTgtTestSentLength; i++)
                     {
                         List<List<BeamSearchStatus>> batch2beam2seq = new List<List<BeamSearchStatus>>(); //(batch_size, beam_search_size)
                         for (int j = 0; j < batchSize; j++)
