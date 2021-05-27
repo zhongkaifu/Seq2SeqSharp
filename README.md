@@ -69,8 +69,10 @@ Parameters:
 **-ProcessorType**: Processor type: CPU or GPU(Cuda)  
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
 **-MaxEpochNum**: Maxmium epoch number during training. Default is 100  
-**-MaxSrcSentLength**: Maxmium sentence length on source side. Default is 32 tokens  
-**-MaxTgtSentLength**: Maxmium sentence length on target side. Default is 32 tokens  
+**-MaxSrcTrainSentLength**: Maxmium training sentence length on source side. Default is 110 tokens  
+**-MaxTgtTrainSentLength**: Maxmium training sentence length on target side. Default is 110 tokens  
+**-MaxSrcTestSentLength**: Maxmium valid/test sentence length on source side. Default is 110 tokens  
+**-MaxTgtTestSentLength**: Maxmium valid/test sentence length on target side. Default is 110 tokens  
 **-WarmUpSteps**: The number of steps for warming up. Default is 8,000  
 **-CompilerOptions**: The options for CUDA NVRTC compiler. Options are split by space. For example: "--use_fast_math --gpu-architecture=compute_60" means to use fast math libs and run on Pascal and above GPUs  
 **-Optimizer**: The weights optimizer during training. It supports Adam and RMSProp. Adam is default  
@@ -104,8 +106,8 @@ Parameters:
 **-ProcessorType**: Architecture type: CPU or GPU 
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
 **-BeamSearchSize**: Beam search size. Default is 1  
-**-MaxSrcSentLength**: Maxmium sentence length on source side. Default is 32 tokens  
-**-MaxTgtSentLength**: Maxmium sentence length on target side. Default is 32 tokens  
+**-MaxSrcTestSentLength**: Maxmium test sentence length on source side. Default is 32 tokens  
+**-MaxTgtTestSentLength**: Maxmium test sentence length on target side. Default is 32 tokens  
 
 Example: Seq2SeqConsole.exe -Task Test -ModelFilePath seq2seq.model -InputTestFile test.txt -OutputFile result.txt -ProcessorType CPU -BeamSearchSize 5 -MaxSrcSentLength 100 -MaxTgtSentLength 100  
 
@@ -142,8 +144,10 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
         "InputTestFile":null,
         "GradClip":5.0,
         "MaxEpochNum":100,
-        "MaxSrcSentLength":100,
-        "MaxTgtSentLength":100,
+        "MaxSrcTestSentLength":100,
+        "MaxSrcTrainSentLength":100,
+        "MaxTgtTestSentLength":100,
+        "MaxTgtTrainSentLength":100,
         "ModelFilePath":"seq2seq.model",
         "MultiHeadNum":8,
         "Optimizer":"Adam",
