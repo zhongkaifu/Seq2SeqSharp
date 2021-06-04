@@ -12,6 +12,7 @@ namespace Seq2SeqSharp.Corpus
 {
     public class SequenceClassificationCorpus : ParallelCorpus
     {
+        public const string CLS = "[CLS]";
         private (string, string) ConvertSequenceClassificationFormatToParallel(string filePath)
         {
             List<string> srcLines = new List<string>();
@@ -48,7 +49,7 @@ namespace Seq2SeqSharp.Corpus
             m_maxSrcSentLength = maxSentLength;
             m_maxTgtSentLength = maxSentLength;
             m_shuffleEnums = shuffleEnums;
-            m_sentSrcPrefix = ParallelCorpus.CLS;
+            m_sentSrcPrefix = CLS;
             m_sentSrcSuffifx = "";
             m_sentTgtPrefix = "";
             m_sentTgtSuffix = "";

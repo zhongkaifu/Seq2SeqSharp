@@ -233,41 +233,48 @@ Here is the configuration file for model training.
 ```
 
 ### Data format for SeqCliassificationConsole tool  
+The data format is tokens along with the corresponding tag for classification per line. Tokens are inputs to the encoder, and ask model to predict its classification tag.  
+Tag and tokens are split by tab character. It looks like [Tag] \t [Tokens in Text]  
+Here is an example:  
+Tag                 |  Tokens in Sequence
+--------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Otorhinolaryngology | What should I do if I have a sore throat and a runny nose? [SEP] I feel sore in my throat after getting up in the morning, and I still have clear water in my nose. I measure my body temperature and I don’t have a fever. Have you caught a cold? What medicine should be taken.  
+Orthopedics         | How can I recuperate if my ankle is twisted? [SEP] I twisted my ankle when I went down the stairs, and now it is red and swollen. X-rays were taken and there were no fractures. May I ask how to recuperate to get better as soon as possible.  
+
+"Otorhinolaryngology" and "Orthopedics" are tags for classification and the rest of the tokens in each line are tokens for input sequence. This is an example that given title and description in medical domain, asking model to predict which specialty it should be classified. [SEP] is used to split title and description in the sequence, but it's not required in other tasks.  
 
 ## SeqLabelConsole for sequence-labeling task  
 The usage of **SeqLabelConsole.exe** is similar as **Seq2SeqConsole.exe** in above, you can just type it in the console and it will show you usage.  
 
 ### Data format for SeqLabelConsole tool  
-For sequence-labeling task, the tool only uses a single data file including both token and tags. The data format is one token along with the corresponding tags per line. Token and tags are split by tab character. And each sentence is split by a blank line.  
-For example:  
-In train01.word.snt, assume we have below two sentences:  
-Microsoft   S_ORG  
-is  S_NOR  
-located S_NOR  
-in  S_NOR  
-Redmond S_LOC  
-.   S_NOR  
-  
-Zhongkai    B_PER  
-Fu  E_PER  
-is  S_NOR  
-the S_NOR  
-author  S_NOR  
-of  S_NOR  
-Seq2SeqSharp    S_SFT  
-.   S_NOR  
-
-This format is compatible with the data for CRFSharp and CRF++.  
+The data format is one token along with the corresponding tag per line. Tokens are inputs for model training, and tags are what the model trys to predict during the training.  
+Token and tags are split by tab character. It looks like [Token] \t [Tag] And each sentence is split by a blank line. This format is compatible with the data for CRFSharp and CRF++.  
+Here is an example:  
+In train_001.txt, assume we have two sentences. For sentence "Microsoft is located in Redmond .", "Microsoft" is organization name, "Redmond" is location name. For sentence "Zhongkai Fu is the author of Seq2SeqSharp .", "Zhongkai Fu" is person name and "Seq2SeqSharp" is software name. So, the training corpus should look likes:  
+Token        |   Tag
+-------------|------------
+Microsoft    | S_ORG  
+is           | S_NOR  
+located      | S_NOR  
+in           | S_NOR  
+Redmond      | S_LOC  
+.            | S_NOR  
+[BLANK]      | [BLANK]
+Zhongkai     | B_PER  
+Fu           | E_PER  
+is           | S_NOR  
+the          | S_NOR  
+author       | S_NOR  
+of           | S_NOR  
+Seq2SeqSharp | S_SFT  
+.            | S_NOR  
 
 # Release Package  
 You can download the release package from (here)[https://github.com/zhongkaifu/Seq2SeqSharp/releases/tag/20210125] . The release package includes Seq2SeqSharp binary files, model files and test files. For models, the release package includes many different models trained by Seq2SeqSharp, such as machine translation models between English and Chinese, Japanese, German, question-answer model for medical domain in Chinese and others. These models were trained using Transformer layers. The training config files are also included in the package. Test input file contains one sentence per line, and the corresponding reference file has one sentence per line. All sentences were already encoded to subwords by SentencePiece, so the package also includes the model and vocabulary of SentencePiece.  
 
-
 (SentencePiece)[https://github.com/google/sentencepiece] is a subword level tokenization tool from Google. Given raw text, it can build model and vocabulary at subword level, encode text from word level to subword level or decode subword text back to word level. Subword level tokenization could significantly reduce vocabulary size which is useful for OOV and decoding performance improvement for many systems, especially low resource systems. Subword level tokenization and SentencePiece are optional for Seq2SeqSharp. You can tokenize input text to any type of tokens and send them to Seq2SeqSharp or let Seq2SeqSharp generate them.  
 
-
 The model in the release package was trained by training corpus processed by SentencePiece, so inputs and outputs text of this model needs to be pre-processed by SentencePiece. Again, you could train your model with/without SentencePiece. It's totally optional.  
-
 
 Here are steps on how to play it.  
 
@@ -349,6 +356,17 @@ For different .NET versions, you need to modify target framework in *.csproj fil
       <TargetFramework>netcoreapp3.1</TargetFramework>  
     </PropertyGroup>  
 ```
+
+# Built-in Tags  
+Seq2SeqSharp has several built-in tokens and they are used for certain purposes.  
+Tag   | Comments
+------|------------------------------------------------------------
+</s>  | The end of the sequence
+<s>   | The beginning of the sequence
+<unk> | OOV token
+[SEP] | The token used to split input sequence into many segments
+[CLS] | The token used to predict classification
+
 
 # Build Your Layers  
 Benefit from automatic differentiation, tensor based compute graph and other features, you can easily build your customized layers by a few code. The only thing you need to implment is forward part, and the framework will automatically build the corresponding backward part for you, and make the network could run on multi-GPUs or CPUs.  

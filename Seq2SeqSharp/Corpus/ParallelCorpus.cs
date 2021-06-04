@@ -82,7 +82,6 @@ namespace Seq2SeqSharp.Tools
         public const string BOS = "<s>";
         public const string UNK = "<unk>";
         public const string SEP = "[SEP]";
-        public const string CLS = "[CLS]";
 
         internal int m_maxSrcSentLength = 32;
         internal int m_maxTgtSentLength = 32;
