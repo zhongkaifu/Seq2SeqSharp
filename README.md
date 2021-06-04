@@ -359,13 +359,13 @@ For different .NET versions, you need to modify target framework in *.csproj fil
 
 # Built-in Tags  
 Seq2SeqSharp has several built-in tokens and they are used for certain purposes.  
-Tag   | Comments
-------|------------------------------------------------------------
-</s>  | The end of the sequence
-<s>   | The beginning of the sequence
-<unk> | OOV token
-[SEP] | The token used to split input sequence into many segments
-[CLS] | The token used to predict classification
+Tag     | Comments
+--------|------------------------------------------------------------
+\</s\>  | The end of the sequence
+\<s\>   | The beginning of the sequence
+\<unk\> | OOV token
+[SEP]   | The token used to split input sequence into many segments
+[CLS]   | The token used to predict classification
 
 
 # Build Your Layers  
