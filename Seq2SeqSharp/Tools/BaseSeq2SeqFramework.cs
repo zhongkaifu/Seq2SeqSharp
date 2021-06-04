@@ -70,8 +70,9 @@ namespace Seq2SeqSharp.Tools
         private readonly object locker = new object();
         private SortedList<string, IMultiProcessorNetworkWrapper> m_name2network;
         DateTime m_lastCheckPointDateTime = DateTime.Now;
+        float m_validIntervalHours = 1.0f;
 
-        public BaseSeq2SeqFramework(string deviceIds, string strProcessorType, string modelFilePath, float memoryUsageRatio = 0.9f, string compilerOptions = null)
+        public BaseSeq2SeqFramework(string deviceIds, string strProcessorType, string modelFilePath, float memoryUsageRatio = 0.9f, string compilerOptions = null, float validIntervalHours = 1.0f)
         {
             m_deviceIds = deviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
             ProcessorTypeEnums processorType = (ProcessorTypeEnums)Enum.Parse(typeof(ProcessorTypeEnums), strProcessorType);
@@ -79,12 +80,15 @@ namespace Seq2SeqSharp.Tools
 
             m_modelFilePath = modelFilePath;
             TensorAllocator.InitDevices(processorType, m_deviceIds, memoryUsageRatio, cudaCompilerOptions);
+
+            m_validIntervalHours = validIntervalHours;
         }
 
-        public BaseSeq2SeqFramework(int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, string[] compilerOptions = null)
+        public BaseSeq2SeqFramework(int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, float validIntervalHours = 1.0f)
         {
             m_deviceIds = deviceIds;
             m_modelFilePath = modelFilePath;
+            m_validIntervalHours = validIntervalHours;
             TensorAllocator.InitDevices(processorType, m_deviceIds, memoryUsageRatio, compilerOptions);
         }
 
@@ -156,7 +160,7 @@ namespace Seq2SeqSharp.Tools
             return modelMetaData;
         }
 
-        internal void TrainOneEpoch(int ep, IEnumerable<SntPairBatch> trainCorpus, IEnumerable<SntPairBatch> validCorpus, ILearningRate learningRate, IOptimizer solver, List<IMetric> metrics, IModelMetaData modelMetaData,
+        internal void TrainOneEpoch(int ep, IEnumerable<SntPairBatch> trainCorpus, IEnumerable<SntPairBatch> validCorpus, ILearningRate learningRate, IOptimizer solver, List<IMetric> metrics, IModelMetaData modelMetaData, string hypPrefix,
             Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice)
         {
             int processedLineInTotal = 0;
@@ -296,9 +300,9 @@ namespace Seq2SeqSharp.Tools
 
                     // Evaluate model every hour and save it if we could get a better one.
                     TimeSpan ts = DateTime.Now - m_lastCheckPointDateTime;
-                    if (ts.TotalHours > 1.0)
+                    if (ts.TotalHours > m_validIntervalHours)
                     {
-                        CreateCheckPoint(validCorpus, metrics, modelMetaData, ForwardOnSingleDevice, avgCostPerWordInTotal);
+                        CreateCheckPoint(validCorpus, metrics, modelMetaData, ForwardOnSingleDevice, avgCostPerWordInTotal, hypPrefix);
                         m_lastCheckPointDateTime = DateTime.Now;
                     }
 
@@ -379,12 +383,14 @@ namespace Seq2SeqSharp.Tools
             return (cost, srcWordCnts, tgtWordCnts, processedLine);
         }
 
-        private void CreateCheckPoint(IEnumerable<SntPairBatch> validCorpus, List<IMetric> metrics, IModelMetaData modelMetaData, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice, double avgCostPerWordInTotal)
+        private void CreateCheckPoint(IEnumerable<SntPairBatch> validCorpus, List<IMetric> metrics, IModelMetaData modelMetaData, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice, double avgCostPerWordInTotal, string hypPrefix)
         {
             if (validCorpus != null)
             {
+                ReleaseGradientOnAllDevices();
+
                 // The valid corpus is provided, so evaluate the model.
-                if (RunValid(validCorpus, ForwardOnSingleDevice, metrics, true) == true)
+                if (RunValid(validCorpus, ForwardOnSingleDevice, metrics, hypPrefix: hypPrefix, outputToFile: true) == true)
                 {
                     SaveModel(modelMetaData);
                 }
@@ -396,7 +402,25 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        internal (List<List<List<string>>>, List<List<List<Alignment>>>) RunTest(List<List<string>> inputTokens, int beamSearchSize, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice)
+        List<List<string>> InitializeHypTokens(int batchSize, string prefix)
+        {
+            List<List<string>> hypTkns = new List<List<string>>();
+            for (int i = 0; i < batchSize; i++)
+            {
+                if (String.IsNullOrEmpty(prefix) == false)
+                {
+                    hypTkns.Add(new List<string>() { prefix });
+                }
+                else
+                {
+                    hypTkns.Add(new List<string>());
+                }
+            }
+
+            return hypTkns;
+        }
+
+        internal (List<List<List<string>>>, List<List<List<Alignment>>>) RunTest(List<List<string>> inputTokens, int beamSearchSize, string hypPrefix, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice)
         {
             try
             {
@@ -426,12 +450,7 @@ namespace Seq2SeqSharp.Tools
                     {
                         try
                         {
-                            List<List<string>> hypTkns = new List<List<string>>();
-                            for (int i = 0; i < dataSizePerGPU; i++)
-                            {
-                                hypTkns.Add(new List<string>() { ParallelCorpus.BOS });
-                            }
-
+                            List<List<string>> hypTkns = InitializeHypTokens(dataSizePerGPU, hypPrefix);
                             List<List<string>> inputTkns_gpu = inputTokens.GetRange(gpuIdx * dataSizePerGPU, dataSizePerGPU);
                             NetworkResult nr = null;
                             // Create a new computing graph instance
@@ -446,7 +465,11 @@ namespace Seq2SeqSharp.Tools
                                 for (int i = 0; i < dataSizePerGPU; i++)
                                 {
                                     beam2batch2tgtTkns[j][gpuIdx * dataSizePerGPU + i] = nr.Beam2Batch2Output[j][i];
-                                    beam2batch2aligns[j][gpuIdx * dataSizePerGPU + i] = nr.Beam2Batch2Alignment[j][i];
+
+                                    if (nr.Beam2Batch2Alignment != null)
+                                    {
+                                        beam2batch2aligns[j][gpuIdx * dataSizePerGPU + i] = nr.Beam2Batch2Alignment[j][i];
+                                    }
                                 }
                             }
                         }
@@ -460,13 +483,7 @@ namespace Seq2SeqSharp.Tools
 
                 if (dataSizePerGPUMod > 0)
                 {
-                    List<List<string>> hypTkns = new List<List<string>>();
-                    for (int i = 0; i < dataSizePerGPUMod; i++)
-                    {
-                        hypTkns.Add(new List<string>() { ParallelCorpus.BOS });
-                    }
-
-
+                    List<List<string>> hypTkns = InitializeHypTokens(dataSizePerGPU, hypPrefix);
                     List<List<string>> inputTkns_gpu = inputTokens.GetRange(m_deviceIds.Length * dataSizePerGPU, dataSizePerGPUMod);
                     NetworkResult nr = null;
                     // Create a new computing graph instance
@@ -481,7 +498,11 @@ namespace Seq2SeqSharp.Tools
                         for (int i = 0; i < dataSizePerGPUMod; i++)
                         {
                             beam2batch2tgtTkns[j][m_deviceIds.Length * dataSizePerGPU + i] = nr.Beam2Batch2Output[j][i];
-                            beam2batch2aligns[j][m_deviceIds.Length * dataSizePerGPU + i] = nr.Beam2Batch2Alignment[j][i];
+
+                            if (nr.Beam2Batch2Alignment != null)
+                            {
+                                beam2batch2aligns[j][m_deviceIds.Length * dataSizePerGPU + i] = nr.Beam2Batch2Alignment[j][i];
+                            }
                         }
                     }
                 }
@@ -503,7 +524,7 @@ namespace Seq2SeqSharp.Tools
         /// <param name="metrics">A set of metrics. The first one is the primary metric</param>
         /// <param name="outputToFile">It indicates if valid corpus and results should be dumped to files</param>
         /// <returns>true if we get a better result on primary metric, otherwise, false</returns>
-        internal bool RunValid(IEnumerable<SntPairBatch> validCorpus, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> RunNetwork, List<IMetric> metrics, bool outputToFile = false)
+        internal bool RunValid(IEnumerable<SntPairBatch> validCorpus, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> RunNetwork, List<IMetric> metrics, string hypPrefix, bool outputToFile = false)
         {
             List<string> srcSents = new List<string>();
             List<string> refSents = new List<string>();
@@ -524,14 +545,14 @@ namespace Seq2SeqSharp.Tools
                 sntPairBatchs.Add(item);
                 if (sntPairBatchs.Count == DeviceIds.Length)
                 {
-                    RunValidParallel(RunNetwork, metrics, outputToFile, srcSents, refSents, hypSents, sntPairBatchs);
+                    RunValidParallel(RunNetwork, metrics, outputToFile, srcSents, refSents, hypSents, sntPairBatchs, hypPrefix);
                     sntPairBatchs.Clear();
                 }
             }
 
             if (sntPairBatchs.Count > 0)
             {
-                RunValidParallel(RunNetwork, metrics, outputToFile, srcSents, refSents, hypSents, sntPairBatchs);
+                RunValidParallel(RunNetwork, metrics, outputToFile, srcSents, refSents, hypSents, sntPairBatchs, hypPrefix);
             }
 
             bool betterModel = false;
@@ -578,7 +599,7 @@ namespace Seq2SeqSharp.Tools
             return betterModel;
         }
 
-        private void RunValidParallel(Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> RunNetwork, List<IMetric> metrics, bool outputToFile, List<string> srcSents, List<string> refSents, List<string> hypSents, List<SntPairBatch> sntPairBatchs)
+        private void RunValidParallel(Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> RunNetwork, List<IMetric> metrics, bool outputToFile, List<string> srcSents, List<string> refSents, List<string> hypSents, List<SntPairBatch> sntPairBatchs, string hypPrefix)
         {
             // Run forward on all available processors
             Parallel.For(0, m_deviceIds.Length, i =>
@@ -595,13 +616,12 @@ namespace Seq2SeqSharp.Tools
                     // Construct sentences for encoding and decoding
                     List<List<string>> srcTkns = new List<List<string>>();
                     List<List<string>> refTkns = new List<List<string>>();
-                    List<List<string>> hypTkns = new List<List<string>>();
                     for (int j = 0; j < sntPairBatch.BatchSize; j++)
                     {
                         srcTkns.Add(sntPairBatch.SntPairs[j].SrcSnt.ToList());
                         refTkns.Add(sntPairBatch.SntPairs[j].TgtSnt.ToList());
-                        hypTkns.Add(new List<string>() { ParallelCorpus.BOS });
                     }
+                    List<List<string>> hypTkns = InitializeHypTokens(sntPairBatch.BatchSize, hypPrefix);
 
                     // Create a new computing graph instance
                     NetworkResult nr;
@@ -716,6 +736,15 @@ namespace Seq2SeqSharp.Tools
             foreach (KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network)
             {
                 pair.Value.ZeroGradientsOnAllDevices();
+            }
+        }
+
+        internal void ReleaseGradientOnAllDevices()
+        {
+            RegisterTrainableParameters(this);
+            foreach (KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network)
+            {
+                pair.Value.ReleaseGradientsOnAllDevices();
             }
         }
 

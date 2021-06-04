@@ -13,24 +13,6 @@ using TensorSharp;
 
 namespace Seq2SeqSharp
 {
-    public class RoundArray<T>
-    {
-        private readonly T[] m_array;
-        private int currentIdx = 0;
-        public RoundArray(T[] a)
-        {
-            m_array = a;
-        }
-
-        public T GetNextItem()
-        {
-            T item = m_array[currentIdx];
-            currentIdx = (currentIdx + 1) % m_array.Length;
-
-            return item;
-        }
-    }
-
     public class Seq2Seq : BaseSeq2SeqFramework
     {
         private readonly Seq2SeqModelMetaData m_modelMetaData;
@@ -51,7 +33,7 @@ namespace Seq2SeqSharp
         Seq2SeqOptions m_options = null;
 
         public Seq2Seq(Seq2SeqOptions options)
-            : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions)
+            : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions, options.ValidIntervalHours)
         {
             m_shuffleType = (ShuffleEnums)Enum.Parse(typeof(ShuffleEnums), options.ShuffleType);
             m_options = options;
@@ -59,7 +41,7 @@ namespace Seq2SeqSharp
         }
 
         public Seq2Seq(Seq2SeqOptions options, Vocab vocab)
-            : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions)
+            : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions, options.ValidIntervalHours)
         {
             EncoderTypeEnums encoderType = (EncoderTypeEnums)Enum.Parse(typeof(EncoderTypeEnums), options.EncoderType);
             DecoderTypeEnums decoderType = (DecoderTypeEnums)Enum.Parse(typeof(DecoderTypeEnums), options.DecoderType);
@@ -215,18 +197,18 @@ namespace Seq2SeqSharp
             {
                 // Train one epoch over given devices. Forward part is implemented in RunForwardOnSingleDevice function in below, 
                 // backward, weights updates and other parts are implemented in the framework. You can see them in BaseSeq2SeqFramework.cs
-                TrainOneEpoch(i, trainCorpus, validCorpus, learningRate, optimizer, metrics, m_modelMetaData, RunForwardOnSingleDevice);
+                TrainOneEpoch(i, trainCorpus, validCorpus, learningRate, optimizer, metrics, m_modelMetaData, validCorpus.SentTgtPrefix, RunForwardOnSingleDevice);
             }
         }
 
-        public void Valid(ParallelCorpus validCorpus, List<IMetric> metrics)
+        public void Valid(ParallelCorpus validCorpus, List<IMetric> metrics, string hypPrefix)
         {
-            RunValid(validCorpus, RunForwardOnSingleDevice, metrics, true);
+            RunValid(validCorpus, RunForwardOnSingleDevice, metrics, hypPrefix, true);
         }
 
-        public (List<List<List<string>>>, List<List<List<Alignment>>>) Test(List<List<string>> inputTokens, int beamSearchSize)
+        public (List<List<List<string>>>, List<List<List<Alignment>>>) Test(List<List<string>> inputTokens, int beamSearchSize, string hypPrefix)
         {
-            return RunTest(inputTokens, beamSearchSize, RunForwardOnSingleDevice);
+            return RunTest(inputTokens, beamSearchSize, hypPrefix, RunForwardOnSingleDevice);
         }
 
         /// <summary>
@@ -301,47 +283,42 @@ namespace Seq2SeqSharp
                     int batchSize = srcSnts.Count;
                     for (int i = 0; i < m_options.MaxTgtTestSentLength; i++)
                     {
-                        List<List<BeamSearchStatus>> batch2beam2seq = new List<List<BeamSearchStatus>>(); //(batch_size, beam_search_size)
-                        for (int j = 0; j < batchSize; j++)
-                        {
-                            batch2beam2seq.Add(new List<BeamSearchStatus>());
-                        }
+                        var batch2beam2seq = Enumerable.Repeat(new List<BeamSearchStatus>(), batchSize).ToList(); //(batch_size, beam_search_size)
 
-                        foreach (var batch2tgtTokens in beam2batch2tgtTokens)
+                        try
                         {
-                            using (var g = computeGraph.CreateSubGraph($"TransformerDecoder_Step_{i}"))
+                            foreach (var batch2tgtTokens in beam2batch2tgtTokens)
                             {
-                                (var cost2, var bssSeqList) = DecodeTransformer(batch2tgtTokens, g, encOutput, decoder as TransformerDecoder, tgtEmbedding, posEmbedding, 
-                                                                                m_shuffleType == ShuffleEnums.NoPaddingInSrc ? null : originalSrcLengths, isTraining, beamSearchSize: m_options.BeamSearchSize, 
-                                                                                outputAlignmentSrcPos: m_options.OutputAlignment, outputSentScore: m_options.BeamSearchSize > 1);
-
-                                for (int j = 0; j < m_options.BeamSearchSize; j++)
+                                using (var g = computeGraph.CreateSubGraph($"TransformerDecoder_Step_{i}"))
                                 {
-                                    for (int k = 0; k < batchSize; k++)
+                                    (var cost2, var bssSeqList) = DecodeTransformer(batch2tgtTokens, g, encOutput, decoder as TransformerDecoder, tgtEmbedding, posEmbedding,
+                                                                                    m_shuffleType == ShuffleEnums.NoPaddingInSrc ? null : originalSrcLengths, isTraining, beamSearchSize: m_options.BeamSearchSize,
+                                                                                    outputAlignmentSrcPos: m_options.OutputAlignment, outputSentScore: m_options.BeamSearchSize > 1);
+
+                                    for (int j = 0; j < m_options.BeamSearchSize; j++)
                                     {
-                                        batch2beam2seq[k].Add(bssSeqList[j][k]);
+                                        for (int k = 0; k < batchSize; k++)
+                                        {
+                                            batch2beam2seq[k].Add(bssSeqList[j][k]);
+                                        }
                                     }
                                 }
                             }
-
+                        }
+                        catch (OutOfMemoryException err)
+                        {
+                            Logger.WriteLine(Logger.Level.warn, $"We have out of memory while generating '{i}th' tokens, so terminate decoding for current sequences.");
+                            break;
                         }
 
                         if (m_options.BeamSearchSize > 1)
                         {
                             // Keep top N result and drop all others
-                            for (int k = 0; k < batchSize; k++)
-                            {
-                                batch2beam2seq[k] = BeamSearch.GetTopNBSS(batch2beam2seq[k], m_options.BeamSearchSize);
-                            }
+                            batch2beam2seq.ForEach(item => BeamSearch.GetTopNBSS(item, m_options.BeamSearchSize));
                         }
 
-                        beam2batch2tgtTokens.Clear();
-                        beam2batch2alignment = new List<List<List<Alignment>>>();
-                        for (int k = 0; k < m_options.BeamSearchSize; k++)
-                        {
-                            beam2batch2tgtTokens.Add(new List<List<int>>());
-                            beam2batch2alignment.Add(new List<List<Alignment>>());
-                        }
+                        beam2batch2tgtTokens = Enumerable.Repeat(new List<List<int>>(), m_options.BeamSearchSize).ToList();
+                        beam2batch2alignment = Enumerable.Repeat(new List<List<Alignment>>(), m_options.BeamSearchSize).ToList();
 
                         // Convert shape from (batch, beam, seq) to (beam, batch, seq), and check if all output sentences are ended. If so, we will stop decoding.
                         bool allSntsEnd = true;
@@ -450,61 +427,65 @@ namespace Seq2SeqSharp
                 while (beamSearchSize > 0)
                 {
                     // Output "i"th target word
-                    var targetIdxTensor = g.Argmax(probs, 1);
-                    IWeightTensor gatherTensor = null;
-                    if (outputSentScore)
+                    using (var targetIdxTensor = g.Argmax(probs, 1))
                     {
-                        gatherTensor = g.Gather(probs, targetIdxTensor, 1);
-                        gatherTensor = g.Log(gatherTensor);
-                        gatherTensor = g.View(gatherTensor, false, new long[] { batchSize, tgtSeqLen, 1 });
-                        gatherTensor = g.Sum(gatherTensor, 1, runGradient: false);
-                    }
-
-                    float[] targetIdx = targetIdxTensor.ToWeightArray();
-                    float[] alignmentSrcPos = null;
-                    float[] alignmentSrcScore = null;
-                    if (outputAlignmentSrcPos)
-                    {
-                        var sourcePosIdxTensor = g.Argmax(decEncAttnProbs, 1);
-                        alignmentSrcPos = sourcePosIdxTensor.ToWeightArray();
-
-                        var sourceScoreTensor = g.Max(decEncAttnProbs, 1);
-                        alignmentSrcScore = sourceScoreTensor.ToWeightArray();
-                    }
-
-
-                    List<BeamSearchStatus> outputTgtSeqs = new List<BeamSearchStatus>();
-                    for (int i = 0; i < batchSize; i++)
-                    {
-                        BeamSearchStatus bss = new BeamSearchStatus();
-                        bss.OutputIds.AddRange(tgtSeqs[i]);
-                        bss.OutputIds.Add((int)(targetIdx[i * tgtSeqLen + tgtSeqLen - 1]));
-
+                        IWeightTensor gatherTensor = null;
                         if (outputSentScore)
                         {
-                            bss.Score = -1.0f * gatherTensor.GetWeightAt(new long[] { i, 0, 0 });
+                            gatherTensor = g.Gather(probs, targetIdxTensor, 1);
+                            gatherTensor = g.Log(gatherTensor);
+                            gatherTensor = g.View(gatherTensor, false, new long[] { batchSize, tgtSeqLen, 1 });
+                            gatherTensor = g.Sum(gatherTensor, 1, runGradient: false);
                         }
 
+                        float[] targetIdx = targetIdxTensor.ToWeightArray();
+                        float[] alignmentSrcPos = null;
+                        float[] alignmentSrcScore = null;
                         if (outputAlignmentSrcPos)
                         {
-                            Alignment align = new Alignment(0, 0);
-                            bss.AlignmentToSrc.Add(align);
-                            for (int j = 0; j < tgtSeqLen; j++)
+                            using (var sourcePosIdxTensor = g.Argmax(decEncAttnProbs, 1))
                             {
-                                align = new Alignment((int)(alignmentSrcPos[i * tgtSeqLen + j]), alignmentSrcScore[i * tgtSeqLen + j]);
-                                bss.AlignmentToSrc.Add(align);
+                                alignmentSrcPos = sourcePosIdxTensor.ToWeightArray();
                             }
+
+                            var sourceScoreTensor = g.Max(decEncAttnProbs, 1);
+                            alignmentSrcScore = sourceScoreTensor.ToWeightArray();
                         }
 
-                        outputTgtSeqs.Add(bss);
-                    }
 
-                    bssSeqList.Add(outputTgtSeqs);
+                        List<BeamSearchStatus> outputTgtSeqs = new List<BeamSearchStatus>();
+                        for (int i = 0; i < batchSize; i++)
+                        {
+                            BeamSearchStatus bss = new BeamSearchStatus();
+                            bss.OutputIds.AddRange(tgtSeqs[i]);
+                            bss.OutputIds.Add((int)(targetIdx[i * tgtSeqLen + tgtSeqLen - 1]));
 
-                    beamSearchSize--;
-                    if (beamSearchSize > 0)
-                    {
-                        TensorUtils.ScatterFill(probs, 0.0f, targetIdxTensor, 1);
+                            if (outputSentScore)
+                            {
+                                bss.Score = -1.0f * gatherTensor.GetWeightAt(new long[] { i, 0, 0 });
+                            }
+
+                            if (outputAlignmentSrcPos)
+                            {
+                                Alignment align = new Alignment(0, 0);
+                                bss.AlignmentToSrc.Add(align);
+                                for (int j = 0; j < tgtSeqLen; j++)
+                                {
+                                    align = new Alignment((int)(alignmentSrcPos[i * tgtSeqLen + j]), alignmentSrcScore[i * tgtSeqLen + j]);
+                                    bss.AlignmentToSrc.Add(align);
+                                }
+                            }
+
+                            outputTgtSeqs.Add(bss);
+                        }
+
+                        bssSeqList.Add(outputTgtSeqs);
+
+                        beamSearchSize--;
+                        if (beamSearchSize > 0)
+                        {
+                            TensorUtils.ScatterFill(probs, 0.0f, targetIdxTensor, 1);
+                        }
                     }
                 }
                 return (0.0f, bssSeqList);
@@ -617,27 +598,30 @@ namespace Seq2SeqSharp
                     else
                     {
                         // Output "i"th target word
-                        float[] targetIdx = g.Argmax(probs, 1).ToWeightArray();
-                        for (int j = 0; j < targetIdx.Length; j++)
+                        using (var targetIdxTensor = g.Argmax(probs, 1))
                         {
-                            if (setEndSentId.Contains(j) == false)
+                            float[] targetIdx = targetIdxTensor.ToWeightArray();
+                            for (int j = 0; j < targetIdx.Length; j++)
                             {
-                                outputSnts[j].Add((int)targetIdx[j]);
-
-                                if (targetIdx[j] == eosTokenId)
+                                if (setEndSentId.Contains(j) == false)
                                 {
-                                    setEndSentId.Add(j);
+                                    outputSnts[j].Add((int)targetIdx[j]);
+
+                                    if (targetIdx[j] == eosTokenId)
+                                    {
+                                        setEndSentId.Add(j);
+                                    }
                                 }
                             }
-                        }
 
-                        if (setEndSentId.Count == batchSize)
-                        {
-                            // All target sentences in current batch are finished, so we exit.
-                            break;
-                        }
+                            if (setEndSentId.Count == batchSize)
+                            {
+                                // All target sentences in current batch are finished, so we exit.
+                                break;
+                            }
 
-                        ix_inputs = targetIdx;
+                            ix_inputs = targetIdx;
+                        }
                     }
                 }
             }

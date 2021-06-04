@@ -78,26 +78,30 @@ namespace Seq2SeqSharp.Tools
 
     public class ParallelCorpus : IEnumerable<SntPairBatch>
     {
-        private readonly int m_maxSrcSentLength = 32;
-        private readonly int m_maxTgtSentLength = 32;
-
-        private readonly int m_blockSize = 1000000;
-        private readonly int m_batchSize = 1;
-        private readonly bool m_addBOSEOS = true;
-        private readonly List<string> m_srcFileList;
-        private readonly List<string> m_tgtFileList;
-
-        public int CorpusSize = 0;
-
-        public int BatchSize => m_batchSize;
-
         public const string EOS = "</s>";
         public const string BOS = "<s>";
         public const string UNK = "<unk>";
         public const string SEP = "[SEP]";
+        public const string CLS = "[CLS]";
 
+        internal int m_maxSrcSentLength = 32;
+        internal int m_maxTgtSentLength = 32;
+        internal int m_blockSize = 1000000;
+        internal int m_batchSize = 1;
+        internal List<string> m_srcFileList;
+        internal List<string> m_tgtFileList;
+        internal string m_sentSrcPrefix = BOS;
+        internal string m_sentSrcSuffifx = EOS;
+        internal string m_sentTgtPrefix = BOS;
+        internal string m_sentTgtSuffix = EOS;
+        internal ShuffleEnums m_shuffleEnums;
+
+        public int BatchSize => m_batchSize;
+        public string SentTgtPrefix => m_sentTgtPrefix;
+
+        
         private bool m_showTokenDist = true;
-        private ShuffleEnums m_shuffleEnums;
+
 
         public static bool IsPreDefinedToken(string str)
         {
@@ -212,7 +216,7 @@ namespace Seq2SeqSharp.Tools
             StreamWriter swTgt = new StreamWriter(tgtShuffledFilePath, false);
 
             List<RawSntPair> sntPairs = new List<RawSntPair>();
-            CorpusSize = 0;
+            int corpusSize = 0;
             int tooLongSrcSntCnt = 0;
             int tooLongTgtSntCnt = 0;
 
@@ -271,7 +275,7 @@ namespace Seq2SeqSharp.Tools
                     }
 
                     sntPairs.Add(rawSntPair);
-                    CorpusSize++;
+                    corpusSize++;
                     if (m_blockSize > 0 && sntPairs.Count >= m_blockSize)
                     {
                         Shuffle(sntPairs);
@@ -304,7 +308,7 @@ namespace Seq2SeqSharp.Tools
             swSrc.Close();
             swTgt.Close();
 
-            Logger.WriteLine($"Shuffled '{CorpusSize}' sentence pairs to file '{srcShuffledFilePath}' and '{tgtShuffledFilePath}'.");
+            Logger.WriteLine($"Shuffled '{corpusSize}' sentence pairs to file '{srcShuffledFilePath}' and '{tgtShuffledFilePath}'.");
 
             if (tooLongSrcSntCnt > 0)
             {
@@ -382,18 +386,12 @@ namespace Seq2SeqSharp.Tools
                         }
 
                         line = line.Trim();
-                        if (m_addBOSEOS)
-                        {
-                            line = $"{BOS} {line} {EOS}";
-                        }
-                        sntPair.SrcSnt = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                        line = $"{m_sentSrcPrefix} {line} {m_sentSrcSuffifx}";
+                        sntPair.SrcSnt = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
                         line = srTgt.ReadLine().Trim();
-                        if (m_addBOSEOS)
-                        {
-                            line = $"{BOS} {line} {EOS}";
-                        }
-                        sntPair.TgtSnt = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                        line = $"{m_sentTgtPrefix} {line} {m_sentTgtSuffix}";
+                        sntPair.TgtSnt = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
 
                         if ((lastTgtSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInTgt && lastTgtSntLen != sntPair.TgtSnt.Length) ||
@@ -429,29 +427,7 @@ namespace Seq2SeqSharp.Tools
             File.Delete(tgtShuffledFilePath);
         }
 
-        public static List<List<string>> ConstructInputTokens(List<string> input, bool addBOSEOS = true)
-        {
-            List<string> inputSeq = new List<string>();
 
-            if (addBOSEOS)
-            {
-                inputSeq.Add(ParallelCorpus.BOS);
-            }
-
-            if (input != null)
-            {
-                inputSeq.AddRange(input);
-            }
-
-            if (addBOSEOS)
-            {
-                inputSeq.Add(ParallelCorpus.EOS);
-            }
-
-            List<List<string>> inputSeqs = new List<List<string>>() { inputSeq };
-
-            return inputSeqs;
-        }
 
         /// <summary>
         /// Pad given sentences to the same length and return their original length
@@ -546,15 +522,24 @@ namespace Seq2SeqSharp.Tools
             return GetEnumerator();
         }
 
-        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSrcSentLength = 32, int maxTgtSentLength = 32, bool addBOSEOS = true, ShuffleEnums shuffleEnums = ShuffleEnums.Random)
+        public ParallelCorpus()
         {
-            Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSrcSentLength = '{maxSrcSentLength}',  MaxTgtSentLength = '{maxTgtSentLength}', addBOSEOS = '{addBOSEOS}', aggregateSrcLengthForShuffle = '{shuffleEnums}'");
+
+        }
+
+        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSrcSentLength = 32, int maxTgtSentLength = 32, string sentSrcPrefix = BOS, string sentSrcSuffix = EOS, string sentTgtPrefix = BOS, string sentTgtSuffix = EOS, ShuffleEnums shuffleEnums = ShuffleEnums.Random)
+        {
+            Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSrcSentLength = '{maxSrcSentLength}',  MaxTgtSentLength = '{maxTgtSentLength}', SentSrcPrefix = '{sentSrcPrefix}', SentSrcSuffix = '{sentSrcSuffix}', SentTgtPrefix = '{sentTgtPrefix}', SentTgtSuffix = '{sentTgtSuffix}', aggregateSrcLengthForShuffle = '{shuffleEnums}'");
             m_batchSize = batchSize;
             m_blockSize = shuffleBlockSize;
             m_maxSrcSentLength = maxSrcSentLength;
             m_maxTgtSentLength = maxTgtSentLength;
 
-            m_addBOSEOS = addBOSEOS;
+            m_sentSrcPrefix = sentSrcPrefix;
+            m_sentSrcSuffifx = sentSrcSuffix;
+            m_sentTgtPrefix = sentTgtPrefix;
+            m_sentTgtSuffix = sentTgtSuffix;
+
             m_shuffleEnums = shuffleEnums;
 
             m_srcFileList = new List<string>();

@@ -122,7 +122,7 @@ namespace SeqLabelConsole
                 sl.StatusUpdateWatcher += ss_IterationDone;
 
                 // Kick off training
-                sl.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, metrics: metrics);
+                sl.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, metrics: metrics, sentTgtPrefix: ParallelCorpus.BOS);
 
 
             }
@@ -142,7 +142,7 @@ namespace SeqLabelConsole
                 }
 
                 sl = new SequenceLabel(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds, maxSntSize: opts.MaxSentLength);
-                sl.Valid(validCorpus: validCorpus, metrics: metrics);
+                sl.Valid(validCorpus: validCorpus, metrics: metrics, hypPrefix: ParallelCorpus.BOS);
             }
             else if (mode == ModeEnums.Test)
             {
@@ -155,7 +155,7 @@ namespace SeqLabelConsole
                 string[] data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
                 foreach (string line in data_sents_raw1)
                 {
-                    List<List<string>> outputTokensBatch = sl.Test(ParallelCorpus.ConstructInputTokens(line.Trim().Split(' ').ToList(), false));
+                    List<List<string>> outputTokensBatch = sl.Test(ConstructInputTokens(line.Trim().Split(' ').ToList(), false), hypPrefix: ParallelCorpus.BOS);
                     outputLines.AddRange(outputTokensBatch.Select(x => string.Join(" ", x)));
                 }
 
@@ -167,6 +167,29 @@ namespace SeqLabelConsole
             }
         }
 
+        public static List<List<string>> ConstructInputTokens(List<string> input, bool addBOSEOS = true)
+        {
+            List<string> inputSeq = new List<string>();
+
+            if (addBOSEOS)
+            {
+                inputSeq.Add(ParallelCorpus.BOS);
+            }
+
+            if (input != null)
+            {
+                inputSeq.AddRange(input);
+            }
+
+            if (addBOSEOS)
+            {
+                inputSeq.Add(ParallelCorpus.EOS);
+            }
+
+            List<List<string>> inputSeqs = new List<List<string>>() { inputSeq };
+
+            return inputSeqs;
+        }
         private static void ShowOptions(string[] args)
         {
             string commandLine = string.Join(" ", args);

@@ -110,6 +110,27 @@ namespace Seq2SeqSharp
             });
         }
 
+
+        /// <summary>
+        /// Release gradients on all devices
+        /// </summary>
+        public void ReleaseGradientsOnAllDevices()
+        {
+            if (m_isStaticWeights)
+            {
+                return;
+            }
+
+            Parallel.ForEach(m_networks, network =>
+            {
+                List<Tools.IWeightTensor> tensors = network.GetParams();
+                for (int j = 0; j < tensors.Count; j++)
+                {
+                    tensors[j].ReleaseGradient();
+                }
+            });
+        }
+
         /// <summary>
         /// Save weights of the network on default device to given stream
         /// </summary>

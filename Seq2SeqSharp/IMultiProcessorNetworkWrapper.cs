@@ -10,5 +10,6 @@ namespace Seq2SeqSharp
         void SumGradientsToNetworkOnDefaultDevice();
         INeuralUnit GetNeuralUnitOnDefaultDevice();
         void ZeroGradientsOnAllDevices();
+        void ReleaseGradientsOnAllDevices();
     }
 }

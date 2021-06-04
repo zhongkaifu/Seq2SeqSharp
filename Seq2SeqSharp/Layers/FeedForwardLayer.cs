@@ -1,11 +1,12 @@
 ﻿using AdvUtils;
+using Seq2SeqSharp.Layers;
 using Seq2SeqSharp.Tools;
 using System.Collections.Generic;
 using System.IO;
 
 namespace Seq2SeqSharp
 {
-    internal class FeedForwardLayer : INeuralUnit
+    internal class FeedForwardLayer : IFeedForwardLayer
     {
         private readonly IWeightTensor m_Whd;
         private readonly IWeightTensor m_Bd;

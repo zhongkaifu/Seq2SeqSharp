@@ -76,25 +76,25 @@ namespace Seq2SeqSharp
             return true;
         }
 
-        public void Train(int maxTrainingEpoch, IEnumerable<SntPairBatch> trainCorpus, IEnumerable<SntPairBatch> validCorpus, ILearningRate learningRate, List<IMetric> metrics, IOptimizer optimizer)
+        public void Train(int maxTrainingEpoch, IEnumerable<SntPairBatch> trainCorpus, IEnumerable<SntPairBatch> validCorpus, ILearningRate learningRate, List<IMetric> metrics, IOptimizer optimizer, string sentTgtPrefix)
         {
             Logger.WriteLine("Start to train...");
             for (int i = 0; i < maxTrainingEpoch; i++)
             {
                 // Train one epoch over given devices. Forward part is implemented in RunForwardOnSingleDevice function in below, 
                 // backward, weights updates and other parts are implemented in the framework. You can see them in BaseSeq2SeqFramework.cs
-                TrainOneEpoch(i, trainCorpus, validCorpus, learningRate, optimizer, metrics, m_modelMetaData, RunForwardOnSingleDevice);
+                TrainOneEpoch(i, trainCorpus, validCorpus, learningRate, optimizer, metrics, m_modelMetaData, sentTgtPrefix, RunForwardOnSingleDevice);
             }
         }
 
-        public void Valid(IEnumerable<SntPairBatch> validCorpus, List<IMetric> metrics)
+        public void Valid(IEnumerable<SntPairBatch> validCorpus, List<IMetric> metrics, string hypPrefix)
         {
-            RunValid(validCorpus, RunForwardOnSingleDevice, metrics, true);
+            RunValid(validCorpus, RunForwardOnSingleDevice, metrics, hypPrefix, true);
         }
 
-        public List<List<string>> Test(List<List<string>> inputTokens)
+        public List<List<string>> Test(List<List<string>> inputTokens, string hypPrefix)
         {
-            (var rst, var alignment) = RunTest(inputTokens, 1, RunForwardOnSingleDevice);
+            (var rst, var alignment) = RunTest(inputTokens, 1, hypPrefix, RunForwardOnSingleDevice);
 
             return rst[0];
         }
@@ -160,12 +160,15 @@ namespace Seq2SeqSharp
                 else
                 {
                     // Output "i"th target word
-                    float[] targetIdx = g.Argmax(probs, 1).ToWeightArray();
-                    List<string> targetWords = m_modelMetaData.Vocab.ConvertTargetIdsToString(targetIdx.ToList());
-
-                    for (int k = 0; k < batchSize; k++)
+                    using (var targetIdxTensor = g.Argmax(probs, 1))
                     {
-                        tgtSnts[k] = targetWords.GetRange(k * seqLen, seqLen);
+                        float[] targetIdx = targetIdxTensor.ToWeightArray();
+                        List<string> targetWords = m_modelMetaData.Vocab.ConvertTargetIdsToString(targetIdx.ToList());
+
+                        for (int k = 0; k < batchSize; k++)
+                        {
+                            tgtSnts[k] = targetWords.GetRange(k * seqLen, seqLen);
+                        }
                     }
                 }
 

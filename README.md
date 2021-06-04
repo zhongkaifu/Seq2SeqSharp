@@ -37,8 +37,9 @@ Seq2SeqSharp is also a framework that neural networks can run on multi-GPUs in p
 Seq2SeqSharp is built by (.NET core)[https://docs.microsoft.com/en-us/dotnet/core/], so it can run on both Windows and Linux without any modification and recompilation.  
 
 # Usage  
-Seq2SeqSharp provides two console tools that you can run for sequence-to-sequence task (**Seq2SeqConsole.exe**) and sequence-labeling task (**SeqLabelConsole.exe**).  
+Seq2SeqSharp provides three console tools that you can run for sequence-to-sequence task (**Seq2SeqConsole.exe**), sequence-classification task (**SeqClassification.exe**) and sequence-labeling task (**SeqLabelConsole.exe**).  
 
+## Seq2SeqConsole for sequence-to-sequence task  
 You can use Seq2SeqConsole tool to train, test and visualize models.  
 Here is the command line to train a model:  
 **Seq2SeqConsole.exe -Task Train [parameters...]**  
@@ -171,14 +172,13 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
         "ValidCorpusPath":"corpus_valid",                
         "ValBatchSize":16,                                   
         "WarmUpSteps":8000,
+        "ValidIntervalHours":0.1,
         "VisualizeNNFilePath":null            
 }
 ```
 
-The usage of **SeqLabelConsole.exe** is similar as **Seq2SeqConsole.exe** in above, you can just type it in the console and it will show you usage.  
-
-# Data Format  
-The corpus contains each sentence per line. The file name pattern is "mainfilename.{source language name}.snt" and "mainfilename.{target language name}.snt".    
+### Data Format for Seq2SeqConsole tool  
+The training/valid corpus contain each sentence per line. The file name pattern is "mainfilename.{source language name}.snt" and "mainfilename.{target language name}.snt".    
 For example: Let's use three letters name CHS for Chinese and ENU for English in Chinese-English parallel corpus, so we could have these corpus files: train01.enu.snt, train01.chs.snt, train02.enu.snt and train02.chs.snt.  
 In train01.enu.snt, assume we have below two sentences:  
 the children huddled together for warmth .  
@@ -187,14 +187,77 @@ So, train01.chs.snt has the corresponding translated sentences:
 孩子 们 挤 成 一 团 以 取暖 .  
 汽车 业 也 在 不断 地 变化 .  
 
-For sequence-labeling task, the corpus format is the same as above. The target corpus contains labels for the corresponding sentences in the source corpus.  
+
+## SeqClassification for sequence-classification task  
+SeqClassification is used to classify input sequence to a certain category.  Given an input sequence, the tool will add a [CLS] tag at the beginning of sequence, and then send it to the encoder. At top layer of the encoder, it will run softmax against [CLS] and decide which category the sequence belongs to.  
+This tool can be used to train a model for sequence-classification task, and test the model.  
+
+Here is the configuration file for model training.  
+```json
+{
+    "Task":"Train",
+    "EmbeddingDim":512,
+    "HiddenSize":512,
+    "StartLearningRate":0.0006,
+    "WeightsUpdateCount":0,
+    "EnableSegmentEmbeddings":false,
+    "EncoderLayerDepth":6,
+    "ModelFilePath":"seq2seq_vlog_cls.model",
+    "VocabSize":45000,
+    "TrainCorpusPath":".\\data\\transcripts_cls_train.snt",
+    "ValidCorpusPath":".\\data\\transcripts_cls_valid.snt",
+    "InputTestFile":null,
+    "OutputFile":null,
+    "ShuffleBlockSize":-1,
+    "GradClip":5.0,
+    "BatchSize":2,
+    "ValBatchSize":1,
+    "DropoutRatio":0.0,
+    "ProcessorType":"GPU",
+    "EncoderType":"Transformer",
+    "MultiHeadNum":8,
+    "DeviceIds":"0",
+    "BeamSearch":1,
+    "MaxEpochNum":100,
+    "MaxTrainSentLength":5120,
+    "MaxTestSentLength":2048,
+    "WarmUpSteps":8000,
+    "VisualizeNNFilePath":null,
+    "Beta1":0.9,
+    "Beta2":0.98,
+    "EnableCoverageModel":false,
+    "ValidIntervalHours":1.0,
+    "ShuffleType": "NoPaddingInSrc",
+    "CompilerOptions":"--use_fast_math --gpu-architecture=compute_60"
+}
+```
+
+### Data format for SeqCliassificationConsole tool  
+
+## SeqLabelConsole for sequence-labeling task  
+The usage of **SeqLabelConsole.exe** is similar as **Seq2SeqConsole.exe** in above, you can just type it in the console and it will show you usage.  
+
+### Data format for SeqLabelConsole tool  
+For sequence-labeling task, the tool only uses a single data file including both token and tags. The data format is one token along with the corresponding tags per line. Token and tags are split by tab character. And each sentence is split by a blank line.  
 For example:  
 In train01.word.snt, assume we have below two sentences:  
-Microsoft is located in Redmond .  
-Zhongkai Fu is the author of Seq2SeqSharp .  
-In train01.label.snt, we will have the following label sequences:  
-S_ORG S_NOR S_NOR S_NOR S_LOC S_NOR  
-B_PER E_PER S_NOR S_NOR S_NOR S_NOR S_NOR S_NOR  
+Microsoft   S_ORG  
+is  S_NOR  
+located S_NOR  
+in  S_NOR  
+Redmond S_LOC  
+.   S_NOR  
+  
+Zhongkai    B_PER  
+Fu  E_PER  
+is  S_NOR  
+the S_NOR  
+author  S_NOR  
+of  S_NOR  
+Seq2SeqSharp    S_SFT  
+.   S_NOR  
+
+This format is compatible with the data for CRFSharp and CRF++.  
 
 # Release Package  
 You can download the release package from (here)[https://github.com/zhongkaifu/Seq2SeqSharp/releases/tag/20210125] . The release package includes Seq2SeqSharp binary files, model files and test files. For models, the release package includes many different models trained by Seq2SeqSharp, such as machine translation models between English and Chinese, Japanese, German, question-answer model for medical domain in Chinese and others. These models were trained using Transformer layers. The training config files are also included in the package. Test input file contains one sentence per line, and the corresponding reference file has one sentence per line. All sentences were already encoded to subwords by SentencePiece, so the package also includes the model and vocabulary of SentencePiece.  

@@ -42,7 +42,7 @@ namespace Seq2SeqSharp.Tools
         private static readonly object locker = new object();
 
         private bool releasedWeight = false;
-        private bool releasedGradient = false;
+      //  private bool releasedGradient = false;
         private IComputeGraph m_computeGraphToBind;
 
         private string m_GradientSetName = "None";
@@ -98,10 +98,10 @@ namespace Seq2SeqSharp.Tools
         {
             get
             {
-                if (releasedGradient)
-                {
-                    throw new Exception($"The gradient '{Name}' has been released, you cannot access it.");
-                }
+                //if (releasedGradient)
+                //{
+                //    throw new Exception($"The gradient '{Name}' has been released, you cannot access it.");
+                //}
 
                 if (m_TGradient == null)
                 {
@@ -136,7 +136,7 @@ namespace Seq2SeqSharp.Tools
                             }
                         }
                     }
-                    releasedGradient = false;
+                    //releasedGradient = false;
                 }
             }
         }
@@ -298,7 +298,7 @@ namespace Seq2SeqSharp.Tools
                 m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
                 Ops.SoftmaxGrad(m_TGradient, src.TGradient, src.TWeight, false);
 
-                releasedGradient = false;
+            //    releasedGradient = false;
 
                 m_GradientSetName = "AddSoftmaxGradient";
             }
@@ -316,7 +316,7 @@ namespace Seq2SeqSharp.Tools
                 m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
                 Ops.Copy(m_TGradient, src.TGradient);
 
-                releasedGradient = false;
+             //   releasedGradient = false;
 
                 m_GradientSetName = "CopyOrAddGradient_WeightTensor";
             }
@@ -334,7 +334,7 @@ namespace Seq2SeqSharp.Tools
                 m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
                 Ops.Copy(m_TGradient, src);
 
-                releasedGradient = false;
+             //   releasedGradient = false;
 
                 m_GradientSetName = $"CopyOrAddGradient_Tensor_CalledBy_{callerName}";
             }
@@ -352,7 +352,7 @@ namespace Seq2SeqSharp.Tools
                 m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
                 Ops.Mul(m_TGradient, w, g);
 
-                releasedGradient = false;
+             //   releasedGradient = false;
 
                 m_GradientSetName = "AddMulGrdient";
             }
@@ -377,7 +377,7 @@ namespace Seq2SeqSharp.Tools
                 m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
                 Ops.SigmoidD(m_TGradient, src.TWeight, src.TGradient);
 
-                releasedGradient = false;
+             //   releasedGradient = false;
 
                 m_GradientSetName = "AddSigmoidGradient";
             }
@@ -397,7 +397,7 @@ namespace Seq2SeqSharp.Tools
 
                 Ops.TanhD(m_TGradient, src.TWeight, src.TGradient);
 
-                releasedGradient = false;
+            //    releasedGradient = false;
 
                 m_GradientSetName = "AddTanhGradient";
             }
@@ -472,7 +472,7 @@ namespace Seq2SeqSharp.Tools
             {
                 m_TGradient.Dispose();
                 m_TGradient = null;
-                releasedGradient = true;
+            //    releasedGradient = true;
             }
         }
 
