@@ -205,7 +205,7 @@ namespace SeqClassificationConsole
                         {
                             tokens = tokens.GetRange(0, opts.MaxTestSentLength - 2);
                         }
-                        tokens.Insert(0, ParallelCorpus.CLS);
+                        tokens.Insert(0, SequenceClassificationCorpus.CLS);
                         inputBatchs.Add(tokens);
 
                         if (inputBatchs.Count >= opts.BatchSize * ss.DeviceIds.Length)

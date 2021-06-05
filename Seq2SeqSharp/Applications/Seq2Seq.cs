@@ -283,7 +283,11 @@ namespace Seq2SeqSharp
                     int batchSize = srcSnts.Count;
                     for (int i = 0; i < m_options.MaxTgtTestSentLength; i++)
                     {
-                        var batch2beam2seq = Enumerable.Repeat(new List<BeamSearchStatus>(), batchSize).ToList(); //(batch_size, beam_search_size)
+                        List<List<BeamSearchStatus>> batch2beam2seq = new List<List<BeamSearchStatus>>(); //(batch_size, beam_search_size)
+                        for (int j = 0; j < batchSize; j++)
+                        {
+                            batch2beam2seq.Add(new List<BeamSearchStatus>());
+                        }
 
                         try
                         {
@@ -314,11 +318,19 @@ namespace Seq2SeqSharp
                         if (m_options.BeamSearchSize > 1)
                         {
                             // Keep top N result and drop all others
-                            batch2beam2seq.ForEach(item => BeamSearch.GetTopNBSS(item, m_options.BeamSearchSize));
+                            for (int k = 0; k < batchSize; k++)
+                            {
+                                batch2beam2seq[k] = BeamSearch.GetTopNBSS(batch2beam2seq[k], m_options.BeamSearchSize);
+                            }
                         }
 
-                        beam2batch2tgtTokens = Enumerable.Repeat(new List<List<int>>(), m_options.BeamSearchSize).ToList();
-                        beam2batch2alignment = Enumerable.Repeat(new List<List<Alignment>>(), m_options.BeamSearchSize).ToList();
+                        beam2batch2tgtTokens.Clear();
+                        beam2batch2alignment = new List<List<List<Alignment>>>();
+                        for (int k = 0; k < m_options.BeamSearchSize; k++)
+                        {
+                            beam2batch2tgtTokens.Add(new List<List<int>>());
+                            beam2batch2alignment.Add(new List<List<Alignment>>());
+                        }
 
                         // Convert shape from (batch, beam, seq) to (beam, batch, seq), and check if all output sentences are ended. If so, we will stop decoding.
                         bool allSntsEnd = true;
