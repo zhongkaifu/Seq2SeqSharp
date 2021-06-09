@@ -47,14 +47,14 @@ namespace Seq2SeqSharp
             return response;
         }
 
-        public void Save(Stream stream)
+        public void Save(IModelMetaData stream)
         {
             m_alpha.Save(stream);
             m_beta.Save(stream);
         }
 
 
-        public void Load(Stream stream)
+        public void Load(IModelMetaData stream)
         {
             m_alpha.Load(stream);
             m_beta.Load(stream);

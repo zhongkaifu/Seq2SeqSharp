@@ -19,7 +19,7 @@ namespace Seq2SeqSharp.Applications
         public Vocab Vocab => m_modelMetaData.Vocab;
 
         private MultiProcessorNetworkWrapper<IWeightTensor> m_srcEmbedding; //The embeddings over devices for target
-        private MultiProcessorNetworkWrapper<IFeedForwardLayer> m_decoderFFLayer; //The feed forward layers over devices after all layers in encoder
+        private MultiProcessorNetworkWrapper<IFeedForwardLayer> m_encoderFFLayer; //The feed forward layers over devices after all layers in encoder
 
         private MultiProcessorNetworkWrapper<IEncoder> m_encoder; //The encoders over devices.
         private MultiProcessorNetworkWrapper<IWeightTensor> m_posEmbedding;
@@ -97,7 +97,7 @@ namespace Seq2SeqSharp.Applications
                 contextDim = modelMetaData.HiddenDim;
             }
 
-            m_decoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("FeedForward", contextDim, modelMetaData.Vocab.TargetWordSize, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
+            m_encoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("FeedForward", contextDim, modelMetaData.Vocab.TargetWordSize, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
 
 
             if (modelMetaData.EncoderType == EncoderTypeEnums.Transformer)
@@ -136,7 +136,7 @@ namespace Seq2SeqSharp.Applications
         {
             return (m_encoder.GetNetworkOnDevice(deviceIdIdx),
                     m_srcEmbedding.GetNetworkOnDevice(deviceIdIdx),
-                    m_decoderFFLayer.GetNetworkOnDevice(deviceIdIdx),
+                    m_encoderFFLayer.GetNetworkOnDevice(deviceIdIdx),
                     m_posEmbedding == null ? null : m_posEmbedding.GetNetworkOnDevice(deviceIdIdx), m_segmentEmbedding == null ? null : m_segmentEmbedding.GetNetworkOnDevice(deviceIdIdx));
         }
 
@@ -211,7 +211,7 @@ namespace Seq2SeqSharp.Applications
         {
             NetworkResult nr = new NetworkResult();
 
-            (IEncoder encoder, IWeightTensor srcEmbedding, IFeedForwardLayer decoderFFLayer, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding) = GetNetworksOnDeviceAt(deviceIdIdx);
+            (IEncoder encoder, IWeightTensor srcEmbedding, IFeedForwardLayer encoderFFLayer, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding) = GetNetworksOnDeviceAt(deviceIdIdx);
 
             // Reset networks
             encoder.Reset(computeGraph.GetWeightFactory(), srcSnts.Count);
@@ -246,7 +246,7 @@ namespace Seq2SeqSharp.Applications
             }
 
             IWeightTensor clsWeightTensor = computeGraph.IndexSelect(encOutput, clsIdxs); 
-            IWeightTensor ffLayer = decoderFFLayer.Process(clsWeightTensor, batchSize, computeGraph);
+            IWeightTensor ffLayer = encoderFFLayer.Process(clsWeightTensor, batchSize, computeGraph);
 
             float cost = 0.0f;
             using (IWeightTensor probs = computeGraph.Softmax(ffLayer, runGradients: false, inPlace: true))

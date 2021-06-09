@@ -7,8 +7,8 @@ namespace Seq2SeqSharp
     public interface INeuralUnit
     {
         List<IWeightTensor> GetParams();
-        void Save(Stream stream);
-        void Load(Stream stream);
+        void Save(IModelMetaData model);
+        void Load(IModelMetaData model);
 
         INeuralUnit CloneToDeviceAt(int deviceId);
         int GetDeviceId();

@@ -130,7 +130,7 @@ namespace Seq2SeqSharp
             return response;
         }
 
-        public void Save(Stream stream)
+        public void Save(IModelMetaData stream)
         {
             foreach (LSTMCell item in m_forwardEncoders)
             {
@@ -143,7 +143,7 @@ namespace Seq2SeqSharp
             }
         }
 
-        public void Load(Stream stream)
+        public void Load(IModelMetaData stream)
         {
             foreach (LSTMCell item in m_forwardEncoders)
             {

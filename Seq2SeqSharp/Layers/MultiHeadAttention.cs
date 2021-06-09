@@ -224,7 +224,7 @@ namespace Seq2SeqSharp
         }
 
 
-        public void Save(Stream stream)
+        public void Save(IModelMetaData stream)
         {
             if (m_sharedQKV == false)
             {
@@ -253,7 +253,7 @@ namespace Seq2SeqSharp
         }
 
 
-        public void Load(Stream stream)
+        public void Load(IModelMetaData stream)
         {
             if (m_sharedQKV == false)
             {

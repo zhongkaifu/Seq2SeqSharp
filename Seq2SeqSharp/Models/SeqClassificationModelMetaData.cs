@@ -17,6 +17,7 @@ namespace Seq2SeqSharp.Models
         public Vocab Vocab;
         public bool EnableSegmentEmbeddings = false;
 
+        public Dictionary<string, float[]> Name2Weights { get; set; }
         public SeqClassificationModelMetaData()
         {
 
@@ -31,6 +32,23 @@ namespace Seq2SeqSharp.Models
             EncoderType = encoderType;
             Vocab = vocab;
             EnableSegmentEmbeddings = enableSegmentEmbeddings;
+
+            Name2Weights = new Dictionary<string, float[]>();
+        }
+
+        public void AddWeights(string name, float[] weights)
+        {
+            Name2Weights.Add(name, weights);
+        }
+
+        public float[] GetWeights(string name)
+        {
+            return Name2Weights[name];
+        }
+
+        public void ClearWeights()
+        {
+            Name2Weights.Clear();
         }
     }
 }

@@ -4,8 +4,8 @@ namespace Seq2SeqSharp
 {
     public interface IMultiProcessorNetworkWrapper
     {
-        void Save(Stream stream);
-        void Load(Stream stream);
+        void Save(IModelMetaData model);
+        void Load(IModelMetaData model);
         void SyncWeights();
         void SumGradientsToNetworkOnDefaultDevice();
         INeuralUnit GetNeuralUnitOnDefaultDevice();

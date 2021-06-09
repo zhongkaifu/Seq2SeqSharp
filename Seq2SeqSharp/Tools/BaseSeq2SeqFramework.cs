@@ -117,17 +117,18 @@ namespace Seq2SeqSharp.Tools
                 BinaryFormatter bf = new BinaryFormatter();
                 using (FileStream fs = new FileStream(m_modelFilePath, FileMode.Create, FileAccess.Write))
                 {
+                    SaveParameters(modelMetaData);
                     // Save model meta data to the stream
                     bf.Serialize(fs, modelMetaData);
                     // All networks and tensors which are MultiProcessorNetworkWrapper<T> will be saved to given stream
-                    SaveParameters(fs);
+                    
                 }
-
+               
                 return true;
             }
             catch (Exception err)
             {
-                Logger.WriteLine($"Failed to save model to file. Exception = '{err.Message}'");
+                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Failed to save model to file. Exception = '{err.Message}'");
                 return false;
             }
         }
@@ -151,7 +152,7 @@ namespace Seq2SeqSharp.Tools
 
                 // Load embedding and weights from given model
                 // All networks and tensors which are MultiProcessorNetworkWrapper<T> will be loaded from given stream
-                LoadParameters(fs);
+                LoadParameters(modelMetaData);
             }
 
             //For multi-GPUs, copying weights from default device to other all devices
@@ -390,12 +391,12 @@ namespace Seq2SeqSharp.Tools
                 ReleaseGradientOnAllDevices();
 
                 // The valid corpus is provided, so evaluate the model.
-                if (RunValid(validCorpus, ForwardOnSingleDevice, metrics, hypPrefix: hypPrefix, outputToFile: true) == true)
+                if (RunValid(validCorpus, ForwardOnSingleDevice, metrics, hypPrefix: hypPrefix, outputToFile: true) == true || File.Exists(m_modelFilePath) == false)
                 {
                     SaveModel(modelMetaData);
                 }
             }
-            else if (m_avgCostPerWordInTotalInLastEpoch > avgCostPerWordInTotal)
+            else if (m_avgCostPerWordInTotalInLastEpoch > avgCostPerWordInTotal || File.Exists(m_modelFilePath) == false)
             {
                 // We don't have valid corpus, so if we could have lower cost, save the model
                 SaveModel(modelMetaData);
@@ -674,22 +675,24 @@ namespace Seq2SeqSharp.Tools
             });
         }
 
-        internal virtual void SaveParameters(Stream stream)
+        internal virtual void SaveParameters(IModelMetaData model)
         {
+            model.ClearWeights();
+
             RegisterTrainableParameters(this);
             foreach (KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network)
             {
-                pair.Value.Save(stream);
+                pair.Value.Save(model);
             }
         }
 
-        internal virtual void LoadParameters(Stream stream)
+        internal virtual void LoadParameters(IModelMetaData model)
         {
             RegisterTrainableParameters(this);
             foreach (KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network)
             {
                 Logger.WriteLine($"Loading parameter '{pair.Key}'");
-                pair.Value.Load(stream);
+                pair.Value.Load(model);
             }
         }
 

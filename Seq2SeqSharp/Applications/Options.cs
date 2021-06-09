@@ -31,7 +31,7 @@ namespace Seq2SeqSharp.Applications
         public string DeviceIds = "0";
 
         [Arg("Dropout ratio", "Dropout")]
-        public float DropoutRatio = 0.1f;
+        public float DropoutRatio = 0.0f;
 
         [Arg("Enable segment embeddings", "EnableSegmentEmbeddings")]
         public bool EnableSegmentEmbeddings = false;

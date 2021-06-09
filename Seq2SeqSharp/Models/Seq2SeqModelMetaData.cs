@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Seq2SeqSharp
 {
@@ -17,6 +18,8 @@ namespace Seq2SeqSharp
         public bool EnableCoverageModel = true;
         public bool SharedEmbeddings = false;
         public bool EnableSegmentEmbeddings = false;
+
+        public Dictionary<string, float[]> Name2Weights { get; set; }
 
         public Seq2SeqModelMetaData()
         {
@@ -38,6 +41,23 @@ namespace Seq2SeqSharp
             EnableCoverageModel = enableCoverageModel;
             SharedEmbeddings = sharedEmbeddings;
             EnableSegmentEmbeddings = enableSegmentEmbeddings;
+
+            Name2Weights = new Dictionary<string, float[]>();
+        }
+
+        public void AddWeights(string name, float[] weights)
+        {
+            Name2Weights.Add(name, weights);
+        }
+
+        public float[] GetWeights(string name)
+        {
+            return Name2Weights[name];
+        }
+
+        public void ClearWeights()
+        {
+            Name2Weights.Clear();
         }
     }
 }

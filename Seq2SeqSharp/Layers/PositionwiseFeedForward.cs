@@ -57,7 +57,7 @@ namespace Seq2SeqSharp
         }
 
 
-        public void Save(Stream stream)
+        public void Save(IModelMetaData stream)
         {
             layerNorm2.Save(stream);
             feedForwardLayer1.Save(stream);
@@ -65,7 +65,7 @@ namespace Seq2SeqSharp
         }
 
 
-        public void Load(Stream stream)
+        public void Load(IModelMetaData stream)
         {
             layerNorm2.Load(stream);
             feedForwardLayer1.Load(stream);
