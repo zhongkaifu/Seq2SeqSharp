@@ -115,7 +115,8 @@ namespace Seq2SeqConsole
                     else
                     {
                         // Load or build vocabulary
-                        Vocab vocab = null;
+                        Vocab srcVocab = null;
+                        Vocab tgtVocab = null;
                         if (!string.IsNullOrEmpty(opts.SrcVocab) && !string.IsNullOrEmpty(opts.TgtVocab))
                         {
                             Logger.WriteLine($"Loading source vocabulary from '{opts.SrcVocab}' and target vocabulary from '{opts.TgtVocab}'. Shared vocabulary is '{opts.SharedEmbeddings}'");
@@ -125,17 +126,19 @@ namespace Seq2SeqConsole
                             }
 
                             // Vocabulary files are specified, so we load them
-                            vocab = new Vocab(opts.SrcVocab, opts.TgtVocab);
+                            srcVocab = new Vocab(opts.SrcVocab);
+                            tgtVocab = new Vocab(opts.TgtVocab);
                         }
                         else
                         {
                             Logger.WriteLine($"Building vocabulary from training corpus. Shared vocabulary is '{opts.SharedEmbeddings}'");
                             // We don't specify vocabulary, so we build it from train corpus
-                            vocab = new Vocab(trainCorpus, opts.VocabSize, sharedVocab: opts.SharedEmbeddings);
+
+                            (srcVocab, tgtVocab) = trainCorpus.BuildVocabs(opts.VocabSize, opts.SharedEmbeddings);
                         }
 
                         //New training
-                        ss = new Seq2Seq(opts, vocab);
+                        ss = new Seq2Seq(opts, srcVocab, tgtVocab);
                     }
 
                     // Add event handler for monitoring

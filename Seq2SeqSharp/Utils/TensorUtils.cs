@@ -28,5 +28,40 @@ namespace Seq2SeqSharp.Utils
 
             Ops.ScatterFill(r.TWeight, val, dim, i.TWeight);
         }
+
+        public static IWeightTensor ExtractTokensEmbeddings(List<List<int>> seqs, IComputeGraph g, IWeightTensor embeddingsTensor, List<int> seqOriginalLengths, IWeightTensor segmentEmbedding, Vocab vocab)
+        {
+            int batchSize = seqs.Count;
+            int seqLen = seqs[0].Count;
+
+            float[] idxs = new float[batchSize * seqLen];
+            float[] segIdxs = new float[batchSize * seqLen];
+
+            for (int i = 0; i < batchSize; i++)
+            {
+                int segIdx = 0;
+                for (int j = 0; j < seqLen; j++)
+                {
+                    idxs[i * seqLen + j] = seqs[i][j];
+                    segIdxs[i * seqLen + j] = segIdx;
+
+                    string token = vocab.GetString(seqs[i][j]);
+                    if (token == ParallelCorpus.SEP)
+                    {
+                        //A new segment
+                        segIdx++;
+                    }
+                }
+            }
+
+            if (segmentEmbedding == null)
+            {
+                return g.IndexSelect(embeddingsTensor, idxs);
+            }
+            else
+            {
+                return g.Add(g.IndexSelect(embeddingsTensor, idxs), g.IndexSelect(segmentEmbedding, segIdxs));
+            }
+        }
     }
 }

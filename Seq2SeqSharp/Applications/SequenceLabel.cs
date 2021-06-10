@@ -23,10 +23,10 @@ namespace Seq2SeqSharp
         private readonly int m_maxSntSize;
 
         public SequenceLabel(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType,
-            float dropoutRatio, Vocab vocab, int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath, int maxSntSize = 128) :
+            float dropoutRatio, Vocab srcVocab, Vocab tgtVocab, int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath, int maxSntSize = 128) :
             base(deviceIds, processorType, modelFilePath)
         {
-            m_modelMetaData = new SeqLabelModelMetaData(hiddenDim, embeddingDim, encoderLayerDepth, multiHeadNum, encoderType, vocab);
+            m_modelMetaData = new SeqLabelModelMetaData(hiddenDim, embeddingDim, encoderLayerDepth, multiHeadNum, encoderType, srcVocab, tgtVocab);
             m_dropoutRatio = dropoutRatio;
             m_maxSntSize = maxSntSize;
 
@@ -53,16 +53,16 @@ namespace Seq2SeqSharp
             {
                 m_encoder = new MultiProcessorNetworkWrapper<IEncoder>(
                     new BiEncoder("BiLSTMEncoder", modelMetaData.HiddenDim, modelMetaData.EmbeddingDim, modelMetaData.EncoderLayerDepth, raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
-                m_decoderFFLayer = new MultiProcessorNetworkWrapper<FeedForwardLayer>(new FeedForwardLayer("FeedForward", modelMetaData.HiddenDim * 2, modelMetaData.Vocab.TargetWordSize, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
+                m_decoderFFLayer = new MultiProcessorNetworkWrapper<FeedForwardLayer>(new FeedForwardLayer("FeedForward", modelMetaData.HiddenDim * 2, modelMetaData.TgtVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
             }
             else
             {
                 m_encoder = new MultiProcessorNetworkWrapper<IEncoder>(
                     new TransformerEncoder("TransformerEncoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.EmbeddingDim, modelMetaData.EncoderLayerDepth, m_dropoutRatio, raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
-                m_decoderFFLayer = new MultiProcessorNetworkWrapper<FeedForwardLayer>(new FeedForwardLayer("FeedForward", modelMetaData.HiddenDim, modelMetaData.Vocab.TargetWordSize, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
+                m_decoderFFLayer = new MultiProcessorNetworkWrapper<FeedForwardLayer>(new FeedForwardLayer("FeedForward", modelMetaData.HiddenDim, modelMetaData.TgtVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
             }
 
-            m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.Vocab.SourceWordSize, modelMetaData.EmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, name: "SrcEmbeddings", isTrainable: true), DeviceIds);
+            m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.SrcVocab.Count, modelMetaData.EmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, name: "SrcEmbeddings", isTrainable: true), DeviceIds);
 
             if (modelMetaData.EncoderType == EncoderTypeEnums.Transformer)
             {
@@ -147,7 +147,7 @@ namespace Seq2SeqSharp
                     {
                         for (int j = 0; j < seqLen; j++)
                         {
-                                int ix_targets_k_j = m_modelMetaData.Vocab.GetTargetWordIndex(tgtSnts[k][j]);
+                                int ix_targets_k_j = m_modelMetaData.TgtVocab.GetWordIndex(tgtSnts[k][j]);
                                 float score_k = probs.GetWeightAt(new long[] { k * seqLen + j, ix_targets_k_j });
                                 cost += (float)-Math.Log(score_k);
 
@@ -163,7 +163,7 @@ namespace Seq2SeqSharp
                     using (var targetIdxTensor = g.Argmax(probs, 1))
                     {
                         float[] targetIdx = targetIdxTensor.ToWeightArray();
-                        List<string> targetWords = m_modelMetaData.Vocab.ConvertTargetIdsToString(targetIdx.ToList());
+                        List<string> targetWords = m_modelMetaData.TgtVocab.ConvertIdsToString(targetIdx.ToList());
 
                         for (int k = 0; k < batchSize; k++)
                         {
@@ -202,7 +202,7 @@ namespace Seq2SeqSharp
                 int originalLength = originalSrcLengths[j];
                 for (int i = 0; i < seqLen; i++)
                 {
-                    int ix_source = m_modelMetaData.Vocab.GetSourceWordIndex(srcSnts[j][i], logUnk: true);
+                    int ix_source = m_modelMetaData.SrcVocab.GetWordIndex(srcSnts[j][i], logUnk: true);
 
                     var emb = g.Peek(Embedding, 0, ix_source, runGradients: i < originalLength ? true : false);
 

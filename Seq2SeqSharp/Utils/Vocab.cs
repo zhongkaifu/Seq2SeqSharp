@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace Seq2SeqSharp
+namespace Seq2SeqSharp.Utils
 {
     public enum SENTTAGS
     {
@@ -18,21 +18,10 @@ namespace Seq2SeqSharp
     [Serializable]
     public class Vocab
     {
-        public Dictionary<string, int> SrcWordToIndex;
-        public Dictionary<string, int> TgtWordToIndex;
-
-        private Dictionary<int, string> m_srcIndexToWord;
-        private List<string> m_srcVocab = new List<string>();
-        private Dictionary<int, string> m_tgtIndexToWord;
-        private List<string> m_tgtVocab = new List<string>();
-
-
-        public int SourceWordSize => m_srcIndexToWord.Count;
-        public int TargetWordSize => m_tgtIndexToWord.Count;
-
-        public List<string> SrcVocab => m_srcVocab.GetRange(3, m_srcVocab.Count - 3);
-
-        public List<string> TgtVocab => m_tgtVocab.GetRange(3, m_tgtVocab.Count - 3);
+        public Dictionary<string, int> WordToIndex;
+        public Dictionary<int, string> IndexToWord;
+        public List<string> Items = new List<string>();
+        public int Count => IndexToWord.Count;
 
         private object locker = new object();
 
@@ -43,217 +32,55 @@ namespace Seq2SeqSharp
 
         private void CreateIndex()
         {
-            SrcWordToIndex = new Dictionary<string, int>();
-            m_srcIndexToWord = new Dictionary<int, string>();
-            m_srcVocab = new List<string>();
+            WordToIndex = new Dictionary<string, int>();
+            IndexToWord = new Dictionary<int, string>();
+            Items = new List<string>();
 
-            TgtWordToIndex = new Dictionary<string, int>();
-            m_tgtIndexToWord = new Dictionary<int, string>();
-            m_tgtVocab = new List<string>();
+            Items.Add(ParallelCorpus.EOS);
+            Items.Add(ParallelCorpus.BOS);
+            Items.Add(ParallelCorpus.UNK);
 
-            m_srcVocab.Add(ParallelCorpus.EOS);
-            m_srcVocab.Add(ParallelCorpus.BOS);
-            m_srcVocab.Add(ParallelCorpus.UNK);
+            WordToIndex[ParallelCorpus.EOS] = (int)SENTTAGS.END;
+            WordToIndex[ParallelCorpus.BOS] = (int)SENTTAGS.START;
+            WordToIndex[ParallelCorpus.UNK] = (int)SENTTAGS.UNK;
 
-            SrcWordToIndex[ParallelCorpus.EOS] = (int)SENTTAGS.END;
-            SrcWordToIndex[ParallelCorpus.BOS] = (int)SENTTAGS.START;
-            SrcWordToIndex[ParallelCorpus.UNK] = (int)SENTTAGS.UNK;
-
-            m_srcIndexToWord[(int)SENTTAGS.END] = ParallelCorpus.EOS;
-            m_srcIndexToWord[(int)SENTTAGS.START] = ParallelCorpus.BOS;
-            m_srcIndexToWord[(int)SENTTAGS.UNK] = ParallelCorpus.UNK;
-
-            m_tgtVocab.Add(ParallelCorpus.EOS);
-            m_tgtVocab.Add(ParallelCorpus.BOS);
-            m_tgtVocab.Add(ParallelCorpus.UNK);
-
-            TgtWordToIndex[ParallelCorpus.EOS] = (int)SENTTAGS.END;
-            TgtWordToIndex[ParallelCorpus.BOS] = (int)SENTTAGS.START;
-            TgtWordToIndex[ParallelCorpus.UNK] = (int)SENTTAGS.UNK;
-
-            m_tgtIndexToWord[(int)SENTTAGS.END] = ParallelCorpus.EOS;
-            m_tgtIndexToWord[(int)SENTTAGS.START] = ParallelCorpus.BOS;
-            m_tgtIndexToWord[(int)SENTTAGS.UNK] = ParallelCorpus.UNK;
+            IndexToWord[(int)SENTTAGS.END] = ParallelCorpus.EOS;
+            IndexToWord[(int)SENTTAGS.START] = ParallelCorpus.BOS;
+            IndexToWord[(int)SENTTAGS.UNK] = ParallelCorpus.UNK;
         }
 
         /// <summary>
         /// Load vocabulary from given files
         /// </summary>
-        /// <param name="srcVocabFilePath"></param>
-        /// <param name="tgtVocabFilePath"></param>
-        public Vocab(string srcVocabFilePath, string tgtVocabFilePath)
+        /// <param name="vocabFilePath"></param>
+        public Vocab(string vocabFilePath)
         {
             Logger.WriteLine("Loading vocabulary files...");
-            string[] srcVocab = File.ReadAllLines(srcVocabFilePath);
-            string[] tgtVocab = File.ReadAllLines(tgtVocabFilePath);
+            string[] vocab = File.ReadAllLines(vocabFilePath);
 
             CreateIndex();
 
             //Build word index for both source and target sides
             int q = 3;
-            foreach (string line in srcVocab)
+            foreach (string line in vocab)
             {
                 string[] items = line.Split('\t');
                 string word = items[0];
 
                 if (ParallelCorpus.IsPreDefinedToken(word) == false)
                 {
-                    m_srcVocab.Add(word);
-                    SrcWordToIndex[word] = q;
-                    m_srcIndexToWord[q] = word;
+                    Items.Add(word);
+                    WordToIndex[word] = q;
+                    IndexToWord[q] = word;
                     q++;
                 }
             }
-
-            q = 3;
-            foreach (string line in tgtVocab)
-            {
-                string[] items = line.Split('\t');
-                string word = items[0];
-
-                if (ParallelCorpus.IsPreDefinedToken(word) == false)
-                {
-                    m_tgtVocab.Add(word);
-                    TgtWordToIndex[word] = q;
-                    m_tgtIndexToWord[q] = word;
-                    q++;
-                }
-            }
-
         }
-
-        /// <summary>
-        /// Build vocabulary from training corpus
-        /// </summary>
-        /// <param name="trainCorpus"></param>
-        /// <param name="vocabSize"></param>
-        public Vocab(IEnumerable<SntPairBatch> trainCorpus, int vocabSize = 45000, bool sharedVocab = false)
-        {
-            Logger.WriteLine($"Building vocabulary from given training corpus.");
-            // count up all words
-            Dictionary<string, int> s_d = new Dictionary<string, int>();
-            Dictionary<string, int> t_d = new Dictionary<string, int>();
-
-            CreateIndex();
-
-            foreach (SntPairBatch sntPairBatch in trainCorpus)
-            {
-                foreach (SntPair sntPair in sntPairBatch.SntPairs)
-                {
-                    string[] item = sntPair.SrcSnt;
-                    for (int i = 0, n = item.Length; i < n; i++)
-                    {
-                        string txti = item[i];
-                        if (s_d.Keys.Contains(txti)) { s_d[txti] += 1; }
-                        else { s_d.Add(txti, 1); }
-
-                        if (sharedVocab)
-                        {
-                            if (t_d.Keys.Contains(txti)) { t_d[txti] += 1; }
-                            else { t_d.Add(txti, 1); }
-                        }
-                    }
-
-                    string[] item2 = sntPair.TgtSnt;
-                    for (int i = 0, n = item2.Length; i < n; i++)
-                    {
-                        string txti = item2[i];
-                        if (t_d.Keys.Contains(txti)) { t_d[txti] += 1; }
-                        else { t_d.Add(txti, 1); }
-
-                        if (sharedVocab)
-                        {
-                            if (s_d.Keys.Contains(txti)) { s_d[txti] += 1; }
-                            else { s_d.Add(txti, 1); }
-                        }
-                    }
-                }
-            }
-
-            SortedDictionary<int, List<string>> s_sd = new SortedDictionary<int, List<string>>();
-            SortedDictionary<int, List<string>> t_sd = new SortedDictionary<int, List<string>>();
-
-            foreach (var kv in s_d)
-            {
-                if (s_sd.ContainsKey(kv.Value) == false)
-                {
-                    s_sd.Add(kv.Value, new List<string>());
-                }
-                s_sd[kv.Value].Add(kv.Key);
-            }
-
-            foreach (var kv in t_d)
-            {
-                if (t_sd.ContainsKey(kv.Value) == false)
-                {
-                    t_sd.Add(kv.Value, new List<string>());
-                }
-                t_sd[kv.Value].Add(kv.Key);
-            }
-
-
-            int q = 3;
-            foreach (var kv in s_sd.Reverse())
-            {
-                foreach (var token in kv.Value)
-                {
-                    if (ParallelCorpus.IsPreDefinedToken(token) == false)
-                    {
-                        // add word to vocab
-                        SrcWordToIndex[token] = q;
-                        m_srcIndexToWord[q] = token;
-                        m_srcVocab.Add(token);
-                        q++;
-
-                        if (q >= vocabSize)
-                        {
-                            break;
-                        }
-                    }
-                }
-
-                if (q >= vocabSize)
-                {
-                    break;
-                }
-            }
-
-            Logger.WriteLine($"Original source vocabulary size = '{s_d.Count}', Truncated source vocabulary size = '{q}'");
-
-            q = 3;
-            foreach (var kv in t_sd.Reverse())
-            {
-                foreach (var token in kv.Value)
-                {
-                    if (ParallelCorpus.IsPreDefinedToken(token) == false)
-                    {
-                        // add word to vocab
-                        TgtWordToIndex[token] = q;
-                        m_tgtIndexToWord[q] = token;
-                        m_tgtVocab.Add(token);
-                        q++;
-
-                        if (q >= vocabSize)
-                        {
-                            break;
-                        }
-                    }
-                }
-
-                if (q >= vocabSize)
-                {
-                    break;
-                }
-            }
-
-            Logger.WriteLine($"Original target vocabulary size = '{s_d.Count}', Truncated target vocabulary size = '{q}'");
-        }
-
-
-        public void DumpTargetVocab(string fileName)
+ 
+        public void DumpVocab(string fileName)
         {
             List<string> lines = new List<string>();
-            foreach (KeyValuePair<int, string> pair in m_tgtIndexToWord)
+            foreach (KeyValuePair<int, string> pair in IndexToWord)
             {
                 lines.Add($"{pair.Value}\t{pair.Key}");
             }
@@ -261,33 +88,21 @@ namespace Seq2SeqSharp
             File.WriteAllLines(fileName, lines);
         }
 
-
-        public void DumpSourceVocab(string fileName)
-        {
-            List<string> lines = new List<string>();
-            foreach (KeyValuePair<int, string> pair in m_srcIndexToWord)
-            {
-                lines.Add($"{pair.Value}\t{pair.Key}");
-            }
-
-            File.WriteAllLines(fileName, lines);
-        }
-
-        public string GetSourceString(int idx)
+        public string GetString(int idx)
         {
             lock (locker)
             {
                 string letter = ParallelCorpus.UNK;
-                if (m_srcIndexToWord.ContainsKey(idx))
+                if (IndexToWord.ContainsKey(idx))
                 {
-                    letter = m_srcIndexToWord[idx];
+                    letter = IndexToWord[idx];
                 }
 
                 return letter;
             }
         }
 
-        public List<string> ConvertTargetIdsToString(List<float> idxs)
+        public List<string> ConvertIdsToString(List<float> idxs)
         {
             lock (locker)
             {
@@ -295,9 +110,9 @@ namespace Seq2SeqSharp
                 foreach (int idx in idxs)
                 {
                     string letter = ParallelCorpus.UNK;
-                    if (m_tgtIndexToWord.ContainsKey(idx))
+                    if (IndexToWord.ContainsKey(idx))
                     {
-                        letter = m_tgtIndexToWord[idx];
+                        letter = IndexToWord[idx];
                     }
                     result.Add(letter);
                 }
@@ -306,7 +121,7 @@ namespace Seq2SeqSharp
             }
         }
 
-        public List<List<string>> ConvertTargetIdsToString(List<List<int>> seqs)
+        public List<List<string>> ConvertIdsToString(List<List<int>> seqs)
         {
             List<List<string>> result = new List<List<string>>();
             lock (locker)
@@ -316,7 +131,7 @@ namespace Seq2SeqSharp
                     List<string> r = new List<string>();
                     foreach (int idx in seq)
                     {
-                        if (!m_tgtIndexToWord.TryGetValue(idx, out string letter))
+                        if (!IndexToWord.TryGetValue(idx, out string letter))
                         {
                             letter = ParallelCorpus.UNK;
                         }
@@ -330,7 +145,7 @@ namespace Seq2SeqSharp
             return result;
         }
 
-        public List<List<List<string>>> ConvertTargetIdsToString(List<List<List<int>>> beam2seqs)
+        public List<List<List<string>>> ConvertIdsToString(List<List<List<int>>> beam2seqs)
         {
             List<List<List<string>>> result = new List<List<List<string>>>();
             lock (locker)
@@ -343,7 +158,7 @@ namespace Seq2SeqSharp
                         List<string> r = new List<string>();
                         foreach (int idx in seq)
                         {
-                            if (!m_tgtIndexToWord.TryGetValue(idx, out string letter))
+                            if (!IndexToWord.TryGetValue(idx, out string letter))
                             {
                                 letter = ParallelCorpus.UNK;
                             }
@@ -359,11 +174,11 @@ namespace Seq2SeqSharp
             return result;
         }
 
-        public int GetSourceWordIndex(string word, bool logUnk = false)
+        public int GetWordIndex(string word, bool logUnk = false)
         {
             lock (locker)
             {
-                if (!SrcWordToIndex.TryGetValue(word, out int id))
+                if (!WordToIndex.TryGetValue(word, out int id))
                 {
                     id = (int)SENTTAGS.UNK;
                     if (logUnk)
@@ -375,10 +190,10 @@ namespace Seq2SeqSharp
             }
         }
 
-        public List<List<int>> GetSourceWordIndex(List<List<string>> seqs, bool logUnk = false)
+        public List<List<int>> GetWordIndex(List<List<string>> seqs, bool logUnk = false)
         {
             List<List<int>> result = new List<List<int>>();
-              
+
             lock (locker)
             {
                 foreach (var seq in seqs)
@@ -386,7 +201,7 @@ namespace Seq2SeqSharp
                     List<int> r = new List<int>();
                     foreach (var word in seq)
                     {
-                        if (!SrcWordToIndex.TryGetValue(word, out int id))
+                        if (!WordToIndex.TryGetValue(word, out int id))
                         {
                             id = (int)SENTTAGS.UNK;
                             if (logUnk)
@@ -402,53 +217,6 @@ namespace Seq2SeqSharp
             }
 
             return result;
-        }
-
-
-        public int GetTargetWordIndex(string word, bool logUnk = false)
-        {
-            lock (locker)
-            {
-                if (!TgtWordToIndex.TryGetValue(word, out int id))
-                {
-                    id = (int)SENTTAGS.UNK;
-
-                    if (logUnk)
-                    {
-                        Logger.WriteLine($"Target word '{word}' is UNK");
-                    }
-                }
-                return id;
-            }
-        }
-
-        public List<List<int>> GetTargetWordIndex(List<List<string>> seqs, bool logUnk = false)
-        {
-            List<List<int>> result = new List<List<int>>();
-
-            lock (locker)
-            {
-                foreach (var seq in seqs)
-                {
-                    List<int> r = new List<int>();
-                    foreach (var word in seq)
-                    {
-                        if (!TgtWordToIndex.TryGetValue(word, out int id))
-                        {
-                            id = (int)SENTTAGS.UNK;
-                            if (logUnk)
-                            {
-                                Logger.WriteLine($"Target word '{word}' is UNK");
-                            }
-                        }
-                        r.Add(id);
-                    }
-
-                    result.Add(r);
-                }
-            }
-
-            return result;
-        }
+        }        
     }
 }

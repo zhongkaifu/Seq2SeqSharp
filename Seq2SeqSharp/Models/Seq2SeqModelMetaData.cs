@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Seq2SeqSharp.Utils;
+using System;
 using System.Collections.Generic;
 
 namespace Seq2SeqSharp
@@ -14,7 +15,8 @@ namespace Seq2SeqSharp
         public int MultiHeadNum;
         public EncoderTypeEnums EncoderType;
         public DecoderTypeEnums DecoderType;
-        public Vocab Vocab;
+        public Vocab SrcVocab;
+        public Vocab TgtVocab;
         public bool EnableCoverageModel = true;
         public bool SharedEmbeddings = false;
         public bool EnableSegmentEmbeddings = false;
@@ -27,7 +29,7 @@ namespace Seq2SeqSharp
         }
 
         public Seq2SeqModelMetaData(int hiddenDim, int srcEmbeddingDim, int tgtEmbeddingDim, int encoderLayerDepth, int decoderLayerDepth, int multiHeadNum, 
-            EncoderTypeEnums encoderType, DecoderTypeEnums decoderType, Vocab vocab, bool enableCoverageModel, bool sharedEmbeddings, bool enableSegmentEmbeddings)
+            EncoderTypeEnums encoderType, DecoderTypeEnums decoderType, Vocab srcVocab, Vocab tgtVocab, bool enableCoverageModel, bool sharedEmbeddings, bool enableSegmentEmbeddings)
         {
             HiddenDim = hiddenDim;
             SrcEmbeddingDim = srcEmbeddingDim;
@@ -37,7 +39,8 @@ namespace Seq2SeqSharp
             MultiHeadNum = multiHeadNum;
             EncoderType = encoderType;
             DecoderType = decoderType;
-            Vocab = vocab;
+            SrcVocab = srcVocab;
+            TgtVocab = tgtVocab;
             EnableCoverageModel = enableCoverageModel;
             SharedEmbeddings = sharedEmbeddings;
             EnableSegmentEmbeddings = enableSegmentEmbeddings;

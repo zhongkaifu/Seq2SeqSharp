@@ -118,35 +118,43 @@ namespace SeqClassificationConsole
                         Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
                         ss = new SeqClassification(opts);
 
-                        foreach (string word in ss.Vocab.TgtVocab)
+                        foreach (string word in ss.TgtVocab.Items)
                         {
-                            metrics.Add(new SequenceLabelFscoreMetric(word));
+                            if (ParallelCorpus.IsPreDefinedToken(word) == false)
+                            {
+                                metrics.Add(new SequenceLabelFscoreMetric(word));
+                            }
                         }
                     }
                     else
                     {
                         // Load or build vocabulary
-                        Vocab vocab = null;
+                        Vocab srcVocab = null;
+                        Vocab tgtVocab = null;
                         if (!string.IsNullOrEmpty(opts.SrcVocab) && !string.IsNullOrEmpty(opts.TgtVocab))
                         {
                             Logger.WriteLine($"Loading source vocabulary from '{opts.SrcVocab}' and target vocabulary from '{opts.TgtVocab}'.");
                             // Vocabulary files are specified, so we load them
-                            vocab = new Vocab(opts.SrcVocab, opts.TgtVocab);
+                            srcVocab = new Vocab(opts.SrcVocab);
+                            tgtVocab = new Vocab(opts.TgtVocab);
                         }
                         else
                         {
                             Logger.WriteLine($"Building vocabulary from training corpus.");
                             // We don't specify vocabulary, so we build it from train corpus
-                            vocab = new Vocab(trainCorpus, opts.VocabSize, sharedVocab: false);
+                            (srcVocab, tgtVocab) = trainCorpus.BuildVocabs(opts.VocabSize);
                         }
 
-                        foreach (string word in vocab.TgtVocab)
+                        foreach (string word in tgtVocab.Items)
                         {
-                            metrics.Add(new SequenceLabelFscoreMetric(word));
+                            if (ParallelCorpus.IsPreDefinedToken(word) == false)
+                            {
+                                metrics.Add(new SequenceLabelFscoreMetric(word));
+                            }
                         }
 
                         //New training
-                        ss = new SeqClassification(opts, vocab);
+                        ss = new SeqClassification(opts, srcVocab, tgtVocab);
                     }
 
 

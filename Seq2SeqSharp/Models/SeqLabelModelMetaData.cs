@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Seq2SeqSharp.Utils;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,7 +15,8 @@ namespace Seq2SeqSharp
         public int EncoderLayerDepth;
         public int MultiHeadNum;
         public EncoderTypeEnums EncoderType;
-        public Vocab Vocab;
+        public Vocab SrcVocab;
+        public Vocab TgtVocab;
 
         public Dictionary<string, float[]> Name2Weights { get; set; }
         public SeqLabelModelMetaData()
@@ -22,14 +24,15 @@ namespace Seq2SeqSharp
 
         }
 
-        public SeqLabelModelMetaData(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab vocab)
+        public SeqLabelModelMetaData(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, Vocab tgtVocab)
         {
             HiddenDim = hiddenDim;
             EmbeddingDim = embeddingDim;
             EncoderLayerDepth = encoderLayerDepth;
             MultiHeadNum = multiHeadNum;
             EncoderType = encoderType;
-            Vocab = vocab;
+            SrcVocab = srcVocab;
+            TgtVocab = tgtVocab;
 
             Name2Weights = new Dictionary<string, float[]>();
         }

@@ -4,6 +4,7 @@ using Seq2SeqSharp;
 using Seq2SeqSharp.Metrics;
 using Seq2SeqSharp.Optimizer;
 using Seq2SeqSharp.Tools;
+using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -71,16 +72,18 @@ namespace SeqLabelConsole
                 SequenceLabelingCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new SequenceLabelingCorpus(opts.ValidCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxSentLength);
 
                 // Load or build vocabulary
-                Vocab vocab = null;
+                Vocab srcVocab = null;
+                Vocab tgtVocab = null;
                 if (!string.IsNullOrEmpty(opts.SrcVocab) && !string.IsNullOrEmpty(opts.TgtVocab))
                 {
                     // Vocabulary files are specified, so we load them
-                    vocab = new Vocab(opts.SrcVocab, opts.TgtVocab);
+                    srcVocab = new Vocab(opts.SrcVocab);
+                    tgtVocab = new Vocab(opts.TgtVocab);
                 }
                 else
                 {
                     // We don't specify vocabulary, so we build it from train corpus
-                    vocab = new Vocab(trainCorpus);
+                    (srcVocab, tgtVocab) = trainCorpus.BuildVocabs();
                 }
 
                 // Create learning rate
@@ -99,9 +102,12 @@ namespace SeqLabelConsole
 
                 // Create metrics
                 List<IMetric> metrics = new List<IMetric>();
-                foreach (string word in vocab.TgtVocab)
+                foreach (string word in tgtVocab.Items)
                 {
-                    metrics.Add(new SequenceLabelFscoreMetric(word));
+                    if (ParallelCorpus.IsPreDefinedToken(word) == false)
+                    {
+                        metrics.Add(new SequenceLabelFscoreMetric(word));
+                    }
                 }
 
                 if (File.Exists(opts.ModelFilePath) == false)
@@ -109,7 +115,7 @@ namespace SeqLabelConsole
                     //New training
                     sl = new SequenceLabel(hiddenDim: opts.HiddenSize, embeddingDim: opts.WordVectorSize, encoderLayerDepth: opts.EncoderLayerDepth, multiHeadNum: opts.MultiHeadNum,
                         encoderType: encoderType,
-                        dropoutRatio: opts.DropoutRatio, deviceIds: deviceIds, processorType: processorType, modelFilePath: opts.ModelFilePath, vocab: vocab, maxSntSize: opts.MaxSentLength);
+                        dropoutRatio: opts.DropoutRatio, deviceIds: deviceIds, processorType: processorType, modelFilePath: opts.ModelFilePath, srcVocab: srcVocab, tgtVocab: tgtVocab, maxSntSize: opts.MaxSentLength);
                 }
                 else
                 {
@@ -132,13 +138,16 @@ namespace SeqLabelConsole
 
                 // Load valid corpus
                 SequenceLabelingCorpus validCorpus = new SequenceLabelingCorpus(opts.ValidCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
+                (Vocab srcVocab, Vocab tgtVocab) = validCorpus.BuildVocabs();
 
-                Vocab vocab = new Vocab(validCorpus);
                 // Create metrics
                 List<IMetric> metrics = new List<IMetric>();
-                foreach (string word in vocab.TgtVocab)
+                foreach (string word in tgtVocab.Items)
                 {
-                    metrics.Add(new SequenceLabelFscoreMetric(word));
+                    if (ParallelCorpus.IsPreDefinedToken(word) == false)
+                    {
+                        metrics.Add(new SequenceLabelFscoreMetric(word));
+                    }
                 }
 
                 sl = new SequenceLabel(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds, maxSntSize: opts.MaxSentLength);

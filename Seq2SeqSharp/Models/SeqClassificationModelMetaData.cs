@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Seq2SeqSharp.Utils;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,7 +15,8 @@ namespace Seq2SeqSharp.Models
         public int EncoderLayerDepth;
         public int MultiHeadNum;
         public EncoderTypeEnums EncoderType;
-        public Vocab Vocab;
+        public Vocab SrcVocab;
+        public Vocab TgtVocab;
         public bool EnableSegmentEmbeddings = false;
 
         public Dictionary<string, float[]> Name2Weights { get; set; }
@@ -23,14 +25,15 @@ namespace Seq2SeqSharp.Models
 
         }
 
-        public SeqClassificationModelMetaData(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab vocab, bool enableSegmentEmbeddings)
+        public SeqClassificationModelMetaData(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, Vocab tgtVocab, bool enableSegmentEmbeddings)
         {
             HiddenDim = hiddenDim;
             EmbeddingDim = embeddingDim;
             EncoderLayerDepth = encoderLayerDepth;
             MultiHeadNum = multiHeadNum;
             EncoderType = encoderType;
-            Vocab = vocab;
+            SrcVocab = srcVocab;
+            TgtVocab = tgtVocab;
             EnableSegmentEmbeddings = enableSegmentEmbeddings;
 
             Name2Weights = new Dictionary<string, float[]>();
