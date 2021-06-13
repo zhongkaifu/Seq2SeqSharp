@@ -476,7 +476,7 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        public void Save(IModelMetaData model)
+        public void Save(IModel model)
         {
             //float[] floatArray1 = ToWeightArray();
 
@@ -489,7 +489,7 @@ namespace Seq2SeqSharp.Tools
             model.AddWeights(Name, ToWeightArray());
         }
 
-        public void Load(IModelMetaData model)
+        public void Load(IModel model)
         {
             //int size = Rows * Columns;
             //byte[] byteArray = new byte[size * 4];

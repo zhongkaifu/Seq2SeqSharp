@@ -2,7 +2,7 @@
 
 namespace Seq2SeqSharp
 {
-    public interface IModelMetaData
+    public interface IModel
     {
         public void AddWeights(string name, float[] weights);
 

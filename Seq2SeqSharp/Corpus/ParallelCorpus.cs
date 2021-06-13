@@ -525,7 +525,6 @@ namespace Seq2SeqSharp.Tools
         /// <summary>
         /// Build vocabulary from training corpus
         /// </summary>
-        /// <param name="trainCorpus"></param>
         /// <param name="vocabSize"></param>
         public (Vocab, Vocab) BuildVocabs(int vocabSize = 45000, bool sharedVocab = false)
         {

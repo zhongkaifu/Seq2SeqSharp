@@ -5,34 +5,31 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Seq2SeqSharp
+namespace Seq2SeqSharp.Models
 {
     [Serializable]
-    public class SeqLabelModelMetaData : IModelMetaData
+    public abstract class Model
     {
         public int HiddenDim;
-        public int EmbeddingDim;
         public int EncoderLayerDepth;
-        public int MultiHeadNum;
         public EncoderTypeEnums EncoderType;
+        public int MultiHeadNum;
         public Vocab SrcVocab;
-        public Vocab TgtVocab;
 
         public Dictionary<string, float[]> Name2Weights { get; set; }
-        public SeqLabelModelMetaData()
+
+        public Model()
         {
 
         }
 
-        public SeqLabelModelMetaData(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, Vocab tgtVocab)
+        public Model(int hiddenDim, int encoderLayerDepth, EncoderTypeEnums encoderType, int multiHeadNum, Vocab srcVocab)
         {
             HiddenDim = hiddenDim;
-            EmbeddingDim = embeddingDim;
             EncoderLayerDepth = encoderLayerDepth;
-            MultiHeadNum = multiHeadNum;
             EncoderType = encoderType;
+            MultiHeadNum = multiHeadNum;
             SrcVocab = srcVocab;
-            TgtVocab = tgtVocab;
 
             Name2Weights = new Dictionary<string, float[]>();
         }

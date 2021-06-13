@@ -20,10 +20,10 @@ namespace Seq2SeqSharp.Corpus
 
             foreach (var line in File.ReadAllLines(filePath))
             {
-                // Format: [Category Tag] \t [Sequence Text]
+                // Format: [Category Tag1] \t [Category Tag2] \t ... \t [Category TagN] \t [Sequence Text]
                 string[] items = line.Split(new char[] { '\t' });
-                string srcItem = items[1];
-                string tgtItem = items[0];
+                string srcItem = items[items.Length - 1];
+                string tgtItem = String.Join('\t', items, 0, items.Length - 1).Replace(" ", "_").Replace("\t"," ");
 
                 srcLines.Add(srcItem);
                 tgtLines.Add(tgtItem);
@@ -62,6 +62,97 @@ namespace Seq2SeqSharp.Corpus
 
             m_srcFileList.Add(srcFilePath);
             m_tgtFileList.Add(tgtFilePath);
+        }
+
+        /// <summary>
+        /// Build vocabulary from training corpus
+        /// </summary>
+        /// <param name="vocabSize"></param>
+        public (Vocab, List<Vocab>) BuildVocabs(int vocabSize = 45000)
+        {
+            Vocab srcVocab = new Vocab();
+            List<Vocab> tgtVocabs = new List<Vocab>();
+
+            Logger.WriteLine($"Building vocabulary from corpus.");
+
+            // count up all words
+            Dictionary<string, int> s_d = new Dictionary<string, int>();
+            List<int> qs = new List<int>();
+
+            foreach (SntPairBatch sntPairBatch in this)
+            {
+                foreach (SntPair sntPair in sntPairBatch.SntPairs)
+                {
+                    string[] item = sntPair.SrcSnt;
+                    for (int i = 0, n = item.Length; i < n; i++)
+                    {
+                        string txti = item[i];
+                        if (s_d.Keys.Contains(txti)) { s_d[txti] += 1; }
+                        else { s_d.Add(txti, 1); }
+                    }
+
+                    string[] item2 = sntPair.TgtSnt;
+                    for (int i = 0, n = item2.Length; i < n; i++)
+                    {
+                        while (tgtVocabs.Count < n)
+                        {
+                            tgtVocabs.Add(new Vocab());
+                            qs.Add(3);
+                        }
+
+                        string txti = item2[i];
+                        if (ParallelCorpus.IsPreDefinedToken(txti) == false && tgtVocabs[i].WordToIndex.ContainsKey(txti) == false)
+                        {
+                            // add word to vocab
+                            tgtVocabs[i].WordToIndex[txti] = qs[i];
+                            tgtVocabs[i].IndexToWord[qs[i]] = txti;
+                            tgtVocabs[i].Items.Add(txti);
+                            qs[i]++;
+                        }
+                    }
+                }
+            }
+
+            SortedDictionary<int, List<string>> s_sd = new SortedDictionary<int, List<string>>();
+
+            foreach (var kv in s_d)
+            {
+                if (s_sd.ContainsKey(kv.Value) == false)
+                {
+                    s_sd.Add(kv.Value, new List<string>());
+                }
+                s_sd[kv.Value].Add(kv.Key);
+            }
+
+            int q = 3;
+            foreach (var kv in s_sd.Reverse())
+            {
+                foreach (var token in kv.Value)
+                {
+                    if (ParallelCorpus.IsPreDefinedToken(token) == false)
+                    {
+                        // add word to vocab
+                        srcVocab.WordToIndex[token] = q;
+                        srcVocab.IndexToWord[q] = token;
+                        srcVocab.Items.Add(token);
+                        q++;
+
+                        if (q >= vocabSize)
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                if (q >= vocabSize)
+                {
+                    break;
+                }
+            }
+
+            Logger.WriteLine($"Original source vocabulary size = '{s_d.Count}', Truncated source vocabulary size = '{q}'");
+
+            return (srcVocab, tgtVocabs);
         }
     }
 }

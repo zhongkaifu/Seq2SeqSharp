@@ -44,6 +44,11 @@ namespace Seq2SeqSharp.Metrics
 
         public string GetScoreStr()
         {
+            if (m_count[1] == 0.0 || m_count[2] == 0.0)
+            {
+                return $"No F-score available for '{m_classLabel}'";
+            }
+
             double precision = m_count[0] / m_count[1];
             double recall = m_count[0] / m_count[2];
             double objective = 0.0;
@@ -57,6 +62,11 @@ namespace Seq2SeqSharp.Metrics
 
         public double GetPrimaryScore()
         {
+            if (m_count[1] == 0.0 || m_count[2] == 0.0)
+            {
+                return 0.0;
+            }
+
             double precision = m_count[0] / m_count[1];
             double recall = m_count[0] / m_count[2];
             double objective = 0.0;

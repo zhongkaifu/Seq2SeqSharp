@@ -19,14 +19,14 @@ namespace Seq2SeqSharp
         private MultiProcessorNetworkWrapper<IWeightTensor> m_posEmbedding;
 
         private readonly float m_dropoutRatio;
-        private readonly SeqLabelModelMetaData m_modelMetaData;
+        private readonly SeqLabelModel m_modelMetaData;
         private readonly int m_maxSntSize;
 
         public SequenceLabel(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType,
             float dropoutRatio, Vocab srcVocab, Vocab tgtVocab, int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath, int maxSntSize = 128) :
             base(deviceIds, processorType, modelFilePath)
         {
-            m_modelMetaData = new SeqLabelModelMetaData(hiddenDim, embeddingDim, encoderLayerDepth, multiHeadNum, encoderType, srcVocab, tgtVocab);
+            m_modelMetaData = new SeqLabelModel(hiddenDim, embeddingDim, encoderLayerDepth, multiHeadNum, encoderType, srcVocab, tgtVocab);
             m_dropoutRatio = dropoutRatio;
             m_maxSntSize = maxSntSize;
 
@@ -38,15 +38,15 @@ namespace Seq2SeqSharp
             : base(deviceIds, processorType, modelFilePath)
         {
             m_dropoutRatio = dropoutRatio;
-            m_modelMetaData = LoadModel(CreateTrainableParameters) as SeqLabelModelMetaData;
+            m_modelMetaData = LoadModel(CreateTrainableParameters) as SeqLabelModel;
             m_maxSntSize = maxSntSize;
         }
 
 
-        private bool CreateTrainableParameters(IModelMetaData mmd)
+        private bool CreateTrainableParameters(IModel mmd)
         {
             Logger.WriteLine($"Creating encoders and decoders...");
-            SeqLabelModelMetaData modelMetaData = mmd as SeqLabelModelMetaData;
+            SeqLabelModel modelMetaData = mmd as SeqLabelModel;
             RoundArray<int> raDeviceIds = new RoundArray<int>(DeviceIds);
 
             if (modelMetaData.EncoderType == EncoderTypeEnums.BiLSTM)

@@ -173,6 +173,7 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
         "ValBatchSize":16,                                   
         "WarmUpSteps":8000,
         "ValidIntervalHours":0.1,
+        "VocabSize":32000,
         "VisualizeNNFilePath":null            
 }
 ```
@@ -203,7 +204,6 @@ Here is the configuration file for model training.
     "EnableSegmentEmbeddings":false,
     "EncoderLayerDepth":6,
     "ModelFilePath":"seq2seq_vlog_cls.model",
-    "VocabSize":45000,
     "TrainCorpusPath":".\\data\\transcripts_cls_train.snt",
     "ValidCorpusPath":".\\data\\transcripts_cls_valid.snt",
     "InputTestFile":null,
@@ -227,14 +227,17 @@ Here is the configuration file for model training.
     "Beta2":0.98,
     "EnableCoverageModel":false,
     "ValidIntervalHours":1.0,
+    "VocabSize":45000,
     "ShuffleType": "NoPaddingInSrc",
     "CompilerOptions":"--use_fast_math --gpu-architecture=compute_60"
 }
 ```
 
 ### Data format for SeqCliassificationConsole tool  
-The data format is tokens along with the corresponding tag for classification per line. Tokens are inputs to the encoder, and ask model to predict its classification tag.  
-Tag and tokens are split by tab character. It looks like [Tag] \t [Tokens in Text]  
+The data format is tokens along with the corresponding tags for classification per line. Tokens are inputs to the encoder, and ask model to predict tags.  
+Tags and tokens are split by tab character. It looks like [Tag1] \t [Tag2] \t ... \t [TagN] \t [Tokens in Text]  
+If data has multi-tags, model will run multi-tasks for these tags.  
+
 Here is an example:  
 Tag                 |  Tokens in Sequence
 --------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -359,7 +362,7 @@ For different .NET versions, you need to modify target framework in *.csproj fil
 
 # Built-in Tags  
 Seq2SeqSharp has several built-in tokens and they are used for certain purposes.  
-Tag     | Comments
+Token   | Comments
 --------|------------------------------------------------------------
 \</s\>  | The end of the sequence
 \<s\>   | The beginning of the sequence

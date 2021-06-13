@@ -103,7 +103,7 @@ namespace Seq2SeqSharp.Tools
             return new ComputeGraphTensor(new WeightTensorFactory(), DeviceIds[deviceIdIdx], needBack);
         }
 
-        public bool SaveModel(IModelMetaData modelMetaData)
+        public bool SaveModel(IModel modelMetaData)
         {
             try
             {
@@ -138,14 +138,14 @@ namespace Seq2SeqSharp.Tools
         /// </summary>
         /// <param name="InitializeParameters"></param>
         /// <returns></returns>
-        public IModelMetaData LoadModel(Func<IModelMetaData, bool> InitializeParameters)
+        public IModel LoadModel(Func<IModel, bool> InitializeParameters)
         {
             Logger.WriteLine($"Loading model from '{m_modelFilePath}'...");
-            IModelMetaData modelMetaData = null;
+            IModel modelMetaData = null;
             BinaryFormatter bf = new BinaryFormatter();
             using (FileStream fs = new FileStream(m_modelFilePath, FileMode.Open, FileAccess.Read))
             {
-                modelMetaData = bf.Deserialize(fs) as IModelMetaData;
+                modelMetaData = bf.Deserialize(fs) as IModel;
 
                 //Initialize parameters on devices
                 InitializeParameters(modelMetaData);
@@ -161,7 +161,7 @@ namespace Seq2SeqSharp.Tools
             return modelMetaData;
         }
 
-        internal void TrainOneEpoch(int ep, IEnumerable<SntPairBatch> trainCorpus, IEnumerable<SntPairBatch> validCorpus, ILearningRate learningRate, IOptimizer solver, List<IMetric> metrics, IModelMetaData modelMetaData, string hypPrefix,
+        internal void TrainOneEpoch(int ep, IEnumerable<SntPairBatch> trainCorpus, IEnumerable<SntPairBatch> validCorpus, ILearningRate learningRate, IOptimizer solver, List<IMetric> metrics, IModel modelMetaData, string hypPrefix,
             Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice)
         {
             int processedLineInTotal = 0;
@@ -384,7 +384,7 @@ namespace Seq2SeqSharp.Tools
             return (cost, srcWordCnts, tgtWordCnts, processedLine);
         }
 
-        private void CreateCheckPoint(IEnumerable<SntPairBatch> validCorpus, List<IMetric> metrics, IModelMetaData modelMetaData, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice, double avgCostPerWordInTotal, string hypPrefix)
+        private void CreateCheckPoint(IEnumerable<SntPairBatch> validCorpus, List<IMetric> metrics, IModel modelMetaData, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice, double avgCostPerWordInTotal, string hypPrefix)
         {
             if (validCorpus != null)
             {
@@ -564,7 +564,7 @@ namespace Seq2SeqSharp.Tools
 
                 foreach (IMetric metric in metrics)
                 {
-                    sb.AppendLine($"{metric.Name} = {metric.GetScoreStr()}");
+                    sb.AppendLine($"{metric.Name} = {metric.GetScoreStr()}");                   
                 }
 
                 if (metrics[0].GetPrimaryScore() > m_bestPrimaryScore)
@@ -669,13 +669,11 @@ namespace Seq2SeqSharp.Tools
                 {
                     Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: '{err.Message}'");
                     Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Call stack: '{err.StackTrace}'");
-
-                    throw err;
                 }
             });
         }
 
-        internal virtual void SaveParameters(IModelMetaData model)
+        internal virtual void SaveParameters(IModel model)
         {
             model.ClearWeights();
 
@@ -686,7 +684,7 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        internal virtual void LoadParameters(IModelMetaData model)
+        internal virtual void LoadParameters(IModel model)
         {
             RegisterTrainableParameters(this);
             foreach (KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network)
@@ -781,6 +779,20 @@ namespace Seq2SeqSharp.Tools
             {
                 m_name2network.Add(name, networks);
                 Logger.WriteLine($"Register network '{name}'");
+            }
+
+            IMultiProcessorNetworkWrapper[] networksArray = childValue as IMultiProcessorNetworkWrapper[];
+            if (networksArray != null)
+            {
+                int idx = 0;
+                foreach (var network in networksArray)
+                {
+                    string name2 = $"{name}_{idx}";
+                    m_name2network.Add(name2, network);
+                    Logger.WriteLine($"Register network '{name2}'");
+
+                    idx++;
+                }
             }
         }
     }

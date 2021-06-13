@@ -174,7 +174,7 @@ namespace Seq2SeqSharp
             return response;
         }
 
-        public void Save(IModelMetaData stream)
+        public void Save(IModel stream)
         {
             foreach (MultiHeadAttention item in m_selfAttns)
             {
@@ -196,7 +196,7 @@ namespace Seq2SeqSharp
        //     m_decoderFFLayer.Save(stream);
         }
 
-        public void Load(IModelMetaData stream)
+        public void Load(IModel stream)
         {
             foreach (MultiHeadAttention item in m_selfAttns)
             {

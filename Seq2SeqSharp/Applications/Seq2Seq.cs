@@ -16,7 +16,7 @@ namespace Seq2SeqSharp
 {
     public class Seq2Seq : BaseSeq2SeqFramework
     {
-        private readonly Seq2SeqModelMetaData m_modelMetaData;
+        private readonly Seq2SeqModel m_modelMetaData;
 
         // Trainable parameters including networks and tensors
         private MultiProcessorNetworkWrapper<IWeightTensor> m_srcEmbedding; //The embeddings over devices for target
@@ -39,7 +39,7 @@ namespace Seq2SeqSharp
         {
             m_shuffleType = (ShuffleEnums)Enum.Parse(typeof(ShuffleEnums), options.ShuffleType);
             m_options = options;
-            m_modelMetaData = LoadModel(CreateTrainableParameters) as Seq2SeqModelMetaData;
+            m_modelMetaData = LoadModel(CreateTrainableParameters) as Seq2SeqModel;
         }
 
         public Seq2Seq(Seq2SeqOptions options, Vocab srcVocab, Vocab tgtVocab)
@@ -50,7 +50,7 @@ namespace Seq2SeqSharp
             m_shuffleType = (ShuffleEnums)Enum.Parse(typeof(ShuffleEnums), options.ShuffleType);
 
             m_options = options;
-            m_modelMetaData = new Seq2SeqModelMetaData(options.HiddenSize, options.SrcEmbeddingDim, options.TgtEmbeddingDim, options.EncoderLayerDepth, options.DecoderLayerDepth, options.MultiHeadNum, 
+            m_modelMetaData = new Seq2SeqModel(options.HiddenSize, options.SrcEmbeddingDim, options.TgtEmbeddingDim, options.EncoderLayerDepth, options.DecoderLayerDepth, options.MultiHeadNum, 
                 encoderType, decoderType, srcVocab, tgtVocab, options.EnableCoverageModel, options.SharedEmbeddings, options.EnableSegmentEmbeddings);
 
 
@@ -83,10 +83,10 @@ namespace Seq2SeqSharp
             }
         }
 
-        private bool CreateTrainableParameters(IModelMetaData mmd)
+        private bool CreateTrainableParameters(IModel mmd)
         {
             Logger.WriteLine($"Creating encoders and decoders...");
-            Seq2SeqModelMetaData modelMetaData = mmd as Seq2SeqModelMetaData;
+            Seq2SeqModel modelMetaData = mmd as Seq2SeqModel;
             RoundArray<int> raDeviceIds = new RoundArray<int>(DeviceIds);
 
             int contextDim = 0;

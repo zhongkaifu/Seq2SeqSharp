@@ -171,7 +171,7 @@ namespace Seq2SeqSharp
             return response;
         }
 
-        public void Save(IModelMetaData stream)
+        public void Save(IModel stream)
         {
             m_Ua.Save(stream);
             m_Wa.Save(stream);
@@ -188,7 +188,7 @@ namespace Seq2SeqSharp
         }
 
 
-        public void Load(IModelMetaData stream)
+        public void Load(IModel stream)
         {
             m_Ua.Load(stream);
             m_Wa.Load(stream);

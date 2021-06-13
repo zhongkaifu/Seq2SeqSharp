@@ -147,7 +147,7 @@ namespace Seq2SeqSharp
             return response;
         }
 
-        public void Save(IModelMetaData stream)
+        public void Save(IModel stream)
         {
             m_attentionLayer.Save(stream);
             foreach (LSTMAttentionDecoderCell item in m_decoders)
@@ -158,7 +158,7 @@ namespace Seq2SeqSharp
        //     m_decoderFFLayer.Save(stream);
         }
 
-        public void Load(IModelMetaData stream)
+        public void Load(IModel stream)
         {
             m_attentionLayer.Load(stream);
             foreach (LSTMAttentionDecoderCell item in m_decoders)

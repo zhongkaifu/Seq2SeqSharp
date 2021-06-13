@@ -131,7 +131,7 @@ namespace Seq2SeqSharp
             return response;
         }
 
-        public void Save(IModelMetaData stream)
+        public void Save(IModel stream)
         {
             foreach (MultiHeadAttention item in m_encoders)
             {
@@ -146,7 +146,7 @@ namespace Seq2SeqSharp
             layerNorm.Save(stream);
         }
 
-        public void Load(IModelMetaData stream)
+        public void Load(IModel stream)
         {
             foreach (MultiHeadAttention item in m_encoders)
             {

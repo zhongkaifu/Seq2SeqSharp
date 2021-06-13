@@ -54,14 +54,14 @@ namespace Seq2SeqSharp
             return response;
         }
 
-        public void Save(IModelMetaData stream)
+        public void Save(IModel stream)
         {
             m_Whd.Save(stream);
             m_Bd.Save(stream);
         }
 
 
-        public void Load(IModelMetaData stream)
+        public void Load(IModel stream)
         {
             m_Whd.Load(stream);
             m_Bd.Load(stream);

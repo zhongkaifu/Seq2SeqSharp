@@ -135,7 +135,7 @@ namespace Seq2SeqSharp
         /// Save weights of the network on default device to given stream
         /// </summary>
         /// <param name="stream"></param>
-        public void Save(IModelMetaData stream)
+        public void Save(IModel stream)
         {
             if (m_isStaticWeights == false)
             {
@@ -147,7 +147,7 @@ namespace Seq2SeqSharp
         /// Load weights from given stream to the network on default device
         /// </summary>
         /// <param name="stream"></param>
-        public void Load(IModelMetaData stream)
+        public void Load(IModel stream)
         {
             if (m_isStaticWeights == false)
             {

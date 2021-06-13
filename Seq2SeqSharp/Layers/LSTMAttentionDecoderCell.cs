@@ -92,7 +92,7 @@ namespace Seq2SeqSharp
             Cell = weightFactory.CreateWeightTensor(batchSize, m_hiddenDim, m_deviceId, true, name: $"{m_name}.{nameof(Cell)}", isTrainable: true);
         }
 
-        public void Save(IModelMetaData stream)
+        public void Save(IModel stream)
         {
             m_Wxhc.Save(stream);
             m_b.Save(stream);
@@ -102,7 +102,7 @@ namespace Seq2SeqSharp
         }
 
 
-        public void Load(IModelMetaData stream)
+        public void Load(IModel stream)
         {
             m_Wxhc.Load(stream);
             m_b.Load(stream);
