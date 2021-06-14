@@ -35,16 +35,16 @@ namespace SeqLabelConsole
         public string SrcEmbeddingModelFilePath = null;
 
         [Arg("Training corpus folder path", "TrainCorpusPath")]
-        public string TrainCorpusPath;
+        public string TrainCorpusPath = null;
 
         [Arg("Valid corpus folder path", "ValidCorpusPath")]
-        public string ValidCorpusPath;
+        public string ValidCorpusPath = null;
 
         [Arg("The input file for test.", "InputTestFile")]
-        public string InputTestFile;
+        public string InputTestFile = null;
 
         [Arg("The test result file.", "OutputTestFile")]
-        public string OutputTestFile;
+        public string OutputTestFile = null;
 
         [Arg("The shuffle block size", "ShuffleBlockSize")]
         public int ShuffleBlockSize = -1;

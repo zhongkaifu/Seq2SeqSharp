@@ -1,0 +1,25 @@
+{
+	"folders": [
+		{
+			"path": "CpuOps"
+		},
+		{
+			"path": "Seq2SeqConsole"
+		},
+		{
+			"path": "Seq2SeqSharp"
+		},
+		{
+			"path": "SeqClassificationConsole"
+		},
+		{
+			"path": "SeqLabelConsole"
+		},
+		{
+			"path": "TensorSharp"
+		},
+		{
+			"path": "TensorSharp.CUDA"
+		}
+	]
+}
