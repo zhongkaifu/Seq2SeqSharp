@@ -66,10 +66,10 @@ namespace SeqLabelConsole
             if (mode == ModeEnums.Train)
             {
                 // Load train corpus
-                SequenceLabelingCorpus trainCorpus = new SequenceLabelingCorpus(opts.TrainCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxSentLength);
+                SeqLabelingCorpus trainCorpus = new SeqLabelingCorpus(opts.TrainCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxSentLength);
 
                 // Load valid corpus
-                SequenceLabelingCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new SequenceLabelingCorpus(opts.ValidCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxSentLength);
+                SeqLabelingCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new SeqLabelingCorpus(opts.ValidCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxSentLength);
 
                 // Load or build vocabulary
                 Vocab srcVocab = null;
@@ -104,7 +104,7 @@ namespace SeqLabelConsole
                 List<IMetric> metrics = new List<IMetric>();
                 foreach (string word in tgtVocab.Items)
                 {
-                    if (ParallelCorpus.IsPreDefinedToken(word) == false)
+                    if (BuildInTokens.IsPreDefinedToken(word) == false)
                     {
                         metrics.Add(new SequenceLabelFscoreMetric(word));
                     }
@@ -115,7 +115,7 @@ namespace SeqLabelConsole
                     //New training
                     sl = new SequenceLabel(hiddenDim: opts.HiddenSize, embeddingDim: opts.WordVectorSize, encoderLayerDepth: opts.EncoderLayerDepth, multiHeadNum: opts.MultiHeadNum,
                         encoderType: encoderType,
-                        dropoutRatio: opts.DropoutRatio, deviceIds: deviceIds, processorType: processorType, modelFilePath: opts.ModelFilePath, srcVocab: srcVocab, tgtVocab: tgtVocab, maxSntSize: opts.MaxSentLength);
+                        dropoutRatio: opts.DropoutRatio, deviceIds: deviceIds, processorType: processorType, modelFilePath: opts.ModelFilePath, srcVocab: srcVocab, clsVocab: tgtVocab, maxSntSize: opts.MaxSentLength);
                 }
                 else
                 {
@@ -128,7 +128,7 @@ namespace SeqLabelConsole
                 sl.StatusUpdateWatcher += ss_IterationDone;
 
                 // Kick off training
-                sl.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, metrics: metrics, sentTgtPrefix: ParallelCorpus.BOS);
+                sl.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, metrics: metrics);
 
 
             }
@@ -137,21 +137,21 @@ namespace SeqLabelConsole
                 Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPath}'");
 
                 // Load valid corpus
-                SequenceLabelingCorpus validCorpus = new SequenceLabelingCorpus(opts.ValidCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
+                SeqLabelingCorpus validCorpus = new SeqLabelingCorpus(opts.ValidCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
                 (Vocab srcVocab, Vocab tgtVocab) = validCorpus.BuildVocabs();
 
                 // Create metrics
                 List<IMetric> metrics = new List<IMetric>();
                 foreach (string word in tgtVocab.Items)
                 {
-                    if (ParallelCorpus.IsPreDefinedToken(word) == false)
+                    if (BuildInTokens.IsPreDefinedToken(word) == false)
                     {
                         metrics.Add(new SequenceLabelFscoreMetric(word));
                     }
                 }
 
                 sl = new SequenceLabel(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds, maxSntSize: opts.MaxSentLength);
-                sl.Valid(validCorpus: validCorpus, metrics: metrics, hypPrefix: ParallelCorpus.BOS);
+                sl.Valid(validCorpus: validCorpus, metrics: metrics);
             }
             else if (mode == ModeEnums.Test)
             {
@@ -164,8 +164,8 @@ namespace SeqLabelConsole
                 string[] data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
                 foreach (string line in data_sents_raw1)
                 {
-                    List<List<string>> outputTokensBatch = sl.Test(ConstructInputTokens(line.Trim().Split(' ').ToList(), false), hypPrefix: ParallelCorpus.BOS);
-                    outputLines.AddRange(outputTokensBatch.Select(x => string.Join(" ", x)));
+                    var nr = sl.Test(ConstructInputTokens(line.Trim().Split(' ').ToList()));
+                    outputLines.AddRange(nr.Output[0].Select(x => string.Join(" ", x)));
                 }
 
                 File.WriteAllLines(opts.OutputTestFile, outputLines);
@@ -176,23 +176,13 @@ namespace SeqLabelConsole
             }
         }
 
-        public static List<List<string>> ConstructInputTokens(List<string> input, bool addBOSEOS = true)
+        public static List<List<string>> ConstructInputTokens(List<string> input)
         {
             List<string> inputSeq = new List<string>();
-
-            if (addBOSEOS)
-            {
-                inputSeq.Add(ParallelCorpus.BOS);
-            }
 
             if (input != null)
             {
                 inputSeq.AddRange(input);
-            }
-
-            if (addBOSEOS)
-            {
-                inputSeq.Add(ParallelCorpus.EOS);
             }
 
             List<List<string>> inputSeqs = new List<List<string>>() { inputSeq };

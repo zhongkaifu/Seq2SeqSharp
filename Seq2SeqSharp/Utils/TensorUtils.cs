@@ -46,7 +46,7 @@ namespace Seq2SeqSharp.Utils
                     segIdxs[i * seqLen + j] = segIdx;
 
                     string token = vocab.GetString(seqs[i][j]);
-                    if (token == ParallelCorpus.SEP)
+                    if (token == BuildInTokens.SEP)
                     {
                         //A new segment
                         segIdx++;

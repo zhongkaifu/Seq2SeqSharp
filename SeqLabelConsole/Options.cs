@@ -31,9 +31,6 @@ namespace SeqLabelConsole
         [Arg("The vocabulary file path for target side.", "TgtVocab")]
         public string TgtVocab = null;
 
-        [Arg("The external embedding model file path for source side.", "SrcEmbedding")]
-        public string SrcEmbeddingModelFilePath = null;
-
         [Arg("Training corpus folder path", "TrainCorpusPath")]
         public string TrainCorpusPath = null;
 

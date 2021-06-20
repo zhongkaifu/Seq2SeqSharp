@@ -51,17 +51,11 @@ namespace Seq2SeqSharp
         [Arg("The embedding dim in source side", "SrcEmbeddingDim")]
         public int SrcEmbeddingDim = 128;
 
-        [Arg("The external embedding model file path for source side.", "SrcEmbedding")]
-        public string SrcEmbeddingModelFilePath = null;
-
         [Arg("Source language name.", "SrcLang")]
         public string SrcLang;
 
         [Arg("The embedding dim in target side", "TgtEmbeddingDim")]
         public int TgtEmbeddingDim = 128;
-
-        [Arg("The external embedding model file path for target side.", "TgtEmbedding")]
-        public string TgtEmbeddingModelFilePath = null;
 
         [Arg("Target language name.", "TgtLang")]
         public string TgtLang;

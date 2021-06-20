@@ -89,16 +89,16 @@ namespace SeqClassificationConsole
                 if (mode == ModeEnums.Train)
                 {
                     // Load train corpus
-                    SequenceClassificationCorpus trainCorpus = new SequenceClassificationCorpus(corpusFilePath: opts.TrainCorpusPath, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
+                    SeqClassificationMultiTasksCorpus trainCorpus = new SeqClassificationMultiTasksCorpus(corpusFilePath: opts.TrainCorpusPath, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
                         maxSentLength: opts.MaxTrainSentLength, shuffleEnums: shuffleType);
                     // Load valid corpus
-                    SequenceClassificationCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new SequenceClassificationCorpus(opts.ValidCorpusPath, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSentLength, shuffleEnums: shuffleType);
+                    SeqClassificationMultiTasksCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new SeqClassificationMultiTasksCorpus(opts.ValidCorpusPath, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSentLength, shuffleEnums: shuffleType);
 
                     // Create learning rate
                     ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);
 
                     // Create metrics
-                    List<IMetric> metrics = new List<IMetric>();
+                    Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>();
 
                     // Create optimizer
                     IOptimizer optimizer = null;
@@ -117,12 +117,11 @@ namespace SeqClassificationConsole
                         //Incremental training
                         Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
                         ss = new SeqClassification(opts);
-
-                        int groupId = 0;
-                        foreach (var tgtVocab in ss.TgtVocabs)
+                       
+                        for (int i = 0; i < ss.ClsVocabs.Count; i++)
                         {
-                            metrics.Add(new MultiLabelsFscoreMetric($"{groupId}", tgtVocab.Items));
-                            groupId++;
+                            taskId2metrics.Add(i, new List<IMetric>());
+                            taskId2metrics[i].Add(new MultiLabelsFscoreMetric("", ss.ClsVocabs[i].Items));
                         }
                     }
                     else
@@ -146,11 +145,10 @@ namespace SeqClassificationConsole
                             (srcVocab, tgtVocabs) = trainCorpus.BuildVocabs(opts.VocabSize);
                         }
 
-                        int groupId = 0;
-                        foreach (var tgtVocab in tgtVocabs)
+                        for (int i = 0; i < tgtVocabs.Count; i++)
                         {
-                            metrics.Add(new MultiLabelsFscoreMetric($"{groupId}", tgtVocab.Items));
-                            groupId++;
+                            taskId2metrics.Add(i, new List<IMetric>());
+                            taskId2metrics[i].Add(new MultiLabelsFscoreMetric("", tgtVocabs[i].Items));
                         }
 
                         //New training
@@ -165,7 +163,7 @@ namespace SeqClassificationConsole
                     ss.EvaluationWatcher += ss_EvaluationWatcher;
 
                     // Kick off training
-                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, metrics: metrics);
+                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, taskId2metrics: taskId2metrics);
                 }
                 //else if (mode == ModeEnums.Valid)
                 //{
@@ -213,7 +211,6 @@ namespace SeqClassificationConsole
                         {
                             tokens = tokens.GetRange(0, opts.MaxTestSentLength - 2);
                         }
-                        tokens.Insert(0, SequenceClassificationCorpus.CLS);
                         inputBatchs.Add(tokens);
 
                         if (inputBatchs.Count >= opts.BatchSize * ss.DeviceIds.Length)
@@ -253,14 +250,24 @@ namespace SeqClassificationConsole
         private static List<string> RunBatchTest(SeqClassificationOptions opts, SeqClassification ss, List<List<string>> inputBatchs)
         {
             List<string> outputLines = new List<string>();
-
-            (var outputBeamTokensBatch, var alignmentBeamTokensBatch) = ss.Test(inputBatchs, 1, hypPrefix: ""); // shape [beam size, batch size, tgt token size]
-            for (int batchIdx = 0; batchIdx < inputBatchs.Count; batchIdx++)
+            for (int i = 0; i < inputBatchs.Count; i++)
             {
-                for (int beamIdx = 0; beamIdx < outputBeamTokensBatch.Count; beamIdx++)
+                outputLines.Add("");
+            }
+
+            List<NetworkResult> nrs = ss.Test(inputBatchs, 1); // shape [beam size, batch size, tgt token size]
+
+            foreach (var nr in nrs)
+            {
+                for (int batchIdx = 0; batchIdx < inputBatchs.Count; batchIdx++)
                 {
-                    outputLines.Add(String.Join(" ", outputBeamTokensBatch[beamIdx][batchIdx]));
+                    outputLines[batchIdx] += ("\t" + String.Join(" ", nr.Output[0][batchIdx])); 
                 }
+            }
+
+            for (int i = 0; i < inputBatchs.Count; i++)
+            {
+                outputLines[i] = outputLines[i].Trim();
             }
 
             return outputLines;

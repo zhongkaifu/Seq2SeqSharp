@@ -36,17 +36,17 @@ namespace Seq2SeqSharp.Utils
             IndexToWord = new Dictionary<int, string>();
             Items = new List<string>();
 
-            Items.Add(ParallelCorpus.EOS);
-            Items.Add(ParallelCorpus.BOS);
-            Items.Add(ParallelCorpus.UNK);
+            Items.Add(BuildInTokens.EOS);
+            Items.Add(BuildInTokens.BOS);
+            Items.Add(BuildInTokens.UNK);
 
-            WordToIndex[ParallelCorpus.EOS] = (int)SENTTAGS.END;
-            WordToIndex[ParallelCorpus.BOS] = (int)SENTTAGS.START;
-            WordToIndex[ParallelCorpus.UNK] = (int)SENTTAGS.UNK;
+            WordToIndex[BuildInTokens.EOS] = (int)SENTTAGS.END;
+            WordToIndex[BuildInTokens.BOS] = (int)SENTTAGS.START;
+            WordToIndex[BuildInTokens.UNK] = (int)SENTTAGS.UNK;
 
-            IndexToWord[(int)SENTTAGS.END] = ParallelCorpus.EOS;
-            IndexToWord[(int)SENTTAGS.START] = ParallelCorpus.BOS;
-            IndexToWord[(int)SENTTAGS.UNK] = ParallelCorpus.UNK;
+            IndexToWord[(int)SENTTAGS.END] = BuildInTokens.EOS;
+            IndexToWord[(int)SENTTAGS.START] = BuildInTokens.BOS;
+            IndexToWord[(int)SENTTAGS.UNK] = BuildInTokens.UNK;
         }
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace Seq2SeqSharp.Utils
                 string[] items = line.Split('\t');
                 string word = items[0];
 
-                if (ParallelCorpus.IsPreDefinedToken(word) == false)
+                if (BuildInTokens.IsPreDefinedToken(word) == false)
                 {
                     Items.Add(word);
                     WordToIndex[word] = q;
@@ -92,7 +92,7 @@ namespace Seq2SeqSharp.Utils
         {
             lock (locker)
             {
-                string letter = ParallelCorpus.UNK;
+                string letter = BuildInTokens.UNK;
                 if (IndexToWord.ContainsKey(idx))
                 {
                     letter = IndexToWord[idx];
@@ -109,7 +109,7 @@ namespace Seq2SeqSharp.Utils
                 List<string> result = new List<string>();
                 foreach (int idx in idxs)
                 {
-                    string letter = ParallelCorpus.UNK;
+                    string letter = BuildInTokens.UNK;
                     if (IndexToWord.ContainsKey(idx))
                     {
                         letter = IndexToWord[idx];
@@ -133,7 +133,7 @@ namespace Seq2SeqSharp.Utils
                     {
                         if (!IndexToWord.TryGetValue(idx, out string letter))
                         {
-                            letter = ParallelCorpus.UNK;
+                            letter = BuildInTokens.UNK;
                         }
                         r.Add(letter);
                     }
@@ -160,7 +160,7 @@ namespace Seq2SeqSharp.Utils
                         {
                             if (!IndexToWord.TryGetValue(idx, out string letter))
                             {
-                                letter = ParallelCorpus.UNK;
+                                letter = BuildInTokens.UNK;
                             }
                             r.Add(letter);
                         }

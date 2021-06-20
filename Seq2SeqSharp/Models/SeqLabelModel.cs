@@ -9,21 +9,17 @@ using System.Threading.Tasks;
 namespace Seq2SeqSharp
 {
     [Serializable]
-    public class SeqLabelModel : Model, IModel
+    public class SeqLabelModel : Model
     {
-        public int EmbeddingDim;
-        public Vocab TgtVocab;
-
         public SeqLabelModel()
         {
 
         }
 
-        public SeqLabelModel(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, Vocab tgtVocab)
-                        : base(hiddenDim, encoderLayerDepth, encoderType, multiHeadNum, srcVocab)
+        public SeqLabelModel(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, Vocab clsVocab)
+                        : base(hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, false)
         {
-            EmbeddingDim = embeddingDim;
-            TgtVocab = tgtVocab;
+            ClsVocab = clsVocab;
         }
     }
 }

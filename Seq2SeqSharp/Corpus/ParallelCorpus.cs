@@ -1,4 +1,5 @@
 ﻿using AdvUtils;
+using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Utils;
 using System;
 using System.Collections;
@@ -10,78 +11,112 @@ using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.Tools
 {
-    public class RawSntPair
-    {
-        public string SrcSnt;
-        public string TgtSnt;
+ 
 
-        public int SrcLength = 0;
-        public int TgtLength = 0;
-        public RawSntPair(string s, string t)
-        {
-            SrcSnt = s;
-            TgtSnt = t;
-
-            SrcLength = CountWhiteSpace(s);
-            TgtLength = CountWhiteSpace(t);
-
-        }
-
-        private int CountWhiteSpace(string s)
-        {
-            if (String.IsNullOrEmpty(s))
-            {
-                return 0;
-            }
-
-            int cnt = 1;
-            bool prevIsSpace = false;
-            foreach (char ch in s)
-            {
-                if (ch == ' ' && prevIsSpace == false)
-                {
-                    cnt++;
-                    prevIsSpace = true;
-                }
-                else
-                {
-                    prevIsSpace = false;
-                }
-            }
-
-            return cnt;
-
-        }
-
-        public bool IsEmptyPair()
-        {
-            return String.IsNullOrEmpty(SrcSnt) && String.IsNullOrEmpty(TgtSnt);
-        }
-    }
-
-    public class SntPair
-    {
-        public string[] SrcSnt;
-        public string[] TgtSnt;
-    }
-
-    public class SntPairBatch
-    {
-        public List<SntPair> SntPairs;
-        public int BatchSize => SntPairs.Count;
-
-        public SntPairBatch(List<SntPair> sntPairs)
-        {
-            SntPairs = sntPairs;
-        }
-    }
-
-    public class ParallelCorpus : IEnumerable<SntPairBatch>
+    public static class BuildInTokens
     {
         public const string EOS = "</s>";
         public const string BOS = "<s>";
         public const string UNK = "<unk>";
         public const string SEP = "[SEP]";
+        public const string CLS = "[CLS]";
+
+        public static bool IsPreDefinedToken(string str)
+        {
+            return str == EOS || str == BOS || str == UNK;
+        }
+
+        /// <summary>
+        /// Pad given sentences to the same length and return their original length
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static List<int> PadSentences(List<List<string>> s, int maxLen = -1)
+        {
+            List<int> originalLengths = new List<int>();
+
+            if (maxLen <= 0)
+            {
+                foreach (List<string> item in s)
+                {
+                    if (item.Count > maxLen)
+                    {
+                        maxLen = item.Count;
+                    }
+                }
+            }
+
+            for (int i = 0; i < s.Count; i++)
+            {
+                int count = s[i].Count;
+                originalLengths.Add(count);
+
+                for (int j = 0; j < maxLen - count; j++)
+                {
+                    s[i].Add(EOS);
+                }
+            }
+
+            return originalLengths;
+        }
+
+
+        /// <summary>
+        /// Pad given sentences to the same length and return their original length
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static List<int> PadSentences(List<List<int>> s, int tokenToPad, int maxLen = -1)
+        {
+            List<int> originalLengths = new List<int>();
+
+            if (maxLen <= 0)
+            {
+                foreach (List<int> item in s)
+                {
+                    if (item.Count > maxLen)
+                    {
+                        maxLen = item.Count;
+                    }
+                }
+            }
+
+            for (int i = 0; i < s.Count; i++)
+            {
+                int count = s[i].Count;
+                originalLengths.Add(count);
+
+                for (int j = 0; j < maxLen - count; j++)
+                {
+                    s[i].Add(tokenToPad);
+                }
+            }
+
+            return originalLengths;
+        }
+
+        public static List<List<string>> LeftShiftSnts(List<List<string>> input, string lastTokenToPad)
+        {
+            List<List<string>> r = new List<List<string>>();
+
+            foreach (var seq in input)
+            {
+                List<string> rseq = new List<string>();
+
+                rseq.AddRange(seq);
+                rseq.RemoveAt(0);
+                rseq.Add(lastTokenToPad);
+
+                r.Add(rseq);
+            }
+
+            return r;
+        }
+    }
+
+    public class ParallelCorpus<T> : IEnumerable<T> where T : ISntPairBatch, new()
+    {
+ 
 
         internal int m_maxSrcSentLength = 32;
         internal int m_maxTgtSentLength = 32;
@@ -89,23 +124,10 @@ namespace Seq2SeqSharp.Tools
         internal int m_batchSize = 1;
         internal List<string> m_srcFileList;
         internal List<string> m_tgtFileList;
-        internal string m_sentSrcPrefix = BOS;
-        internal string m_sentSrcSuffifx = EOS;
-        internal string m_sentTgtPrefix = BOS;
-        internal string m_sentTgtSuffix = EOS;
         internal ShuffleEnums m_shuffleEnums;
 
-        public int BatchSize => m_batchSize;
-        public string SentTgtPrefix => m_sentTgtPrefix;
-
-        
+        public int BatchSize => m_batchSize;        
         private bool m_showTokenDist = true;
-
-
-        public static bool IsPreDefinedToken(string str)
-        {
-            return str == EOS || str == BOS || str == UNK;
-        }
 
         private readonly Random rnd = new Random(DateTime.Now.Millisecond);
 
@@ -362,7 +384,7 @@ namespace Seq2SeqSharp.Tools
             return (srcShuffledFilePath, tgtShuffledFilePath);
         }
 
-        public IEnumerator<SntPairBatch> GetEnumerator()
+        public IEnumerator<T> GetEnumerator()
         {
             (string srcShuffledFilePath, string tgtShuffledFilePath) = ShuffleAll();
 
@@ -385,12 +407,10 @@ namespace Seq2SeqSharp.Tools
                         }
 
                         line = line.Trim();
-                        line = $"{m_sentSrcPrefix} {line} {m_sentSrcSuffifx}";
-                        sntPair.SrcSnt = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                        sntPair.SrcSnt = line.Split(new char[2] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
 
                         line = srTgt.ReadLine().Trim();
-                        line = $"{m_sentTgtPrefix} {line} {m_sentTgtSuffix}";
-                        sntPair.TgtSnt = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                        sntPair.TgtSnt = line.Split(new char[2] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
 
 
                         if ((lastTgtSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInTgt && lastTgtSntLen != sntPair.TgtSnt.Length) ||
@@ -401,7 +421,9 @@ namespace Seq2SeqSharp.Tools
                             for (int i = 0; i < outputs.Count; i += m_batchSize)
                             {
                                 int size = Math.Min(m_batchSize, outputs.Count - i);
-                                yield return new SntPairBatch(outputs.GetRange(i, size));
+                                var batch = new T();
+                                batch.CreateBatch(outputs.GetRange(i, size));
+                                yield return batch;
                             }
 
                             outputs.Clear();
@@ -417,7 +439,9 @@ namespace Seq2SeqSharp.Tools
                     for (int i = 0; i < outputs.Count; i += m_batchSize)
                     {
                         int size = Math.Min(m_batchSize, outputs.Count - i);
-                        yield return new SntPairBatch(outputs.GetRange(i, size));
+                        var batch = new T();
+                        batch.CreateBatch(outputs.GetRange(i, size));
+                        yield return batch;
                     }
                 }
             }
@@ -428,92 +452,9 @@ namespace Seq2SeqSharp.Tools
 
 
 
-        /// <summary>
-        /// Pad given sentences to the same length and return their original length
-        /// </summary>
-        /// <param name="s"></param>
-        /// <returns></returns>
-        public static List<int> PadSentences(List<List<string>> s, int maxLen = -1)
-        {
-            List<int> originalLengths = new List<int>();
-
-            if (maxLen <= 0)
-            {
-                foreach (List<string> item in s)
-                {
-                    if (item.Count > maxLen)
-                    {
-                        maxLen = item.Count;
-                    }
-                }
-            }
-
-            for (int i = 0; i < s.Count; i++)
-            {
-                int count = s[i].Count;
-                originalLengths.Add(count);
-
-                for (int j = 0; j < maxLen - count; j++)
-                {
-                    s[i].Add(ParallelCorpus.EOS);
-                }
-            }
-
-            return originalLengths;
-        }
 
 
-        /// <summary>
-        /// Pad given sentences to the same length and return their original length
-        /// </summary>
-        /// <param name="s"></param>
-        /// <returns></returns>
-        public static List<int> PadSentences(List<List<int>> s, int tokenToPad, int maxLen = -1)
-        {
-            List<int> originalLengths = new List<int>();
 
-            if (maxLen <= 0)
-            {
-                foreach (List<int> item in s)
-                {
-                    if (item.Count > maxLen)
-                    {
-                        maxLen = item.Count;
-                    }
-                }
-            }
-
-            for (int i = 0; i < s.Count; i++)
-            {
-                int count = s[i].Count;
-                originalLengths.Add(count);
-
-                for (int j = 0; j < maxLen - count; j++)
-                {
-                    s[i].Add(tokenToPad);
-                }
-            }
-
-            return originalLengths;
-        }
-
-        public static List<List<string>> LeftShiftSnts(List<List<string>> input, string lastTokenToPad)
-        {
-            List<List<string>> r = new List<List<string>>();
-
-            foreach (var seq in input)
-            {
-                List<string> rseq = new List<string>();
-
-                rseq.AddRange(seq);
-                rseq.RemoveAt(0);
-                rseq.Add(lastTokenToPad);
-
-                r.Add(rseq);
-            }
-
-            return r;
-        }
 
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -522,135 +463,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        /// <summary>
-        /// Build vocabulary from training corpus
-        /// </summary>
-        /// <param name="vocabSize"></param>
-        public (Vocab, Vocab) BuildVocabs(int vocabSize = 45000, bool sharedVocab = false)
-        {
-            Vocab srcVocab = new Vocab();
-            Vocab tgtVocab = new Vocab();
-
-            Logger.WriteLine($"Building vocabulary from corpus.");
-
-            // count up all words
-            Dictionary<string, int> s_d = new Dictionary<string, int>();
-            Dictionary<string, int> t_d = new Dictionary<string, int>();
-
-            foreach (SntPairBatch sntPairBatch in this)
-            {
-                foreach (SntPair sntPair in sntPairBatch.SntPairs)
-                {
-                    string[] item = sntPair.SrcSnt;
-                    for (int i = 0, n = item.Length; i < n; i++)
-                    {
-                        string txti = item[i];
-                        if (s_d.Keys.Contains(txti)) { s_d[txti] += 1; }
-                        else { s_d.Add(txti, 1); }
-
-                        if (sharedVocab)
-                        {
-                            if (t_d.Keys.Contains(txti)) { t_d[txti] += 1; }
-                            else { t_d.Add(txti, 1); }
-                        }
-                    }
-
-                    string[] item2 = sntPair.TgtSnt;
-                    for (int i = 0, n = item2.Length; i < n; i++)
-                    {
-                        string txti = item2[i];
-                        if (t_d.Keys.Contains(txti)) { t_d[txti] += 1; }
-                        else { t_d.Add(txti, 1); }
-
-                        if (sharedVocab)
-                        {
-                            if (s_d.Keys.Contains(txti)) { s_d[txti] += 1; }
-                            else { s_d.Add(txti, 1); }
-                        }
-                    }
-                }
-            }
-
-            SortedDictionary<int, List<string>> s_sd = new SortedDictionary<int, List<string>>();
-            SortedDictionary<int, List<string>> t_sd = new SortedDictionary<int, List<string>>();
-
-            foreach (var kv in s_d)
-            {
-                if (s_sd.ContainsKey(kv.Value) == false)
-                {
-                    s_sd.Add(kv.Value, new List<string>());
-                }
-                s_sd[kv.Value].Add(kv.Key);
-            }
-
-            foreach (var kv in t_d)
-            {
-                if (t_sd.ContainsKey(kv.Value) == false)
-                {
-                    t_sd.Add(kv.Value, new List<string>());
-                }
-                t_sd[kv.Value].Add(kv.Key);
-            }
-
-
-            int q = 3;
-            foreach (var kv in s_sd.Reverse())
-            {
-                foreach (var token in kv.Value)
-                {
-                    if (ParallelCorpus.IsPreDefinedToken(token) == false)
-                    {
-                        // add word to vocab
-                        srcVocab.WordToIndex[token] = q;
-                        srcVocab.IndexToWord[q] = token;
-                        srcVocab.Items.Add(token);
-                        q++;
-
-                        if (q >= vocabSize)
-                        {
-                            break;
-                        }
-                    }
-                }
-
-                if (q >= vocabSize)
-                {
-                    break;
-                }
-            }
-
-            Logger.WriteLine($"Original source vocabulary size = '{s_d.Count}', Truncated source vocabulary size = '{q}'");
-
-            q = 3;
-            foreach (var kv in t_sd.Reverse())
-            {
-                foreach (var token in kv.Value)
-                {
-                    if (ParallelCorpus.IsPreDefinedToken(token) == false)
-                    {
-                        // add word to vocab
-                        tgtVocab.WordToIndex[token] = q;
-                        tgtVocab.IndexToWord[q] = token;
-                        tgtVocab.Items.Add(token);
-                        q++;
-
-                        if (q >= vocabSize)
-                        {
-                            break;
-                        }
-                    }
-                }
-
-                if (q >= vocabSize)
-                {
-                    break;
-                }
-            }
-
-            Logger.WriteLine($"Original target vocabulary size = '{s_d.Count}', Truncated target vocabulary size = '{q}'");
-
-            return (srcVocab, tgtVocab);
-        }
+    
 
 
 
@@ -660,18 +473,13 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSrcSentLength = 32, int maxTgtSentLength = 32, string sentSrcPrefix = BOS, string sentSrcSuffix = EOS, string sentTgtPrefix = BOS, string sentTgtSuffix = EOS, ShuffleEnums shuffleEnums = ShuffleEnums.Random)
+        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSrcSentLength = 32, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random)
         {
-            Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSrcSentLength = '{maxSrcSentLength}',  MaxTgtSentLength = '{maxTgtSentLength}', SentSrcPrefix = '{sentSrcPrefix}', SentSrcSuffix = '{sentSrcSuffix}', SentTgtPrefix = '{sentTgtPrefix}', SentTgtSuffix = '{sentTgtSuffix}', aggregateSrcLengthForShuffle = '{shuffleEnums}'");
+            Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSrcSentLength = '{maxSrcSentLength}',  MaxTgtSentLength = '{maxTgtSentLength}', aggregateSrcLengthForShuffle = '{shuffleEnums}'");
             m_batchSize = batchSize;
             m_blockSize = shuffleBlockSize;
             m_maxSrcSentLength = maxSrcSentLength;
             m_maxTgtSentLength = maxTgtSentLength;
-
-            m_sentSrcPrefix = sentSrcPrefix;
-            m_sentSrcSuffifx = sentSrcSuffix;
-            m_sentTgtPrefix = sentTgtPrefix;
-            m_sentTgtSuffix = sentTgtSuffix;
 
             m_shuffleEnums = shuffleEnums;
 

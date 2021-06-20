@@ -1,4 +1,5 @@
 ﻿using AdvUtils;
+using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Metrics;
 using Seq2SeqSharp.Optimizer;
 using System;
@@ -17,14 +18,14 @@ namespace Seq2SeqSharp.Tools
     public class NetworkResult
     {
         public float Cost;
-        public List<List<List<string>>> Beam2Batch2Output; // (beam_size, batch_size, seq_len)
-        public List<List<List<Alignment>>> Beam2Batch2Alignment; // (beam_size, batch_size, seq_len)
+        public List<List<List<string>>> Output; // (beam_size, batch_size, seq_len)
+        public List<List<List<Alignment>>> Alignment; // (beam_size, batch_size, seq_len)
 
         public void RemoveDuplicatedEOS()
         {
-            if (Beam2Batch2Output != null)
+            if (Output != null)
             {
-                foreach (var item in Beam2Batch2Output)
+                foreach (var item in Output)
                 {
                     RemoveDuplicatedEOS(item);
                 }
@@ -37,10 +38,10 @@ namespace Seq2SeqSharp.Tools
             {
                 for (int i = 0; i < snt.Count; i++)
                 {
-                    if (snt[i] == ParallelCorpus.EOS)
+                    if (snt[i] == BuildInTokens.EOS)
                     {
                         snt.RemoveRange(i, snt.Count - i);
-                        snt.Add(ParallelCorpus.EOS);
+                        snt.Add(BuildInTokens.EOS);
                         break;
                     }
                 }
@@ -61,7 +62,6 @@ namespace Seq2SeqSharp.Tools
 
         private readonly int[] m_deviceIds;
         public int[] DeviceIds => m_deviceIds;
-
         private readonly string m_modelFilePath;
         private readonly float m_regc = 1e-10f; // L2 regularization strength
         private int m_weightsUpdateCount = 0;
@@ -161,8 +161,8 @@ namespace Seq2SeqSharp.Tools
             return modelMetaData;
         }
 
-        internal void TrainOneEpoch(int ep, IEnumerable<SntPairBatch> trainCorpus, IEnumerable<SntPairBatch> validCorpus, ILearningRate learningRate, IOptimizer solver, List<IMetric> metrics, IModel modelMetaData, string hypPrefix,
-            Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice)
+        internal void TrainOneEpoch(int ep, IEnumerable<ISntPairBatch> trainCorpus, IEnumerable<ISntPairBatch> validCorpus, ILearningRate learningRate, IOptimizer solver, Dictionary<int, List<IMetric>> taskId2metrics, IModel modelMetaData,
+            Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice)
         {
             int processedLineInTotal = 0;
             DateTime startDateTime = DateTime.Now;
@@ -173,9 +173,9 @@ namespace Seq2SeqSharp.Tools
             int updatesInOneEpoch = 0;
 
             Logger.WriteLine($"Start to process training corpus.");
-            List<SntPairBatch> sntPairBatchs = new List<SntPairBatch>();
+            List<ISntPairBatch> sntPairBatchs = new List<ISntPairBatch>();
 
-            foreach (SntPairBatch sntPairBatch in trainCorpus)
+            foreach (ISntPairBatch sntPairBatch in trainCorpus)
             {
                 sntPairBatchs.Add(sntPairBatch);
                 if (sntPairBatchs.Count == m_deviceIds.Length)
@@ -303,7 +303,7 @@ namespace Seq2SeqSharp.Tools
                     TimeSpan ts = DateTime.Now - m_lastCheckPointDateTime;
                     if (ts.TotalHours > m_validIntervalHours)
                     {
-                        CreateCheckPoint(validCorpus, metrics, modelMetaData, ForwardOnSingleDevice, avgCostPerWordInTotal, hypPrefix);
+                        CreateCheckPoint(validCorpus, taskId2metrics, modelMetaData, ForwardOnSingleDevice, avgCostPerWordInTotal);
                         m_lastCheckPointDateTime = DateTime.Now;
                     }
 
@@ -315,7 +315,7 @@ namespace Seq2SeqSharp.Tools
             m_avgCostPerWordInTotalInLastEpoch = avgCostPerWordInTotal;
         }
 
-        private (float, int, int, int) RunNetwork(Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice, List<SntPairBatch> sntPairBatchs, int batchSplitFactor)
+        private (float, int, int, int) RunNetwork(Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice, List<ISntPairBatch> sntPairBatchs, int batchSplitFactor)
         {
             float cost = 0.0f;
             int processedLine = 0;
@@ -330,40 +330,32 @@ namespace Seq2SeqSharp.Tools
             {
                 try
                 {
-                    SntPairBatch sntPairBatch_i = sntPairBatchs[i];
+                    ISntPairBatch sntPairBatch_i = sntPairBatchs[i];
                     int batchSegSize = sntPairBatch_i.BatchSize / batchSplitFactor;
 
                     for (int k = 0; k < batchSplitFactor; k++)
                     {
-                        // Construct sentences for encoding and decoding
-                        List<List<string>> srcTkns = new List<List<string>>();
-                        List<List<string>> tgtTkns = new List<List<string>>();
-                        int sLenInBatch = 0;
-                        int tLenInBatch = 0;
-                        for (int j = k * batchSegSize; j < (k + 1) * batchSegSize; j++)
-                        {
-                            srcTkns.Add(sntPairBatch_i.SntPairs[j].SrcSnt.ToList());
-                            sLenInBatch += sntPairBatch_i.SntPairs[j].SrcSnt.Length;
+                        ISntPairBatch sntPairBatch = sntPairBatch_i.GetRange(k * batchSegSize, batchSegSize);
 
-                            tgtTkns.Add(sntPairBatch_i.SntPairs[j].TgtSnt.ToList());
-                            tLenInBatch += sntPairBatch_i.SntPairs[j].TgtSnt.Length;
-                        }
-
-                        NetworkResult nr;
+                        List<NetworkResult> nrs;
                         // Create a new computing graph instance
                         using (IComputeGraph computeGraph_i = CreateComputGraph(i))
                         {
                             // Run forward part
-                            nr = ForwardOnSingleDevice(computeGraph_i, srcTkns, tgtTkns, i, true);
+                            nrs = ForwardOnSingleDevice(computeGraph_i, sntPairBatch, i, true);
                             // Run backward part and compute gradients
                             computeGraph_i.Backward();
                         }
 
                         lock (locker)
                         {
-                            cost += nr.Cost;
-                            srcWordCnts += sLenInBatch;
-                            tgtWordCnts += tLenInBatch;
+                            foreach (var nr in nrs)
+                            {
+                                cost += nr.Cost;
+                            }
+                          
+                            srcWordCnts += sntPairBatch_i.SrcTokenCount;
+                            tgtWordCnts += sntPairBatch_i.TgtTokenCount;
                             processedLine += batchSegSize;
                         }
                     }
@@ -384,14 +376,14 @@ namespace Seq2SeqSharp.Tools
             return (cost, srcWordCnts, tgtWordCnts, processedLine);
         }
 
-        private void CreateCheckPoint(IEnumerable<SntPairBatch> validCorpus, List<IMetric> metrics, IModel modelMetaData, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice, double avgCostPerWordInTotal, string hypPrefix)
+        private void CreateCheckPoint(IEnumerable<ISntPairBatch> validCorpus, Dictionary<int, List<IMetric>> taskId2metrics, IModel modelMetaData, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice, double avgCostPerWordInTotal)
         {
             if (validCorpus != null)
             {
                 ReleaseGradientOnAllDevices();
 
                 // The valid corpus is provided, so evaluate the model.
-                if (RunValid(validCorpus, ForwardOnSingleDevice, metrics, hypPrefix: hypPrefix, outputToFile: true) == true || File.Exists(m_modelFilePath) == false)
+                if (RunValid(validCorpus, ForwardOnSingleDevice, taskId2metrics, outputToFile: true) == true || File.Exists(m_modelFilePath) == false)
                 {
                     SaveModel(modelMetaData);
                 }
@@ -403,47 +395,16 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        List<List<string>> InitializeHypTokens(int batchSize, string prefix)
-        {
-            List<List<string>> hypTkns = new List<List<string>>();
-            for (int i = 0; i < batchSize; i++)
-            {
-                if (String.IsNullOrEmpty(prefix) == false)
-                {
-                    hypTkns.Add(new List<string>() { prefix });
-                }
-                else
-                {
-                    hypTkns.Add(new List<string>());
-                }
-            }
 
-            return hypTkns;
-        }
 
-        internal (List<List<List<string>>>, List<List<List<Alignment>>>) RunTest(List<List<string>> inputTokens, int beamSearchSize, string hypPrefix, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> ForwardOnSingleDevice)
+        internal List<NetworkResult> RunTest(ISntPairBatch sntPairBatch, int beamSearchSize, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice)
         {
             try
             {
-                List<List<List<string>>> beam2batch2tgtTkns = new List<List<List<string>>>();
-                List<List<List<Alignment>>> beam2batch2aligns = new List<List<List<Alignment>>>();
-                for (int i = 0; i < beamSearchSize; i++)
-                {
-                    beam2batch2tgtTkns.Add(new List<List<string>>());
-                    beam2batch2tgtTkns[i] = new List<List<string>>();
+                SortedDictionary<int, List<NetworkResult>> batchId2Result = new SortedDictionary<int, List<NetworkResult>>();
 
-                    beam2batch2aligns.Add(new List<List<Alignment>>());
-                    beam2batch2aligns[i] = new List<List<Alignment>>();
-
-                    for (int j = 0; j < inputTokens.Count; j++)
-                    {
-                        beam2batch2tgtTkns[i].Add(new List<string>());
-                        beam2batch2aligns[i].Add(new List<Alignment>());
-                    }
-                }
-
-                int dataSizePerGPU = inputTokens.Count / m_deviceIds.Length;
-                int dataSizePerGPUMod = inputTokens.Count % m_deviceIds.Length;
+                int dataSizePerGPU = sntPairBatch.BatchSize / m_deviceIds.Length;
+                int dataSizePerGPUMod = sntPairBatch.BatchSize % m_deviceIds.Length;
 
                 if (dataSizePerGPU > 0)
                 {
@@ -451,28 +412,21 @@ namespace Seq2SeqSharp.Tools
                     {
                         try
                         {
-                            List<List<string>> hypTkns = InitializeHypTokens(dataSizePerGPU, hypPrefix);
-                            List<List<string>> inputTkns_gpu = inputTokens.GetRange(gpuIdx * dataSizePerGPU, dataSizePerGPU);
-                            NetworkResult nr = null;
+                            ISntPairBatch spb = sntPairBatch.GetRange(gpuIdx * dataSizePerGPU, dataSizePerGPU);
+
+                            List<NetworkResult> nrs = null;
                             // Create a new computing graph instance
                             using (IComputeGraph computeGraph = CreateComputGraph(gpuIdx, needBack: false))
                             {
                                 // Run forward part
-                                nr = ForwardOnSingleDevice(computeGraph, inputTkns_gpu, hypTkns, gpuIdx, false);
+                                nrs = ForwardOnSingleDevice(computeGraph, spb, gpuIdx, false);
                             }
 
-                            for (int j = 0; j < beamSearchSize; j++)
+                            lock (locker)
                             {
-                                for (int i = 0; i < dataSizePerGPU; i++)
-                                {
-                                    beam2batch2tgtTkns[j][gpuIdx * dataSizePerGPU + i] = nr.Beam2Batch2Output[j][i];
-
-                                    if (nr.Beam2Batch2Alignment != null)
-                                    {
-                                        beam2batch2aligns[j][gpuIdx * dataSizePerGPU + i] = nr.Beam2Batch2Alignment[j][i];
-                                    }
-                                }
+                                batchId2Result.Add(gpuIdx, nrs);
                             }
+
                         }
                         catch (Exception err)
                         {
@@ -484,31 +438,30 @@ namespace Seq2SeqSharp.Tools
 
                 if (dataSizePerGPUMod > 0)
                 {
-                    List<List<string>> hypTkns = InitializeHypTokens(dataSizePerGPU, hypPrefix);
-                    List<List<string>> inputTkns_gpu = inputTokens.GetRange(m_deviceIds.Length * dataSizePerGPU, dataSizePerGPUMod);
-                    NetworkResult nr = null;
+                    ISntPairBatch spb = sntPairBatch.GetRange(m_deviceIds.Length * dataSizePerGPU, dataSizePerGPUMod);
+
+                    List<NetworkResult> nrs2 = null;
                     // Create a new computing graph instance
                     using (IComputeGraph computeGraph = CreateComputGraph(0, needBack: false))
                     {
                         // Run forward part
-                        nr = ForwardOnSingleDevice(computeGraph, inputTkns_gpu, hypTkns, 0, false);
+                        nrs2 = ForwardOnSingleDevice(computeGraph, spb, 0, false);
                     }
 
-                    for (int j = 0; j < beamSearchSize; j++)
+                    lock (locker)
                     {
-                        for (int i = 0; i < dataSizePerGPUMod; i++)
-                        {
-                            beam2batch2tgtTkns[j][m_deviceIds.Length * dataSizePerGPU + i] = nr.Beam2Batch2Output[j][i];
-
-                            if (nr.Beam2Batch2Alignment != null)
-                            {
-                                beam2batch2aligns[j][m_deviceIds.Length * dataSizePerGPU + i] = nr.Beam2Batch2Alignment[j][i];
-                            }
-                        }
+                        batchId2Result.Add(m_deviceIds.Length, nrs2);
                     }
+
                 }
 
-                return (beam2batch2tgtTkns, beam2batch2aligns);
+                List<NetworkResult> nrs = new List<NetworkResult>();
+                foreach (var pair in batchId2Result)
+                {
+                    nrs.AddRange(pair.Value);
+                }
+
+                return nrs;
             }
             catch (Exception err)
             {
@@ -525,7 +478,7 @@ namespace Seq2SeqSharp.Tools
         /// <param name="metrics">A set of metrics. The first one is the primary metric</param>
         /// <param name="outputToFile">It indicates if valid corpus and results should be dumped to files</param>
         /// <returns>true if we get a better result on primary metric, otherwise, false</returns>
-        internal bool RunValid(IEnumerable<SntPairBatch> validCorpus, Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> RunNetwork, List<IMetric> metrics, string hypPrefix, bool outputToFile = false)
+        internal bool RunValid(IEnumerable<ISntPairBatch> validCorpus, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> RunNetwork, Dictionary<int, List<IMetric>> taskId2metrics,  bool outputToFile = false)
         {
             List<string> srcSents = new List<string>();
             List<string> refSents = new List<string>();
@@ -533,50 +486,59 @@ namespace Seq2SeqSharp.Tools
 
 
             // Clear inner status of each metrics
-            foreach (IMetric metric in metrics)
+            foreach (var pair in taskId2metrics)
             {
-                metric.ClearStatus();
+                foreach (IMetric metric in pair.Value)
+                {
+                    metric.ClearStatus();
+                }
             }
 
             CopyWeightsFromDefaultDeviceToAllOtherDevices();
 
-            List<SntPairBatch> sntPairBatchs = new List<SntPairBatch>();
-            foreach (SntPairBatch item in validCorpus)
+            List<ISntPairBatch> sntPairBatchs = new List<ISntPairBatch>();
+            foreach (ISntPairBatch item in validCorpus)
             {
                 sntPairBatchs.Add(item);
                 if (sntPairBatchs.Count == DeviceIds.Length)
                 {
-                    RunValidParallel(RunNetwork, metrics, outputToFile, srcSents, refSents, hypSents, sntPairBatchs, hypPrefix);
+                    RunValidParallel(RunNetwork, taskId2metrics, outputToFile, srcSents, refSents, hypSents, sntPairBatchs);
                     sntPairBatchs.Clear();
                 }
             }
 
             if (sntPairBatchs.Count > 0)
             {
-                RunValidParallel(RunNetwork, metrics, outputToFile, srcSents, refSents, hypSents, sntPairBatchs, hypPrefix);
+                RunValidParallel(RunNetwork, taskId2metrics, outputToFile, srcSents, refSents, hypSents, sntPairBatchs);
             }
 
             bool betterModel = false;
-            if (metrics.Count > 0)
+            if (taskId2metrics.Count > 0)
             {
                 StringBuilder sb = new StringBuilder();
-                sb.AppendLine($"Metrics result:");
 
-                foreach (IMetric metric in metrics)
+                foreach (var pair in taskId2metrics) // Run metrics for each task
                 {
-                    sb.AppendLine($"{metric.Name} = {metric.GetScoreStr()}");                   
-                }
+                    int taskId = pair.Key;
+                    List<IMetric> metrics = pair.Value;
 
-                if (metrics[0].GetPrimaryScore() > m_bestPrimaryScore)
-                {
-                    if (m_bestPrimaryScore > 0.0f)
+                    sb.AppendLine($"Metrics result on task '{taskId}':");
+                    foreach (IMetric metric in metrics)
                     {
-                        sb.AppendLine($"We got a better score '{metrics[0].GetPrimaryScore().ToString("F")}' on primary metric '{metrics[0].Name}'. The previous score is '{m_bestPrimaryScore.ToString("F")}'");
+                        sb.AppendLine($"{metric.Name} = {metric.GetScoreStr()}");
                     }
 
-                    //We have a better primary score on valid set
-                    m_bestPrimaryScore = metrics[0].GetPrimaryScore();
-                    betterModel = true;
+                    if (metrics[0].GetPrimaryScore() > m_bestPrimaryScore) // The first metric in each task is the primary task
+                    {
+                        if (m_bestPrimaryScore > 0.0f)
+                        {
+                            sb.AppendLine($"We got a better score '{metrics[0].GetPrimaryScore().ToString("F")}' on primary metric '{metrics[0].Name}'. The previous score is '{m_bestPrimaryScore.ToString("F")}'");
+                        }
+
+                        //We have a better primary score on valid set
+                        m_bestPrimaryScore = metrics[0].GetPrimaryScore();
+                        betterModel = true;
+                    }
                 }
 
                 if (EvaluationWatcher != null)
@@ -600,7 +562,7 @@ namespace Seq2SeqSharp.Tools
             return betterModel;
         }
 
-        private void RunValidParallel(Func<IComputeGraph, List<List<string>>, List<List<string>>, int, bool, NetworkResult> RunNetwork, List<IMetric> metrics, bool outputToFile, List<string> srcSents, List<string> refSents, List<string> hypSents, List<SntPairBatch> sntPairBatchs, string hypPrefix)
+        private void RunValidParallel(Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> RunNetwork, Dictionary<int, List<IMetric>> metrics, bool outputToFile, List<string> srcSents, List<string> refSents, List<string> hypSents, List<ISntPairBatch> sntPairBatchs)
         {
             // Run forward on all available processors
             Parallel.For(0, m_deviceIds.Length, i =>
@@ -612,57 +574,78 @@ namespace Seq2SeqSharp.Tools
                         return;
                     }
 
-                    SntPairBatch sntPairBatch = sntPairBatchs[i];
-
-                    // Construct sentences for encoding and decoding
-                    List<List<string>> srcTkns = new List<List<string>>();
-                    List<List<string>> refTkns = new List<List<string>>();
-                    for (int j = 0; j < sntPairBatch.BatchSize; j++)
-                    {
-                        srcTkns.Add(sntPairBatch.SntPairs[j].SrcSnt.ToList());
-                        refTkns.Add(sntPairBatch.SntPairs[j].TgtSnt.ToList());
-                    }
-                    List<List<string>> hypTkns = InitializeHypTokens(sntPairBatch.BatchSize, hypPrefix);
+                    ISntPairBatch sntPairBatch = sntPairBatchs[i];                  
+                    ISntPairBatch sntPairBatchForValid = sntPairBatch.CloneSrcTokens();
 
                     // Create a new computing graph instance
-                    NetworkResult nr;
+                    List<NetworkResult> nrs;
                     using (IComputeGraph computeGraph = CreateComputGraph(i, needBack: false))
                     {
                         // Run forward part
-                        nr = RunNetwork(computeGraph, srcTkns, hypTkns, i, false);
+                        nrs = RunNetwork(computeGraph, sntPairBatchForValid, i, false);
                     }
 
                     lock (locker)
                     {
-                        hypTkns = nr.Beam2Batch2Output[0];
+                        string[] newSrcSnts = new string[sntPairBatch.BatchSize];
+                        string[] newRefSnts = new string[sntPairBatch.BatchSize];
+                        string[] newHypSnts = new string[sntPairBatch.BatchSize];
 
-                        for (int j = 0; j < hypTkns.Count; j++)
+
+                        for (int k = 0; k < nrs.Count; k++)
                         {
-                            foreach (IMetric metric in metrics)
+                            var hypTkns = nrs[k].Output[0];
+                            var refTkns = sntPairBatch.GetTgtTokens(k);
+                            var srcTkns = sntPairBatch.GetSrcTokens(k);
+
+                            for (int j = 0; j < hypTkns.Count; j++)
                             {
-                                if (j < 0 || j >= refTkns.Count)
+                                foreach (IMetric metric in metrics[k])
                                 {
-                                    throw new InvalidDataException($"Ref token only has '{refTkns.Count}' batch, however, it try to access batch '{j}'. Hyp token has '{hypTkns.Count}' tokens, Batch Size = '{sntPairBatch.BatchSize}'");
-                                }
+                                    if (j < 0 || j >= refTkns.Count)
+                                    {
+                                        throw new InvalidDataException($"Ref token only has '{refTkns.Count}' batch, however, it try to access batch '{j}'. Hyp token has '{hypTkns.Count}' tokens, Batch Size = '{sntPairBatch.BatchSize}'");
+                                    }
 
-                                if (j < 0 || j >= hypTkns.Count)
+                                    if (j < 0 || j >= hypTkns.Count)
+                                    {
+                                        throw new InvalidDataException($"Hyp token only has '{hypTkns.Count}' batch, however, it try to access batch '{j}'. Ref token has '{refTkns.Count}' tokens, Batch Size = '{sntPairBatch.BatchSize}'");
+                                    }
+
+                                    try
+                                    {
+                                        metric.Evaluate(new List<List<string>>() { refTkns[j] }, hypTkns[j]);
+                                    }
+                                    catch (Exception err)
+                                    {
+                                        Logger.WriteLine($"Exception = '{err.Message}', Ref = '{String.Join(" ", refTkns[j])}' Hyp = '{String.Join(" ", hypTkns[j])}', TaskId = '{k}'");
+                                        throw err;
+                                    }
+                                }
+                            }
+
+                            if (outputToFile)
+                            {
+                                for (int j = 0; j < srcTkns.Count; j++)
                                 {
-                                    throw new InvalidDataException($"Hyp token only has '{hypTkns.Count}' batch, however, it try to access batch '{j}'. Ref token has '{refTkns.Count}' tokens, Batch Size = '{sntPairBatch.BatchSize}'");
-                                }
+                                    if (k == 0)
+                                    {
+                                        newSrcSnts[j] = string.Join(" ", srcTkns[j]);
+                                    }
 
-                                metric.Evaluate(new List<List<string>>() { refTkns[j] }, hypTkns[j]);
+                                    newRefSnts[j] += string.Join(" ", refTkns[j]) + "\t";
+                                    newHypSnts[j] += string.Join(" ", hypTkns[j]) + "\t";
+                                }
                             }
                         }
 
                         if (outputToFile)
                         {
-                            for (int j = 0; j < srcTkns.Count; j++)
-                            {
-                                srcSents.Add(string.Join(" ", srcTkns[j]));
-                                refSents.Add(string.Join(" ", refTkns[j]));
-                                hypSents.Add(string.Join(" ", hypTkns[j]));
-                            }
+                            srcSents.AddRange(newSrcSnts);
+                            refSents.AddRange(newRefSnts);
+                            hypSents.AddRange(newHypSnts);
                         }
+
                     }
                 }
                 catch (Exception err)

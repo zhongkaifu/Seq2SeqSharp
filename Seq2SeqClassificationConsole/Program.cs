@@ -1,6 +1,7 @@
 ﻿using AdvUtils;
 using Newtonsoft.Json;
 using Seq2SeqSharp;
+using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Metrics;
 using Seq2SeqSharp.Optimizer;
@@ -13,11 +14,11 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace Seq2SeqConsole
+namespace Seq2SeqClassificationConsole
 {
     internal class Program
     {
-        private static Seq2SeqOptions opts = new Seq2SeqOptions();
+        private static Seq2SeqClassificationOptions opts = new Seq2SeqClassificationOptions();
         private static void ss_EvaluationWatcher(object sender, EventArgs e)
         {
             EvaluationEventArg ep = e as EvaluationEventArg;
@@ -58,33 +59,33 @@ namespace Seq2SeqConsole
         {
             try
             {
-                Logger.LogFile = $"{nameof(Seq2SeqConsole)}_{GetTimeStamp(DateTime.Now)}.log";
+                Logger.LogFile = $"{nameof(Seq2SeqClassificationConsole)}_{GetTimeStamp(DateTime.Now)}.log";
                 ShowOptions(args);
 
                 //Parse command line
-             //   Seq2SeqOptions opts = new Seq2SeqOptions();
+                //   Seq2SeqOptions opts = new Seq2SeqOptions();
                 ArgParser argParser = new ArgParser(args, opts);
 
                 if (string.IsNullOrEmpty(opts.ConfigFilePath) == false)
                 {
                     Logger.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
-                    opts = JsonConvert.DeserializeObject<Seq2SeqOptions>(File.ReadAllText(opts.ConfigFilePath));
+                    opts = JsonConvert.DeserializeObject<Seq2SeqClassificationOptions>(File.ReadAllText(opts.ConfigFilePath));
                 }
 
                 string strOpts = JsonConvert.SerializeObject(opts);
                 Logger.WriteLine($"Configs: {strOpts}");
 
-                Seq2Seq ss = null;
+                Seq2SeqClassification ss = null;
                 ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.Task);
                 ShuffleEnums shuffleType = (ShuffleEnums)Enum.Parse(typeof(ShuffleEnums), opts.ShuffleType);
 
                 if (mode == ModeEnums.Train)
                 {
                     // Load train corpus
-                    Seq2SeqCorpus trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
+                    Seq2SeqClassificationCorpus trainCorpus = new Seq2SeqClassificationCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
                         maxSrcSentLength: opts.MaxSrcTrainSentLength, maxTgtSentLength: opts.MaxTgtTrainSentLength, shuffleEnums: shuffleType);
                     // Load valid corpus
-                    Seq2SeqCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new Seq2SeqCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxSrcTestSentLength, opts.MaxTgtTestSentLength, shuffleEnums: shuffleType);
+                    Seq2SeqClassificationCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new Seq2SeqClassificationCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxSrcTestSentLength, opts.MaxTgtTestSentLength, shuffleEnums: shuffleType);
 
                     // Create learning rate
                     ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);
@@ -101,26 +102,39 @@ namespace Seq2SeqConsole
                     }
 
                     // Create metrics
-                    List<IMetric> metrics = new List<IMetric>
+                    Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>();
+                    List<IMetric> task0Metrics = new List<IMetric>
                     {
                         new BleuMetric(),
                         new LengthRatioMetric()
                     };
 
+                    taskId2metrics.Add(0, task0Metrics);
+
+
+
                     if (!String.IsNullOrEmpty(opts.ModelFilePath) && File.Exists(opts.ModelFilePath))
                     {
                         //Incremental training
                         Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
-                        ss = new Seq2Seq(opts);
+                        ss = new Seq2SeqClassification(opts);
+
+                        List<IMetric> task1Metrics = new List<IMetric>()
+                        {
+                            new MultiLabelsFscoreMetric("", ss.ClsVocab.Items)
+                        };
+                        taskId2metrics.Add(1, task1Metrics);
+
                     }
                     else
                     {
                         // Load or build vocabulary
                         Vocab srcVocab = null;
                         Vocab tgtVocab = null;
-                        if (!string.IsNullOrEmpty(opts.SrcVocab) && !string.IsNullOrEmpty(opts.TgtVocab))
+                        Vocab clsVocab = null;
+                        if (!string.IsNullOrEmpty(opts.SrcVocab) && !string.IsNullOrEmpty(opts.TgtVocab) && !string.IsNullOrEmpty(opts.ClsVocab))
                         {
-                            Logger.WriteLine($"Loading source vocabulary from '{opts.SrcVocab}' and target vocabulary from '{opts.TgtVocab}'. Shared vocabulary is '{opts.SharedEmbeddings}'");
+                            Logger.WriteLine($"Loading source vocabulary from '{opts.SrcVocab}' and target vocabulary from '{opts.TgtVocab}' and classification vocabulary from '{opts.ClsVocab}'. Shared vocabulary is '{opts.SharedEmbeddings}'");
                             if (opts.SharedEmbeddings == true && (opts.SrcVocab != opts.TgtVocab))
                             {
                                 throw new ArgumentException("The source and target vocabularies must be identical if their embeddings are shared.");
@@ -129,17 +143,24 @@ namespace Seq2SeqConsole
                             // Vocabulary files are specified, so we load them
                             srcVocab = new Vocab(opts.SrcVocab);
                             tgtVocab = new Vocab(opts.TgtVocab);
+                            clsVocab = new Vocab(opts.ClsVocab);
                         }
                         else
                         {
                             Logger.WriteLine($"Building vocabulary from training corpus. Shared vocabulary is '{opts.SharedEmbeddings}'");
                             // We don't specify vocabulary, so we build it from train corpus
 
-                            (srcVocab, tgtVocab) = trainCorpus.BuildVocabs(opts.VocabSize, opts.SharedEmbeddings);
+                            (srcVocab, tgtVocab, clsVocab) = trainCorpus.BuildVocabs(opts.VocabSize, opts.SharedEmbeddings);
                         }
 
+                        List<IMetric> task1Metrics = new List<IMetric>()
+                        {
+                            new MultiLabelsFscoreMetric("", clsVocab.Items)
+                        };
+                        taskId2metrics.Add(1, task1Metrics);
+
                         //New training
-                        ss = new Seq2Seq(opts, srcVocab, tgtVocab);
+                        ss = new Seq2SeqClassification(opts, srcVocab, tgtVocab, clsVocab);
                     }
 
                     // Add event handler for monitoring
@@ -147,7 +168,7 @@ namespace Seq2SeqConsole
                     ss.EvaluationWatcher += ss_EvaluationWatcher;
 
                     // Kick off training
-                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, metrics: metrics);
+                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, taskId2metrics: taskId2metrics);
                 }
                 else if (mode == ModeEnums.Valid)
                 {
@@ -161,9 +182,9 @@ namespace Seq2SeqConsole
                 };
 
                     // Load valid corpus
-                    Seq2SeqCorpus validCorpus = new Seq2SeqCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxSrcTestSentLength, opts.MaxTgtTestSentLength, shuffleEnums: shuffleType);
+                    Seq2SeqClassificationCorpus validCorpus = new Seq2SeqClassificationCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxSrcTestSentLength, opts.MaxTgtTestSentLength, shuffleEnums: shuffleType);
 
-                    ss = new Seq2Seq(opts);
+                    ss = new Seq2SeqClassification(opts);
                     ss.EvaluationWatcher += ss_EvaluationWatcher;
                     ss.Valid(validCorpus: validCorpus, metrics: metrics);
                 }
@@ -186,7 +207,7 @@ namespace Seq2SeqConsole
                     }
 
                     //Test trained model
-                    ss = new Seq2Seq(opts);
+                    ss = new Seq2SeqClassification(opts);
                     List<List<string>> inputBatchs = new List<List<string>>();
                     Stopwatch stopwatch = Stopwatch.StartNew();
                     foreach (string line in File.ReadLines(opts.InputTestFile))
@@ -226,8 +247,8 @@ namespace Seq2SeqConsole
                 }
                 else if (mode == ModeEnums.DumpVocab)
                 {
-                    ss = new Seq2Seq(opts);
-                    ss.DumpVocabToFiles(opts.SrcVocab, opts.TgtVocab);
+                    ss = new Seq2SeqClassification(opts);
+                    ss.DumpVocabToFiles(opts.SrcVocab, opts.TgtVocab, opts.ClsVocab);
                 }
                 else
                 {
@@ -241,26 +262,29 @@ namespace Seq2SeqConsole
             }
         }
 
-        private static (List<string>, List<string>) RunBatchTest(Seq2SeqOptions opts, Seq2Seq ss, List<List<string>> inputBatchs)
+        private static (List<string>, List<string>) RunBatchTest(Seq2SeqClassificationOptions opts, Seq2SeqClassification ss, List<List<string>> inputBatchs)
         {
             List<string> outputLines = new List<string>();
             List<string> alignments = new List<string>();
 
-            NetworkResult nr = ss.Test(inputBatchs, opts.BeamSearchSize); // shape [beam size, batch size, tgt token size]
+            List<NetworkResult> nrs = ss.Test(inputBatchs, opts.BeamSearchSize); // shape [beam size, batch size, tgt token size]
 
             for (int batchIdx = 0; batchIdx < inputBatchs.Count; batchIdx++)
             {
-                for (int beamIdx = 0; beamIdx < nr.Output.Count; beamIdx++)
+                string clsTag = nrs[1].Output[0][batchIdx][0];
+                NetworkResult tgtNR = nrs[0];
+
+                for (int beamIdx = 0; beamIdx < tgtNR.Output.Count; beamIdx++)
                 {
-                    outputLines.Add(String.Join(" ", nr.Output[beamIdx][batchIdx]));
+                    outputLines.Add(clsTag + "\t" + String.Join(" ", tgtNR.Output[beamIdx][batchIdx]));
 
                     if (opts.OutputAlignment)
                     {
                         StringBuilder sb = new StringBuilder();
-                        for (int tgtTknIdx = 0; tgtTknIdx < nr.Output[beamIdx][batchIdx].Count; tgtTknIdx++)
+                        for (int tgtTknIdx = 0; tgtTknIdx < tgtNR.Output[beamIdx][batchIdx].Count; tgtTknIdx++)
                         {
-                            int srcIdx = nr.Alignment[beamIdx][batchIdx][tgtTknIdx].SrcPos;
-                            float score = nr.Alignment[beamIdx][batchIdx][tgtTknIdx].Score;
+                            int srcIdx = tgtNR.Alignment[beamIdx][batchIdx][tgtTknIdx].SrcPos;
+                            float score = tgtNR.Alignment[beamIdx][batchIdx][tgtTknIdx].Score;
                             sb.Append($"{tgtTknIdx}_{srcIdx}_{score}");
                             sb.Append(" ");
                         }

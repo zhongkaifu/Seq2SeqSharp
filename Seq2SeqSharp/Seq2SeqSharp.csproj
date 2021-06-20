@@ -17,9 +17,6 @@
     <Reference Include="AdvUtils">
       <HintPath>..\dll\AdvUtils.dll</HintPath>
     </Reference>
-    <Reference Include="txt2vec">
-      <HintPath>..\dll\txt2vec.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TensorSharp.CUDA\TensorSharp.CUDA.csproj" />

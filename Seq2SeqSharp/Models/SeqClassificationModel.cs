@@ -8,23 +8,17 @@ using System.Threading.Tasks;
 namespace Seq2SeqSharp.Models
 {
     [Serializable]
-    class SeqClassificationModel : Model, IModel
+    class SeqClassificationModel : Model
     {
-        public int EmbeddingDim;
-        public bool EnableSegmentEmbeddings = false;
-        public List<Vocab> TgtVocabs;
-
         public SeqClassificationModel()
         {
 
         }
 
-        public SeqClassificationModel(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, List<Vocab> tgtVocabs, bool enableSegmentEmbeddings)
-                        : base(hiddenDim, encoderLayerDepth, encoderType, multiHeadNum, srcVocab)
+        public SeqClassificationModel(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, List<Vocab> clsVocabs, bool enableSegmentEmbeddings)
+                        : base(hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings)
         {
-            TgtVocabs = tgtVocabs;
-            EmbeddingDim = embeddingDim;
-            EnableSegmentEmbeddings = enableSegmentEmbeddings;
+            ClsVocabs = clsVocabs;
         }
     }
 }

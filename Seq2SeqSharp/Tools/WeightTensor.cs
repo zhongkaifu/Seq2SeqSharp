@@ -478,30 +478,18 @@ namespace Seq2SeqSharp.Tools
 
         public void Save(IModel model)
         {
-            //float[] floatArray1 = ToWeightArray();
-
-            //// create a byte array and copy the floats into it...
-            //byte[] byteArray = new byte[floatArray1.Length * 4];
-            //Buffer.BlockCopy(floatArray1, 0, byteArray, 0, byteArray.Length);
-
-            //stream.Write(byteArray, 0, byteArray.Length);
-
             model.AddWeights(Name, ToWeightArray());
         }
 
         public void Load(IModel model)
         {
-            //int size = Rows * Columns;
-            //byte[] byteArray = new byte[size * 4];
-            //stream.Read(byteArray, 0, byteArray.Length);
-
-            //float[] floatArray2 = new float[byteArray.Length / 4];
-            //Buffer.BlockCopy(byteArray, 0, floatArray2, 0, byteArray.Length);
-
-            //SetWeightArray(floatArray2);
-
             Logger.WriteLine($"Loading weights '{Name}' from the model...");
-            SetWeightArray(model.GetWeights(Name));
+
+            var weights = model.GetWeights(Name);
+            if (weights != null)
+            {
+                SetWeightArray(weights);
+            }
         }
 
         public List<IWeightTensor> GetParams()

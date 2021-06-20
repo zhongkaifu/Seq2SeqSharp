@@ -10,9 +10,10 @@ using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.Corpus
 {
-    public class SequenceClassificationCorpus : ParallelCorpus
+
+    public class SeqClassificationMultiTasksCorpus : ParallelCorpus<SeqClassificationMultiTasksCorpusBatch>
     {
-        public const string CLS = "[CLS]";
+        
         private (string, string) ConvertSequenceClassificationFormatToParallel(string filePath)
         {
             List<string> srcLines = new List<string>();
@@ -41,7 +42,7 @@ namespace Seq2SeqSharp.Corpus
             return (srcFilePath, tgtFilePath);
         }
 
-        public SequenceClassificationCorpus(string corpusFilePath, int batchSize, int shuffleBlockSize = -1, int maxSentLength = 128, ShuffleEnums shuffleEnums = ShuffleEnums.Random)
+        public SeqClassificationMultiTasksCorpus(string corpusFilePath, int batchSize, int shuffleBlockSize = -1, int maxSentLength = 128, ShuffleEnums shuffleEnums = ShuffleEnums.Random)
         {
             Logger.WriteLine($"Loading sequence labeling corpus from '{corpusFilePath}' MaxSentLength = '{maxSentLength}'");
             m_batchSize = batchSize;
@@ -49,10 +50,6 @@ namespace Seq2SeqSharp.Corpus
             m_maxSrcSentLength = maxSentLength;
             m_maxTgtSentLength = maxSentLength;
             m_shuffleEnums = shuffleEnums;
-            m_sentSrcPrefix = CLS;
-            m_sentSrcSuffifx = "";
-            m_sentTgtPrefix = "";
-            m_sentTgtSuffix = "";
 
             m_srcFileList = new List<string>();
             m_tgtFileList = new List<string>();
@@ -79,7 +76,7 @@ namespace Seq2SeqSharp.Corpus
             Dictionary<string, int> s_d = new Dictionary<string, int>();
             List<int> qs = new List<int>();
 
-            foreach (SntPairBatch sntPairBatch in this)
+            foreach (SeqClassificationMultiTasksCorpusBatch sntPairBatch in this)
             {
                 foreach (SntPair sntPair in sntPairBatch.SntPairs)
                 {
@@ -101,7 +98,7 @@ namespace Seq2SeqSharp.Corpus
                         }
 
                         string txti = item2[i];
-                        if (ParallelCorpus.IsPreDefinedToken(txti) == false && tgtVocabs[i].WordToIndex.ContainsKey(txti) == false)
+                        if (BuildInTokens.IsPreDefinedToken(txti) == false && tgtVocabs[i].WordToIndex.ContainsKey(txti) == false)
                         {
                             // add word to vocab
                             tgtVocabs[i].WordToIndex[txti] = qs[i];
@@ -129,7 +126,7 @@ namespace Seq2SeqSharp.Corpus
             {
                 foreach (var token in kv.Value)
                 {
-                    if (ParallelCorpus.IsPreDefinedToken(token) == false)
+                    if (BuildInTokens.IsPreDefinedToken(token) == false)
                     {
                         // add word to vocab
                         srcVocab.WordToIndex[token] = q;

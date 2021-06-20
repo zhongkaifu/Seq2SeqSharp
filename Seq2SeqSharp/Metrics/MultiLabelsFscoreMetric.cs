@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using AdvUtils;
+using System;
+using System.Collections.Generic;
 
 namespace Seq2SeqSharp.Metrics
 {
@@ -33,20 +35,29 @@ namespace Seq2SeqSharp.Metrics
                 var m_count = m_counts[j];
                 foreach (List<string> refTokens in allRefTokens)
                 {
-                    for (int i = 0; i < hypTokens.Count; i++)
+                    try
                     {
-                        if (hypTokens[i] == m_classLabels[j])
+                        for (int i = 0; i < hypTokens.Count; i++)
                         {
-                            m_count[1]++;
+                            if (hypTokens[i] == m_classLabels[j])
+                            {
+                                m_count[1]++;
+                            }
+                            if (refTokens[i] == m_classLabels[j])
+                            {
+                                m_count[2]++;
+                            }
+                            if (hypTokens[i] == m_classLabels[j] && refTokens[i] == m_classLabels[j])
+                            {
+                                m_count[0]++;
+                            }
                         }
-                        if (refTokens[i] == m_classLabels[j])
-                        {
-                            m_count[2]++;
-                        }
-                        if (hypTokens[i] == m_classLabels[j] && refTokens[i] == m_classLabels[j])
-                        {
-                            m_count[0]++;
-                        }
+                    }
+                    catch (Exception err)
+                    {
+                        Logger.WriteLine($"Exception: {err.Message}, Ref = '{String.Join(" ", refTokens)}', Hyp = '{String.Join(" ", hypTokens)}'");
+                        throw err;
+
                     }
                 }
             }
