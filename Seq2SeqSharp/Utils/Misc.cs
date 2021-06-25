@@ -23,4 +23,12 @@ namespace Seq2SeqSharp.Utils
             return item;
         }
     }
+
+    public class Utils
+    {
+        public static string GetTimeStamp(DateTime timeStamp)
+        {
+            return string.Format("{0:yyyy}_{0:MM}_{0:dd}_{0:HH}h_{0:mm}m_{0:ss}s", timeStamp);
+        }
+    }
 }

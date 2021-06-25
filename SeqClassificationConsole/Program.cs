@@ -50,11 +50,6 @@ namespace SeqClassificationConsole
             Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate.ToString("F6")}, AvgCost = {ep.AvgCostInTotal.ToString("F4")}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin.ToString("F")}, WordPerSec = {wordPerSec.ToString("F")}");
         }
 
-        public static string GetTimeStamp(DateTime timeStamp)
-        {
-            return string.Format("{0:yyyy}_{0:MM}_{0:dd}_{0:HH}h_{0:mm}m_{0:ss}s", timeStamp);
-        }
-
         private static void ShowOptions(string[] args)
         {
             string commandLine = string.Join(" ", args);
@@ -66,7 +61,7 @@ namespace SeqClassificationConsole
         {
             try
             {
-                Logger.LogFile = $"{nameof(SeqClassificationConsole)}_{GetTimeStamp(DateTime.Now)}.log";
+                Logger.LogFile = $"{nameof(SeqClassificationConsole)}_{Utils.GetTimeStamp(DateTime.Now)}.log";
                 ShowOptions(args);
 
                 //Parse command line

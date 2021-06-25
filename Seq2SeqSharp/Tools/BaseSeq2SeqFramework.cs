@@ -67,12 +67,13 @@ namespace Seq2SeqSharp.Tools
         private int m_weightsUpdateCount = 0;
         private double m_avgCostPerWordInTotalInLastEpoch = 10000.0;
         private double m_bestPrimaryScore = 0.0f;
+        private int m_primaryTaskId = 0;
         private readonly object locker = new object();
         private SortedList<string, IMultiProcessorNetworkWrapper> m_name2network;
         DateTime m_lastCheckPointDateTime = DateTime.Now;
         float m_validIntervalHours = 1.0f;
 
-        public BaseSeq2SeqFramework(string deviceIds, string strProcessorType, string modelFilePath, float memoryUsageRatio = 0.9f, string compilerOptions = null, float validIntervalHours = 1.0f)
+        public BaseSeq2SeqFramework(string deviceIds, string strProcessorType, string modelFilePath, float memoryUsageRatio = 0.9f, string compilerOptions = null, float validIntervalHours = 1.0f, int primaryTaskId = 0)
         {
             m_deviceIds = deviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
             ProcessorTypeEnums processorType = (ProcessorTypeEnums)Enum.Parse(typeof(ProcessorTypeEnums), strProcessorType);
@@ -82,13 +83,15 @@ namespace Seq2SeqSharp.Tools
             TensorAllocator.InitDevices(processorType, m_deviceIds, memoryUsageRatio, cudaCompilerOptions);
 
             m_validIntervalHours = validIntervalHours;
+            m_primaryTaskId = primaryTaskId;
         }
 
-        public BaseSeq2SeqFramework(int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, float validIntervalHours = 1.0f)
+        public BaseSeq2SeqFramework(int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, float validIntervalHours = 1.0f, int primaryTaskId = 0)
         {
             m_deviceIds = deviceIds;
             m_modelFilePath = modelFilePath;
             m_validIntervalHours = validIntervalHours;
+            m_primaryTaskId = primaryTaskId;
             TensorAllocator.InitDevices(processorType, m_deviceIds, memoryUsageRatio, compilerOptions);
         }
 
@@ -332,31 +335,33 @@ namespace Seq2SeqSharp.Tools
                 {
                     ISntPairBatch sntPairBatch_i = sntPairBatchs[i];
                     int batchSegSize = sntPairBatch_i.BatchSize / batchSplitFactor;
-
-                    for (int k = 0; k < batchSplitFactor; k++)
+                    if (batchSegSize > 0)
                     {
-                        ISntPairBatch sntPairBatch = sntPairBatch_i.GetRange(k * batchSegSize, batchSegSize);
-
-                        List<NetworkResult> nrs;
-                        // Create a new computing graph instance
-                        using (IComputeGraph computeGraph_i = CreateComputGraph(i))
+                        for (int k = 0; k < batchSplitFactor; k++)
                         {
-                            // Run forward part
-                            nrs = ForwardOnSingleDevice(computeGraph_i, sntPairBatch, i, true);
-                            // Run backward part and compute gradients
-                            computeGraph_i.Backward();
-                        }
+                            ISntPairBatch sntPairBatch = sntPairBatch_i.GetRange(k * batchSegSize, batchSegSize);
 
-                        lock (locker)
-                        {
-                            foreach (var nr in nrs)
+                            List<NetworkResult> nrs;
+                            // Create a new computing graph instance
+                            using (IComputeGraph computeGraph_i = CreateComputGraph(i))
                             {
-                                cost += nr.Cost;
+                                // Run forward part
+                                nrs = ForwardOnSingleDevice(computeGraph_i, sntPairBatch, i, true);
+                                // Run backward part and compute gradients
+                                computeGraph_i.Backward();
                             }
-                          
-                            srcWordCnts += sntPairBatch_i.SrcTokenCount;
-                            tgtWordCnts += sntPairBatch_i.TgtTokenCount;
-                            processedLine += batchSegSize;
+
+                            lock (locker)
+                            {
+                                foreach (var nr in nrs)
+                                {
+                                    cost += nr.Cost;
+                                }
+
+                                srcWordCnts += sntPairBatch_i.SrcTokenCount;
+                                tgtWordCnts += sntPairBatch_i.TgtTokenCount;
+                                processedLine += batchSegSize;
+                            }
                         }
                     }
                 }
@@ -528,11 +533,11 @@ namespace Seq2SeqSharp.Tools
                         sb.AppendLine($"{metric.Name} = {metric.GetScoreStr()}");
                     }
 
-                    if (metrics[0].GetPrimaryScore() > m_bestPrimaryScore) // The first metric in each task is the primary task
+                    if (metrics[0].GetPrimaryScore() > m_bestPrimaryScore && taskId == m_primaryTaskId) // The first metric in the primary task is the primary metric
                     {
                         if (m_bestPrimaryScore > 0.0f)
                         {
-                            sb.AppendLine($"We got a better score '{metrics[0].GetPrimaryScore().ToString("F")}' on primary metric '{metrics[0].Name}'. The previous score is '{m_bestPrimaryScore.ToString("F")}'");
+                            sb.AppendLine($"We got a better primary metric '{metrics[0].Name}' score '{metrics[0].GetPrimaryScore().ToString("F")}' on the primary task '{taskId}'. The previous score is '{m_bestPrimaryScore.ToString("F")}'");
                         }
 
                         //We have a better primary score on valid set

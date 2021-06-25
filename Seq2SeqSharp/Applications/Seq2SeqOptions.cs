@@ -30,17 +30,17 @@ namespace Seq2SeqSharp
         [Arg("It indicates if the tgt embedding is trainable", "IsTgtEmbeddingTrainable")]
         public bool IsTgtEmbeddingTrainable = true;
 
-        [Arg("Maxmium src sentence length in valid and test set", "MaxSrcTestSentLength")]
-        public int MaxSrcTestSentLength = 32;
+        [Arg("Maxmium src sentence length in valid and test set", "MaxTestSrcSentLength")]
+        public int MaxTestSrcSentLength = 32;
 
-        [Arg("Maxmium src sentence length in training corpus", "MaxSrcTrainSentLength")]
-        public int MaxSrcTrainSentLength = 110;
+        [Arg("Maxmium tgt sentence length in valid and test set", "MaxTestTgtSentLength")]
+        public int MaxTestTgtSentLength = 32;
 
-        [Arg("Maxmium tgt sentence length in valid and test set", "MaxTgtTestSentLength")]
-        public int MaxTgtTestSentLength = 32;
+        [Arg("Maxmium src sentence length in training corpus", "MaxTrainSrcSentLength")]
+        public int MaxTrainSrcSentLength = 110;
 
-        [Arg("Maxmium tgt sentence length in training corpus", "MaxTgtTrainSentLength")]
-        public int MaxTgtTrainSentLength = 110;
+        [Arg("Maxmium tgt sentence length in training corpus", "MaxTrainTgtSentLength")]
+        public int MaxTrainTgtSentLength = 110;
 
         [Arg("It indicates if output alignment between target tokens and source tokens", "OutputAlignment")]
         public bool OutputAlignment = false;

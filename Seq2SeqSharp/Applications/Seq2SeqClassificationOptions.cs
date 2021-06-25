@@ -11,5 +11,8 @@ namespace Seq2SeqSharp.Applications
     {
         [Arg("The vocabulary file path for classification.", "ClsVocab")]
         public string ClsVocab = null;
+
+        [Arg("Primary task Id. 0 - Seq2Seq task, 1 - SeqClassification task", "PrimaryTaskId")]
+        public int PrimaryTaskId = 0;
     }
 }

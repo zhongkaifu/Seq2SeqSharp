@@ -50,30 +50,21 @@ namespace Seq2SeqClassificationConsole
             Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate.ToString("F6")}, AvgCost = {ep.AvgCostInTotal.ToString("F4")}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin.ToString("F")}, WordPerSec = {wordPerSec.ToString("F")}");
         }
 
-        public static string GetTimeStamp(DateTime timeStamp)
-        {
-            return string.Format("{0:yyyy}_{0:MM}_{0:dd}_{0:HH}h_{0:mm}m_{0:ss}s", timeStamp);
-        }
-
         private static void Main(string[] args)
         {
             try
-            {
-                Logger.LogFile = $"{nameof(Seq2SeqClassificationConsole)}_{GetTimeStamp(DateTime.Now)}.log";
-                ShowOptions(args);
-
+            {                               
                 //Parse command line
-                //   Seq2SeqOptions opts = new Seq2SeqOptions();
                 ArgParser argParser = new ArgParser(args, opts);
 
                 if (string.IsNullOrEmpty(opts.ConfigFilePath) == false)
                 {
-                    Logger.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
+                    Console.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
                     opts = JsonConvert.DeserializeObject<Seq2SeqClassificationOptions>(File.ReadAllText(opts.ConfigFilePath));
                 }
 
-                string strOpts = JsonConvert.SerializeObject(opts);
-                Logger.WriteLine($"Configs: {strOpts}");
+                Logger.LogFile = $"{nameof(Seq2SeqClassificationConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log";
+                ShowOptions(args, opts);
 
                 Seq2SeqClassification ss = null;
                 ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.Task);
@@ -83,9 +74,9 @@ namespace Seq2SeqClassificationConsole
                 {
                     // Load train corpus
                     Seq2SeqClassificationCorpus trainCorpus = new Seq2SeqClassificationCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
-                        maxSrcSentLength: opts.MaxSrcTrainSentLength, maxTgtSentLength: opts.MaxTgtTrainSentLength, shuffleEnums: shuffleType);
+                        maxSrcSentLength: opts.MaxTrainSrcSentLength, maxTgtSentLength: opts.MaxTrainTgtSentLength, shuffleEnums: shuffleType);
                     // Load valid corpus
-                    Seq2SeqClassificationCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new Seq2SeqClassificationCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxSrcTestSentLength, opts.MaxTgtTestSentLength, shuffleEnums: shuffleType);
+                    Seq2SeqClassificationCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new Seq2SeqClassificationCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSrcSentLength, opts.MaxTestTgtSentLength, shuffleEnums: shuffleType);
 
                     // Create learning rate
                     ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);
@@ -182,7 +173,7 @@ namespace Seq2SeqClassificationConsole
                 };
 
                     // Load valid corpus
-                    Seq2SeqClassificationCorpus validCorpus = new Seq2SeqClassificationCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxSrcTestSentLength, opts.MaxTgtTestSentLength, shuffleEnums: shuffleType);
+                    Seq2SeqClassificationCorpus validCorpus = new Seq2SeqClassificationCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSrcSentLength, opts.MaxTestTgtSentLength, shuffleEnums: shuffleType);
 
                     ss = new Seq2SeqClassification(opts);
                     ss.EvaluationWatcher += ss_EvaluationWatcher;
@@ -192,8 +183,8 @@ namespace Seq2SeqClassificationConsole
                 {
                     Logger.WriteLine($"Test model: '{opts.ModelFilePath}'");
                     Logger.WriteLine($"Test set: '{opts.InputTestFile}'");
-                    Logger.WriteLine($"Max source test sentence length: '{opts.MaxSrcTestSentLength}'");
-                    Logger.WriteLine($"Max target test sentence length: '{opts.MaxTgtTestSentLength}'");
+                    Logger.WriteLine($"Max source sentence length: '{opts.MaxTestSrcSentLength}'");
+                    Logger.WriteLine($"Max target sentence length: '{opts.MaxTestTgtSentLength}'");
                     Logger.WriteLine($"Beam search size: '{opts.BeamSearchSize}'");
                     Logger.WriteLine($"Batch size: '{opts.BatchSize}'");
                     Logger.WriteLine($"Shuffle type: '{opts.ShuffleType}'");
@@ -213,9 +204,9 @@ namespace Seq2SeqClassificationConsole
                     foreach (string line in File.ReadLines(opts.InputTestFile))
                     {
                         List<string> tokens = line.Trim().Split(' ').ToList();
-                        if (tokens.Count > opts.MaxSrcTestSentLength - 2)
+                        if (tokens.Count > opts.MaxTestSrcSentLength - 2)
                         {
-                            tokens = tokens.GetRange(0, opts.MaxSrcTestSentLength - 2);
+                            tokens = tokens.GetRange(0, opts.MaxTestSrcSentLength - 2);
                         }
                         inputBatchs.Add(tokens);
 
@@ -297,11 +288,13 @@ namespace Seq2SeqClassificationConsole
             return (outputLines, alignments);
         }
 
-        private static void ShowOptions(string[] args)
+        private static void ShowOptions(string[] args, Seq2SeqClassificationOptions opts)
         {
             string commandLine = string.Join(" ", args);
+            string strOpts = JsonConvert.SerializeObject(opts);
             Logger.WriteLine($"Seq2SeqSharp v2.3.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
             Logger.WriteLine($"Command Line = '{commandLine}'");
+            Logger.WriteLine($"Configs: {strOpts}");
         }
     }
 }
