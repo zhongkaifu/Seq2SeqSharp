@@ -55,21 +55,16 @@ namespace Seq2SeqConsole
         {
             try
             {
-                Logger.LogFile = $"{nameof(Seq2SeqConsole)}_{Utils.GetTimeStamp(DateTime.Now)}.log";
-                ShowOptions(args);
-
                 //Parse command line
-             //   Seq2SeqOptions opts = new Seq2SeqOptions();
                 ArgParser argParser = new ArgParser(args, opts);
-
                 if (string.IsNullOrEmpty(opts.ConfigFilePath) == false)
                 {
-                    Logger.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
+                    Console.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
                     opts = JsonConvert.DeserializeObject<Seq2SeqOptions>(File.ReadAllText(opts.ConfigFilePath));
                 }
 
-                string strOpts = JsonConvert.SerializeObject(opts);
-                Logger.WriteLine($"Configs: {strOpts}");
+                Logger.LogFile = $"{nameof(Seq2SeqConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log";
+                ShowOptions(args, opts);
 
                 Seq2Seq ss = null;
                 ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.Task);
@@ -270,11 +265,14 @@ namespace Seq2SeqConsole
             return (outputLines, alignments);
         }
 
-        private static void ShowOptions(string[] args)
+        private static void ShowOptions(string[] args, Seq2SeqOptions opts)
         {
             string commandLine = string.Join(" ", args);
+            string strOpts = JsonConvert.SerializeObject(opts);
+
             Logger.WriteLine($"Seq2SeqSharp v2.3.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
             Logger.WriteLine($"Command Line = '{commandLine}'");
+            Logger.WriteLine($"Configs: {strOpts}");
         }
     }
 }

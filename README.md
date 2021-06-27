@@ -37,7 +37,13 @@ Seq2SeqSharp is also a framework that neural networks can run on multi-GPUs in p
 Seq2SeqSharp is built by (.NET core)[https://docs.microsoft.com/en-us/dotnet/core/], so it can run on both Windows and Linux without any modification and recompilation.  
 
 # Usage  
-Seq2SeqSharp provides three console tools that you can run for sequence-to-sequence task (**Seq2SeqConsole.exe**), sequence-classification task (**SeqClassification.exe**) and sequence-labeling task (**SeqLabelConsole.exe**).  
+Seq2SeqSharp provides some command line tools that you can run for different types of tasks.  
+Name                          |   Comments  
+------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Seq2SeqConsole                | Used for sequence-to-sequence tasks, such as machine translation, automatic summarization and so on    
+SeqClassificationConsole      | Used for sequence classification tasks, such as intention detection. It supports multi-tasks, which means a single model can be trained or tested by multi-classification tasks  
+Seq2SeqClassificationConsole  | It's a multi-task based tool. The first task is for sequence-to-sequence, and the second task is for sequence classification. The model is jointly trained by these two tasks. Its model can be also test on Seq2SeqConsole and SeqClassificationConsole  
+SeqLabelConsole               | Used for sequence labeling tasks, such as named entity recongizer, postag and other  
 
 ## Seq2SeqConsole for sequence-to-sequence task  
 You can use Seq2SeqConsole tool to train, test and visualize models.  
@@ -70,10 +76,10 @@ Parameters:
 **-ProcessorType**: Processor type: CPU or GPU(Cuda)  
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
 **-MaxEpochNum**: Maxmium epoch number during training. Default is 100  
-**-MaxSrcTrainSentLength**: Maxmium training sentence length on source side. Default is 110 tokens  
-**-MaxTgtTrainSentLength**: Maxmium training sentence length on target side. Default is 110 tokens  
-**-MaxSrcTestSentLength**: Maxmium valid/test sentence length on source side. Default is 110 tokens  
-**-MaxTgtTestSentLength**: Maxmium valid/test sentence length on target side. Default is 110 tokens  
+**-MaxTrainSrcSentLength**: Maxmium source sentence length on training set. Default is 110 tokens  
+**-MaxTrainTgtSentLength**: Maxmium target sentence length on training set. Default is 110 tokens  
+**-MaxTestSrcSentLength**: Maxmium source sentence length on valid/test set. Default is 110 tokens  
+**-MaxTestTgtSentLength**: Maxmium target sentence length on valid/test set. Default is 110 tokens  
 **-WarmUpSteps**: The number of steps for warming up. Default is 8,000  
 **-CompilerOptions**: The options for CUDA NVRTC compiler. Options are split by space. For example: "--use_fast_math --gpu-architecture=compute_60" means to use fast math libs and run on Pascal and above GPUs  
 **-Optimizer**: The weights optimizer during training. It supports Adam and RMSProp. Adam is default  
@@ -107,8 +113,8 @@ Parameters:
 **-ProcessorType**: Architecture type: CPU or GPU 
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
 **-BeamSearchSize**: Beam search size. Default is 1  
-**-MaxSrcTestSentLength**: Maxmium test sentence length on source side. Default is 32 tokens  
-**-MaxTgtTestSentLength**: Maxmium test sentence length on target side. Default is 32 tokens  
+**-MaxTestSrcSentLength**: Maxmium source sentence length on valid/test set. Default is 110 tokens  
+**-MaxTestTgtSentLength**: Maxmium target sentence length on valid/test set. Default is 110 tokens  
 
 Example: Seq2SeqConsole.exe -Task Test -ModelFilePath seq2seq.model -InputTestFile test.txt -OutputFile result.txt -ProcessorType CPU -BeamSearchSize 5 -MaxSrcSentLength 100 -MaxTgtSentLength 100  
 
@@ -145,10 +151,10 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
         "InputTestFile":null,
         "GradClip":5.0,
         "MaxEpochNum":100,
-        "MaxSrcTestSentLength":100,
-        "MaxSrcTrainSentLength":100,
-        "MaxTgtTestSentLength":100,
-        "MaxTgtTrainSentLength":100,
+        "MaxTestSrcSentLength":100,
+        "MaxTestTgtSentLength":100,
+        "MaxTrainSrcSentLength":100,
+        "MaxTrainTgtSentLength":100,
         "ModelFilePath":"seq2seq.model",
         "MultiHeadNum":8,
         "Optimizer":"Adam",
