@@ -65,13 +65,13 @@ namespace Seq2SeqSharp
                 CreateTrainableParameters(m_modelMetaData);
             }
 
+            m_modelMetaData.ShowModelInfo();
+
             Logger.WriteLine($"Encoder is trainable: '{options.IsEncoderTrainable}'");
             Logger.WriteLine($"Decoder is trainable: '{options.IsDecoderTrainable}'");
             Logger.WriteLine($"Max source sentence length in training corpus = '{options.MaxTrainSrcSentLength}'");
             Logger.WriteLine($"Max target sentence length in training corpus = '{options.MaxTrainTgtSentLength}'");
             Logger.WriteLine($"BeamSearch Size = '{options.BeamSearchSize}'");
-            Logger.WriteLine($"Shared embeddings = '{options.SharedEmbeddings}'");
-            Logger.WriteLine($"Enable segment embeddings = '{options.EnableSegmentEmbeddings}'");
         }
 
         private bool CreateTrainableParameters(IModel modelMetaData)
@@ -211,7 +211,7 @@ namespace Seq2SeqSharp
         /// <param name="tgtSnts">A batch of output tokenized sentences in target side</param>
         /// <param name="deviceIdIdx">The index of current device</param>
         /// <returns>The cost of forward part</returns>
-        private List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, int deviceIdIdx, bool isTraining)
+        public override List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, int deviceIdIdx, bool isTraining)
         {
             List<NetworkResult> nrs = new List<NetworkResult>();
 

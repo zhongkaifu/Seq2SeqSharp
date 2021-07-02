@@ -95,7 +95,7 @@ namespace Seq2SeqConsole
                     // Create metrics
                     List<IMetric> metrics = new List<IMetric>
                     {
-                        new BleuMetric(),
+                        opts.SeqGenerationMetric.Equals("BLEU", StringComparison.InvariantCultureIgnoreCase) ? new BleuMetric() : new RougeMetric(),
                         new LengthRatioMetric()
                     };
 
@@ -148,7 +148,7 @@ namespace Seq2SeqConsole
                     // Create metrics
                     List<IMetric> metrics = new List<IMetric>
                 {
-                    new BleuMetric(),
+                        opts.SeqGenerationMetric.Equals("BLEU", StringComparison.InvariantCultureIgnoreCase) ? new BleuMetric() : new RougeMetric(),
                     new LengthRatioMetric()
                 };
 

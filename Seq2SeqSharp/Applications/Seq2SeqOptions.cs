@@ -45,6 +45,9 @@ namespace Seq2SeqSharp
         [Arg("It indicates if output alignment between target tokens and source tokens", "OutputAlignment")]
         public bool OutputAlignment = false;
 
+        [Arg("The metric for sequence generation task. It supports BLEU and RougeL", "SeqGenerationMetric")]
+        public string SeqGenerationMetric = "BLEU";
+
         [Arg("Sharing embeddings between source side and target side", "SharedEmbeddings")]
         public bool SharedEmbeddings = false;
 

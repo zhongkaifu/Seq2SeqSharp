@@ -21,6 +21,13 @@ namespace Seq2SeqSharp.Tools
         public List<List<List<string>>> Output; // (beam_size, batch_size, seq_len)
         public List<List<List<Alignment>>> Alignment; // (beam_size, batch_size, seq_len)
 
+        public NetworkResult()
+        {
+            Output = new List<List<List<string>>>();
+            Alignment = new List<List<List<Alignment>>>();
+
+        }
+
         public void RemoveDuplicatedEOS()
         {
             if (Output != null)
@@ -45,6 +52,35 @@ namespace Seq2SeqSharp.Tools
                         break;
                     }
                 }
+            }
+        }
+
+        public void AppendResult(NetworkResult nr)
+        {
+            while (Output.Count < nr.Output.Count)
+            {
+                Output.Add(new List<List<string>>());
+
+                if (nr.Alignment != null)
+                {
+                    Alignment.Add(new List<List<Alignment>>());
+                }
+            }
+
+            for (int beamIdx = 0; beamIdx < nr.Output.Count; beamIdx++)
+            {
+          
+                for (int batchIdx = 0; batchIdx < nr.Output[beamIdx].Count; batchIdx++)
+                {
+
+                    Output[beamIdx].Add(nr.Output[beamIdx][batchIdx]);
+                    if (nr.Alignment != null)
+                    {
+                        Alignment[beamIdx].Add(nr.Alignment[beamIdx][batchIdx]);
+                    }
+
+                }
+
             }
         }
     }
@@ -93,6 +129,11 @@ namespace Seq2SeqSharp.Tools
             m_validIntervalHours = validIntervalHours;
             m_primaryTaskId = primaryTaskId;
             TensorAllocator.InitDevices(processorType, m_deviceIds, memoryUsageRatio, compilerOptions);
+        }
+
+        public virtual List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, int deviceIdIdx, bool isTraining)
+        {
+            throw new NotImplementedException("RunForwardOnSingleDevice is not implemented.");
         }
 
         public IComputeGraph CreateComputGraph(int deviceIdIdx, bool needBack = true)
@@ -401,6 +442,32 @@ namespace Seq2SeqSharp.Tools
         }
 
 
+        private List<NetworkResult> MergeResults(SortedDictionary<int, List<NetworkResult>> batchId2Results)
+        {
+            List<NetworkResult> rs = new List<NetworkResult>();
+
+
+            foreach (var pair in batchId2Results)
+            {
+                var tasks = pair.Value;
+                if (rs.Count == 0)
+                {
+                    for (int i = 0; i < tasks.Count; i++)
+                    {
+                        rs.Add(new NetworkResult());
+                    }
+                }
+
+
+                for (int i = 0; i < tasks.Count; i++)
+                {
+                    rs[i].AppendResult(tasks[i]);
+                }
+            }
+
+            return rs;
+        }
+
 
         internal List<NetworkResult> RunTest(ISntPairBatch sntPairBatch, int beamSearchSize, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice)
         {
@@ -460,11 +527,7 @@ namespace Seq2SeqSharp.Tools
 
                 }
 
-                List<NetworkResult> nrs = new List<NetworkResult>();
-                foreach (var pair in batchId2Result)
-                {
-                    nrs.AddRange(pair.Value);
-                }
+                List<NetworkResult> nrs = MergeResults(batchId2Result);
 
                 return nrs;
             }

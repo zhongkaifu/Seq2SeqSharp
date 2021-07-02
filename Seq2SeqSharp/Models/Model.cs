@@ -92,5 +92,38 @@ namespace Seq2SeqSharp.Models
         {
             Name2Weights.Clear();
         }
+
+        public void ShowModelInfo()
+        {
+            Logger.WriteLine($"Encoder embedding dim: '{EncoderEmbeddingDim}'");
+            Logger.WriteLine($"Decoder embedding dim: '{DecoderEmbeddingDim}'");
+            Logger.WriteLine($"Encoder layer depth: '{EncoderLayerDepth}'");
+            Logger.WriteLine($"Decoder layer depth: '{DecoderLayerDepth}'");
+            Logger.WriteLine($"Encoder type: '{EncoderType}'");
+            Logger.WriteLine($"Decoder type: '{DecoderType}'");
+            Logger.WriteLine($"Hidden layer dim: '{HiddenDim}'");
+            Logger.WriteLine($"Enable segment embeddings: '{EnableSegmentEmbeddings}'");
+            Logger.WriteLine($"Enable shared embeddings: '{SharedEmbeddings}'");
+            Logger.WriteLine($"Multi-head size: '{MultiHeadNum}'");
+
+            if (SrcVocab != null)
+            {
+                Logger.WriteLine($"Source vocabulary size: '{SrcVocab.Count}'");
+            }
+
+            if (TgtVocab != null)
+            {
+                Logger.WriteLine($"Target vocabulary size: '{TgtVocab.Count}'");
+            }
+
+            if (ClsVocabs != null)
+            {
+                Logger.WriteLine($"The number of CLS vocabularies: '{ClsVocab.Count}' ");
+                for (int i = 0; i < ClsVocabs.Count; i++)
+                {
+                    Logger.WriteLine($"CLS vocabulary {i} size: {ClsVocabs[i].Count}");
+                }
+            }
+        }
     }
 }

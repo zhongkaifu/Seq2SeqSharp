@@ -96,7 +96,7 @@ namespace Seq2SeqClassificationConsole
                     Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>();
                     List<IMetric> task0Metrics = new List<IMetric>
                     {
-                        new BleuMetric(),
+                        opts.SeqGenerationMetric.Equals("BLEU", StringComparison.InvariantCultureIgnoreCase) ? new BleuMetric() : new RougeMetric(),
                         new LengthRatioMetric()
                     };
 
@@ -139,8 +139,25 @@ namespace Seq2SeqClassificationConsole
                         else
                         {
                             Logger.WriteLine($"Building vocabulary from training corpus. Shared vocabulary is '{opts.SharedEmbeddings}'");
-                            // We don't specify vocabulary, so we build it from train corpus
 
+                            if (!String.IsNullOrEmpty(opts.SrcVocab))
+                            {
+                                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Source vocabulary '{opts.SrcVocab}' is not empty, but we will build it from training corpus.");
+                            }
+
+                            if (!String.IsNullOrEmpty(opts.TgtVocab))
+                            {
+                                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Target vocabulary '{opts.TgtVocab}' is not empty, but we will build it from training corpus.");
+                            }
+
+                            if (!String.IsNullOrEmpty(opts.ClsVocab))
+                            {
+                                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Classification vocabulary '{opts.ClsVocab}' is not empty, but we will build it from training corpus.");
+                            }
+
+
+
+                            // We don't specify vocabulary, so we build it from train corpus
                             (srcVocab, tgtVocab, clsVocab) = trainCorpus.BuildVocabs(opts.VocabSize, opts.SharedEmbeddings);
                         }
 
@@ -165,19 +182,30 @@ namespace Seq2SeqClassificationConsole
                 {
                     Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPath}'");
 
-                    // Create metrics
-                    List<IMetric> metrics = new List<IMetric>
-                {
-                    new BleuMetric(),
-                    new LengthRatioMetric()
-                };
-
                     // Load valid corpus
                     Seq2SeqClassificationCorpus validCorpus = new Seq2SeqClassificationCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSrcSentLength, opts.MaxTestTgtSentLength, shuffleEnums: shuffleType);
 
                     ss = new Seq2SeqClassification(opts);
                     ss.EvaluationWatcher += ss_EvaluationWatcher;
-                    ss.Valid(validCorpus: validCorpus, metrics: metrics);
+
+                    // Create metrics
+                    Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>();
+                    List<IMetric> task0Metrics = new List<IMetric>
+                    {
+                        opts.SeqGenerationMetric.Equals("BLEU", StringComparison.InvariantCultureIgnoreCase) ? new BleuMetric() : new RougeMetric(),
+                        new LengthRatioMetric()
+                    };
+
+                    taskId2metrics.Add(0, task0Metrics);
+
+                    List<IMetric> task1Metrics = new List<IMetric>()
+                        {
+                            new MultiLabelsFscoreMetric("", ss.ClsVocab.Items)
+                        };
+                    taskId2metrics.Add(1, task1Metrics);
+
+
+                    ss.Valid(validCorpus: validCorpus, taskId2metrics);
                 }
                 else if (mode == ModeEnums.Test)
                 {

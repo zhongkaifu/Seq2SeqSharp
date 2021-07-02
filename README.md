@@ -335,6 +335,18 @@ Here are steps on how to play it.  
 
 4. Check quality by comparing output Chinese text with reference text   
 
+# Models in the release package  
+The following models were trained by Seq2SeqSharp and included in the release package.  
+
+Model Name                    |   Comments                                           |    Trained By    |  Test Script              |  Input Test File  
+------------------------------|------------------------------------------------------|------------------|---------------------------|------------------------------  
+seq2seq_mt_enu_chs.model      | Sentence translation model from English to Chinese   |  Seq2SeqConsole  |  test_enu_chs.bat         |  test_enu_raw.txt  
+seq2seq_mt_chs_enu.model      | Sentence translation model from Chinese to English   |  Seq2SeqConsole  |  test_chs_enu.bat         |  test_chs_raw.txt  
+seq2seq_mt_enu_jpn.model      | Sentence translation model from English to Japanese  |  Seq2SeqConsole  |  test_enu_jpn.bat         |  test_enu_raw.txt  
+seq2seq_mt_jpn_enu.model      | Sentence translation model from Japanese to English  |  Seq2SeqConsole  |  test_jpn_enu.bat         |  test_jpn_raw.txt  
+seq2seq_medical_qa_chs.model  | Question-Answer model in Chinese medical domain      |  Seq2SeqConsole  |  test_medical_qa_chs.bat  |  test_medicalQA_chs_raw.txt  
+
+
 # Build From Source Code  
 Besides using the release package, you could also build Seq2SeqSharp from source code. It has just two steps:  
 

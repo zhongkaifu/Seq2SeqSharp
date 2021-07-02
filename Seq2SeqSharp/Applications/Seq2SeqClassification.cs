@@ -66,15 +66,13 @@ namespace Seq2SeqSharp.Applications
                 CreateTrainableParameters(m_modelMetaData);
             }
 
+            m_modelMetaData.ShowModelInfo();
+
             string primaryTaskStr = options.PrimaryTaskId == 0 ? "Sequence Generation" : "Sequence Classification";
 
-            Logger.WriteLine($"Encoder is trainable: '{options.IsEncoderTrainable}'");
-            Logger.WriteLine($"Decoder is trainable: '{options.IsDecoderTrainable}'");
             Logger.WriteLine($"Max source sentence length in training corpus = '{options.MaxTrainSrcSentLength}'");
             Logger.WriteLine($"Max target sentence length in training corpus = '{options.MaxTrainTgtSentLength}'");
             Logger.WriteLine($"BeamSearch Size = '{options.BeamSearchSize}'");
-            Logger.WriteLine($"Shared embeddings = '{options.SharedEmbeddings}'");
-            Logger.WriteLine($"Enable segment embeddings = '{options.EnableSegmentEmbeddings}'");
             Logger.WriteLine($"Primary task = '{primaryTaskStr}'");
         }
 
@@ -174,10 +172,8 @@ namespace Seq2SeqSharp.Applications
             }
         }
 
-        public void Valid(Seq2SeqClassificationCorpus validCorpus, List<IMetric> metrics)
+        public void Valid(Seq2SeqClassificationCorpus validCorpus, Dictionary<int, List<IMetric>> taskId2metrics)
         {
-            Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>();
-            taskId2metrics.Add(0, metrics);
             RunValid(validCorpus, RunForwardOnSingleDevice, taskId2metrics, true);
         }
 
@@ -215,7 +211,7 @@ namespace Seq2SeqSharp.Applications
         /// <param name="tgtSnts">A batch of output tokenized sentences in target side</param>
         /// <param name="deviceIdIdx">The index of current device</param>
         /// <returns>The cost of forward part</returns>
-        private List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, int deviceIdIdx, bool isTraining)
+        public override List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, int deviceIdIdx, bool isTraining)
         {
             List<NetworkResult> nrs = new List<NetworkResult>();
 
