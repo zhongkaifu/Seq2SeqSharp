@@ -93,10 +93,20 @@ namespace Seq2SeqClassificationConsole
                     }
 
                     // Create metrics
+                    IMetric seqGenMetric = null;
+                    if (opts.SeqGenerationMetric.Equals("BLEU", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        seqGenMetric = new BleuMetric();
+                    }
+                    else
+                    {
+                        seqGenMetric = new RougeMetric();
+                    }
+
                     Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>();
                     List<IMetric> task0Metrics = new List<IMetric>
                     {
-                        opts.SeqGenerationMetric.Equals("BLEU", StringComparison.InvariantCultureIgnoreCase) ? new BleuMetric() : new RougeMetric(),
+                        seqGenMetric,
                         new LengthRatioMetric()
                     };
 
@@ -189,10 +199,19 @@ namespace Seq2SeqClassificationConsole
                     ss.EvaluationWatcher += ss_EvaluationWatcher;
 
                     // Create metrics
+                    IMetric seqGenMetric = null;
+                    if (opts.SeqGenerationMetric.Equals("BLEU", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        seqGenMetric = new BleuMetric();
+                    }
+                    else
+                    {
+                        seqGenMetric = new RougeMetric();
+                    }
                     Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>();
                     List<IMetric> task0Metrics = new List<IMetric>
                     {
-                        opts.SeqGenerationMetric.Equals("BLEU", StringComparison.InvariantCultureIgnoreCase) ? new BleuMetric() : new RougeMetric(),
+                        seqGenMetric,
                         new LengthRatioMetric()
                     };
 

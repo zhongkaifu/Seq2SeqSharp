@@ -93,9 +93,18 @@ namespace Seq2SeqConsole
                     }
 
                     // Create metrics
+                    IMetric seqGenMetric = null;
+                    if (opts.SeqGenerationMetric.Equals("BLEU", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        seqGenMetric = new BleuMetric();
+                    }
+                    else
+                    {
+                        seqGenMetric = new RougeMetric();
+                    }
                     List<IMetric> metrics = new List<IMetric>
                     {
-                        opts.SeqGenerationMetric.Equals("BLEU", StringComparison.InvariantCultureIgnoreCase) ? new BleuMetric() : new RougeMetric(),
+                        seqGenMetric,
                         new LengthRatioMetric()
                     };
 
@@ -146,11 +155,20 @@ namespace Seq2SeqConsole
                     Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPath}'");
 
                     // Create metrics
+                    IMetric seqGenMetric = null;
+                    if (opts.SeqGenerationMetric.Equals("BLEU", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        seqGenMetric = new BleuMetric();
+                    }
+                    else
+                    {
+                        seqGenMetric = new RougeMetric();
+                    }
                     List<IMetric> metrics = new List<IMetric>
                 {
-                        opts.SeqGenerationMetric.Equals("BLEU", StringComparison.InvariantCultureIgnoreCase) ? new BleuMetric() : new RougeMetric(),
+                        seqGenMetric,
                     new LengthRatioMetric()
-                };
+                    };
 
                     // Load valid corpus
                     Seq2SeqCorpus validCorpus = new Seq2SeqCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSrcSentLength, opts.MaxTestTgtSentLength, shuffleEnums: shuffleType);
