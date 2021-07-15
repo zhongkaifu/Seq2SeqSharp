@@ -17,7 +17,7 @@ namespace Seq2SeqSharp
         private readonly int m_deviceId;
         private readonly bool m_isTrainable;
 
-        public FeedForwardLayer(string name, int inputDim, int outputDim, float dropoutRatio, int deviceId, bool isTrainable)
+        public FeedForwardLayer(string name, int inputDim, int outputDim, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f)
         {
             Logger.WriteLine($"Create feed forward layer '{name}' InputDim = '{inputDim}', OutputDim = '{outputDim}', DropoutRatio = '{dropoutRatio}', DeviceId = '{deviceId}'");
 
@@ -28,8 +28,8 @@ namespace Seq2SeqSharp
             m_deviceId = deviceId;
             m_isTrainable = isTrainable;
 
-            m_Whd = new WeightTensor(new long[2] { inputDim, outputDim }, deviceId, name: $"{name}.{nameof(m_Whd)}", normType: NormType.Uniform, isTrainable: isTrainable);
-            m_Bd = new WeightTensor(new long[2] { 1, outputDim }, 0, deviceId, name: $"{name}.{nameof(m_Bd)}", isTrainable: isTrainable);
+            m_Whd = new WeightTensor(new long[2] { inputDim, outputDim }, deviceId, name: $"{name}.{nameof(m_Whd)}", normType: NormType.Uniform, isTrainable: isTrainable, learningRateFactor: learningRateFactor);
+            m_Bd = new WeightTensor(new long[2] { 1, outputDim }, 0, deviceId, name: $"{name}.{nameof(m_Bd)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor);
         }
 
         public int GetDeviceId()

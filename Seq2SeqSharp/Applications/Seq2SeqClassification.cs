@@ -93,7 +93,7 @@ namespace Seq2SeqSharp.Applications
             {
                 m_encoder = new MultiProcessorNetworkWrapper<IEncoder>(
                     new TransformerEncoder("TransformerEncoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.EncoderEmbeddingDim, modelMetaData.EncoderLayerDepth, m_options.DropoutRatio, raDeviceIds.GetNextItem(),
-                    isTrainable: m_options.IsEncoderTrainable), DeviceIds);
+                    isTrainable: m_options.IsEncoderTrainable, learningRateFactor: m_options.EncoderStartLearningRateFactor), DeviceIds);
 
                 contextDim = modelMetaData.HiddenDim;
             }
@@ -108,7 +108,7 @@ namespace Seq2SeqSharp.Applications
             {
                 m_decoder = new MultiProcessorNetworkWrapper<IDecoder>(
                     new TransformerDecoder("TransformerDecoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.DecoderEmbeddingDim, modelMetaData.DecoderLayerDepth, m_options.DropoutRatio, raDeviceIds.GetNextItem(),
-                    isTrainable: m_options.IsDecoderTrainable), DeviceIds);
+                    isTrainable: m_options.IsDecoderTrainable, learningRateFactor: m_options.DecoderStartLearningRateFactor), DeviceIds);
             }
 
             m_encoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("FeedForward_Encoder_0", modelMetaData.HiddenDim, modelMetaData.ClsVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),

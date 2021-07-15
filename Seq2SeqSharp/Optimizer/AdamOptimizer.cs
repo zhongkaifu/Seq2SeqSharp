@@ -64,7 +64,7 @@ namespace Seq2SeqSharp.Optimizer
                     m_cacheName2M[item.Name] = new Tensor(allocator, DType.Float32, item.Sizes);
                     Ops.Fill(m_cacheName2M[item.Name], 0.0f);
 
-                    Logger.WriteLine($"Added weight '{item.Name}' to optimizer.");
+                    Logger.WriteLine($"Added weight '{item.Name}' to optimizer. Learning rate factor = '{item.LearningRateFactor}'");
                 }
             }
 
@@ -73,7 +73,7 @@ namespace Seq2SeqSharp.Optimizer
                 foreach (IWeightTensor item in kv.Value)
                 {
                     WeightTensor m = item as WeightTensor;
-                    UpdateWeightsTensor(m, batchSize, step_size, regc, iter);
+                    UpdateWeightsTensor(m, batchSize, step_size * m.LearningRateFactor, regc, iter);
                 }
             });
         }

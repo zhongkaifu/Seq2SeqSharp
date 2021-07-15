@@ -35,6 +35,8 @@ namespace Seq2SeqSharp.Tools
 
         public int DeviceId { get; set; }
 
+        public float LearningRateFactor { get; set; } = 1.0f;
+
         private IAllocator m_allocator;
 
         private Tensor m_TWeight = null;
@@ -142,10 +144,11 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, NormType normType = NormType.None, bool fanIn = false, bool fanOut = false, IComputeGraph graphToBind = null)
+        public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, NormType normType = NormType.None, bool fanIn = false, bool fanOut = false, float learningRateFactor = 1.0f, IComputeGraph graphToBind = null)
         {
             Name = name;
             DeviceId = deviceId;
+            LearningRateFactor = learningRateFactor;
             IsTrainable = isTrainable;
             m_allocator = TensorAllocator.Allocator(DeviceId);
             Sizes = sizes;
@@ -182,11 +185,12 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        public WeightTensor(long[] sizes, float c, int deviceId, string name = "", bool isTrainable = false)
+        public WeightTensor(long[] sizes, float c, int deviceId, string name = "", bool isTrainable = false, float learningRateFactor = 1.0f)
         {
             Name = name;
             DeviceId = deviceId;
             IsTrainable = isTrainable;
+            LearningRateFactor = learningRateFactor;
             Sizes = sizes;
             m_allocator = TensorAllocator.Allocator(DeviceId);
 

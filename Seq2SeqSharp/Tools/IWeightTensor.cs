@@ -14,6 +14,8 @@ namespace Seq2SeqSharp.Tools
 
         int DeviceId { get; set; }
 
+        float LearningRateFactor { get; set; }
+
         float GetWeightAt(long[] indices);
         void SetWeightAt(float val, long[] indices);
         void SetGradientAt(float val, long[] indices);

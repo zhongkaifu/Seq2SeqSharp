@@ -39,6 +39,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("The network depth in encoder.", "EncoderLayerDepth")]
         public int EncoderLayerDepth = 1;
 
+        [Arg("Starting Learning rate factor for encoders", "EncoderStartLearningRateFactor")]
+        public float EncoderStartLearningRateFactor = 1.0f;
+
         [Arg("Encoder type: LSTM, BiLSTM, Transformer", "EncoderType")]
         public string EncoderType = "Transformer";
 
@@ -50,6 +53,9 @@ namespace Seq2SeqSharp.Applications
 
         [Arg("The input file for test.", "InputTestFile")]
         public string InputTestFile = null;
+
+        [Arg("Starting Learning rate", "StartLearningRate")]
+        public float StartLearningRate = 0.0006f;
 
         [Arg("Maxmium epoch number during training. Default is 100", "MaxEpochNum")]
         public int MaxEpochNum = 100;
@@ -77,9 +83,6 @@ namespace Seq2SeqSharp.Applications
 
         [Arg("The vocabulary file path for source side.", "SrcVocab")]
         public string SrcVocab = null;
-
-        [Arg("Start Learning rate.", "StartLearningRate")]
-        public float StartLearningRate = 0.0003f;
 
         [Arg("The shuffle block size", "ShuffleBlockSize")]
         public int ShuffleBlockSize = -1;

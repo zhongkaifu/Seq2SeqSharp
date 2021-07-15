@@ -12,11 +12,11 @@ namespace Seq2SeqSharp
         private readonly IWeightTensor m_beta;
         private readonly string m_name;
 
-        public LayerNormalization(string name, int dim, int deviceId, bool isTrainable)
+        public LayerNormalization(string name, int dim, int deviceId, bool isTrainable, float learningRateFactor = 1.0f)
         {
             m_name = name;
-            m_alpha = new WeightTensor(new long[2] { 1, dim }, 1.0f, deviceId, name: $"{name}.{nameof(m_alpha)}", isTrainable: isTrainable);
-            m_beta = new WeightTensor(new long[2] { 1, dim }, 0, deviceId, name: $"{name}.{nameof(m_beta)}", isTrainable: isTrainable);
+            m_alpha = new WeightTensor(new long[2] { 1, dim }, 1.0f, deviceId, name: $"{name}.{nameof(m_alpha)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor);
+            m_beta = new WeightTensor(new long[2] { 1, dim }, 0, deviceId, name: $"{name}.{nameof(m_beta)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor);
         }
 
         public IWeightTensor Norm(IWeightTensor input, IComputeGraph g)

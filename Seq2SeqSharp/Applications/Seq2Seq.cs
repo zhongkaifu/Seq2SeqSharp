@@ -91,7 +91,7 @@ namespace Seq2SeqSharp
             {
                 m_encoder = new MultiProcessorNetworkWrapper<IEncoder>(
                     new TransformerEncoder("TransformerEncoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.EncoderEmbeddingDim, modelMetaData.EncoderLayerDepth, m_options.DropoutRatio, raDeviceIds.GetNextItem(), 
-                    isTrainable: m_options.IsEncoderTrainable), DeviceIds);
+                    isTrainable: m_options.IsEncoderTrainable, learningRateFactor: m_options.EncoderStartLearningRateFactor), DeviceIds);
 
                 contextDim = modelMetaData.HiddenDim;
             }
@@ -106,11 +106,11 @@ namespace Seq2SeqSharp
             {
                 m_decoder = new MultiProcessorNetworkWrapper<IDecoder>(
                     new TransformerDecoder("TransformerDecoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.DecoderEmbeddingDim, modelMetaData.DecoderLayerDepth, m_options.DropoutRatio, raDeviceIds.GetNextItem(),
-                    isTrainable: m_options.IsDecoderTrainable), DeviceIds);
+                    isTrainable: m_options.IsDecoderTrainable, learningRateFactor: m_options.DecoderStartLearningRateFactor), DeviceIds);
             }
 
             m_decoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("FeedForward_Decoder_0", modelMetaData.HiddenDim, modelMetaData.TgtVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), 
-                isTrainable: true), DeviceIds);
+                isTrainable: true, learningRateFactor: m_options.DecoderStartLearningRateFactor), DeviceIds);
 
 
             if (modelMetaData.EncoderType == EncoderTypeEnums.Transformer || modelMetaData.DecoderType == DecoderTypeEnums.Transformer)
@@ -137,7 +137,8 @@ namespace Seq2SeqSharp
             if (modelMetaData.SharedEmbeddings)
             {
                 Logger.WriteLine($"Creating shared embeddings for both source side and target side. Shape = '({modelMetaData.SrcVocab.Count} ,{modelMetaData.EncoderEmbeddingDim})'");
-                m_sharedEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.SrcVocab.Count, modelMetaData.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SharedEmbeddings", isTrainable: m_options.IsSrcEmbeddingTrainable), DeviceIds);
+                m_sharedEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.SrcVocab.Count, modelMetaData.EncoderEmbeddingDim }, 
+                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SharedEmbeddings", isTrainable: m_options.IsSrcEmbeddingTrainable, learningRateFactor: m_options.EncoderStartLearningRateFactor), DeviceIds);
 
                 m_srcEmbedding = null;
                 m_tgtEmbedding = null;
@@ -145,10 +146,12 @@ namespace Seq2SeqSharp
             else
             {
                 Logger.WriteLine($"Creating embeddings for source side. Shape = '({modelMetaData.SrcVocab.Count} ,{modelMetaData.EncoderEmbeddingDim})'");
-                m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.SrcVocab.Count, modelMetaData.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SrcEmbeddings", isTrainable: m_options.IsSrcEmbeddingTrainable), DeviceIds);
+                m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.SrcVocab.Count, modelMetaData.EncoderEmbeddingDim }, 
+                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SrcEmbeddings", isTrainable: m_options.IsSrcEmbeddingTrainable, learningRateFactor: m_options.EncoderStartLearningRateFactor), DeviceIds);
 
                 Logger.WriteLine($"Creating embeddings for target side. Shape = '({modelMetaData.TgtVocab.Count} ,{modelMetaData.DecoderEmbeddingDim})'");
-                m_tgtEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.TgtVocab.Count, modelMetaData.DecoderEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "TgtEmbeddings", isTrainable: m_options.IsTgtEmbeddingTrainable), DeviceIds);
+                m_tgtEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.TgtVocab.Count, modelMetaData.DecoderEmbeddingDim }, 
+                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "TgtEmbeddings", isTrainable: m_options.IsTgtEmbeddingTrainable, learningRateFactor: m_options.DecoderStartLearningRateFactor), DeviceIds);
 
                 m_sharedEmbedding = null;
             }

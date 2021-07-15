@@ -13,6 +13,9 @@ namespace Seq2SeqSharp
         [Arg("The network depth in decoder.", "DecoderLayerDepth")]
         public int DecoderLayerDepth = 1;
 
+        [Arg("Starting Learning rate factor for decoders", "DecoderStartLearningRateFactor")]
+        public float DecoderStartLearningRateFactor = 1.0f;
+
         [Arg("Decoder type: AttentionLSTM, Transformer", "DecoderType")]
         public string DecoderType = "Transformer";
 

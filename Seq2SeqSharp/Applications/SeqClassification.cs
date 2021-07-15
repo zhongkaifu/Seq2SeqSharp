@@ -104,7 +104,7 @@ namespace Seq2SeqSharp.Applications
             {
                 m_encoder = new MultiProcessorNetworkWrapper<IEncoder>(
                     new TransformerEncoder("TransformerEncoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.EncoderEmbeddingDim, modelMetaData.EncoderLayerDepth, m_options.DropoutRatio, raDeviceIds.GetNextItem(),
-                    isTrainable: true), DeviceIds);
+                    isTrainable: true, learningRateFactor: m_options.EncoderStartLearningRateFactor), DeviceIds);
                 contextDim = modelMetaData.HiddenDim;
             }
 
