@@ -23,8 +23,8 @@ namespace Seq2SeqSharp.Tools
 
         public NetworkResult()
         {
-            Output = new List<List<List<string>>>();
-            Alignment = new List<List<List<Alignment>>>();
+            Output = null;
+            Alignment = null;
 
         }
 
@@ -454,7 +454,14 @@ namespace Seq2SeqSharp.Tools
                 {
                     for (int i = 0; i < tasks.Count; i++)
                     {
-                        rs.Add(new NetworkResult());
+                        NetworkResult nr = new NetworkResult();
+                        nr.Output = new List<List<List<string>>>();
+                        if (tasks[i].Alignment != null)
+                        {
+                            nr.Alignment = new List<List<List<Alignment>>>();
+                        }
+
+                        rs.Add(nr);
                     }
                 }
 
