@@ -50,20 +50,20 @@ namespace SeqClassificationConsole
             Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate.ToString("F6")}, AvgCost = {ep.AvgCostInTotal.ToString("F4")}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin.ToString("F")}, WordPerSec = {wordPerSec.ToString("F")}");
         }
 
-        private static void ShowOptions(string[] args)
+        private static void ShowOptions(string[] args, SeqClassificationOptions opts)
         {
             string commandLine = string.Join(" ", args);
             Logger.WriteLine($"SeqClassificationConsole v2.3.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
             Logger.WriteLine($"Command Line = '{commandLine}'");
+
+            string strOpts = JsonConvert.SerializeObject(opts);
+            Logger.WriteLine($"Configs: {strOpts}");
         }
 
         static void Main(string[] args)
         {
             try
             {
-                Logger.LogFile = $"{nameof(SeqClassificationConsole)}_{Utils.GetTimeStamp(DateTime.Now)}.log";
-                ShowOptions(args);
-
                 //Parse command line
                 //   Seq2SeqOptions opts = new Seq2SeqOptions();
                 ArgParser argParser = new ArgParser(args, opts);
@@ -74,8 +74,8 @@ namespace SeqClassificationConsole
                     opts = JsonConvert.DeserializeObject<SeqClassificationOptions>(File.ReadAllText(opts.ConfigFilePath));
                 }
 
-                string strOpts = JsonConvert.SerializeObject(opts);
-                Logger.WriteLine($"Configs: {strOpts}");
+                Logger.LogFile = $"{nameof(SeqClassificationConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log";
+                ShowOptions(args, opts);
 
                 SeqClassification ss = null;
                 ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.Task);

@@ -16,8 +16,11 @@ namespace Seq2SeqSharp.Corpus
         
         private (string, string) ConvertSequenceClassificationFormatToParallel(string filePath)
         {
-            List<string> srcLines = new List<string>();
-            List<string> tgtLines = new List<string>();
+            string srcFilePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName() + "_src.tmp");
+            string tgtFilePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName() + "_tgt.tmp");
+
+            StreamWriter swSrc = new StreamWriter(srcFilePath);
+            StreamWriter swTgt = new StreamWriter(tgtFilePath);
 
             foreach (var line in File.ReadAllLines(filePath))
             {
@@ -26,16 +29,12 @@ namespace Seq2SeqSharp.Corpus
                 string srcItem = items[items.Length - 1];
                 string tgtItem = String.Join('\t', items, 0, items.Length - 1).Replace(" ", "_").Replace("\t"," ");
 
-                srcLines.Add(srcItem);
-                tgtLines.Add(tgtItem);
-
+                swSrc.WriteLine(srcItem);
+                swTgt.WriteLine(tgtItem);
             }
 
-            string srcFilePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName() + "_src.tmp");
-            string tgtFilePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName() + "_tgt.tmp");
-
-            File.WriteAllLines(srcFilePath, srcLines);
-            File.WriteAllLines(tgtFilePath, tgtLines);
+            swSrc.Close();
+            swTgt.Close();
 
             Logger.WriteLine($"Convert sequence classification corpus file '{filePath}' to parallel corpus files '{srcFilePath}' and '{tgtFilePath}'");
 

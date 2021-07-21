@@ -30,7 +30,7 @@ namespace Seq2SeqSharp.Corpus
         }
 
 
-        public void TryAddPrefix(List<List<string>> tokens, string prefix)
+        private void TryAddPrefix(List<List<string>> tokens, string prefix)
         {
             for (int i = 0; i < tokens.Count; i++)
             {
@@ -48,7 +48,7 @@ namespace Seq2SeqSharp.Corpus
             }
         }
 
-        public void TryAddSuffix(List<List<string>> tokens, string suffix)
+        private void TryAddSuffix(List<List<string>> tokens, string suffix)
         {
             for (int i = 0; i < tokens.Count; i++)
             {
