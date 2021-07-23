@@ -85,7 +85,7 @@ namespace Seq2SeqSharp.Metrics
                 results.Add($"'{m_classLabels[i]}': F-score = '{(100.0 * objective).ToString("F")}' Precision = '{(100.0 * precision).ToString("F")}' Recall = '{(100.0 * recall).ToString("F")}'");
             }
 
-            return string.Join("\n", results) + "\n";
+            return string.Join("\n", results) + $"\nThe number of categories = '{m_counts.Count}'\n";
         }
 
         public double GetPrimaryScore()

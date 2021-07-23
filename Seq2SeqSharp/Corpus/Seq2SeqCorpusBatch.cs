@@ -58,8 +58,26 @@ namespace Seq2SeqSharp.Corpus
 
     public class SntPair
     {
-        public string[] SrcSnt;
-        public string[] TgtSnt;
+        public List<List<string>> SrcTokenGroups;
+        public List<List<string>> TgtTokenGroups;
+
+        public SntPair(string srcLine, string tgtLine)
+        {
+            SrcTokenGroups = new List<List<string>>();
+            TgtTokenGroups = new List<List<string>>();
+
+            CreateGroup(srcLine, SrcTokenGroups);
+            CreateGroup(tgtLine, TgtTokenGroups);
+        }
+
+        private void CreateGroup(string line, List<List<string>> sntGroup)
+        {
+            string[] groups = line.Split('\t');
+            foreach (var group in groups)
+            {
+                sntGroup.Add(group.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList());
+            }
+        }
     }
 
 
@@ -68,13 +86,6 @@ namespace Seq2SeqSharp.Corpus
         int BatchSize { get; }
         int SrcTokenCount { get; set; }
         int TgtTokenCount { get; set; }
-
-        string SrcPrefix { get; }
-        string SrcSuffix { get; }
-
-        string TgtPrefix { get; }
-
-        string TgtSuffix { get; }
 
         void CreateBatch(List<SntPair> sntPairs);
         ISntPairBatch CloneSrcTokens();
@@ -86,150 +97,38 @@ namespace Seq2SeqSharp.Corpus
 
     }
 
-    public class Seq2SeqCorpusBatch : ISntPairBatch
+    public class Seq2SeqCorpusBatch : CorpusBatch
     {
-        public List<List<string>> SrcTkns = null;
-        public List<List<string>> TgtTkns = null;
 
-        public List<SntPair> SntPairs;
-
-        public virtual string SrcPrefix => BuildInTokens.BOS;
-        public virtual string SrcSuffix => BuildInTokens.EOS;
-
-
-        public virtual string TgtPrefix => BuildInTokens.BOS;
-        public virtual string TgtSuffix => BuildInTokens.EOS;
-
-        public int BatchSize => SrcTkns.Count;
-        public int SrcTokenCount { get; set; }
-        public int TgtTokenCount { get; set; }
-
-        public Seq2SeqCorpusBatch()
+        public override void CreateBatch(List<SntPair> sntPairs)
         {
-        }
+            base.CreateBatch(sntPairs);
 
-
-        private void AddPrefix(List<List<string>> tokens, string prefix)
-        {
-            for (int i = 0; i < tokens.Count; i++)
-            {
-                if (tokens[i].Count == 0)
-                {
-                    tokens[i].Add(prefix);
-                }
-                else
-                {
-                    if (tokens[i][0] != prefix)
-                    {
-                        tokens[i].Insert(0, prefix);
-                    }
-                }
-            }
-        }
-
-
-        private void AddSuffix(List<List<string>> tokens, string suffix)
-        {
-            for (int i = 0; i < tokens.Count; i++)
-            {
-                if (tokens[i].Count == 0)
-                {
-                    tokens[i].Add(suffix);
-                }
-                else
-                {
-                    if (tokens[i][tokens[i].Count - 1] != suffix)
-                    {
-                        tokens[i].Add(suffix);
-                    }
-                }
-            }
-        }
-
-
-        public void CreateBatch(List<SntPair> sntPairs)
-        {
-            SntPairs = sntPairs;
-
-            SrcTkns = new List<List<string>>();
-            TgtTkns = new List<List<string>>();
-            SrcTokenCount = 0;
-            TgtTokenCount = 0;
-
-            for (int i = 0; i < sntPairs.Count; i++)
-            {
-                SrcTkns.Add(sntPairs[i].SrcSnt.ToList());
-                TgtTkns.Add(sntPairs[i].TgtSnt.ToList());
-
-                SrcTokenCount += sntPairs[i].SrcSnt.Length;
-                TgtTokenCount += sntPairs[i].TgtSnt.Length;
-            }
-
-            AddPrefix(SrcTkns, SrcPrefix);
-            AddSuffix(SrcTkns, SrcSuffix);
-            AddPrefix(TgtTkns, TgtPrefix);
-            AddSuffix(TgtTkns, TgtSuffix);
+            TryAddPrefix(SrcTknsGroup[0], BuildInTokens.BOS);
+            TryAddSuffix(SrcTknsGroup[0], BuildInTokens.EOS);
+            TryAddPrefix(TgtTknsGroup[0], BuildInTokens.BOS);
+            TryAddSuffix(TgtTknsGroup[0], BuildInTokens.EOS);
         }
 
 
         public void CreateBatch(List<List<string>> srcTokens)
         {
-            SrcTkns = srcTokens;
-            TgtTkns = InitializeHypTokens(TgtPrefix);
 
+            SrcTknsGroup = new List<List<List<string>>>();
+            SrcTknsGroup.Add(srcTokens);
 
-            AddPrefix(SrcTkns, SrcPrefix);
-            AddSuffix(SrcTkns, SrcSuffix);
+            TgtTknsGroup = new List<List<List<string>>>();
+            TgtTknsGroup.Add(InitializeHypTokens(BuildInTokens.BOS));
         }
 
-        public ISntPairBatch CloneSrcTokens()
+        public override ISntPairBatch CloneSrcTokens()
         {
             Seq2SeqCorpusBatch spb = new Seq2SeqCorpusBatch();
-            spb.SrcTkns = SrcTkns;
-            spb.TgtTkns = InitializeHypTokens(TgtPrefix);
+            spb.SrcTknsGroup = SrcTknsGroup;
+            spb.TgtTknsGroup = new List<List<List<string>>>();
+            spb.TgtTknsGroup.Add(InitializeHypTokens(BuildInTokens.BOS));
 
             return spb;
-        }
-
-
-        public ISntPairBatch GetRange(int idx, int count)
-        {
-            Seq2SeqCorpusBatch spb = new Seq2SeqCorpusBatch();
-            spb.SrcTkns = new List<List<string>>();
-            spb.TgtTkns = new List<List<string>>();
-
-            spb.SrcTkns.AddRange(SrcTkns.GetRange(idx, count));
-            spb.TgtTkns.AddRange(TgtTkns.GetRange(idx, count));
-
-            return spb;
-        }
-
-        List<List<string>> InitializeHypTokens(string prefix)
-        {
-            List<List<string>> hypTkns = new List<List<string>>();
-            for (int i = 0; i < BatchSize; i++)
-            {
-                if (String.IsNullOrEmpty(prefix) == false)
-                {
-                    hypTkns.Add(new List<string>() { prefix });
-                }
-                else
-                {
-                    hypTkns.Add(new List<string>());
-                }
-            }
-
-            return hypTkns;
-        }
-
-        public List<List<string>> GetTgtTokens(int group)
-        {
-            return TgtTkns;
-        }
-
-        public List<List<string>> GetSrcTokens(int group)
-        {
-            return SrcTkns;
         }
     }
 }

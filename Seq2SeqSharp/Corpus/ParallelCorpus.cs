@@ -400,21 +400,17 @@ namespace Seq2SeqSharp.Tools
                     while (true)
                     {
                         string line;
-                        SntPair sntPair = new SntPair();
                         if ((line = srSrc.ReadLine()) == null)
                         {
                             break;
                         }
 
-                        line = line.Trim();
-                        sntPair.SrcSnt = line.Split(new char[2] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                        var srcLine = line.Trim();
+                        var tgtLine = srTgt.ReadLine().Trim();
+                        SntPair sntPair = new SntPair(srcLine, tgtLine);
 
-                        line = srTgt.ReadLine().Trim();
-                        sntPair.TgtSnt = line.Split(new char[2] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-
-
-                        if ((lastTgtSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInTgt && lastTgtSntLen != sntPair.TgtSnt.Length) ||
-                            (lastSrcSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInSrc && lastSrcSntLen != sntPair.SrcSnt.Length) ||
+                        if ((lastTgtSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInTgt && lastTgtSntLen != sntPair.TgtTokenGroups[0].Count) ||
+                            (lastSrcSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInSrc && lastSrcSntLen != sntPair.SrcTokenGroups[0].Count) ||
                             outputs.Count > maxOutputsSize)
                         {
                             // InnerShuffle(outputs);
@@ -431,8 +427,8 @@ namespace Seq2SeqSharp.Tools
 
                         outputs.Add(sntPair);
 
-                        lastSrcSntLen = sntPair.SrcSnt.Length;
-                        lastTgtSntLen = sntPair.TgtSnt.Length;
+                        lastSrcSntLen = sntPair.SrcTokenGroups[0].Count;
+                        lastTgtSntLen = sntPair.TgtTokenGroups[0].Count;
                     }
 
                     // InnerShuffle(outputs);

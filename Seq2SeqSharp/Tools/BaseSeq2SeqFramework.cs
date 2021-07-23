@@ -671,7 +671,7 @@ namespace Seq2SeqSharp.Tools
                         {
                             var hypTkns = nrs[k].Output[0];
                             var refTkns = sntPairBatch.GetTgtTokens(k);
-                            var srcTkns = sntPairBatch.GetSrcTokens(k);
+                            var srcTkns = sntPairBatch.GetSrcTokens(0);
 
                             for (int j = 0; j < hypTkns.Count; j++)
                             {

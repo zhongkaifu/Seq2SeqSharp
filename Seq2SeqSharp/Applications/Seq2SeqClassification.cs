@@ -263,7 +263,7 @@ namespace Seq2SeqSharp.Applications
             {
                 if (isTraining)
                 {
-                    var clsSnts = sntPairBatch.GetTgtTokens(1);
+                    var clsSnts = sntPairBatch.GetTgtTokens(0);
                     for (int k = 0; k < batchSize; k++)
                     {
                         int ix_targets_k_j = m_modelMetaData.ClsVocab.GetWordIndex(clsSnts[k][0]);
@@ -295,7 +295,7 @@ namespace Seq2SeqSharp.Applications
             }
 
             // Generate output decoder sentences
-            var tgtSnts = sntPairBatch.GetTgtTokens(0);
+            var tgtSnts = sntPairBatch.GetTgtTokens(1);
             var tgtTokensList = m_modelMetaData.TgtVocab.GetWordIndex(tgtSnts);
 
             NetworkResult nr = new NetworkResult();
@@ -400,8 +400,8 @@ namespace Seq2SeqSharp.Applications
 
             nr.RemoveDuplicatedEOS();
 
-            nrs.Add(nr);
             nrs.Add(nrCLS);
+            nrs.Add(nr);
 
             return nrs;
         }

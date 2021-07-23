@@ -104,28 +104,22 @@ namespace Seq2SeqClassificationConsole
                     }
 
                     Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>();
-                    List<IMetric> task0Metrics = new List<IMetric>
+                    List<IMetric> task1Metrics = new List<IMetric>
                     {
                         seqGenMetric,
                         new LengthRatioMetric()
                     };
 
-                    taskId2metrics.Add(0, task0Metrics);
+                    taskId2metrics.Add(1, task1Metrics);
 
 
-
+                    List<IMetric> task0Metrics = new List<IMetric>();
                     if (!String.IsNullOrEmpty(opts.ModelFilePath) && File.Exists(opts.ModelFilePath))
                     {
                         //Incremental training
                         Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
                         ss = new Seq2SeqClassification(opts);
-
-                        List<IMetric> task1Metrics = new List<IMetric>()
-                        {
-                            new MultiLabelsFscoreMetric("", ss.ClsVocab.Items)
-                        };
-                        taskId2metrics.Add(1, task1Metrics);
-
+                        task0Metrics.Add(new MultiLabelsFscoreMetric("", ss.ClsVocab.Items));
                     }
                     else
                     {
@@ -171,15 +165,12 @@ namespace Seq2SeqClassificationConsole
                             (srcVocab, tgtVocab, clsVocab) = trainCorpus.BuildVocabs(opts.VocabSize, opts.SharedEmbeddings);
                         }
 
-                        List<IMetric> task1Metrics = new List<IMetric>()
-                        {
-                            new MultiLabelsFscoreMetric("", clsVocab.Items)
-                        };
-                        taskId2metrics.Add(1, task1Metrics);
-
                         //New training
                         ss = new Seq2SeqClassification(opts, srcVocab, tgtVocab, clsVocab);
+                        task0Metrics.Add(new MultiLabelsFscoreMetric("", clsVocab.Items));
                     }
+
+                    taskId2metrics.Add(0, task0Metrics);
 
                     // Add event handler for monitoring
                     ss.StatusUpdateWatcher += ss_StatusUpdateWatcher;
@@ -209,19 +200,19 @@ namespace Seq2SeqClassificationConsole
                         seqGenMetric = new RougeMetric();
                     }
                     Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>();
-                    List<IMetric> task0Metrics = new List<IMetric>
+                    List<IMetric> task1Metrics = new List<IMetric>
                     {
                         seqGenMetric,
                         new LengthRatioMetric()
                     };
 
-                    taskId2metrics.Add(0, task0Metrics);
+                    taskId2metrics.Add(1, task1Metrics);
 
-                    List<IMetric> task1Metrics = new List<IMetric>()
+                    List<IMetric> task0Metrics = new List<IMetric>()
                         {
                             new MultiLabelsFscoreMetric("", ss.ClsVocab.Items)
                         };
-                    taskId2metrics.Add(1, task1Metrics);
+                    taskId2metrics.Add(0, task0Metrics);
 
 
                     ss.Valid(validCorpus: validCorpus, taskId2metrics);
