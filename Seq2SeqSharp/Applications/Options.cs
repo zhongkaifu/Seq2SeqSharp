@@ -54,9 +54,6 @@ namespace Seq2SeqSharp.Applications
         [Arg("The input file for test.", "InputTestFile")]
         public string InputTestFile = null;
 
-        [Arg("Starting Learning rate", "StartLearningRate")]
-        public float StartLearningRate = 0.0006f;
-
         [Arg("Maxmium epoch number during training. Default is 100", "MaxEpochNum")]
         public int MaxEpochNum = 100;
 
@@ -81,8 +78,14 @@ namespace Seq2SeqSharp.Applications
         [Arg("Processor type: GPU, CPU", "ProcessorType")]
         public string ProcessorType = "GPU";
 
+        [Arg("Source language name.", "SrcLang")]
+        public string SrcLang;
+
         [Arg("The vocabulary file path for source side.", "SrcVocab")]
         public string SrcVocab = null;
+
+        [Arg("Starting Learning rate", "StartLearningRate")]
+        public float StartLearningRate = 0.0006f;
 
         [Arg("The shuffle block size", "ShuffleBlockSize")]
         public int ShuffleBlockSize = -1;
@@ -92,6 +95,9 @@ namespace Seq2SeqSharp.Applications
 
         [Arg("Task to execute. It could be Train, Valid, Test, DumpVocab or Help", "Task")]
         public string Task = "Help";
+
+        [Arg("Target language name.", "TgtLang")]
+        public string TgtLang;
 
         [Arg("The vocabulary file path for target side.", "TgtVocab")]
         public string TgtVocab = null;

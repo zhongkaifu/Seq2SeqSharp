@@ -58,8 +58,8 @@ namespace Seq2SeqSharp.Corpus
 
     public class SntPair
     {
-        public List<List<string>> SrcTokenGroups;
-        public List<List<string>> TgtTokenGroups;
+        public List<List<string>> SrcTokenGroups; //shape: (group_size, sequence_length)
+        public List<List<string>> TgtTokenGroups; //shape: (group_size, sequence_length)
 
         public SntPair(string srcLine, string tgtLine)
         {
@@ -75,9 +75,36 @@ namespace Seq2SeqSharp.Corpus
             string[] groups = line.Split('\t');
             foreach (var group in groups)
             {
-                sntGroup.Add(group.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList());
+                sntGroup.Add(group.Split(' ').ToList());
             }
         }
+
+        public string PrintSrcTokens()
+        {
+            List<string> rst = new List<string>();
+            int gIdx = 0;
+            foreach (var g in SrcTokenGroups)
+            {
+                rst.Add($"GroupId '{gIdx}': " + String.Join(" ", g));
+                gIdx++;
+            }
+
+            return String.Join("\n", rst);
+        }
+
+        public string PrintTgtTokens()
+        {
+            List<string> rst = new List<string>();
+            int gIdx = 0;
+            foreach (var g in TgtTokenGroups)
+            {
+                rst.Add($"GroupId '{gIdx}': " + String.Join(" ", g));
+                gIdx++;
+            }
+
+            return String.Join("\n", rst);
+        }
+
     }
 
 
@@ -95,6 +122,9 @@ namespace Seq2SeqSharp.Corpus
         List<List<string>> GetSrcTokens(int group);
         List<List<string>> GetTgtTokens(int group);
 
+        int GetSrcGroupSize();
+        int GetTgtGroupSize();
+
     }
 
     public class Seq2SeqCorpusBatch : CorpusBatch
@@ -104,29 +134,32 @@ namespace Seq2SeqSharp.Corpus
         {
             base.CreateBatch(sntPairs);
 
-            TryAddPrefix(SrcTknsGroup[0], BuildInTokens.BOS);
-            TryAddSuffix(SrcTknsGroup[0], BuildInTokens.EOS);
-            TryAddPrefix(TgtTknsGroup[0], BuildInTokens.BOS);
-            TryAddSuffix(TgtTknsGroup[0], BuildInTokens.EOS);
+            TryAddPrefix(SrcTknsGroups[0], BuildInTokens.BOS);
+            TryAddSuffix(SrcTknsGroups[0], BuildInTokens.EOS);
+            TryAddPrefix(TgtTknsGroups[0], BuildInTokens.BOS);
+            TryAddSuffix(TgtTknsGroups[0], BuildInTokens.EOS);
         }
 
 
-        public void CreateBatch(List<List<string>> srcTokens)
+        public void CreateBatch(List<List<List<string>>> srcTokensGroups)
         {
 
-            SrcTknsGroup = new List<List<List<string>>>();
-            SrcTknsGroup.Add(srcTokens);
+            SrcTknsGroups = srcTokensGroups;
 
-            TgtTknsGroup = new List<List<List<string>>>();
-            TgtTknsGroup.Add(InitializeHypTokens(BuildInTokens.BOS));
+            TryAddPrefix(SrcTknsGroups[0], BuildInTokens.BOS);
+            TryAddSuffix(SrcTknsGroups[0], BuildInTokens.EOS);
+
+
+            TgtTknsGroups = new List<List<List<string>>>();
+            TgtTknsGroups.Add(InitializeHypTokens(BuildInTokens.BOS));
         }
 
         public override ISntPairBatch CloneSrcTokens()
         {
             Seq2SeqCorpusBatch spb = new Seq2SeqCorpusBatch();
-            spb.SrcTknsGroup = SrcTknsGroup;
-            spb.TgtTknsGroup = new List<List<List<string>>>();
-            spb.TgtTknsGroup.Add(InitializeHypTokens(BuildInTokens.BOS));
+            spb.SrcTknsGroups = SrcTknsGroups;
+            spb.TgtTknsGroups = new List<List<List<string>>>();
+            spb.TgtTknsGroups.Add(InitializeHypTokens(BuildInTokens.BOS));
 
             return spb;
         }

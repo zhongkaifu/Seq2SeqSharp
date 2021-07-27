@@ -8,14 +8,14 @@ namespace Seq2SeqSharp
 {
 
     [Serializable]
-    public class Encoder
+    public class LSTMEncoder
     {
         public List<LSTMCell> encoders = new List<LSTMCell>();
         public int hdim { get; set; }
         public int dim { get; set; }
         public int depth { get; set; }
 
-        public Encoder(string name, int hdim, int dim, int depth, int deviceId, bool isTrainable)
+        public LSTMEncoder(string name, int hdim, int dim, int depth, int deviceId, bool isTrainable)
         {
             encoders.Add(new LSTMCell($"{name}.LSTM_0", hdim, dim, deviceId, isTrainable));
 

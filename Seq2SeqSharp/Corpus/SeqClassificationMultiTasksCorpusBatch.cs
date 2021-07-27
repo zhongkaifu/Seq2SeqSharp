@@ -14,25 +14,24 @@ namespace Seq2SeqSharp.Corpus
         {
             base.CreateBatch(sntPairs);
 
-            TryAddPrefix(SrcTknsGroup[0], BuildInTokens.CLS);
+            TryAddPrefix(SrcTknsGroups[0], BuildInTokens.CLS);
         }
 
 
-        public void CreateBatch(List<List<string>> srcTokens)
+        public void CreateBatch(List<List<List<string>>> srcTokensGroups)
         {
-            SrcTknsGroup = new List<List<List<string>>>();
-            SrcTknsGroup.Add(srcTokens);
-            TgtTknsGroup = null;
+            SrcTknsGroups = srcTokensGroups;
+            TgtTknsGroups = null;
 
 
-            TryAddPrefix(SrcTknsGroup[0], BuildInTokens.CLS);
+            TryAddPrefix(SrcTknsGroups[0], BuildInTokens.CLS);
         }
 
         public override ISntPairBatch CloneSrcTokens()
         {
             SeqClassificationMultiTasksCorpusBatch spb = new SeqClassificationMultiTasksCorpusBatch();
-            spb.SrcTknsGroup = SrcTknsGroup;
-            spb.TgtTknsGroup = null;
+            spb.SrcTknsGroups = SrcTknsGroups;
+            spb.TgtTknsGroups = null;
 
             return spb;
         }

@@ -446,13 +446,6 @@ namespace Seq2SeqSharp.Tools
             File.Delete(tgtShuffledFilePath);
         }
 
-
-
-
-
-
-
-
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();

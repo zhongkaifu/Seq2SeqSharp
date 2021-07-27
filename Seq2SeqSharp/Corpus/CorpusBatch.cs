@@ -11,13 +11,13 @@ namespace Seq2SeqSharp.Corpus
 {
     public class CorpusBatch : ISntPairBatch
     {
-        public List<List<List<string>>> SrcTknsGroup = null; // shape (group_size, batch_size, seq_size)
-        public List<List<List<string>>> TgtTknsGroup = null;
+        public List<List<List<string>>> SrcTknsGroups = null; // shape (group_size, batch_size, seq_size)
+        public List<List<List<string>>> TgtTknsGroups = null;
 
 
         public List<SntPair> SntPairs;
 
-        public int BatchSize => SntPairs.Count;
+        public int BatchSize => SrcTknsGroups[0].Count;
 
         public int SrcTokenCount { get; set; }
         public int TgtTokenCount { get; set; }
@@ -73,37 +73,46 @@ namespace Seq2SeqSharp.Corpus
 
             SntPairs = sntPairs;
 
-            SrcTknsGroup = new List<List<List<string>>>();
-            TgtTknsGroup = new List<List<List<string>>>();
+            SrcTknsGroups = new List<List<List<string>>>();
+            TgtTknsGroups = new List<List<List<string>>>();
 
 
             for (int i = 0; i < sntPairs[0].SrcTokenGroups.Count; i++)
             {
-                SrcTknsGroup.Add(new List<List<string>>());
+                SrcTknsGroups.Add(new List<List<string>>());
             }
 
-            int srcTknsGroupNum = SrcTknsGroup.Count;
+            int srcTknsGroupNum = SrcTknsGroups.Count;
 
             for (int i = 0; i < sntPairs[0].TgtTokenGroups.Count; i++)
             {
-                TgtTknsGroup.Add(new List<List<string>>());
+                TgtTknsGroups.Add(new List<List<string>>());
             }
 
-            int tgtTknsGroupNum = TgtTknsGroup.Count;
+            int tgtTknsGroupNum = TgtTknsGroups.Count;
 
             for (int i = 0; i < sntPairs.Count; i++)
             {
+                if (sntPairs[i].SrcTokenGroups.Count != srcTknsGroupNum)
+                {
+                    throw new DataMisalignedException($"Source data '{i}' group size is mismatch. It's {sntPairs[i].SrcTokenGroups.Count}, but it should be {srcTknsGroupNum}. Tokens: {sntPairs[i].PrintSrcTokens()}");
+                }
+
                 for (int j = 0; j < srcTknsGroupNum; j++)
                 {
-                    SrcTknsGroup[j].Add(sntPairs[i].SrcTokenGroups[j]);
+                    SrcTknsGroups[j].Add(sntPairs[i].SrcTokenGroups[j]);
                     SrcTokenCount += sntPairs[i].SrcTokenGroups[j].Count;
 
                 }
 
+                if (sntPairs[i].TgtTokenGroups.Count != tgtTknsGroupNum)
+                {
+                    throw new DataMisalignedException($"Target data '{i}' group size is mismatch. It's {sntPairs[i].TgtTokenGroups.Count}, but it should be {tgtTknsGroupNum}. Tokens: {sntPairs[i].PrintTgtTokens()}");
+                }
 
                 for (int j = 0; j < tgtTknsGroupNum; j++)
                 {
-                    TgtTknsGroup[j].Add(sntPairs[i].TgtTokenGroups[j]);
+                    TgtTknsGroups[j].Add(sntPairs[i].TgtTokenGroups[j]);
                     TgtTokenCount += sntPairs[i].TgtTokenGroups[j].Count;
                 }
             }
@@ -113,38 +122,44 @@ namespace Seq2SeqSharp.Corpus
         {
             CorpusBatch cb = new CorpusBatch();
 
-            cb.SrcTknsGroup = new List<List<List<string>>>();
-            for (int i = 0; i < SrcTknsGroup.Count; i++)
+
+            cb.SrcTknsGroups = new List<List<List<string>>>();
+            for (int i = 0; i < SrcTknsGroups.Count; i++)
             {
-                cb.SrcTknsGroup.Add(new List<List<string>>());
-                cb.SrcTknsGroup[i].AddRange(SrcTknsGroup[i].GetRange(idx, count));
+                cb.SrcTknsGroups.Add(new List<List<string>>());
+                cb.SrcTknsGroups[i].AddRange(SrcTknsGroups[i].GetRange(idx, count));
             }
 
-            if (TgtTknsGroup != null)
+            if (TgtTknsGroups != null)
             {
-                cb.TgtTknsGroup = new List<List<List<string>>>();
-                for (int i = 0; i < TgtTknsGroup.Count; i++)
+                cb.TgtTknsGroups = new List<List<List<string>>>();
+                for (int i = 0; i < TgtTknsGroups.Count; i++)
                 {
-                    cb.TgtTknsGroup.Add(new List<List<string>>());
-                    cb.TgtTknsGroup[i].AddRange(TgtTknsGroup[i].GetRange(idx, count));
+                    cb.TgtTknsGroups.Add(new List<List<string>>());
+
+                    if (TgtTknsGroups[i].Count > 0)
+                    {
+                        cb.TgtTknsGroups[i].AddRange(TgtTknsGroups[i].GetRange(idx, count));
+                    }
                 }
             }
             else
             {
-                cb.TgtTknsGroup = null;
+                cb.TgtTknsGroups = TgtTknsGroups;
             }
+
 
             return cb;
         }
 
         public List<List<string>> GetSrcTokens(int group)
         {
-            return SrcTknsGroup[group];
+            return SrcTknsGroups[group];
         }
 
         public List<List<string>> GetTgtTokens(int group)
         {
-            return TgtTknsGroup[group];
+            return TgtTknsGroups[group];
         }
 
         public List<List<string>> InitializeHypTokens(string prefix)
@@ -380,5 +395,14 @@ namespace Seq2SeqSharp.Corpus
             return (srcVocabs, tgtVocabs);
         }
 
+        public int GetSrcGroupSize()
+        {
+            return SrcTknsGroups.Count;
+        }
+
+        public int GetTgtGroupSize()
+        {
+            return TgtTknsGroups.Count;
+        }
     }
 }

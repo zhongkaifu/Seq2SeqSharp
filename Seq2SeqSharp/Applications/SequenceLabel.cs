@@ -103,8 +103,11 @@ namespace Seq2SeqSharp
 
         public NetworkResult Test(List<List<string>> inputTokens)
         {
+            List<List<List<string>>> inputTokensGroups = new List<List<List<string>>>();
+            inputTokensGroups.Add(inputTokens);
+
             Seq2SeqCorpusBatch spb = new Seq2SeqCorpusBatch();
-            spb.CreateBatch(inputTokens);
+            spb.CreateBatch(inputTokensGroups);
 
             List<NetworkResult> rst = RunTest(spb, 1, RunForwardOnSingleDevice);
 

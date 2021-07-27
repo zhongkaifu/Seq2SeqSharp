@@ -57,13 +57,8 @@ namespace Seq2SeqSharp
         [Arg("The embedding dim in source side", "SrcEmbeddingDim")]
         public int SrcEmbeddingDim = 128;
 
-        [Arg("Source language name.", "SrcLang")]
-        public string SrcLang;
-
         [Arg("The embedding dim in target side", "TgtEmbeddingDim")]
         public int TgtEmbeddingDim = 128;
 
-        [Arg("Target language name.", "TgtLang")]
-        public string TgtLang;
     }
 }

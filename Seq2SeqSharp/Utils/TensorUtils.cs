@@ -29,6 +29,16 @@ namespace Seq2SeqSharp.Utils
             Ops.ScatterFill(r.TWeight, val, dim, i.TWeight);
         }
 
+        /// <summary>
+        /// Create input embedding from token embeddings, segment embeddings
+        /// </summary>
+        /// <param name="seqs"></param>
+        /// <param name="g"></param>
+        /// <param name="embeddingsTensor"></param>
+        /// <param name="seqOriginalLengths"></param>
+        /// <param name="segmentEmbedding"></param>
+        /// <param name="vocab"></param>
+        /// <returns>The embedding tensor. shape: (batchsize * seqLen, embedding_dim) </returns>
         public static IWeightTensor ExtractTokensEmbeddings(List<List<int>> seqs, IComputeGraph g, IWeightTensor embeddingsTensor, List<int> seqOriginalLengths, IWeightTensor segmentEmbedding, Vocab vocab)
         {
             int batchSize = seqs.Count;

@@ -76,6 +76,34 @@ namespace Seq2SeqSharp.Utils
                 }
             }
         }
+
+        public void MergeVocab(Vocab srcVocab)
+        {
+            int maxId = 0;
+
+            foreach (var pair in WordToIndex)
+            {
+                if (pair.Value > maxId)
+                {
+                    maxId = pair.Value;
+                }
+
+            }
+
+            maxId++;
+            foreach (var pair in srcVocab.WordToIndex)
+            {
+                if (WordToIndex.ContainsKey(pair.Key) == false)
+                {
+                    WordToIndex.Add(pair.Key, maxId);
+                    IndexToWord.Add(maxId, pair.Key);
+                    Items.Add(pair.Key);
+                    maxId++;
+                }
+            }
+
+        }
+
  
         public void DumpVocab(string fileName)
         {

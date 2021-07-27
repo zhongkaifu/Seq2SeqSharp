@@ -36,9 +36,17 @@ namespace Seq2SeqSharp.Corpus
                 sharedSrcTgtVocabGroupMapping.Add(0, 0);
             }
 
-            (var srcVocabs, var tgtVocabs) = CorpusBatch.BuildVocabs(sntPairs, vocabSize, sharedSrcTgtVocabGroupMapping);
+            (var srcVocabs, var tgtVocabs) = CorpusBatch.BuildVocabs(sntPairs, vocabSize, sharedSrcTgtVocabGroupMapping);           
+
 
             Vocab srcVocab = srcVocabs[0];
+            for (int i = 1; i < srcVocabs.Count; i++)
+            {
+                Logger.WriteLine($"Merge source vocabualry from group '{i}' to group '0'");
+                srcVocab.MergeVocab(srcVocabs[i]);
+            }
+
+
             Vocab tgtVocab = tgtVocabs[0];
 
 

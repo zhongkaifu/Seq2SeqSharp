@@ -1,4 +1,5 @@
-﻿using Seq2SeqSharp.Tools;
+﻿using AdvUtils;
+using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,6 +8,11 @@ using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.Corpus
 {
+    /// <summary>
+    /// Data Format
+    /// Source side: [Text Sequence] \t [Contextual Feature1] \t [Contextual Feature2] \t ... \t [Contextual FeatureN]
+    /// Target side: [Category Tag] \t [Model Generated Text]
+    /// </summary>
     public class Seq2SeqClassificationCorpusBatch : CorpusBatch
     {
 
@@ -14,34 +20,39 @@ namespace Seq2SeqSharp.Corpus
         {
             base.CreateBatch(sntPairs);
 
-            TryAddPrefix(SrcTknsGroup[0], BuildInTokens.CLS);
+            TryAddPrefix(SrcTknsGroups[0], BuildInTokens.CLS);
 
-            TryAddPrefix(TgtTknsGroup[1], BuildInTokens.BOS);
-            TryAddSuffix(TgtTknsGroup[1], BuildInTokens.EOS);
+
+            if (TgtTknsGroups.Count != 2)
+            {
+                throw new DataMisalignedException($"The group size in target sentence is '{TgtTknsGroups.Count}', but it should be 2.");
+            }
+
+            TryAddPrefix(TgtTknsGroups[1], BuildInTokens.BOS);
+            TryAddSuffix(TgtTknsGroups[1], BuildInTokens.EOS);
         }
 
 
-        public void CreateBatch(List<List<string>> srcTokens)
+        public void CreateBatch(List<List<List<string>>> srcTokensGroups)
         {
-            SrcTknsGroup = new List<List<List<string>>>();
-            SrcTknsGroup.Add(srcTokens);
+            SrcTknsGroups = srcTokensGroups;
 
-            TgtTknsGroup = new List<List<List<string>>>();
-            TgtTknsGroup.Add(new List<List<string>>());
-            TgtTknsGroup.Add(InitializeHypTokens(BuildInTokens.BOS));
+            TgtTknsGroups = new List<List<List<string>>>();
+            TgtTknsGroups.Add(new List<List<string>>());
+            TgtTknsGroups.Add(InitializeHypTokens(BuildInTokens.BOS));
 
 
-            TryAddPrefix(SrcTknsGroup[0], BuildInTokens.CLS);
+            TryAddPrefix(SrcTknsGroups[0], BuildInTokens.CLS);
         }
 
 
         public override ISntPairBatch CloneSrcTokens()
         {
             Seq2SeqClassificationCorpusBatch spb = new Seq2SeqClassificationCorpusBatch();
-            spb.SrcTknsGroup = SrcTknsGroup;
-            spb.TgtTknsGroup = new List<List<List<string>>>();
-            spb.TgtTknsGroup.Add(new List<List<string>>());
-            spb.TgtTknsGroup.Add(InitializeHypTokens(BuildInTokens.BOS));
+            spb.SrcTknsGroups = SrcTknsGroups;
+            spb.TgtTknsGroups = new List<List<List<string>>>();
+            spb.TgtTknsGroups.Add(new List<List<string>>());
+            spb.TgtTknsGroups.Add(InitializeHypTokens(BuildInTokens.BOS));
 
             return spb;
         }

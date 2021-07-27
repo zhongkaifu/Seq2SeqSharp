@@ -80,7 +80,7 @@ namespace Seq2SeqSharp.Applications
             RunValid(validCorpus, RunForwardOnSingleDevice, taskId2metrics, true);
         }
 
-        public List<NetworkResult> Test(List<List<string>> inputTokens, int beamSearchSize)
+        public List<NetworkResult> Test(List<List<List<string>>> inputTokens, int beamSearchSize)
         {
             SeqClassificationMultiTasksCorpusBatch spb = new SeqClassificationMultiTasksCorpusBatch();
             spb.CreateBatch(inputTokens);
@@ -195,30 +195,16 @@ namespace Seq2SeqSharp.Applications
         {
             List<NetworkResult> nrs = new List<NetworkResult>();
 
-            var srcSnts = sntPairBatch.GetSrcTokens(0);
-
-
             (IEncoder encoder, IWeightTensor srcEmbedding, List<IFeedForwardLayer> encoderFFLayer, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding) = GetNetworksOnDeviceAt(deviceIdIdx);
 
-            // Reset networks
-            encoder.Reset(computeGraph.GetWeightFactory(), srcSnts.Count);
-
+            var srcSnts = sntPairBatch.GetSrcTokens(0);
             List<int> originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
+          
+            IWeightTensor encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcSnts, originalSrcLengths);
+
             int srcSeqPaddedLen = srcSnts[0].Count;
             int batchSize = srcSnts.Count;
-            IWeightTensor srcSelfMask = m_shuffleType == ShuffleEnums.NoPaddingInSrc ? null : computeGraph.BuildPadSelfMask(srcSeqPaddedLen, originalSrcLengths); // The length of source sentences are same in a single mini-batch, so we don't have source mask.
-
-            // Encoding input source sentences
-            var srcTokensList = m_modelMetaData.SrcVocab.GetWordIndex(srcSnts);
-            IWeightTensor encOutput = Encode(computeGraph, srcTokensList, encoder, srcEmbedding, srcSelfMask, posEmbedding, originalSrcLengths, segmentEmbedding);
-
-            if (srcSelfMask != null)
-            {
-                srcSelfMask.Dispose();
-            }
-
             float[] clsIdxs = new float[batchSize];
-
             for (int i = 0; i < batchSize; i++)
             {
                 for (int j = 0; j < srcSnts[i].Count; j++)

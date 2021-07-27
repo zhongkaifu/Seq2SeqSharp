@@ -84,10 +84,10 @@ namespace SeqClassificationConsole
                 if (mode == ModeEnums.Train)
                 {
                     // Load train corpus
-                    SeqClassificationMultiTasksCorpus trainCorpus = new SeqClassificationMultiTasksCorpus(corpusFilePath: opts.TrainCorpusPath, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
+                    SeqClassificationMultiTasksCorpus trainCorpus = new SeqClassificationMultiTasksCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang,  batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
                         maxSentLength: opts.MaxTrainSentLength, shuffleEnums: shuffleType);
                     // Load valid corpus
-                    SeqClassificationMultiTasksCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new SeqClassificationMultiTasksCorpus(opts.ValidCorpusPath, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSentLength, shuffleEnums: shuffleType);
+                    SeqClassificationMultiTasksCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new SeqClassificationMultiTasksCorpus(opts.ValidCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSentLength, shuffleEnums: shuffleType);
 
                     // Create learning rate
                     ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);
@@ -197,18 +197,13 @@ namespace SeqClassificationConsole
 
                     //Test trained model
                     ss = new SeqClassification(opts);
-                    List<List<string>> inputBatchs = new List<List<string>>();
+                    List<List<List<string>>> inputBatchs = new List<List<List<string>>>();
                     Stopwatch stopwatch = Stopwatch.StartNew();
                     foreach (string line in File.ReadLines(opts.InputTestFile))
                     {
-                        List<string> tokens = line.Trim().Split(' ').ToList();
-                        if (tokens.Count > opts.MaxTestSentLength - 2)
-                        {
-                            tokens = tokens.GetRange(0, opts.MaxTestSentLength - 2);
-                        }
-                        inputBatchs.Add(tokens);
+                        Misc.AppendNewBatch(inputBatchs, line, opts.MaxTestSentLength);
 
-                        if (inputBatchs.Count >= opts.BatchSize * ss.DeviceIds.Length)
+                        if (inputBatchs[0].Count >= opts.BatchSize * ss.DeviceIds.Length)
                         {
                             var outputLines = RunBatchTest(opts, ss, inputBatchs);
                             File.AppendAllLines(opts.OutputFile, outputLines);
@@ -216,7 +211,7 @@ namespace SeqClassificationConsole
                         }
                     }
 
-                    if (inputBatchs.Count > 0)
+                    if (inputBatchs.Count > 0 && inputBatchs[0].Count > 0)
                     {
                         var outputLines = RunBatchTest(opts, ss, inputBatchs);
                         File.AppendAllLines(opts.OutputFile, outputLines);
@@ -232,6 +227,7 @@ namespace SeqClassificationConsole
                 //}
                 else
                 {
+                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Task '{opts.Task}' is not supported.");
                     argParser.Usage();
                 }
             }
@@ -242,10 +238,10 @@ namespace SeqClassificationConsole
             }
         }
 
-        private static List<string> RunBatchTest(SeqClassificationOptions opts, SeqClassification ss, List<List<string>> inputBatchs)
+        private static List<string> RunBatchTest(SeqClassificationOptions opts, SeqClassification ss, List<List<List<string>>> inputBatchs)
         {
             List<string> outputLines = new List<string>();
-            for (int i = 0; i < inputBatchs.Count; i++)
+            for (int i = 0; i < inputBatchs[0].Count; i++)
             {
                 outputLines.Add("");
             }
@@ -254,13 +250,13 @@ namespace SeqClassificationConsole
 
             foreach (var nr in nrs)
             {
-                for (int batchIdx = 0; batchIdx < inputBatchs.Count; batchIdx++)
+                for (int batchIdx = 0; batchIdx < inputBatchs[0].Count; batchIdx++)
                 {
                     outputLines[batchIdx] += ("\t" + String.Join(" ", nr.Output[0][batchIdx])); 
                 }
             }
 
-            for (int i = 0; i < inputBatchs.Count; i++)
+            for (int i = 0; i < inputBatchs[0].Count; i++)
             {
                 outputLines[i] = outputLines[i].Trim();
             }

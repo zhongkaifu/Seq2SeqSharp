@@ -47,6 +47,12 @@ namespace Seq2SeqSharp.Corpus
             (var srcVocabs, var tgtVocabs) = CorpusBatch.BuildVocabs(sntPairs, vocabSize, sharedSrcTgtVocabGroupMapping);
 
             Vocab srcVocab = srcVocabs[0];
+            for (int i = 1; i < srcVocabs.Count; i++)
+            {
+                Logger.WriteLine($"Merge source vocabualry from group '{i}' to group '0'");
+                srcVocab.MergeVocab(srcVocabs[i]);
+            }
+
             Vocab clsVocab = tgtVocabs[0];
             Vocab tgtVocab = tgtVocabs[1];
 

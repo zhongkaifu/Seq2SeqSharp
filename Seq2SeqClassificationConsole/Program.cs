@@ -237,18 +237,13 @@ namespace Seq2SeqClassificationConsole
 
                     //Test trained model
                     ss = new Seq2SeqClassification(opts);
-                    List<List<string>> inputBatchs = new List<List<string>>();
+                    List<List<List<string>>> inputBatchs = new List<List<List<string>>>();
                     Stopwatch stopwatch = Stopwatch.StartNew();
                     foreach (string line in File.ReadLines(opts.InputTestFile))
                     {
-                        List<string> tokens = line.Trim().Split(' ').ToList();
-                        if (tokens.Count > opts.MaxTestSrcSentLength - 2)
-                        {
-                            tokens = tokens.GetRange(0, opts.MaxTestSrcSentLength - 2);
-                        }
-                        inputBatchs.Add(tokens);
+                        Misc.AppendNewBatch(inputBatchs, line, opts.MaxTestSrcSentLength);
 
-                        if (inputBatchs.Count >= opts.BatchSize * ss.DeviceIds.Length)
+                        if (inputBatchs[0].Count >= opts.BatchSize * ss.DeviceIds.Length)
                         {
                             (var outputLines, var alignments) = RunBatchTest(opts, ss, inputBatchs);
                             File.AppendAllLines(opts.OutputFile, outputLines);
@@ -261,7 +256,7 @@ namespace Seq2SeqClassificationConsole
                         }
                     }
 
-                    if (inputBatchs.Count > 0)
+                    if (inputBatchs.Count > 0 && inputBatchs[0].Count > 0)
                     {
                         (var outputLines, var alignments) = RunBatchTest(opts, ss, inputBatchs);
                         File.AppendAllLines(opts.OutputFile, outputLines);
@@ -281,6 +276,7 @@ namespace Seq2SeqClassificationConsole
                 }
                 else
                 {
+                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Task '{opts.Task}' is not supported.");
                     argParser.Usage();
                 }
             }
@@ -291,17 +287,17 @@ namespace Seq2SeqClassificationConsole
             }
         }
 
-        private static (List<string>, List<string>) RunBatchTest(Seq2SeqClassificationOptions opts, Seq2SeqClassification ss, List<List<string>> inputBatchs)
+        private static (List<string>, List<string>) RunBatchTest(Seq2SeqClassificationOptions opts, Seq2SeqClassification ss, List<List<List<string>>> inputBatchs)
         {
             List<string> outputLines = new List<string>();
             List<string> alignments = new List<string>();
 
             List<NetworkResult> nrs = ss.Test(inputBatchs, opts.BeamSearchSize); // shape [beam size, batch size, tgt token size]
 
-            for (int batchIdx = 0; batchIdx < inputBatchs.Count; batchIdx++)
+            for (int batchIdx = 0; batchIdx < inputBatchs[0].Count; batchIdx++)
             {
-                string clsTag = nrs[1].Output[0][batchIdx][0];
-                NetworkResult tgtNR = nrs[0];
+                string clsTag = nrs[0].Output[0][batchIdx][0];
+                NetworkResult tgtNR = nrs[1];
 
                 for (int beamIdx = 0; beamIdx < tgtNR.Output.Count; beamIdx++)
                 {
