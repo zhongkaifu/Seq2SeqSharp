@@ -30,15 +30,10 @@ namespace Seq2SeqSharp.Corpus
                 CorpusBatch.CountSntPairTokens(sntPairBatch.SntPairs);
             }
 
-            (var srcVocabs, var tgtVocabs) = CorpusBatch.GenerateVocabs(vocabSize);
-            Vocab srcVocab = srcVocabs[0];
-            for (int i = 1; i < srcVocabs.Count; i++)
-            {
-                Logger.WriteLine($"Merge source vocabualry from group '{i}' to group '0'");
-                srcVocab.MergeVocab(srcVocabs[i]);
-            }
+            CorpusBatch.ReduceSrcTokensToSingleGroup();
 
-            return (srcVocab, tgtVocabs);
+            (var srcVocabs, var tgtVocabs) = CorpusBatch.GenerateVocabs(vocabSize);
+            return (srcVocabs[0], tgtVocabs);
         }
     }
 }

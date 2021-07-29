@@ -87,13 +87,10 @@ namespace Seq2SeqSharp.Tools
             {
                 CorpusBatch.CountSntPairTokens(sntPairBatch.SntPairs);
             }
-            (var srcVocabs, var tgtVocabs) = CorpusBatch.GenerateVocabs(vocabSize);
+            CorpusBatch.ReduceSrcTokensToSingleGroup();
 
-            Vocab srcVocab = srcVocabs[0];
-            Vocab tgtVocab = tgtVocabs[0];
-
-
-            return (srcVocab, tgtVocab);
+            (List<Vocab> srcVocabs, List<Vocab> tgtVocabs) = CorpusBatch.GenerateVocabs(vocabSize);
+            return (srcVocabs[0], tgtVocabs[0]);
         }
     }
 }

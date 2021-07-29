@@ -186,26 +186,60 @@ namespace Seq2SeqSharp.Corpus
         static readonly List<Dictionary<string, int>> s_ds = new List<Dictionary<string, int>>();
         static readonly List<Dictionary<string, int>> t_ds = new List<Dictionary<string, int>>();
 
+
+
+        static public void MergeTokensCountSrcTgt(int srcGroupIdx, int tgtGroupIdx)
+        {
+            Logger.WriteLine($"Merge tokens from source group '{srcGroupIdx}' to target group '{tgtGroupIdx}'");
+            foreach (var pair in t_ds[tgtGroupIdx])
+            {
+                if (s_ds[srcGroupIdx].ContainsKey(pair.Key))
+                {
+                    s_ds[srcGroupIdx][pair.Key] += pair.Value;
+                }
+                else
+                {
+                    s_ds[srcGroupIdx].Add(pair.Key, pair.Value);
+                }
+            }
+
+            t_ds[tgtGroupIdx] = s_ds[srcGroupIdx];
+
+        }
+
+        static public void ReduceSrcTokensToSingleGroup()
+        {
+            Logger.WriteLine($"Reduce source vocabs group from '{s_ds.Count}' to 1");
+            Dictionary<string, int> rst = new Dictionary<string, int>();
+
+            foreach (var dict in s_ds)
+            {
+                foreach (var pair in dict)
+                {
+                    if (rst.ContainsKey(pair.Key))
+                    {
+                        rst[pair.Key] += pair.Value;
+                    }
+                    else
+                    {
+                        rst.Add(pair.Key, pair.Value);
+                    }
+
+                }
+            }
+
+            s_ds.Clear();
+            s_ds.Add(rst);
+        }
+
+
         /// <summary>
         /// Build vocabulary from training corpus
         /// </summary>
         /// <param name="vocabSize"></param>
-        /// <param name="sharedSrcTgtVocabGroupMapping">The mappings for shared vocabularies between source side and target side. The values in the mappings are group ids. For example: sharedSrcTgtVocabGroupMapping[0] = 1 means the first group in source
         /// side and the second group in target side are shared vocabulary</param>
-        static public void CountSntPairTokens(List<SntPair> sntPairs, Dictionary<int, int> sharedSrcTgtVocabGroupMapping = null)
+        static public void CountSntPairTokens(List<SntPair> sntPairs)
         {
-            Dictionary<int, int> sharedTgtSrcVocabGroupMapping = null;
-            if (sharedSrcTgtVocabGroupMapping != null)
-            {
-                sharedTgtSrcVocabGroupMapping = new Dictionary<int, int>();
-                foreach (var pair in sharedSrcTgtVocabGroupMapping)
-                {
-                    sharedTgtSrcVocabGroupMapping.Add(pair.Value, pair.Key);
-                }
-            }
-
-
-
             foreach (SntPair sntPair in sntPairs)
             {
                 if (s_ds.Count == 0)
@@ -239,21 +273,6 @@ namespace Seq2SeqSharp.Corpus
                         {
                             s_ds[g].Add(token, 1);
                         }
-
-                        if (sharedSrcTgtVocabGroupMapping != null && sharedSrcTgtVocabGroupMapping.ContainsKey(g))
-                        {
-                            var mappedTgtGroup = sharedSrcTgtVocabGroupMapping[g];
-
-                            if (t_ds[mappedTgtGroup].ContainsKey(token) == true)
-                            {
-                                t_ds[mappedTgtGroup][token]++;
-                            }
-                            else
-                            {
-                                t_ds[mappedTgtGroup].Add(token, 1);
-                            }
-
-                        }
                     }
 
                 }
@@ -272,20 +291,6 @@ namespace Seq2SeqSharp.Corpus
                         else
                         {
                             t_ds[g].Add(token, 1);
-                        }
-
-                        if (sharedTgtSrcVocabGroupMapping != null && sharedTgtSrcVocabGroupMapping.ContainsKey(g))
-                        {
-                            var mappedSrcGroup = sharedTgtSrcVocabGroupMapping[g];
-                            if (s_ds[mappedSrcGroup].ContainsKey(token) == true)
-                            {
-                                s_ds[mappedSrcGroup][token]++;
-                            }
-                            else
-                            {
-                                s_ds[mappedSrcGroup].Add(token, 1);
-                            }
-
                         }
                     }
 

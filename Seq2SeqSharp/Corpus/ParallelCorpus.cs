@@ -23,7 +23,7 @@ namespace Seq2SeqSharp.Tools
 
         public static bool IsPreDefinedToken(string str)
         {
-            return str == EOS || str == BOS || str == UNK;
+            return str == EOS || str == BOS || str == UNK || str == CLS;
         }
 
         /// <summary>
@@ -448,12 +448,6 @@ namespace Seq2SeqSharp.Tools
         {
             return GetEnumerator();
         }
-
-
-    
-
-
-
 
         public ParallelCorpus()
         {

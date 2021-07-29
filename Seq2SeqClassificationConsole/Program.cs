@@ -119,7 +119,7 @@ namespace Seq2SeqClassificationConsole
                         //Incremental training
                         Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
                         ss = new Seq2SeqClassification(opts);
-                        task0Metrics.Add(new MultiLabelsFscoreMetric("", ss.ClsVocab.Items));
+                        task0Metrics.Add(new MultiLabelsFscoreMetric("", ss.ClsVocab.GetAllTokens(keepBuildInTokens: false)));
                     }
                     else
                     {
@@ -167,7 +167,7 @@ namespace Seq2SeqClassificationConsole
 
                         //New training
                         ss = new Seq2SeqClassification(opts, srcVocab, tgtVocab, clsVocab);
-                        task0Metrics.Add(new MultiLabelsFscoreMetric("", clsVocab.Items));
+                        task0Metrics.Add(new MultiLabelsFscoreMetric("", clsVocab.GetAllTokens(keepBuildInTokens: false)));
                     }
 
                     taskId2metrics.Add(0, task0Metrics);
@@ -210,7 +210,7 @@ namespace Seq2SeqClassificationConsole
 
                     List<IMetric> task0Metrics = new List<IMetric>()
                         {
-                            new MultiLabelsFscoreMetric("", ss.ClsVocab.Items)
+                            new MultiLabelsFscoreMetric("", ss.ClsVocab.GetAllTokens(keepBuildInTokens: false))
                         };
                     taskId2metrics.Add(0, task0Metrics);
 

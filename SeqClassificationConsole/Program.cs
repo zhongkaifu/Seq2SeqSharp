@@ -116,7 +116,7 @@ namespace SeqClassificationConsole
                         for (int i = 0; i < ss.ClsVocabs.Count; i++)
                         {
                             taskId2metrics.Add(i, new List<IMetric>());
-                            taskId2metrics[i].Add(new MultiLabelsFscoreMetric("", ss.ClsVocabs[i].Items));
+                            taskId2metrics[i].Add(new MultiLabelsFscoreMetric("", ss.ClsVocabs[i].GetAllTokens(keepBuildInTokens: false)));
                         }
                     }
                     else
@@ -145,7 +145,7 @@ namespace SeqClassificationConsole
                         for (int i = 0; i < tgtVocabs.Count; i++)
                         {
                             taskId2metrics.Add(i, new List<IMetric>());
-                            taskId2metrics[i].Add(new MultiLabelsFscoreMetric("", tgtVocabs[i].Items));
+                            taskId2metrics[i].Add(new MultiLabelsFscoreMetric("", tgtVocabs[i].GetAllTokens(keepBuildInTokens: false)));
                         }
 
                         //New training

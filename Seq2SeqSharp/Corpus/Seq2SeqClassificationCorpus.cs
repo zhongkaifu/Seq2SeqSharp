@@ -31,26 +31,20 @@ namespace Seq2SeqSharp.Corpus
         /// <param name="vocabSize"></param>
         public (Vocab, Vocab, Vocab) BuildVocabs(int vocabSize = 45000, bool sharedVocab = false)
         {
-            Dictionary<int, int> sharedSrcTgtVocabGroupMapping = new Dictionary<int, int>();
-            if (sharedVocab)
-            {
-                sharedSrcTgtVocabGroupMapping.Add(0, 1); //The second column in target side is text the model will generate
-            }
-
             foreach (var sntPairBatch in this)
             {
-                CorpusBatch.CountSntPairTokens(sntPairBatch.SntPairs, sharedSrcTgtVocabGroupMapping);
+                CorpusBatch.CountSntPairTokens(sntPairBatch.SntPairs);
+            }
+
+            CorpusBatch.ReduceSrcTokensToSingleGroup();
+            if (sharedVocab)
+            {
+                CorpusBatch.MergeTokensCountSrcTgt(0, 1);
             }
 
             (var srcVocabs, var tgtVocabs) = CorpusBatch.GenerateVocabs(vocabSize);
 
             Vocab srcVocab = srcVocabs[0];
-            for (int i = 1; i < srcVocabs.Count; i++)
-            {
-                Logger.WriteLine($"Merge source vocabualry from group '{i}' to group '0'");
-                srcVocab.MergeVocab(srcVocabs[i]);
-            }
-
             Vocab clsVocab = tgtVocabs[0];
             Vocab tgtVocab = tgtVocabs[1];
 

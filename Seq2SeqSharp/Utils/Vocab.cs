@@ -30,6 +30,28 @@ namespace Seq2SeqSharp.Utils
             CreateIndex();
         }
 
+
+        public List<string> GetAllTokens(bool keepBuildInTokens = true)
+        {
+            if (keepBuildInTokens)
+            {
+                return Items;
+            }
+            else
+            {
+                List<string> results = new List<string>();
+                foreach (var item in Items)
+                {
+                    if (BuildInTokens.IsPreDefinedToken(item) == false)
+                    {
+                        results.Add(item);
+                    }
+                }
+
+                return results;
+            }
+        }
+
         private void CreateIndex()
         {
             WordToIndex = new Dictionary<string, int>();

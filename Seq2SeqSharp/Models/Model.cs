@@ -122,7 +122,7 @@ namespace Seq2SeqSharp.Models
 
             if (ClsVocabs != null)
             {
-                Logger.WriteLine($"The number of CLS vocabularies: '{ClsVocab.Count}' ");
+                Logger.WriteLine($"The number of CLS vocabularies: '{ClsVocabs.Count}' ");
                 for (int i = 0; i < ClsVocabs.Count; i++)
                 {
                     Logger.WriteLine($"CLS vocabulary {i} size: {ClsVocabs[i].Count}");
