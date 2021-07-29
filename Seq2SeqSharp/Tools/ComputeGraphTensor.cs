@@ -74,11 +74,11 @@ namespace Seq2SeqSharp.Tools
         //private Microsoft.Msagl.Drawing.Subgraph m_subGraph = null;
        // private Dictionary<string, Microsoft.Msagl.Drawing.Subgraph> m_name2SubGraph = null;
 
-        private List<IWeightTensor> m_tensorsBindToCurrentGraph;
+        private readonly List<IWeightTensor> m_tensorsBindToCurrentGraph;
 
         public ComputeGraphTensor(IWeightFactory weightFactory, int deviceId, bool needBack = true, ConcurrentList<Action> backprop = null, bool isSubGraph = false)
         {
-            m_backprop = backprop != null ? backprop : new ConcurrentList<Action>();
+            m_backprop = backprop ?? new ConcurrentList<Action>();
             m_weightTensorFactory = weightFactory as WeightTensorFactory;
             m_needsBackprop = needBack;
             m_deviceId = deviceId;
@@ -158,11 +158,11 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     m.AddSigmoidGradient(res);
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -180,12 +180,12 @@ namespace Seq2SeqSharp.Tools
             Ops.AddTanh(res.TWeight, m1.TWeight, m2.TWeight);
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     m1.AddTanhGradient(res);
                     m2.AddTanhGradient(res);
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -204,14 +204,14 @@ namespace Seq2SeqSharp.Tools
             Ops.AddTanh3(res.TWeight, m1.TWeight, m2.TWeight, m3.TWeight);
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     m1.AddTanhGradient(res);
                     m2.AddTanhGradient(res);
                     m3.AddTanhGradient(res);
 
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -239,7 +239,7 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop && runGradient)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.ReleaseWeight();
 
@@ -254,7 +254,7 @@ namespace Seq2SeqSharp.Tools
                     }
 
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -293,7 +293,7 @@ namespace Seq2SeqSharp.Tools
             Ops.MulMulAdd(res.TWeight, m1.TWeight, m2.TWeight, m3.TWeight, m4.TWeight);
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.ReleaseWeight();
 
@@ -304,7 +304,7 @@ namespace Seq2SeqSharp.Tools
                     m4.AddMulGradient(m3.TWeight, res.TGradient);
 
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
 
                 // These tensors' weights will be used during back-propogation, so we unbind them from the computing graph
@@ -328,7 +328,7 @@ namespace Seq2SeqSharp.Tools
             Ops.Mul(res.TWeight, m1.TWeight, m2.TWeight);
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.ReleaseWeight();
 
@@ -336,7 +336,7 @@ namespace Seq2SeqSharp.Tools
                     m2.AddMulGradient(m1.TWeight, res.TGradient);
 
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
 
                 m1.UnbindFromComputeGraph();
@@ -368,7 +368,7 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.ReleaseWeight();
 
@@ -397,7 +397,7 @@ namespace Seq2SeqSharp.Tools
                     }
 
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -414,19 +414,17 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.ReleaseWeight();
 
                     if (runGradient)
                     {
-                        using (var tmp = res.TGradient.Expand(m.Sizes))
-                        {
-                            m.CopyOrAddGradient(tmp);
-                        }
+                        using var tmp = res.TGradient.Expand(m.Sizes);
+                        m.CopyOrAddGradient(tmp);
                     }
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -463,7 +461,7 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.ReleaseWeight();
 
@@ -480,7 +478,7 @@ namespace Seq2SeqSharp.Tools
                     }
 
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -500,7 +498,7 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.ReleaseWeight();
 
@@ -510,7 +508,7 @@ namespace Seq2SeqSharp.Tools
                     }
 
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -528,11 +526,11 @@ namespace Seq2SeqSharp.Tools
             Ops.Tanh(res.TWeight, m.TWeight);
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     m.AddTanhGradient(res);
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -558,7 +556,7 @@ namespace Seq2SeqSharp.Tools
             Ops.Relu(res.TWeight, m.TWeight);
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.ReleaseWeight();
 
@@ -572,7 +570,7 @@ namespace Seq2SeqSharp.Tools
                         Ops.AddReluD(m.TGradient, m.TGradient, m.TWeight, res.TGradient);
                     }
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
 
                 m.UnbindFromComputeGraph();
@@ -591,7 +589,7 @@ namespace Seq2SeqSharp.Tools
             Ops.AddmmBatch(res.TWeight, 0.0f, res.TWeight, alpha, t1.TWeight, t2.TWeight);
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.ReleaseWeight();
 
@@ -607,7 +605,7 @@ namespace Seq2SeqSharp.Tools
 
                     res.Dispose();
 
-                };
+                }
                 m_backprop.Add(backward);
 
                 t1.UnbindFromComputeGraph();
@@ -631,7 +629,7 @@ namespace Seq2SeqSharp.Tools
             Ops.Addmm(res.TWeight, 0.0f, res.TWeight, alpha, t1.TWeight, t2.TWeight);
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.ReleaseWeight();
 
@@ -646,7 +644,7 @@ namespace Seq2SeqSharp.Tools
                     }
 
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
 
                 t1.UnbindFromComputeGraph();
@@ -660,17 +658,20 @@ namespace Seq2SeqSharp.Tools
         {
             if (m1 == null)
             {
-                throw new ArgumentNullException($"m1 tensor is null");
+                ArgumentNullException argumentNullException = new ArgumentNullException($"m1 tensor is null");
+                throw argumentNullException;
             }
 
             if (m2 == null)
             {
-                throw new ArgumentNullException($"m2 tensor is null");
+                ArgumentNullException argumentNullException = new ArgumentNullException($"m2 tensor is null");
+                throw argumentNullException;
             }
 
             if (mbias == null)
             {
-                throw new ArgumentNullException($"mbias tensor is null");
+                ArgumentNullException argumentNullException = new ArgumentNullException($"mbias tensor is null");
+                throw argumentNullException;
             }
 
             WeightTensor t1 = m1 as WeightTensor;
@@ -689,7 +690,7 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.ReleaseWeight();
 
@@ -709,7 +710,7 @@ namespace Seq2SeqSharp.Tools
                     }
 
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
 
                 t1.UnbindFromComputeGraph();
@@ -729,7 +730,7 @@ namespace Seq2SeqSharp.Tools
             res.TWeight = m.TWeight.Transpose(dim1, dim2);
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.ReleaseWeight();
 
@@ -748,7 +749,7 @@ namespace Seq2SeqSharp.Tools
                     }
 
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -764,7 +765,7 @@ namespace Seq2SeqSharp.Tools
             res.TWeight = m.TWeight.Transpose();
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.ReleaseWeight();
                     bool isOwnerExclusive = res.TGradient.IsOwnerExclusive();
@@ -782,7 +783,7 @@ namespace Seq2SeqSharp.Tools
                     }
 
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -842,7 +843,7 @@ namespace Seq2SeqSharp.Tools
             Ops.Softmax(res.TWeight, t.TWeight);
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     if (runGradients)
                     {
@@ -854,7 +855,7 @@ namespace Seq2SeqSharp.Tools
                     }
 
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -876,10 +877,10 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -1000,7 +1001,7 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.ReleaseWeight();
 
@@ -1009,7 +1010,7 @@ namespace Seq2SeqSharp.Tools
 
                     res.Dispose();
                     indice.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
             else
@@ -1049,7 +1050,7 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.ReleaseWeight();
                     bool isOwnerExclusive = res.TGradient.IsOwnerExclusive();
@@ -1058,23 +1059,21 @@ namespace Seq2SeqSharp.Tools
                     foreach (IWeightTensor item in wl)
                     {
                         WeightTensor m = item as WeightTensor;
-                        using (Tensor tTmp = res.TGradient.Narrow(0, sx, m.Rows))
+                        using Tensor tTmp = res.TGradient.Narrow(0, sx, m.Rows);
+                        if (isOwnerExclusive && m.IsGradientNull())
                         {
-                            if (isOwnerExclusive && m.IsGradientNull())
-                            {
-                                m.TGradient = tTmp.CopyRef();
-                            }
-                            else
-                            {
-                                m.CopyOrAddGradient(tTmp, res.Name);
-                            }
-
-                            sx += m.Rows;
+                            m.TGradient = tTmp.CopyRef();
                         }
+                        else
+                        {
+                            m.CopyOrAddGradient(tTmp, res.Name);
+                        }
+
+                        sx += m.Rows;
                     }
 
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -1090,34 +1089,26 @@ namespace Seq2SeqSharp.Tools
             int sizeEveryBatch = m.Rows / batchSize;
             using (Tensor tWView = t.TWeight.View(sizeEveryBatch, batchSize, m.Columns))
             {
-                using (Tensor tWViewPermute = tWView.Permute(1, 0, 2))
-                {
-                    using (Tensor tW2 = Ops.AsContiguous(tWViewPermute))
-                    {
-                        res.TWeight = tW2.View(m.Rows, m.Columns);
-                    }
-                }
+                using Tensor tWViewPermute = tWView.Permute(1, 0, 2);
+                using Tensor tW2 = Ops.AsContiguous(tWViewPermute);
+                res.TWeight = tW2.View(m.Rows, m.Columns);
             }
 
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.ReleaseWeight();
 
                     using (Tensor g = t.TGradient.View(sizeEveryBatch, batchSize, m.Columns))
                     {
-                        using (Tensor t2 = res.TGradient.View(batchSize, sizeEveryBatch, m.Columns))
-                        {
-                            using (Tensor t2Permute = t2.Permute(1, 0, 2))
-                            {
-                                Ops.Add(g, g, t2Permute);
-                            }
-                        }
+                        using Tensor t2 = res.TGradient.View(batchSize, sizeEveryBatch, m.Columns);
+                        using Tensor t2Permute = t2.Permute(1, 0, 2);
+                        Ops.Add(g, g, t2Permute);
                     }
 
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -1155,7 +1146,7 @@ namespace Seq2SeqSharp.Tools
             Ops.Concat(res.TWeight, 1, twl.ToArray());
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.ReleaseWeight();
                     bool isOwnerExclusive = res.TGradient.IsOwnerExclusive();
@@ -1164,23 +1155,21 @@ namespace Seq2SeqSharp.Tools
                     foreach (IWeightTensor item in wl)
                     {
                         WeightTensor m = item as WeightTensor;
-                        using (Tensor tTmp = res.TGradient.Narrow(1, sy, m.Columns))
+                        using Tensor tTmp = res.TGradient.Narrow(1, sy, m.Columns);
+                        if (isOwnerExclusive && m.IsGradientNull())
                         {
-                            if (isOwnerExclusive && m.IsGradientNull())
-                            {
-                                m.TGradient = tTmp.CopyRef();
-                            }
-                            else
-                            {
-                                m.CopyOrAddGradient(tTmp, res.Name);
-                            }
-
-                            sy += m.Columns;
+                            m.TGradient = tTmp.CopyRef();
                         }
+                        else
+                        {
+                            m.CopyOrAddGradient(tTmp, res.Name);
+                        }
+
+                        sy += m.Columns;
                     }
 
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -1207,7 +1196,7 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     x = 0;
                     int i = 0;
@@ -1224,7 +1213,7 @@ namespace Seq2SeqSharp.Tools
                         x += sizes[i];
                         i++;
                     }
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -1248,7 +1237,7 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop && runGradient)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.ReleaseWeight();
 
@@ -1262,7 +1251,7 @@ namespace Seq2SeqSharp.Tools
                     }
 
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -1314,30 +1303,26 @@ namespace Seq2SeqSharp.Tools
             res.TWeight = m.TWeight.View(dims);
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     if (runGradient)
                     {
                         res.ReleaseWeight();
                         bool isOwnerExclusive = res.TGradient.IsOwnerExclusive();
 
-                        using (Tensor resGConti = Ops.AsContiguous(res.TGradient))
+                        using Tensor resGConti = Ops.AsContiguous(res.TGradient);
+                        using Tensor resG = resGConti.View(m.Sizes);
+                        if (isOwnerExclusive && m.IsGradientNull())
                         {
-                            using (Tensor resG = resGConti.View(m.Sizes))
-                            {
-                                if (isOwnerExclusive && m.IsGradientNull())
-                                {
-                                    m.TGradient = resG.CopyRef();
-                                }
-                                else
-                                {
-                                    m.CopyOrAddGradient(resG, res.Name);
-                                }
-                            }
+                            m.TGradient = resG.CopyRef();
+                        }
+                        else
+                        {
+                            m.CopyOrAddGradient(resG, res.Name);
                         }
                     }
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -1356,18 +1341,16 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     if (runGradient)
                     {
                         res.ReleaseWeight();
-                        using (var tmp = Ops.Gather(null, res.TGradient, dim, i.TWeight))
-                        {
-                            s.CopyOrAddGradient(tmp);
-                        }
+                        using var tmp = Ops.Gather(null, res.TGradient, dim, i.TWeight);
+                        s.CopyOrAddGradient(tmp);
                     }
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -1385,18 +1368,16 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     if (runGradient)
                     {
                         res.ReleaseWeight();
-                        using (var mGExp = m.TGradient.Expand(dims))
-                        {
-                            Ops.Add(mGExp, mGExp, res.TGradient);
-                        }
+                        using var mGExp = m.TGradient.Expand(dims);
+                        Ops.Add(mGExp, mGExp, res.TGradient);
                     }
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -1420,19 +1401,17 @@ namespace Seq2SeqSharp.Tools
 
         private Tensor BuildRandomTensor(int rows, int columns, int batchSize, float prob)
         {
-            using (Tensor noise = new Tensor(TensorAllocator.Allocator(m_deviceId), DType.Float32, rows / batchSize, columns))
-            {
-                float[] w = TensorSharp.RandomGenerator.BuildRandomBernoulliWeight(new long[] {rows / batchSize, columns }, prob);                
-                noise.SetElementsAsFloat(w);
+            using Tensor noise = new Tensor(TensorAllocator.Allocator(m_deviceId), DType.Float32, rows / batchSize, columns);
+            float[] w = TensorSharp.RandomGenerator.BuildRandomBernoulliWeight(new long[] { rows / batchSize, columns }, prob);
+            noise.SetElementsAsFloat(w);
 
-                if (rows / batchSize == 1)
-                {
-                    return noise.Expand(rows, columns);
-                }
-                else
-                {
-                    return noise.RepeatTensor(batchSize, 1);
-                }
+            if (rows / batchSize == 1)
+            {
+                return noise.Expand(rows, columns);
+            }
+            else
+            {
+                return noise.RepeatTensor(batchSize, 1);
             }
         }
 
@@ -1448,11 +1427,11 @@ namespace Seq2SeqSharp.Tools
             Ops.LayerNorm(res.TWeight, srcT.TWeight, alphaT.TWeight, betaT.TWeight, eps);
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     Ops.LayerNormGrad(srcT.TGradient, alphaT.TGradient, betaT.TGradient, res.TGradient, res.TWeight, srcT.TWeight, alphaT.TWeight, betaT.TWeight, eps);
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
 
                 srcT.UnbindFromComputeGraph();
@@ -1488,12 +1467,12 @@ namespace Seq2SeqSharp.Tools
             Ops.AddLayerNorm(res.TWeight, src1T.TWeight, src2T.TWeight, alphaT.TWeight, betaT.TWeight, eps);
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     Ops.AddLayerNormGrad(src1T.TGradient, src2T.TGradient, alphaT.TGradient, betaT.TGradient, res.TGradient, res.TWeight, src1T.TWeight, src2T.TWeight, alphaT.TWeight, betaT.TWeight, eps);
 
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
 
                 src1T.UnbindFromComputeGraph();
@@ -1531,21 +1510,21 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(V, res);
 
             Ops.Mul(res.TWeight, w.TWeight, noise);
-            
-            Action backward = () =>
-             {
-                 res.ReleaseWeight();
 
-                 if (inPlace && w.IsGradientNull() && res.TGradient.IsOwnerExclusive())
-                 {
-                     w.TGradient = res.TGradient.CopyRef();
-                 }
+            void backward()
+            {
+                res.ReleaseWeight();
 
-                 w.AddMulGradient(noise, res.TGradient, inPlace);
+                if (inPlace && w.IsGradientNull() && res.TGradient.IsOwnerExclusive())
+                {
+                    w.TGradient = res.TGradient.CopyRef();
+                }
 
-                 res.Dispose();
-                 noise.Dispose();
-             };
+                w.AddMulGradient(noise, res.TGradient, inPlace);
+
+                res.Dispose();
+                noise.Dispose();
+            }
             m_backprop.Add(backward);
 
 
@@ -1563,10 +1542,10 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -1583,7 +1562,7 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.ReleaseWeight();
 
@@ -1592,7 +1571,7 @@ namespace Seq2SeqSharp.Tools
                         Ops.Add(tmpG, tmpG, res.TGradient);
                     }
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -1619,10 +1598,10 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -1647,10 +1626,10 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -1679,10 +1658,10 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 
@@ -1721,10 +1700,10 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                Action backward = () =>
+                void backward()
                 {
                     res.Dispose();
-                };
+                }
                 m_backprop.Add(backward);
             }
 

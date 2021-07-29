@@ -22,27 +22,27 @@ namespace TensorSharp.Cpu
 
             if (result != null && !(result.Storage is CpuStorage))
             {
-                throw new ArgumentException("result must be a CPU tensor", "result");
+                throw new ArgumentException("result must be a CPU tensor", nameof(result));
             }
 
             if (!(lhs.Storage is CpuStorage))
             {
-                throw new ArgumentException("lhs must be a CPU tensor", "lhs");
+                throw new ArgumentException("lhs must be a CPU tensor", nameof(lhs));
             }
 
             if (!(rhs.Storage is CpuStorage))
             {
-                throw new ArgumentException("rhs must be a CPU tensor", "rhs");
+                throw new ArgumentException("rhs must be a CPU tensor", nameof(rhs));
             }
 
             if (lhs.DimensionCount != 1)
             {
-                throw new ArgumentException("lhs must have 1 dimension (ie. be a vector)", "lhs");
+                throw new ArgumentException("lhs must have 1 dimension (ie. be a vector)", nameof(lhs));
             }
 
             if (rhs.DimensionCount != 1)
             {
-                throw new ArgumentException("rhs must have 1 dimension (ie. be a vector)", "rhs");
+                throw new ArgumentException("rhs must have 1 dimension (ie. be a vector)", nameof(rhs));
             }
 
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, 1);
@@ -102,27 +102,27 @@ namespace TensorSharp.Cpu
 
             if (result != null && (result.Storage is CpuStorage))
             {
-                throw new ArgumentException("result must be a CPU tensor", "result");
+                throw new ArgumentException("result must be a CPU tensor", nameof(result));
             }
 
             if (!(lhs.Storage is CpuStorage))
             {
-                throw new ArgumentException("lhs must be a CPU tensor", "lhs");
+                throw new ArgumentException("lhs must be a CPU tensor", nameof(lhs));
             }
 
             if (!(rhs.Storage is CpuStorage))
             {
-                throw new ArgumentException("rhs must be a CPU tensor", "rhs");
+                throw new ArgumentException("rhs must be a CPU tensor", nameof(rhs));
             }
 
             if (lhs.DimensionCount != 2)
             {
-                throw new ArgumentException("lhs must have 2 dimensions", "lhs");
+                throw new ArgumentException("lhs must have 2 dimensions", nameof(lhs));
             }
 
             if (rhs.DimensionCount != 1)
             {
-                throw new ArgumentException("rhs must have 1 dimension (ie. be a vector)", "rhs");
+                throw new ArgumentException("rhs must have 1 dimension (ie. be a vector)", nameof(rhs));
             }
 
             Tensor lhsClone;
@@ -227,17 +227,17 @@ namespace TensorSharp.Cpu
 
             if (result != null && !(result.Storage is CpuStorage))
             {
-                throw new ArgumentException("result must be a CPU tensor", "result");
+                throw new ArgumentException("result must be a CPU tensor", nameof(result));
             }
 
             if (!(lhs.Storage is CpuStorage))
             {
-                throw new ArgumentException("lhs must be a CPU tensor", "lhs");
+                throw new ArgumentException("lhs must be a CPU tensor", nameof(lhs));
             }
 
             if (!(rhs.Storage is CpuStorage))
             {
-                throw new ArgumentException("rhs must be a CPU tensor", "rhs");
+                throw new ArgumentException("rhs must be a CPU tensor", nameof(rhs));
             }
 
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, lhs.Sizes[0], rhs.Sizes[1]);
@@ -367,15 +367,10 @@ namespace TensorSharp.Cpu
                 throw new InvalidOperationException("Size mismatch");
             }
 
-            BlasOp aOp = default(BlasOp);
-            BlasOp bOp = default(BlasOp);
             bool copyC = false;
-
-            Tensor aClone = null;
-            Tensor bClone = null;
-            Tensor cClone = null;
-
-
+            Tensor aClone;
+            Tensor bClone;
+            Tensor cClone;
             if (c.Strides[0] == 1 &&
                 c.Strides[1] != 0 && c.Strides[1] != 1)
             {
@@ -410,6 +405,8 @@ namespace TensorSharp.Cpu
 
             try
             {
+
+                BlasOp aOp;
                 if (aClone.Strides[0] == 1 &&
                     aClone.Strides[1] != 0 && aClone.Strides[1] != 1)
                 {
@@ -436,6 +433,8 @@ namespace TensorSharp.Cpu
                     aOp = BlasOp.NonTranspose;
                 }
 
+
+                BlasOp bOp;
                 if (bClone.Strides[0] == 1 &&
                     bClone.Strides[1] != 0 && bClone.Strides[1] != 1)
                 {

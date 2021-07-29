@@ -10,9 +10,9 @@ namespace Seq2SeqSharp.Metrics
     {
         public string Name => "RougeL";
 
-		HashSet<string> allRefWords = new HashSet<string>();
-		HashSet<string> allHypWords = new HashSet<string>();
-		HashSet<string> unionLCSWords = new HashSet<string>();
+        readonly HashSet<string> allRefWords = new HashSet<string>();
+        readonly HashSet<string> allHypWords = new HashSet<string>();
+        readonly HashSet<string> unionLCSWords = new HashSet<string>();
 
 		public void ClearStatus()
         {
@@ -35,7 +35,7 @@ namespace Seq2SeqSharp.Metrics
 				allHypWords.Add(token);
 			}
 
-			var results = lcs(refSent, hypTokens);
+			var results = Lcs(refSent, hypTokens);
 			foreach (var r in results)
 			{
 				unionLCSWords.Add(r);
@@ -61,7 +61,7 @@ namespace Seq2SeqSharp.Metrics
 			return GetPrimaryScore().ToString("F");
 		}
 
-		static List<string> lcs(List<string> X, List<string> Y)
+		static List<string> Lcs(List<string> X, List<string> Y)
 		{
 			int m = X.Count;
 			int n = Y.Count;

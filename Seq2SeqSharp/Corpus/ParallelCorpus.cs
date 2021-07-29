@@ -357,7 +357,7 @@ namespace Seq2SeqSharp.Tools
                 {
                     srcAccNum += pair.Value;
 
-                    Logger.WriteLine($"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value} (acc: {(100.0f * (float)srcAccNum / (float)srcTotalNum).ToString("F")}%)");
+                    Logger.WriteLine($"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value} (acc: {100.0f * (float)srcAccNum / (float)srcTotalNum:F}%)");
                 }
 
                 Logger.WriteLine($"Tgt token length distribution");
@@ -374,7 +374,7 @@ namespace Seq2SeqSharp.Tools
                 {
                     tgtAccNum += pair.Value;
 
-                    Logger.WriteLine($"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value}  (acc: {(100.0f * (float)tgtAccNum / (float)tgtTotalNum).ToString("F")}%)");
+                    Logger.WriteLine($"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value}  (acc: {100.0f * (float)tgtAccNum / (float)tgtTotalNum:F}%)");
                 }
 
                 m_showTokenDist = false;
@@ -390,55 +390,53 @@ namespace Seq2SeqSharp.Tools
 
             using (StreamReader srSrc = new StreamReader(srcShuffledFilePath))
             {
-                using (StreamReader srTgt = new StreamReader(tgtShuffledFilePath))
+                using StreamReader srTgt = new StreamReader(tgtShuffledFilePath);
+                int lastSrcSntLen = -1;
+                int lastTgtSntLen = -1;
+                int maxOutputsSize = m_batchSize * 10000;
+                List<SntPair> outputs = new List<SntPair>();
+
+                while (true)
                 {
-                    int lastSrcSntLen = -1;
-                    int lastTgtSntLen = -1;
-                    int maxOutputsSize = m_batchSize * 10000;
-                    List<SntPair> outputs = new List<SntPair>();
-
-                    while (true)
+                    string line;
+                    if ((line = srSrc.ReadLine()) == null)
                     {
-                        string line;
-                        if ((line = srSrc.ReadLine()) == null)
-                        {
-                            break;
-                        }
-
-                        var srcLine = line.Trim();
-                        var tgtLine = srTgt.ReadLine().Trim();
-                        SntPair sntPair = new SntPair(srcLine, tgtLine);
-
-                        if ((lastTgtSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInTgt && lastTgtSntLen != sntPair.TgtTokenGroups[0].Count) ||
-                            (lastSrcSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInSrc && lastSrcSntLen != sntPair.SrcTokenGroups[0].Count) ||
-                            outputs.Count > maxOutputsSize)
-                        {
-                            // InnerShuffle(outputs);
-                            for (int i = 0; i < outputs.Count; i += m_batchSize)
-                            {
-                                int size = Math.Min(m_batchSize, outputs.Count - i);
-                                var batch = new T();
-                                batch.CreateBatch(outputs.GetRange(i, size));
-                                yield return batch;
-                            }
-
-                            outputs.Clear();
-                        }
-
-                        outputs.Add(sntPair);
-
-                        lastSrcSntLen = sntPair.SrcTokenGroups[0].Count;
-                        lastTgtSntLen = sntPair.TgtTokenGroups[0].Count;
+                        break;
                     }
 
-                    // InnerShuffle(outputs);
-                    for (int i = 0; i < outputs.Count; i += m_batchSize)
+                    var srcLine = line.Trim();
+                    var tgtLine = srTgt.ReadLine().Trim();
+                    SntPair sntPair = new SntPair(srcLine, tgtLine);
+
+                    if ((lastTgtSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInTgt && lastTgtSntLen != sntPair.TgtTokenGroups[0].Count) ||
+                        (lastSrcSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInSrc && lastSrcSntLen != sntPair.SrcTokenGroups[0].Count) ||
+                        outputs.Count > maxOutputsSize)
                     {
-                        int size = Math.Min(m_batchSize, outputs.Count - i);
-                        var batch = new T();
-                        batch.CreateBatch(outputs.GetRange(i, size));
-                        yield return batch;
+                        // InnerShuffle(outputs);
+                        for (int i = 0; i < outputs.Count; i += m_batchSize)
+                        {
+                            int size = Math.Min(m_batchSize, outputs.Count - i);
+                            var batch = new T();
+                            batch.CreateBatch(outputs.GetRange(i, size));
+                            yield return batch;
+                        }
+
+                        outputs.Clear();
                     }
+
+                    outputs.Add(sntPair);
+
+                    lastSrcSntLen = sntPair.SrcTokenGroups[0].Count;
+                    lastTgtSntLen = sntPair.TgtTokenGroups[0].Count;
+                }
+
+                // InnerShuffle(outputs);
+                for (int i = 0; i < outputs.Count; i += m_batchSize)
+                {
+                    int size = Math.Min(m_batchSize, outputs.Count - i);
+                    var batch = new T();
+                    batch.CreateBatch(outputs.GetRange(i, size));
+                    yield return batch;
                 }
             }
 

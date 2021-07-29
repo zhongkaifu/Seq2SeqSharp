@@ -19,7 +19,7 @@ namespace Seq2SeqClassificationConsole
     internal class Program
     {
         private static Seq2SeqClassificationOptions opts = new Seq2SeqClassificationOptions();
-        private static void ss_EvaluationWatcher(object sender, EventArgs e)
+        private static void Ss_EvaluationWatcher(object sender, EventArgs e)
         {
             EvaluationEventArg ep = e as EvaluationEventArg;
             Logger.WriteLine(Logger.Level.info, ep.Color, ep.Message);
@@ -30,7 +30,7 @@ namespace Seq2SeqClassificationConsole
             }
         }
 
-        private static void ss_StatusUpdateWatcher(object sender, EventArgs e)
+        private static void Ss_StatusUpdateWatcher(object sender, EventArgs e)
         {
             CostEventArg ep = e as CostEventArg;
 
@@ -47,7 +47,7 @@ namespace Seq2SeqClassificationConsole
                 wordPerSec = ep.ProcessedWordsInTotal / ts.TotalSeconds;
             }
 
-            Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate.ToString("F6")}, AvgCost = {ep.AvgCostInTotal.ToString("F4")}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin.ToString("F")}, WordPerSec = {wordPerSec.ToString("F")}");
+            Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate:F6}, AvgCost = {ep.AvgCostInTotal:F4}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin:F}, WordPerSec = {wordPerSec:F}");
         }
 
         private static void Main(string[] args)
@@ -173,8 +173,8 @@ namespace Seq2SeqClassificationConsole
                     taskId2metrics.Add(0, task0Metrics);
 
                     // Add event handler for monitoring
-                    ss.StatusUpdateWatcher += ss_StatusUpdateWatcher;
-                    ss.EvaluationWatcher += ss_EvaluationWatcher;
+                    ss.StatusUpdateWatcher += Ss_StatusUpdateWatcher;
+                    ss.EvaluationWatcher += Ss_EvaluationWatcher;
 
                     // Kick off training
                     ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, taskId2metrics: taskId2metrics);
@@ -187,7 +187,7 @@ namespace Seq2SeqClassificationConsole
                     Seq2SeqClassificationCorpus validCorpus = new Seq2SeqClassificationCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSrcSentLength, opts.MaxTestTgtSentLength, shuffleEnums: shuffleType);
 
                     ss = new Seq2SeqClassification(opts);
-                    ss.EvaluationWatcher += ss_EvaluationWatcher;
+                    ss.EvaluationWatcher += Ss_EvaluationWatcher;
 
                     // Create metrics
                     IMetric seqGenMetric = null;
@@ -292,7 +292,7 @@ namespace Seq2SeqClassificationConsole
             List<string> outputLines = new List<string>();
             List<string> alignments = new List<string>();
 
-            List<NetworkResult> nrs = ss.Test(inputBatchs, opts.BeamSearchSize); // shape [beam size, batch size, tgt token size]
+            List<NetworkResult> nrs = ss.Test(inputBatchs); // shape [beam size, batch size, tgt token size]
 
             for (int batchIdx = 0; batchIdx < inputBatchs[0].Count; batchIdx++)
             {
@@ -311,7 +311,7 @@ namespace Seq2SeqClassificationConsole
                             int srcIdx = tgtNR.Alignment[beamIdx][batchIdx][tgtTknIdx].SrcPos;
                             float score = tgtNR.Alignment[beamIdx][batchIdx][tgtTknIdx].Score;
                             sb.Append($"{tgtTknIdx}_{srcIdx}_{score}");
-                            sb.Append(" ");
+                            sb.Append(' ');
                         }
 
                         alignments.Add(sb.ToString().Trim());

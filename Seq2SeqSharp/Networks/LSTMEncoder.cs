@@ -11,9 +11,9 @@ namespace Seq2SeqSharp
     public class LSTMEncoder
     {
         public List<LSTMCell> encoders = new List<LSTMCell>();
-        public int hdim { get; set; }
-        public int dim { get; set; }
-        public int depth { get; set; }
+        public int Hdim { get; set; }
+        public int Dim { get; set; }
+        public int Depth { get; set; }
 
         public LSTMEncoder(string name, int hdim, int dim, int depth, int deviceId, bool isTrainable)
         {
@@ -24,9 +24,9 @@ namespace Seq2SeqSharp
                 encoders.Add(new LSTMCell($"{name}.LSTM_{i}", hdim, hdim, deviceId, isTrainable));
 
             }
-            this.hdim = hdim;
-            this.dim = dim;
-            this.depth = depth;
+            this.Hdim = hdim;
+            this.Dim = dim;
+            this.Depth = depth;
         }
 
         public void Reset(IWeightFactory weightFactory, int batchSize)
@@ -50,7 +50,7 @@ namespace Seq2SeqSharp
         }
 
 
-        public List<IWeightTensor> getParams()
+        public List<IWeightTensor> GetParams()
         {
             List<IWeightTensor> response = new List<IWeightTensor>();
 

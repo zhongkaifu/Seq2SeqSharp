@@ -29,9 +29,11 @@ namespace Seq2SeqSharp.Corpus
 
         public override ISntPairBatch CloneSrcTokens()
         {
-            SeqClassificationMultiTasksCorpusBatch spb = new SeqClassificationMultiTasksCorpusBatch();
-            spb.SrcTknsGroups = SrcTknsGroups;
-            spb.TgtTknsGroups = null;
+            SeqClassificationMultiTasksCorpusBatch spb = new SeqClassificationMultiTasksCorpusBatch
+            {
+                SrcTknsGroups = SrcTknsGroups,
+                TgtTknsGroups = null
+            };
 
             return spb;
         }

@@ -10,7 +10,7 @@ namespace Seq2SeqSharp.Metrics
         private readonly List<string> m_classLabels;
 
         public string Name => $"MultiLabelsFscore_{m_groupName}";
-        private string m_groupName;
+        private readonly string m_groupName;
 
         public MultiLabelsFscoreMetric(string groupName, List<string> classLabels)
         {            
@@ -82,7 +82,7 @@ namespace Seq2SeqSharp.Metrics
                     objective = 2.0 * (precision * recall) / (precision + recall);
                 }
 
-                results.Add($"'{m_classLabels[i]}': F-score = '{(100.0 * objective).ToString("F")}' Precision = '{(100.0 * precision).ToString("F")}' Recall = '{(100.0 * recall).ToString("F")}'");
+                results.Add($"'{m_classLabels[i]}': F-score = '{100.0 * objective:F}' Precision = '{100.0 * precision:F}' Recall = '{100.0 * recall:F}'");
             }
 
             return string.Join("\n", results) + $"\nThe number of categories = '{m_counts.Count}'\n";

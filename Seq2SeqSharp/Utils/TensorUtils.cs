@@ -41,6 +41,31 @@ namespace Seq2SeqSharp.Utils
         /// <returns>The embedding tensor. shape: (batchsize * seqLen, embedding_dim) </returns>
         public static IWeightTensor ExtractTokensEmbeddings(List<List<int>> seqs, IComputeGraph g, IWeightTensor embeddingsTensor, List<int> seqOriginalLengths, IWeightTensor segmentEmbedding, Vocab vocab)
         {
+            if (seqs is null)
+            {
+                throw new ArgumentNullException(nameof(seqs));
+            }
+
+            if (g is null)
+            {
+                throw new ArgumentNullException(nameof(g));
+            }
+
+            if (embeddingsTensor is null)
+            {
+                throw new ArgumentNullException(nameof(embeddingsTensor));
+            }
+
+            if (seqOriginalLengths is null)
+            {
+                throw new ArgumentNullException(nameof(seqOriginalLengths));
+            }
+
+            if (vocab is null)
+            {
+                throw new ArgumentNullException(nameof(vocab));
+            }
+
             int batchSize = seqs.Count;
             int seqLen = seqs[0].Count;
 

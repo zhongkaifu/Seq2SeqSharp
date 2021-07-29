@@ -18,7 +18,7 @@ namespace Seq2SeqConsole
     internal class Program
     {
         private static Seq2SeqOptions opts = new Seq2SeqOptions();
-        private static void ss_EvaluationWatcher(object sender, EventArgs e)
+        private static void Ss_EvaluationWatcher(object sender, EventArgs e)
         {
             EvaluationEventArg ep = e as EvaluationEventArg;
             Logger.WriteLine(Logger.Level.info, ep.Color, ep.Message);
@@ -29,7 +29,7 @@ namespace Seq2SeqConsole
             }
         }
 
-        private static void ss_StatusUpdateWatcher(object sender, EventArgs e)
+        private static void Ss_StatusUpdateWatcher(object sender, EventArgs e)
         {
             CostEventArg ep = e as CostEventArg;
 
@@ -46,7 +46,7 @@ namespace Seq2SeqConsole
                 wordPerSec = ep.ProcessedWordsInTotal / ts.TotalSeconds;
             }
 
-            Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate.ToString("F6")}, AvgCost = {ep.AvgCostInTotal.ToString("F4")}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin.ToString("F")}, WordPerSec = {wordPerSec.ToString("F")}");
+            Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate:F6}, AvgCost = {ep.AvgCostInTotal:F4}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin:F}, WordPerSec = {wordPerSec:F}");
         }
 
 
@@ -144,8 +144,8 @@ namespace Seq2SeqConsole
                     }
 
                     // Add event handler for monitoring
-                    ss.StatusUpdateWatcher += ss_StatusUpdateWatcher;
-                    ss.EvaluationWatcher += ss_EvaluationWatcher;
+                    ss.StatusUpdateWatcher += Ss_StatusUpdateWatcher;
+                    ss.EvaluationWatcher += Ss_EvaluationWatcher;
 
                     // Kick off training
                     ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, metrics: metrics);
@@ -174,7 +174,7 @@ namespace Seq2SeqConsole
                     Seq2SeqCorpus validCorpus = new Seq2SeqCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSrcSentLength, opts.MaxTestTgtSentLength, shuffleEnums: shuffleType);
 
                     ss = new Seq2Seq(opts);
-                    ss.EvaluationWatcher += ss_EvaluationWatcher;
+                    ss.EvaluationWatcher += Ss_EvaluationWatcher;
                     ss.Valid(validCorpus: validCorpus, metrics: metrics);
                 }
                 else if (mode == ModeEnums.Test)
@@ -253,7 +253,7 @@ namespace Seq2SeqConsole
             List<string> outputLines = new List<string>();
             List<string> alignments = new List<string>();
 
-            NetworkResult nr = ss.Test(inputBatchs, opts.BeamSearchSize); // shape [beam size, batch size, tgt token size]
+            NetworkResult nr = ss.Test(inputBatchs); // shape [beam size, batch size, tgt token size]
 
             for (int batchIdx = 0; batchIdx < inputBatchs[0].Count; batchIdx++)
             {
@@ -269,7 +269,7 @@ namespace Seq2SeqConsole
                             int srcIdx = nr.Alignment[beamIdx][batchIdx][tgtTknIdx].SrcPos;
                             float score = nr.Alignment[beamIdx][batchIdx][tgtTknIdx].Score;
                             sb.Append($"{tgtTknIdx}_{srcIdx}_{score}");
-                            sb.Append(" ");
+                            sb.Append(' ');
                         }
 
                         alignments.Add(sb.ToString().Trim());

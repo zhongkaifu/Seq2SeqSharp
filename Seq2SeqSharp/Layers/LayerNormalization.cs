@@ -10,11 +10,9 @@ namespace Seq2SeqSharp
     {
         private readonly IWeightTensor m_alpha;
         private readonly IWeightTensor m_beta;
-        private readonly string m_name;
 
         public LayerNormalization(string name, int dim, int deviceId, bool isTrainable, float learningRateFactor = 1.0f)
         {
-            m_name = name;
             m_alpha = new WeightTensor(new long[2] { 1, dim }, 1.0f, deviceId, name: $"{name}.{nameof(m_alpha)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor);
             m_beta = new WeightTensor(new long[2] { 1, dim }, 0, deviceId, name: $"{name}.{nameof(m_beta)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor);
         }
@@ -36,7 +34,7 @@ namespace Seq2SeqSharp
             return g.AddLayerNorm(input1, input2, m_alpha, m_beta);
         }
 
-        public virtual List<IWeightTensor> getParams()
+        public virtual List<IWeightTensor> GetParams()
         {
             List<IWeightTensor> response = new List<IWeightTensor>
             {

@@ -8,12 +8,6 @@ namespace Seq2SeqSharp.Corpus
 {
     public class SeqLabelingCorpusBatch : Seq2SeqCorpusBatch
     {
-        string SrcPrefix => "";
-        string SrcSuffix => "";
-
-
-        string TgtPrefix => "";
-        string TgtSuffix => "";
 
     }
 }

@@ -83,8 +83,10 @@ namespace Seq2SeqSharp
         public void Train(int maxTrainingEpoch, SeqLabelingCorpus trainCorpus, SeqLabelingCorpus validCorpus, ILearningRate learningRate, List<IMetric> metrics, IOptimizer optimizer)
         {
             Logger.WriteLine("Start to train...");
-            Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>();
-            taskId2metrics.Add(0, metrics);
+            Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>
+            {
+                { 0, metrics }
+            };
             for (int i = 0; i < maxTrainingEpoch; i++)
             {
                 // Train one epoch over given devices. Forward part is implemented in RunForwardOnSingleDevice function in below, 
@@ -95,21 +97,25 @@ namespace Seq2SeqSharp
 
         public void Valid(SeqLabelingCorpus validCorpus, List<IMetric> metrics)
         {
-            Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>();
-            taskId2metrics.Add(0, metrics);
+            Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>
+            {
+                { 0, metrics }
+            };
 
             RunValid(validCorpus, RunForwardOnSingleDevice, taskId2metrics, true);
         }
 
         public NetworkResult Test(List<List<string>> inputTokens)
         {
-            List<List<List<string>>> inputTokensGroups = new List<List<List<string>>>();
-            inputTokensGroups.Add(inputTokens);
+            List<List<List<string>>> inputTokensGroups = new List<List<List<string>>>
+            {
+                inputTokens
+            };
 
             Seq2SeqCorpusBatch spb = new Seq2SeqCorpusBatch();
             spb.CreateBatch(inputTokensGroups);
 
-            List<NetworkResult> rst = RunTest(spb, 1, RunForwardOnSingleDevice);
+            List<NetworkResult> rst = RunTest(spb, RunForwardOnSingleDevice);
 
             return rst[0];
         }
@@ -122,7 +128,7 @@ namespace Seq2SeqSharp
         private (IEncoder, IWeightTensor, IWeightTensor, FeedForwardLayer) GetNetworksOnDeviceAt(int deviceIdIdx)
         {
             return (m_encoder.GetNetworkOnDevice(deviceIdIdx), m_srcEmbedding.GetNetworkOnDevice(deviceIdIdx),
-                m_posEmbedding == null ? null : m_posEmbedding.GetNetworkOnDevice(deviceIdIdx), m_decoderFFLayer.GetNetworkOnDevice(deviceIdIdx));
+                m_posEmbedding?.GetNetworkOnDevice(deviceIdIdx), m_decoderFFLayer.GetNetworkOnDevice(deviceIdIdx));
         }
 
         /// <summary>
@@ -178,23 +184,23 @@ namespace Seq2SeqSharp
                 else
                 {
                     // Output "i"th target word
-                    using (var targetIdxTensor = g.Argmax(probs, 1))
-                    {
-                        float[] targetIdx = targetIdxTensor.ToWeightArray();
-                        List<string> targetWords = m_modelMetaData.ClsVocab.ConvertIdsToString(targetIdx.ToList());
+                    using var targetIdxTensor = g.Argmax(probs, 1);
+                    float[] targetIdx = targetIdxTensor.ToWeightArray();
+                    List<string> targetWords = m_modelMetaData.ClsVocab.ConvertIdsToString(targetIdx.ToList());
 
-                        for (int k = 0; k < batchSize; k++)
-                        {
-                            tgtSnts[k] = targetWords.GetRange(k * seqLen, seqLen);
-                        }
+                    for (int k = 0; k < batchSize; k++)
+                    {
+                        tgtSnts[k] = targetWords.GetRange(k * seqLen, seqLen);
                     }
                 }
 
             }
 
-            NetworkResult nr = new NetworkResult();
-            nr.Cost = cost;
-            nr.Output = new List<List<List<string>>>();
+            NetworkResult nr = new NetworkResult
+            {
+                Cost = cost,
+                Output = new List<List<List<string>>>()
+            };
             nr.Output.Add(tgtSnts);
 
             nrs.Add(nr);
@@ -226,7 +232,7 @@ namespace Seq2SeqSharp
                 {
                     int ix_source = m_modelMetaData.SrcVocab.GetWordIndex(srcSnts[j][i], logUnk: true);
 
-                    var emb = g.Peek(Embedding, 0, ix_source, runGradients: i < originalLength ? true : false);
+                    var emb = g.Peek(Embedding, 0, ix_source, runGradients: i < originalLength);
 
                     inputs.Add(emb);
                 }

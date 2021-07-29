@@ -18,7 +18,7 @@ namespace TensorSharp.CUDA.ContextState
         private readonly SizeT m_startMemAddr;
         private readonly SizeT m_endMemAddr;
 
-        private SortedDictionary<ulong, ulong> m_usedAddr2Size;
+        private readonly SortedDictionary<ulong, ulong> m_usedAddr2Size;
 
         public PoolingDeviceAllocator(CudaContext context, float memoryUsageRatio = 0.9f)
         {
@@ -64,7 +64,7 @@ namespace TensorSharp.CUDA.ContextState
 
                     if (currMemAddrEnd > m_endMemAddr)
                     {
-                        throw new OutOfMemoryException($"Out of GPU memory. Current memory usage = '{(GetAllocatedMemoryRatio() * 100.0f).ToString("F")}%'");
+                        throw new OutOfMemoryException($"Out of GPU memory. Current memory usage = '{GetAllocatedMemoryRatio() * 100.0f:F}%'");
                     }
 
                     if (currMemAddrEnd < kv.Key)
@@ -81,7 +81,7 @@ namespace TensorSharp.CUDA.ContextState
                 currMemAddrEnd = currMemAddr + size;
                 if (currMemAddrEnd > m_endMemAddr)
                 {
-                    throw new OutOfMemoryException($"Out of GPU memory. Current memory usage = '{(GetAllocatedMemoryRatio() * 100.0f).ToString("F")}%'");
+                    throw new OutOfMemoryException($"Out of GPU memory. Current memory usage = '{GetAllocatedMemoryRatio() * 100.0f:F}%'");
                 }
 
                 m_usedAddr2Size.Add(currMemAddr, size);

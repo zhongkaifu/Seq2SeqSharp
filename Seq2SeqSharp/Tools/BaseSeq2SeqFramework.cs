@@ -39,7 +39,7 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        private void RemoveDuplicatedEOS(List<List<string>> snts)
+        private static void RemoveDuplicatedEOS(List<List<string>> snts)
         {
             foreach (var snt in snts)
             {
@@ -103,11 +103,11 @@ namespace Seq2SeqSharp.Tools
         private int m_weightsUpdateCount = 0;
         private double m_avgCostPerWordInTotalInLastEpoch = 10000.0;
         private double m_bestPrimaryScore = 0.0f;
-        private int m_primaryTaskId = 0;
+        private readonly int m_primaryTaskId = 0;
         private readonly object locker = new object();
         private SortedList<string, IMultiProcessorNetworkWrapper> m_name2network;
         DateTime m_lastCheckPointDateTime = DateTime.Now;
-        float m_validIntervalHours = 1.0f;
+        readonly float m_validIntervalHours = 1.0f;
 
         public BaseSeq2SeqFramework(string deviceIds, string strProcessorType, string modelFilePath, float memoryUsageRatio = 0.9f, string compilerOptions = null, float validIntervalHours = 1.0f, int primaryTaskId = 0)
         {
@@ -355,7 +355,7 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
-            Logger.WriteLine(Logger.Level.info, ConsoleColor.Green, $"Epoch '{ep}' took '{DateTime.Now - startDateTime}' time to finish. AvgCost = {avgCostPerWordInTotal.ToString("F6")}, AvgCostInLastEpoch = {m_avgCostPerWordInTotalInLastEpoch.ToString("F6")}");
+            Logger.WriteLine(Logger.Level.info, ConsoleColor.Green, $"Epoch '{ep}' took '{DateTime.Now - startDateTime}' time to finish. AvgCost = {avgCostPerWordInTotal:F6}, AvgCostInLastEpoch = {m_avgCostPerWordInTotalInLastEpoch:F6}");
             m_avgCostPerWordInTotalInLastEpoch = avgCostPerWordInTotal;
         }
 
@@ -442,7 +442,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        private List<NetworkResult> MergeResults(SortedDictionary<int, List<NetworkResult>> batchId2Results)
+        private static List<NetworkResult> MergeResults(SortedDictionary<int, List<NetworkResult>> batchId2Results)
         {
             List<NetworkResult> rs = new List<NetworkResult>();
 
@@ -454,8 +454,10 @@ namespace Seq2SeqSharp.Tools
                 {
                     for (int i = 0; i < tasks.Count; i++)
                     {
-                        NetworkResult nr = new NetworkResult();
-                        nr.Output = new List<List<List<string>>>();
+                        NetworkResult nr = new NetworkResult
+                        {
+                            Output = new List<List<List<string>>>()
+                        };
                         if (tasks[i].Alignment != null)
                         {
                             nr.Alignment = new List<List<List<Alignment>>>();
@@ -476,8 +478,18 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        internal List<NetworkResult> RunTest(ISntPairBatch sntPairBatch, int beamSearchSize, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice)
+        internal List<NetworkResult> RunTest(ISntPairBatch sntPairBatch, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice)
         {
+            if (sntPairBatch is null)
+            {
+                throw new ArgumentNullException(nameof(sntPairBatch));
+            }
+
+            if (ForwardOnSingleDevice is null)
+            {
+                throw new ArgumentNullException(nameof(ForwardOnSingleDevice));
+            }
+
             try
             {
                 SortedDictionary<int, List<NetworkResult>> batchId2Result = new SortedDictionary<int, List<NetworkResult>>();
@@ -607,7 +619,7 @@ namespace Seq2SeqSharp.Tools
                     {
                         if (m_bestPrimaryScore > 0.0f)
                         {
-                            sb.AppendLine($"We got a better primary metric '{metrics[0].Name}' score '{metrics[0].GetPrimaryScore().ToString("F")}' on the primary task '{taskId}'. The previous score is '{m_bestPrimaryScore.ToString("F")}'");
+                            sb.AppendLine($"We got a better primary metric '{metrics[0].Name}' score '{metrics[0].GetPrimaryScore():F}' on the primary task '{taskId}'. The previous score is '{m_bestPrimaryScore:F}'");
                         }
 
                         //We have a better primary score on valid set
@@ -832,15 +844,13 @@ namespace Seq2SeqSharp.Tools
 
         private void Register(object childValue, string name)
         {
-            IMultiProcessorNetworkWrapper networks = childValue as IMultiProcessorNetworkWrapper;
-            if (networks != null)
+            if (childValue is IMultiProcessorNetworkWrapper networks)
             {
                 m_name2network.Add(name, networks);
                 Logger.WriteLine($"Register network '{name}'");
             }
 
-            IMultiProcessorNetworkWrapper[] networksArray = childValue as IMultiProcessorNetworkWrapper[];
-            if (networksArray != null)
+            if (childValue is IMultiProcessorNetworkWrapper[] networksArray)
             {
                 int idx = 0;
                 foreach (var network in networksArray)

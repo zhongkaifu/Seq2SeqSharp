@@ -19,7 +19,7 @@ namespace SeqClassificationConsole
     class Program
     {
         private static SeqClassificationOptions opts = new SeqClassificationOptions();
-        private static void ss_EvaluationWatcher(object sender, EventArgs e)
+        private static void Ss_EvaluationWatcher(object sender, EventArgs e)
         {
             EvaluationEventArg ep = e as EvaluationEventArg;
             Logger.WriteLine(Logger.Level.info, ep.Color, ep.Message);
@@ -30,7 +30,7 @@ namespace SeqClassificationConsole
             }
         }
 
-        private static void ss_StatusUpdateWatcher(object sender, EventArgs e)
+        private static void Ss_StatusUpdateWatcher(object sender, EventArgs e)
         {
             CostEventArg ep = e as CostEventArg;
 
@@ -47,7 +47,7 @@ namespace SeqClassificationConsole
                 wordPerSec = ep.ProcessedWordsInTotal / ts.TotalSeconds;
             }
 
-            Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate.ToString("F6")}, AvgCost = {ep.AvgCostInTotal.ToString("F4")}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin.ToString("F")}, WordPerSec = {wordPerSec.ToString("F")}");
+            Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate:F6}, AvgCost = {ep.AvgCostInTotal:F4}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin:F}, WordPerSec = {wordPerSec:F}");
         }
 
         private static void ShowOptions(string[] args, SeqClassificationOptions opts)
@@ -130,8 +130,10 @@ namespace SeqClassificationConsole
                             // Vocabulary files are specified, so we load them
                             srcVocab = new Vocab(opts.SrcVocab);
 
-                            tgtVocabs = new List<Vocab>();
-                            tgtVocabs.Add(new Vocab(opts.TgtVocab));
+                            tgtVocabs = new List<Vocab>
+                            {
+                                new Vocab(opts.TgtVocab)
+                            };
                         }
                         else
                         {
@@ -154,8 +156,8 @@ namespace SeqClassificationConsole
 
 
                     // Add event handler for monitoring
-                    ss.StatusUpdateWatcher += ss_StatusUpdateWatcher;
-                    ss.EvaluationWatcher += ss_EvaluationWatcher;
+                    ss.StatusUpdateWatcher += Ss_StatusUpdateWatcher;
+                    ss.EvaluationWatcher += Ss_EvaluationWatcher;
 
                     // Kick off training
                     ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, taskId2metrics: taskId2metrics);
@@ -240,13 +242,28 @@ namespace SeqClassificationConsole
 
         private static List<string> RunBatchTest(SeqClassificationOptions opts, SeqClassification ss, List<List<List<string>>> inputBatchs)
         {
+            if (opts is null)
+            {
+                throw new ArgumentNullException(nameof(opts));
+            }
+
+            if (ss is null)
+            {
+                throw new ArgumentNullException(nameof(ss));
+            }
+
+            if (inputBatchs is null)
+            {
+                throw new ArgumentNullException(nameof(inputBatchs));
+            }
+
             List<string> outputLines = new List<string>();
             for (int i = 0; i < inputBatchs[0].Count; i++)
             {
                 outputLines.Add("");
             }
 
-            List<NetworkResult> nrs = ss.Test(inputBatchs, 1); // shape [beam size, batch size, tgt token size]
+            List<NetworkResult> nrs = ss.Test(inputBatchs); // shape [beam size, batch size, tgt token size]
 
             foreach (var nr in nrs)
             {

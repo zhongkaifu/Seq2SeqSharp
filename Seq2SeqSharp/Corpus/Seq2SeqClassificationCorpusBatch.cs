@@ -37,9 +37,11 @@ namespace Seq2SeqSharp.Corpus
         {
             SrcTknsGroups = srcTokensGroups;
 
-            TgtTknsGroups = new List<List<List<string>>>();
-            TgtTknsGroups.Add(new List<List<string>>());
-            TgtTknsGroups.Add(InitializeHypTokens(BuildInTokens.BOS));
+            TgtTknsGroups = new List<List<List<string>>>
+            {
+                new List<List<string>>(),
+                InitializeHypTokens(BuildInTokens.BOS)
+            };
 
 
             TryAddPrefix(SrcTknsGroups[0], BuildInTokens.CLS);
@@ -48,11 +50,15 @@ namespace Seq2SeqSharp.Corpus
 
         public override ISntPairBatch CloneSrcTokens()
         {
-            Seq2SeqClassificationCorpusBatch spb = new Seq2SeqClassificationCorpusBatch();
-            spb.SrcTknsGroups = SrcTknsGroups;
-            spb.TgtTknsGroups = new List<List<List<string>>>();
-            spb.TgtTknsGroups.Add(new List<List<string>>());
-            spb.TgtTknsGroups.Add(InitializeHypTokens(BuildInTokens.BOS));
+            Seq2SeqClassificationCorpusBatch spb = new Seq2SeqClassificationCorpusBatch
+            {
+                SrcTknsGroups = SrcTknsGroups,
+                TgtTknsGroups = new List<List<List<string>>>
+            {
+                new List<List<string>>(),
+                InitializeHypTokens(BuildInTokens.BOS)
+            }
+            };
 
             return spb;
         }

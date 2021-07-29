@@ -57,7 +57,7 @@ namespace Seq2SeqSharp.Metrics
                 objective = 2.0 * (precision * recall) / (precision + recall);
             }
 
-            return $"F-score = '{(100.0 * objective).ToString("F")}' Precision = '{(100.0 * precision).ToString("F")}' Recall = '{(100.0 * recall).ToString("F")}'";
+            return $"F-score = '{100.0 * objective:F}' Precision = '{100.0 * precision:F}' Recall = '{100.0 * recall:F}'";
         }
 
         public double GetPrimaryScore()

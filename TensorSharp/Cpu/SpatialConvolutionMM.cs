@@ -32,7 +32,6 @@ namespace TensorSharp.Cpu
             int dimh = 2;
 
             long n = inputSizes[0];
-            long nInputPlane = inputSizes[dimf];
             long inputWidth = inputSizes[dimw];
             long inputHeight = inputSizes[dimh];
             long nOutputPlane = weightSizes[0];
@@ -98,15 +97,13 @@ namespace TensorSharp.Cpu
 
             for (int i = 0; i < n; ++i)
             {
-                using (Tensor input_i = input.Select(0, i))
-                using (Tensor output_i = output.Select(0, i))
-                using (Tensor finput_i = finput.Select(0, i))
-                {
-                    Conv2ForwardFrame(input_i, output_i, weight, bias, finput_i,
-                        cd.kW, cd.kH, cd.dW, cd.dW, cd.padW, cd.padH,
-                        nInputPlane, inputWidth, inputHeight,
-                        nOutputPlane, outputWidth, outputHeight);
-                }
+                using Tensor input_i = input.Select(0, i);
+                using Tensor output_i = output.Select(0, i);
+                using Tensor finput_i = finput.Select(0, i);
+                Conv2ForwardFrame(input_i, output_i, weight, bias, finput_i,
+                    cd.kW, cd.kH, cd.dW, cd.dW, cd.padW, cd.padH,
+                    nInputPlane, inputWidth, inputHeight,
+                    nOutputPlane, outputWidth, outputHeight);
             }
         }
 
@@ -136,22 +133,18 @@ namespace TensorSharp.Cpu
             {
                 CpuOpsNative.TS_Unfolded_Copy(finputPtr, inputPtr, kW, kH, dW, dH, padW, padH, (int)nInputPlane, (int)inputWidth, (int)inputHeight, (int)outputWidth, (int)outputHeight);
 
-                using (Tensor output2d = output.View(nOutputPlane, outputHeight * outputWidth))
+                using Tensor output2d = output.View(nOutputPlane, outputHeight * outputWidth);
+                if (bias != null)
                 {
-                    if (bias != null)
-                    {
-                        using (Tensor biasExp = bias.Expand(nOutputPlane, output2d.Sizes[1]))
-                        {
-                            Ops.Copy(output2d, biasExp);
-                        }
-                    }
-                    else
-                    {
-                        Ops.Fill(output, 0);
-                    }
-
-                    Ops.Addmm(output2d, 1, output2d, 1, weight, finput);
+                    using Tensor biasExp = bias.Expand(nOutputPlane, output2d.Sizes[1]);
+                    Ops.Copy(output2d, biasExp);
                 }
+                else
+                {
+                    Ops.Fill(output, 0);
+                }
+
+                Ops.Addmm(output2d, 1, output2d, 1, weight, finput);
             }
             finally
             {
@@ -182,19 +175,15 @@ namespace TensorSharp.Cpu
                 throw new InvalidOperationException("stride should be greater than zero");
             }
 
-            using (Tensor weightT = weight.Transpose())
-            {
-                long n = input.Sizes[0];
+            using Tensor weightT = weight.Transpose();
+            long n = input.Sizes[0];
 
-                for (int i = 0; i < n; ++i)
-                {
-                    using (Tensor gradInput_i = gradInput.Select(0, i))
-                    using (Tensor gradOutput_i = gradOutput.Select(0, i))
-                    using (Tensor fgradInput_i = fgradInput.Select(0, i))
-                    {
-                        Conv2BackwardInputFrame(gradOutput_i, gradInput_i, weightT, fgradInput_i, cd);
-                    }
-                }
+            for (int i = 0; i < n; ++i)
+            {
+                using Tensor gradInput_i = gradInput.Select(0, i);
+                using Tensor gradOutput_i = gradOutput.Select(0, i);
+                using Tensor fgradInput_i = fgradInput.Select(0, i);
+                Conv2BackwardInputFrame(gradOutput_i, gradInput_i, weightT, fgradInput_i, cd);
             }
         }
 
@@ -238,22 +227,43 @@ namespace TensorSharp.Cpu
 
             for (int i = 0; i < n; ++i)
             {
-                using (Tensor gradOutput_i = gradOutput.Select(0, i))
-                using (Tensor finput_i = finput.Select(0, i))
-                {
-                    Conv2BackwardFilterFrame(gradOutput_i, gradWeight, gradBias, finput_i, cd);
-                }
+                using Tensor gradOutput_i = gradOutput.Select(0, i);
+                using Tensor finput_i = finput.Select(0, i);
+                Conv2BackwardFilterFrame(gradOutput_i, gradWeight, gradBias, finput_i, cd);
             }
         }
 
         private static void Conv2BackwardFilterFrame(Tensor gradOutput, Tensor gradWeight, Tensor gradBias, Tensor finput, ConvolutionDesc2d cd)
         {
-            using (Tensor gradOutput2d = gradOutput.View(gradOutput.Sizes[0], gradOutput.Sizes[1] * gradOutput.Sizes[2]))
-            using (Tensor finputT = finput.Transpose())
+            if (gradOutput is null)
             {
-                Ops.Addmm(gradWeight, 1, gradWeight, 1, gradOutput2d, finputT);
-                Ops.Sum(gradBias, gradOutput2d, 1);
+                throw new ArgumentNullException(nameof(gradOutput));
             }
+
+            if (gradWeight is null)
+            {
+                throw new ArgumentNullException(nameof(gradWeight));
+            }
+
+            if (gradBias is null)
+            {
+                throw new ArgumentNullException(nameof(gradBias));
+            }
+
+            if (finput is null)
+            {
+                throw new ArgumentNullException(nameof(finput));
+            }
+
+            if (cd is null)
+            {
+                throw new ArgumentNullException(nameof(cd));
+            }
+
+            using Tensor gradOutput2d = gradOutput.View(gradOutput.Sizes[0], gradOutput.Sizes[1] * gradOutput.Sizes[2]);
+            using Tensor finputT = finput.Transpose();
+            Ops.Addmm(gradWeight, 1, gradWeight, 1, gradOutput2d, finputT);
+            Ops.Sum(gradBias, gradOutput2d, 1);
         }
     }
 }

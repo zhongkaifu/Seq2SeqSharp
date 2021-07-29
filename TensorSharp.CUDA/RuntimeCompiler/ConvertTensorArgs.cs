@@ -25,9 +25,9 @@ namespace TensorSharp.CUDA.RuntimeCompiler
         {
             for (int i = 0; i < args.Length; ++i)
             {
-                if (args[i] is Tensor)
+                if (args[i] is Tensor tensor)
                 {
-                    args[i] = MakeTensorInfo(context, (Tensor)args[i], index32);
+                    args[i] = MakeTensorInfo(context, tensor, index32);
                 }
             }
         }

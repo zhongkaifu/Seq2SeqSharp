@@ -79,10 +79,8 @@ namespace Seq2SeqSharp
                 if (srcSelfMask != null)
                 {
                     int seqLen = inputs.Rows / batchSize;
-                    using (var keyMaskView = subg.View(srcSelfMask, runGradient: false, dims: new long[] { batchSize, 1, seqLen, seqLen }))
-                    {
-                        maskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLen, seqLen });
-                    }
+                    using var keyMaskView = subg.View(srcSelfMask, runGradient: false, dims: new long[] { batchSize, 1, seqLen, seqLen });
+                    maskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLen, seqLen });
                 }
 
                 IWeightTensor attnProbs = null;
@@ -120,15 +118,15 @@ namespace Seq2SeqSharp
 
             foreach (MultiHeadAttention item in m_encoders)
             {
-                response.AddRange(item.getParams());
+                response.AddRange(item.GetParams());
             }
 
             foreach (var item in m_posFFNs)
             {
-                response.AddRange(item.getParams());
+                response.AddRange(item.GetParams());
             }
 
-            response.AddRange(layerNorm.getParams());
+            response.AddRange(layerNorm.GetParams());
 
             return response;
         }

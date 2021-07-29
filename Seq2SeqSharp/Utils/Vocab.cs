@@ -23,7 +23,7 @@ namespace Seq2SeqSharp.Utils
         public List<string> Items = new List<string>();
         public int Count => IndexToWord.Count;
 
-        private object locker = new object();
+        private readonly object locker = new object();
 
         public Vocab()
         {
@@ -34,11 +34,12 @@ namespace Seq2SeqSharp.Utils
         {
             WordToIndex = new Dictionary<string, int>();
             IndexToWord = new Dictionary<int, string>();
-            Items = new List<string>();
-
-            Items.Add(BuildInTokens.EOS);
-            Items.Add(BuildInTokens.BOS);
-            Items.Add(BuildInTokens.UNK);
+            Items = new List<string>
+            {
+                BuildInTokens.EOS,
+                BuildInTokens.BOS,
+                BuildInTokens.UNK
+            };
 
             WordToIndex[BuildInTokens.EOS] = (int)SENTTAGS.END;
             WordToIndex[BuildInTokens.BOS] = (int)SENTTAGS.START;

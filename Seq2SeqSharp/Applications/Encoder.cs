@@ -17,8 +17,10 @@ namespace Seq2SeqSharp.Applications
 
             foreach (var item in tokens)
             {
-                List<string> r = new List<string>();
-                r.Add(BuildInTokens.CLS);
+                List<string> r = new List<string>
+                {
+                    BuildInTokens.CLS
+                };
                 r.AddRange(item);
 
                 newTokens.Add(r);

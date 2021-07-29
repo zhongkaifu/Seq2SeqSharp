@@ -14,7 +14,7 @@ namespace SeqLabelConsole
 {
     internal class Program
     {
-        private static void ss_IterationDone(object sender, EventArgs e)
+        private static void Ss_IterationDone(object sender, EventArgs e)
         {
             CostEventArg ep = e as CostEventArg;
 
@@ -31,7 +31,7 @@ namespace SeqLabelConsole
                 wordPerSec = ep.ProcessedWordsInTotal / ts.TotalSeconds;
             }
 
-            Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate.ToString("F6")}, AvgCost = {ep.AvgCostInTotal.ToString("F4")}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin.ToString("F")}, WordPerSec = {wordPerSec.ToString("F")}");
+            Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate:F6}, AvgCost = {ep.AvgCostInTotal:F4}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin:F}, WordPerSec = {wordPerSec:F}");
         }
 
         private static void Main(string[] args)
@@ -120,7 +120,7 @@ namespace SeqLabelConsole
                 }
 
                 // Add event handler for monitoring
-                sl.StatusUpdateWatcher += ss_IterationDone;
+                sl.StatusUpdateWatcher += Ss_IterationDone;
 
                 // Kick off training
                 sl.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, metrics: metrics);

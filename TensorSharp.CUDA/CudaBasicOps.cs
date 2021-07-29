@@ -49,7 +49,7 @@ namespace TensorSharp.CUDA
         //        return NewContiguous(src);
         //}
 
-        public Tensor Concat(Tensor result, int dimension, params Tensor[] inputs)
+        public static Tensor Concat(Tensor result, int dimension, params Tensor[] inputs)
         {
             return TensorConcatenation.Concat(result, dimension, inputs);
         }
@@ -134,7 +134,7 @@ namespace TensorSharp.CUDA
 
 
         [RegisterOpStorageType("dot", typeof(CudaStorage))]
-        public Tensor Dot(Tensor result, Tensor lhs, Tensor rhs)
+        public static Tensor Dot(Tensor result, Tensor lhs, Tensor rhs)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(lhs);
             if (lhs.DimensionCount == 1 && rhs.DimensionCount == 1)
@@ -151,12 +151,12 @@ namespace TensorSharp.CUDA
             }
             else
             {
-                throw new NotSupportedException(string.Format("Multiplication of {0}D with {1}D tensor is not supported"));
+                throw new NotSupportedException(message: string.Format("Multiplication of {0}D with {1}D tensor is not supported"));
             }
         }
 
         [RegisterOpStorageType("addmm", typeof(CudaStorage))]
-        public Tensor Addmm(Tensor result, float beta, Tensor src, float alpha, Tensor m1, Tensor m2)
+        public static Tensor Addmm(Tensor result, float beta, Tensor src, float alpha, Tensor m1, Tensor m2)
         {
             try
             {
@@ -168,32 +168,32 @@ namespace TensorSharp.CUDA
 
                 if (result != null && !(result.Storage is CudaStorage))
                 {
-                    throw new ArgumentException("result must be a CUDA tensor", "result");
+                    throw new ArgumentException("result must be a CUDA tensor", nameof(result));
                 }
 
                 if (!(m1.Storage is CudaStorage))
                 {
-                    throw new ArgumentException("m1 must be a CUDA tensor", "m1");
+                    throw new ArgumentException("m1 must be a CUDA tensor", nameof(m1));
                 }
 
                 if (!(m2.Storage is CudaStorage))
                 {
-                    throw new ArgumentException("m2 must be a CUDA tensor", "m2");
+                    throw new ArgumentException("m2 must be a CUDA tensor", nameof(m2));
                 }
 
                 if (src.DimensionCount != 2)
                 {
-                    throw new ArgumentException("src must be a matrix", "src");
+                    throw new ArgumentException("src must be a matrix", nameof(src));
                 }
 
                 if (m1.DimensionCount != 2)
                 {
-                    throw new ArgumentException("m1 must be a matrix", "m1");
+                    throw new ArgumentException("m1 must be a matrix", nameof(m1));
                 }
 
                 if (m2.DimensionCount != 2)
                 {
-                    throw new ArgumentException("m2 must be a matrix", "m2");
+                    throw new ArgumentException("m2 must be a matrix", nameof(m2));
                 }
 
                 if (src.Sizes[0] != m1.Sizes[0] || src.Sizes[1] != m2.Sizes[1] || m1.Sizes[1] != m2.Sizes[0])
@@ -225,7 +225,7 @@ namespace TensorSharp.CUDA
 
 
         [RegisterOpStorageType("addmmbatch", typeof(CudaStorage))]
-        public Tensor AddmmBatch(Tensor result, float beta, Tensor src, float alpha, Tensor m1, Tensor m2)
+        public static Tensor AddmmBatch(Tensor result, float beta, Tensor src, float alpha, Tensor m1, Tensor m2)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(src);
             if (src.ElementType != m1.ElementType || src.ElementType != m2.ElementType || (result != null && result.ElementType != src.ElementType))
@@ -235,32 +235,32 @@ namespace TensorSharp.CUDA
 
             if (result != null && !(result.Storage is CudaStorage))
             {
-                throw new ArgumentException("result must be a CUDA tensor", "result");
+                throw new ArgumentException("result must be a CUDA tensor", nameof(result));
             }
 
             if (!(m1.Storage is CudaStorage))
             {
-                throw new ArgumentException("m1 must be a CUDA tensor", "m1");
+                throw new ArgumentException("m1 must be a CUDA tensor", nameof(m1));
             }
 
             if (!(m2.Storage is CudaStorage))
             {
-                throw new ArgumentException("m2 must be a CUDA tensor", "m2");
+                throw new ArgumentException("m2 must be a CUDA tensor", nameof(m2));
             }
 
             if (src.DimensionCount != 3)
             {
-                throw new ArgumentException("src must be a matrix", "src");
+                throw new ArgumentException("src must be a matrix", nameof(src));
             }
 
             if (m1.DimensionCount != 3)
             {
-                throw new ArgumentException("m1 must be a matrix", "m1");
+                throw new ArgumentException("m1 must be a matrix", nameof(m1));
             }
 
             if (m2.DimensionCount != 3)
             {
-                throw new ArgumentException("m2 must be a matrix", "m2");
+                throw new ArgumentException("m2 must be a matrix", nameof(m2));
             }
 
             if (src.Sizes[1] != m1.Sizes[1] || src.Sizes[2] != m2.Sizes[2] || m1.Sizes[2] != m2.Sizes[1])

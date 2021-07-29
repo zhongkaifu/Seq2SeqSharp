@@ -13,7 +13,7 @@ namespace TensorSharp.Cpu
 
 
         [RegisterOpStorageType("dot", typeof(CpuStorage))]
-        public Tensor Dot(Tensor result, Tensor lhs, Tensor rhs)
+        public static Tensor Dot(Tensor result, Tensor lhs, Tensor rhs)
         {
             if (lhs.DimensionCount == 1 && rhs.DimensionCount == 1)
             {
@@ -29,12 +29,12 @@ namespace TensorSharp.Cpu
             }
             else
             {
-                throw new NotSupportedException(string.Format("Multiplication of {0}D with {1}D tensor is not supported"));
+                throw new NotSupportedException(message: string.Format("Multiplication of {0}D with {1}D tensor is not supported"));
             }
         }
 
         [RegisterOpStorageType("addmm", typeof(CpuStorage))]
-        public Tensor Addmm(Tensor result, float beta, Tensor src, float alpha, Tensor m1, Tensor m2)
+        public static Tensor Addmm(Tensor result, float beta, Tensor src, float alpha, Tensor m1, Tensor m2)
         {
             //Console.WriteLine($"src0 = {src.Sizes[0]}, src1 = {src.Sizes[1]}, m1_0 = {m1.Sizes[0]}, m1_1 = {m1.Sizes[1]}, m2_0 = {m2.Sizes[0]}, m2_1 = {m2.Sizes[1]}");
 
@@ -45,32 +45,32 @@ namespace TensorSharp.Cpu
 
             if (result != null && !(result.Storage is CpuStorage))
             {
-                throw new ArgumentException("result must be a CPU tensor", "result");
+                throw new ArgumentException("result must be a CPU tensor", nameof(result));
             }
 
             if (!(m1.Storage is CpuStorage))
             {
-                throw new ArgumentException("m1 must be a CPU tensor", "m1");
+                throw new ArgumentException("m1 must be a CPU tensor", nameof(m1));
             }
 
             if (!(m2.Storage is CpuStorage))
             {
-                throw new ArgumentException("m2 must be a CPU tensor", "m2");
+                throw new ArgumentException("m2 must be a CPU tensor", nameof(m2));
             }
 
             if (src.DimensionCount != 2)
             {
-                throw new ArgumentException("src must be a matrix", "src");
+                throw new ArgumentException("src must be a matrix", nameof(src));
             }
 
             if (m1.DimensionCount != 2)
             {
-                throw new ArgumentException("m1 must be a matrix", "m1");
+                throw new ArgumentException("m1 must be a matrix", nameof(m1));
             }
 
             if (m2.DimensionCount != 2)
             {
-                throw new ArgumentException("m2 must be a matrix", "m2");
+                throw new ArgumentException("m2 must be a matrix", nameof(m2));
             }
 
             if (src.Sizes[0] != m1.Sizes[0] || src.Sizes[1] != m2.Sizes[1] || m1.Sizes[1] != m2.Sizes[0])
@@ -93,7 +93,7 @@ namespace TensorSharp.Cpu
         }
 
         [RegisterOpStorageType("addmmbatch", typeof(CpuStorage))]
-        public Tensor AddmmBatch(Tensor result, float beta, Tensor src, float alpha, Tensor m1, Tensor m2)
+        public static Tensor AddmmBatch(Tensor result, float beta, Tensor src, float alpha, Tensor m1, Tensor m2)
         {
             if (src.ElementType != m1.ElementType || src.ElementType != m2.ElementType || (result != null && result.ElementType != src.ElementType))
             {
@@ -102,32 +102,32 @@ namespace TensorSharp.Cpu
 
             if (result != null && !(result.Storage is CpuStorage))
             {
-                throw new ArgumentException("result must be a CPU tensor", "result");
+                throw new ArgumentException("result must be a CPU tensor", nameof(result));
             }
 
             if (!(m1.Storage is CpuStorage))
             {
-                throw new ArgumentException("m1 must be a CPU tensor", "m1");
+                throw new ArgumentException("m1 must be a CPU tensor", nameof(m1));
             }
 
             if (!(m2.Storage is CpuStorage))
             {
-                throw new ArgumentException("m2 must be a CPU tensor", "m2");
+                throw new ArgumentException("m2 must be a CPU tensor", nameof(m2));
             }
 
             if (src.DimensionCount != 3)
             {
-                throw new ArgumentException("src must be a matrix", "src");
+                throw new ArgumentException("src must be a matrix", nameof(src));
             }
 
             if (m1.DimensionCount != 3)
             {
-                throw new ArgumentException("m1 must be a matrix", "m1");
+                throw new ArgumentException("m1 must be a matrix", nameof(m1));
             }
 
             if (m2.DimensionCount != 3)
             {
-                throw new ArgumentException("m2 must be a matrix", "m2");
+                throw new ArgumentException("m2 must be a matrix", nameof(m2));
             }
 
             if (src.Sizes[1] != m1.Sizes[1] || src.Sizes[2] != m2.Sizes[2] || m1.Sizes[2] != m2.Sizes[1])

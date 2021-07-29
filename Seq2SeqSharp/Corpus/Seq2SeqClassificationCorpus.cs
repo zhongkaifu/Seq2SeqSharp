@@ -31,20 +31,18 @@ namespace Seq2SeqSharp.Corpus
         /// <param name="vocabSize"></param>
         public (Vocab, Vocab, Vocab) BuildVocabs(int vocabSize = 45000, bool sharedVocab = false)
         {
-            List<SntPair> sntPairs = new List<SntPair>();
-            foreach (var sntPairBatch in this)
-            {
-                sntPairs.AddRange(sntPairBatch.SntPairs);
-            }
-
-
             Dictionary<int, int> sharedSrcTgtVocabGroupMapping = new Dictionary<int, int>();
             if (sharedVocab)
             {
                 sharedSrcTgtVocabGroupMapping.Add(0, 1); //The second column in target side is text the model will generate
             }
 
-            (var srcVocabs, var tgtVocabs) = CorpusBatch.BuildVocabs(sntPairs, vocabSize, sharedSrcTgtVocabGroupMapping);
+            foreach (var sntPairBatch in this)
+            {
+                CorpusBatch.CountSntPairTokens(sntPairBatch.SntPairs, sharedSrcTgtVocabGroupMapping);
+            }
+
+            (var srcVocabs, var tgtVocabs) = CorpusBatch.GenerateVocabs(vocabSize);
 
             Vocab srcVocab = srcVocabs[0];
             for (int i = 1; i < srcVocabs.Count; i++)

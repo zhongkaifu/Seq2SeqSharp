@@ -80,8 +80,8 @@ namespace Seq2SeqSharp
                 m_b
             };
 
-            response.AddRange(m_layerNorm1.getParams());
-            response.AddRange(m_layerNorm2.getParams());
+            response.AddRange(m_layerNorm1.GetParams());
+            response.AddRange(m_layerNorm2.GetParams());
 
             return response;
         }

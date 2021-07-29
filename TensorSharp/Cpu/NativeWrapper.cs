@@ -38,7 +38,7 @@ namespace TensorSharp.Cpu
         {
             if (dimension < 0 || dimension >= src.Sizes.Length)
             {
-                throw new ArgumentOutOfRangeException("dimension");
+                throw new ArgumentOutOfRangeException(nameof(dimension));
             }
 
             long[] desiredSize = (long[])src.Sizes.Clone();
@@ -97,9 +97,8 @@ namespace TensorSharp.Cpu
             {
                 for (int i = 0; i < args.Length; ++i)
                 {
-                    if (args[i] is Tensor)
+                    if (args[i] is Tensor tensor)
                     {
-                        Tensor tensor = (Tensor)args[i];
                         if (!(tensor.Storage is CpuStorage))
                         {
                             throw new InvalidOperationException("Argument " + i + " is not a Cpu tensor");

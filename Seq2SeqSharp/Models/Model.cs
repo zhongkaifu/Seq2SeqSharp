@@ -32,8 +32,10 @@ namespace Seq2SeqSharp.Models
             {
                 if (ClsVocabs == null)
                 {
-                    ClsVocabs = new List<Vocab>();
-                    ClsVocabs.Add(new Vocab());
+                    ClsVocabs = new List<Vocab>
+                    {
+                        new Vocab()
+                    };
                 }
 
                 return ClsVocabs[0];
@@ -43,8 +45,10 @@ namespace Seq2SeqSharp.Models
             {
                 if (ClsVocabs == null)
                 {
-                    ClsVocabs = new List<Vocab>();
-                    ClsVocabs.Add(new Vocab());
+                    ClsVocabs = new List<Vocab>
+                    {
+                        new Vocab()
+                    };
                 }
 
                 ClsVocabs[0] = value;

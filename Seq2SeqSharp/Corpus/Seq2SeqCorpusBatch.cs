@@ -24,7 +24,7 @@ namespace Seq2SeqSharp.Corpus
 
         }
 
-        private int CountWhiteSpace(string s)
+        private static int CountWhiteSpace(string s)
         {
             if (String.IsNullOrEmpty(s))
             {
@@ -70,7 +70,7 @@ namespace Seq2SeqSharp.Corpus
             CreateGroup(tgtLine, TgtTokenGroups);
         }
 
-        private void CreateGroup(string line, List<List<string>> sntGroup)
+        private static void CreateGroup(string line, List<List<string>> sntGroup)
         {
             string[] groups = line.Split('\t');
             foreach (var group in groups)
@@ -150,15 +150,19 @@ namespace Seq2SeqSharp.Corpus
             TryAddSuffix(SrcTknsGroups[0], BuildInTokens.EOS);
 
 
-            TgtTknsGroups = new List<List<List<string>>>();
-            TgtTknsGroups.Add(InitializeHypTokens(BuildInTokens.BOS));
+            TgtTknsGroups = new List<List<List<string>>>
+            {
+                InitializeHypTokens(BuildInTokens.BOS)
+            };
         }
 
         public override ISntPairBatch CloneSrcTokens()
         {
-            Seq2SeqCorpusBatch spb = new Seq2SeqCorpusBatch();
-            spb.SrcTknsGroups = SrcTknsGroups;
-            spb.TgtTknsGroups = new List<List<List<string>>>();
+            Seq2SeqCorpusBatch spb = new Seq2SeqCorpusBatch
+            {
+                SrcTknsGroups = SrcTknsGroups,
+                TgtTknsGroups = new List<List<List<string>>>()
+            };
             spb.TgtTknsGroups.Add(InitializeHypTokens(BuildInTokens.BOS));
 
             return spb;

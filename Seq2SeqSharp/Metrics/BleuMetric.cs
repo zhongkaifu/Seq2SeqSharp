@@ -14,27 +14,27 @@ namespace Seq2SeqSharp.Metrics
         private double[] m_counts;
         private readonly int m_matchIndex;
 
-        private bool m_caseInsensitive { get; }
-        private int m_ngramOrder { get; }
+        private bool CaseInsensitive { get; }
+        private int NgramOrder { get; }
         public string Name => "BLEU";
 
         public BleuMetric(int ngramOrder = 4, bool caseInsensitive = true)
         {
-            m_ngramOrder = ngramOrder;
-            m_caseInsensitive = caseInsensitive;
-            m_matchIndex = (int)RefHypIdx.HypIdx + m_ngramOrder;
+            NgramOrder = ngramOrder;
+            CaseInsensitive = caseInsensitive;
+            m_matchIndex = (int)RefHypIdx.HypIdx + NgramOrder;
 
             ClearStatus();
         }
 
         public void ClearStatus()
         {
-            m_counts = new double[1 + 2 * m_ngramOrder];
+            m_counts = new double[1 + 2 * NgramOrder];
         }
 
         public void Evaluate(List<List<string>> refTokens, List<string> hypTokens)
         {
-            if (m_caseInsensitive)
+            if (CaseInsensitive)
             {
                 for (int i = 0; i < refTokens.Count; i++)
                 {
@@ -43,14 +43,14 @@ namespace Seq2SeqSharp.Metrics
                 hypTokens = ToLowerCase(hypTokens);
             }
             List<Dictionary<string, int>> refCounts = new List<Dictionary<string, int>>();
-            for (int n = 0; n < m_ngramOrder; n++)
+            for (int n = 0; n < NgramOrder; n++)
             {
                 refCounts.Add(new Dictionary<string, int>());
             }
             foreach (List<string> r in refTokens)
             {
                 List<Dictionary<string, int>> counts = GetNgramCounts(r);
-                for (int n = 0; n < m_ngramOrder; n++)
+                for (int n = 0; n < NgramOrder; n++)
                 {
                     foreach (KeyValuePair<string, int> e in counts[n])
                     {
@@ -67,7 +67,7 @@ namespace Seq2SeqSharp.Metrics
             List<Dictionary<string, int>> hypCounts = GetNgramCounts(hypTokens);
 
             m_counts[(int)RefHypIdx.RefIdx] += GetClosestRefLength(refTokens, hypTokens);
-            for (int j = 0; j < m_ngramOrder; j++)
+            for (int j = 0; j < NgramOrder; j++)
             {
                 int overlap = 0;
                 foreach (KeyValuePair<string, int> e in hypCounts[j])
@@ -129,7 +129,7 @@ namespace Seq2SeqSharp.Metrics
         private List<Dictionary<string, int>> GetNgramCounts(List<string> tokens)
         {
             List<Dictionary<string, int>> allCounts = new List<Dictionary<string, int>>();
-            for (int n = 0; n < m_ngramOrder; n++)
+            for (int n = 0; n < NgramOrder; n++)
             {
                 Dictionary<string, int> counts = new Dictionary<string, int>();
                 for (int i = 0; i < tokens.Count - n; i++)
@@ -152,15 +152,15 @@ namespace Seq2SeqSharp.Metrics
         private double Precision()
         {
             double prec = 1.0;
-            for (int i = 0; i < m_ngramOrder; i++)
+            for (int i = 0; i < NgramOrder; i++)
             {
                 double x = m_counts[m_matchIndex + i] / (m_counts[(int)RefHypIdx.HypIdx + i] + 0.001);
-                prec *= Math.Pow(x, 1.0 / m_ngramOrder);
+                prec *= Math.Pow(x, 1.0 / NgramOrder);
             }
             return prec;
         }
 
-        private List<string> ToLowerCase(List<string> tokens)
+        private static List<string> ToLowerCase(List<string> tokens)
         {
             List<string> output = new List<string>();
             for (int i = 0; i < tokens.Count; i++)

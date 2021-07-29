@@ -13,7 +13,7 @@ namespace Seq2SeqSharp.Tools
 {
     public class SeqLabelingCorpus : ParallelCorpus<SeqLabelingCorpusBatch>
     {
-        private (string, string) ConvertSequenceLabelingFormatToParallel(string filePath)
+        private static (string, string) ConvertSequenceLabelingFormatToParallel(string filePath)
         {
             List<string> srcLines = new List<string>();
             List<string> tgtLines = new List<string>();
@@ -83,12 +83,11 @@ namespace Seq2SeqSharp.Tools
         /// <param name="vocabSize"></param>
         public (Vocab, Vocab) BuildVocabs(int vocabSize = 45000)
         {
-            List<SntPair> sntPairs = new List<SntPair>();
             foreach (var sntPairBatch in this)
             {
-                sntPairs.AddRange(sntPairBatch.SntPairs);
+                CorpusBatch.CountSntPairTokens(sntPairBatch.SntPairs);
             }
-            (var srcVocabs, var tgtVocabs) = CorpusBatch.BuildVocabs(sntPairs, vocabSize);
+            (var srcVocabs, var tgtVocabs) = CorpusBatch.GenerateVocabs(vocabSize);
 
             Vocab srcVocab = srcVocabs[0];
             Vocab tgtVocab = tgtVocabs[0];

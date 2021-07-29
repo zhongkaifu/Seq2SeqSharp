@@ -45,13 +45,13 @@ namespace Seq2SeqSharp.Tools
 
         private bool releasedWeight = false;
       //  private bool releasedGradient = false;
-        private IComputeGraph m_computeGraphToBind;
+        private readonly IComputeGraph m_computeGraphToBind;
 
         private string m_GradientSetName = "None";
 
-        private bool m_fanIn = false;
-        private bool m_fanOut = false;
-        private NormType m_normType = NormType.None;
+        private readonly bool m_fanIn = false;
+        private readonly bool m_fanOut = false;
+        private readonly NormType m_normType = NormType.None;
 
         public Tensor TWeight
         {

@@ -26,7 +26,7 @@ namespace TensorSharp.Cpu
 
             if (result != null && dim < 0 && dim >= result.DimensionCount)
             {
-                throw new ArgumentOutOfRangeException("dim");
+                throw new ArgumentOutOfRangeException(nameof(dim));
             }
 
             if (indices.DimensionCount != src.DimensionCount)
@@ -55,7 +55,7 @@ namespace TensorSharp.Cpu
         {
             if (result == null)
             {
-                throw new ArgumentNullException("result");
+                throw new ArgumentNullException(nameof(result));
             }
 
             if (result.DimensionCount != src.DimensionCount)
@@ -65,7 +65,7 @@ namespace TensorSharp.Cpu
 
             if (dim < 0 && dim >= result.DimensionCount)
             {
-                throw new ArgumentOutOfRangeException("dim");
+                throw new ArgumentOutOfRangeException(nameof(dim));
             }
 
             if (indices.DimensionCount != src.DimensionCount)
@@ -94,12 +94,12 @@ namespace TensorSharp.Cpu
         {
             if (result == null)
             {
-                throw new ArgumentNullException("result");
+                throw new ArgumentNullException(nameof(result));
             }
 
             if (dim < 0 && dim >= result.DimensionCount)
             {
-                throw new ArgumentOutOfRangeException("dim");
+                throw new ArgumentOutOfRangeException(nameof(dim));
             }
 
             if (indices.DimensionCount != result.DimensionCount)

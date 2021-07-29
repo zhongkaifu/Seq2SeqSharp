@@ -82,24 +82,20 @@ namespace TensorSharp.Cpu
                 }
             }
 
-            using (Tensor inputContig = Ops.AsContiguous(input))
+            using Tensor inputContig = Ops.AsContiguous(input);
+            for (int i = 0; i < nbatch; ++i)
             {
-                for (int i = 0; i < nbatch; ++i)
+                using Tensor input_i = inputContig.Select(0, i);
+                using Tensor output_i = output.Select(0, i);
+                using Tensor indices_i = indices.Select(0, i);
+                using (NativeWrapper.BuildTensorRefPtr(input_i, out IntPtr input_iPtr))
+                using (NativeWrapper.BuildTensorRefPtr(output_i, out IntPtr output_iPtr))
+                using (NativeWrapper.BuildTensorRefPtr(indices_i, out IntPtr indices_iPtr))
                 {
-                    using (Tensor input_i = inputContig.Select(0, i))
-                    using (Tensor output_i = output.Select(0, i))
-                    using (Tensor indices_i = indices.Select(0, i))
-                    {
-                        using (NativeWrapper.BuildTensorRefPtr(input_i, out IntPtr input_iPtr))
-                        using (NativeWrapper.BuildTensorRefPtr(output_i, out IntPtr output_iPtr))
-                        using (NativeWrapper.BuildTensorRefPtr(indices_i, out IntPtr indices_iPtr))
-                        {
-                            CpuOpsNative.TS_SpatialMaxPooling_updateOutput_frame(input_iPtr, output_iPtr, indices_iPtr,
-                                nslices, iwidth, iheight,
-                                owidth, oheight,
-                                cd.kW, cd.kH, cd.dW, cd.dH, cd.padW, cd.padH);
-                        }
-                    }
+                    CpuOpsNative.TS_SpatialMaxPooling_updateOutput_frame(input_iPtr, output_iPtr, indices_iPtr,
+                        nslices, iwidth, iheight,
+                        owidth, oheight,
+                        cd.kW, cd.kH, cd.dW, cd.dH, cd.padW, cd.padH);
                 }
             }
 
@@ -122,24 +118,20 @@ namespace TensorSharp.Cpu
             Ops.Fill(gradInput, 0);
 
 
-            using (Tensor gradOutputContig = Ops.AsContiguous(gradOutput))
+            using Tensor gradOutputContig = Ops.AsContiguous(gradOutput);
+            for (int i = 0; i < nbatch; ++i)
             {
-                for (int i = 0; i < nbatch; ++i)
+                using Tensor gradInput_i = gradInput.Select(0, i);
+                using Tensor gradOutput_i = gradOutputContig.Select(0, i);
+                using Tensor indices_i = indices.Select(0, i);
+                using (NativeWrapper.BuildTensorRefPtr(gradInput_i, out IntPtr gradInput_iPtr))
+                using (NativeWrapper.BuildTensorRefPtr(gradOutput_i, out IntPtr gradOutput_iPtr))
+                using (NativeWrapper.BuildTensorRefPtr(indices_i, out IntPtr indices_iPtr))
                 {
-                    using (Tensor gradInput_i = gradInput.Select(0, i))
-                    using (Tensor gradOutput_i = gradOutputContig.Select(0, i))
-                    using (Tensor indices_i = indices.Select(0, i))
-                    {
-                        using (NativeWrapper.BuildTensorRefPtr(gradInput_i, out IntPtr gradInput_iPtr))
-                        using (NativeWrapper.BuildTensorRefPtr(gradOutput_i, out IntPtr gradOutput_iPtr))
-                        using (NativeWrapper.BuildTensorRefPtr(indices_i, out IntPtr indices_iPtr))
-                        {
-                            CpuOpsNative.TS_SpatialMaxPooling_updateGradInput_frame(gradInput_iPtr, gradOutput_iPtr, indices_iPtr,
-                                nslices, iwidth, iheight,
-                                owidth, oheight,
-                                cd.dW, cd.dH);
-                        }
-                    }
+                    CpuOpsNative.TS_SpatialMaxPooling_updateGradInput_frame(gradInput_iPtr, gradOutput_iPtr, indices_iPtr,
+                        nslices, iwidth, iheight,
+                        owidth, oheight,
+                        cd.dW, cd.dH);
                 }
             }
         }

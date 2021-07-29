@@ -99,19 +99,15 @@ namespace Seq2SeqSharp
                 IWeightTensor selfMaskTensor = null;
                 if (tgtSelfMask != null)
                 {
-                    using (var keyMaskView = subg.View(tgtSelfMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenQ }))
-                    {
-                        selfMaskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ });
-                    }
+                    using var keyMaskView = subg.View(tgtSelfMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenQ });
+                    selfMaskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ });
                 }
 
                 IWeightTensor crossMaskTensor = null;
                 if (srcTgtMask != null)
                 {
-                    using (var keyMaskView = subg.View(srcTgtMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenK }))
-                    {
-                        crossMaskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK });
-                    }
+                    using var keyMaskView = subg.View(srcTgtMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenK });
+                    crossMaskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK });
                 }
 
                 for (int k = 0; k < m_selfAttns.Count; k++)
@@ -157,20 +153,20 @@ namespace Seq2SeqSharp
 
             foreach (MultiHeadAttention item in m_selfAttns)
             {
-                response.AddRange(item.getParams());
+                response.AddRange(item.GetParams());
             }
 
             foreach (MultiHeadAttention item in m_encAttns)
             {
-                response.AddRange(item.getParams());
+                response.AddRange(item.GetParams());
             }
 
             foreach (var item in m_posFFNs)
             {
-                response.AddRange(item.getParams());
+                response.AddRange(item.GetParams());
             }
 
-            response.AddRange(layerNorm.getParams());
+            response.AddRange(layerNorm.GetParams());
           //  response.AddRange(m_decoderFFLayer.GetParams());
 
             return response;

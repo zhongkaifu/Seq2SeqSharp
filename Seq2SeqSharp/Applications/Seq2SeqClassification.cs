@@ -33,8 +33,7 @@ namespace Seq2SeqSharp.Applications
         private MultiProcessorNetworkWrapper<IWeightTensor> m_segmentEmbedding;
 
         private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
-
-        Seq2SeqClassificationOptions m_options = null;
+        readonly Seq2SeqClassificationOptions m_options = null;
 
         public Vocab ClsVocab => m_modelMetaData.ClsVocab;
 
@@ -81,7 +80,7 @@ namespace Seq2SeqSharp.Applications
             Logger.WriteLine($"Creating encoders and decoders...");
             RoundArray<int> raDeviceIds = new RoundArray<int>(DeviceIds);
 
-            int contextDim = 0;
+            int contextDim;
             if (modelMetaData.EncoderType == EncoderTypeEnums.BiLSTM)
             {
                 m_encoder = new MultiProcessorNetworkWrapper<IEncoder>(
@@ -177,12 +176,12 @@ namespace Seq2SeqSharp.Applications
             RunValid(validCorpus, RunForwardOnSingleDevice, taskId2metrics, true);
         }
 
-        public List<NetworkResult> Test(List<List<List<string>>> inputTokensGroups, int beamSearchSize)
+        public List<NetworkResult> Test(List<List<List<string>>> inputTokensGroups)
         {
             Seq2SeqClassificationCorpusBatch spb = new Seq2SeqClassificationCorpusBatch();
             spb.CreateBatch(inputTokensGroups);
 
-            var nrs = RunTest(spb, beamSearchSize, RunForwardOnSingleDevice);
+            var nrs = RunTest(spb, RunForwardOnSingleDevice);
 
             return nrs;
         }
@@ -200,7 +199,7 @@ namespace Seq2SeqSharp.Applications
                     m_decoderFFLayer.GetNetworkOnDevice(deviceIdIdx),
                     m_modelMetaData.SharedEmbeddings ? m_sharedEmbedding.GetNetworkOnDevice(deviceIdIdx) : m_srcEmbedding.GetNetworkOnDevice(deviceIdIdx),
                     m_modelMetaData.SharedEmbeddings ? m_sharedEmbedding.GetNetworkOnDevice(deviceIdIdx) : m_tgtEmbedding.GetNetworkOnDevice(deviceIdIdx),
-                    m_posEmbedding == null ? null : m_posEmbedding.GetNetworkOnDevice(deviceIdIdx), m_segmentEmbedding == null ? null : m_segmentEmbedding.GetNetworkOnDevice(deviceIdIdx));
+                    m_posEmbedding?.GetNetworkOnDevice(deviceIdIdx), m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx));
         }
 
         /// <summary>
@@ -239,8 +238,10 @@ namespace Seq2SeqSharp.Applications
             IWeightTensor clsWeightTensor = computeGraph.IndexSelect(encOutput, clsIdxs);
 
             float cost = 0.0f;
-            NetworkResult nrCLS = new NetworkResult();
-            nrCLS.Output = new List<List<List<string>>>();
+            NetworkResult nrCLS = new NetworkResult
+            {
+                Output = new List<List<List<string>>>()
+            };
 
             IWeightTensor ffLayer = encoderFFLayer.Process(clsWeightTensor, batchSize, computeGraph);
             using (IWeightTensor probs = computeGraph.Softmax(ffLayer, runGradients: false, inPlace: true))
@@ -263,17 +264,15 @@ namespace Seq2SeqSharp.Applications
                 else
                 {
                     // Output "i"th target word
-                    using (var targetIdxTensor = computeGraph.Argmax(probs, 1))
-                    {
-                        float[] targetIdx = targetIdxTensor.ToWeightArray();
-                        List<string> targetWords = m_modelMetaData.ClsVocab.ConvertIdsToString(targetIdx.ToList());
-                        nrCLS.Output.Add(new List<List<string>>());
+                    using var targetIdxTensor = computeGraph.Argmax(probs, 1);
+                    float[] targetIdx = targetIdxTensor.ToWeightArray();
+                    List<string> targetWords = m_modelMetaData.ClsVocab.ConvertIdsToString(targetIdx.ToList());
+                    nrCLS.Output.Add(new List<List<string>>());
 
-                        for (int k = 0; k < batchSize; k++)
-                        {
-                            nrCLS.Output[0].Add(new List<string>());
-                            nrCLS.Output[0][k].Add(targetWords[k]);
-                        }
+                    for (int k = 0; k < batchSize; k++)
+                    {
+                        nrCLS.Output[0].Add(new List<string>());
+                        nrCLS.Output[0][k].Add(targetWords[k]);
                     }
                 }
             }
@@ -289,14 +288,16 @@ namespace Seq2SeqSharp.Applications
             if (decoder is AttentionDecoder)
             {
                 nr.Cost = DecodeAttentionLSTM(tgtTokensList, computeGraph, encOutput, decoder as AttentionDecoder, decoderFFLayer, tgtEmbedding, srcSnts.Count, isTraining);
-                nr.Output = new List<List<List<string>>>();
-                nr.Output.Add(m_modelMetaData.TgtVocab.ConvertIdsToString(tgtTokensList));
+                nr.Output = new List<List<List<string>>>
+                {
+                    m_modelMetaData.TgtVocab.ConvertIdsToString(tgtTokensList)
+                };
             }
             else
             {
                 if (isTraining)
                 {
-                    (var c, var tmp) = DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding,
+                    (var c, _) = DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding,
                                                          m_shuffleType == ShuffleEnums.NoPaddingInSrc ? null : originalSrcLengths, isTraining);
                     nr.Cost = c;
                     nr.Output = null;
@@ -319,18 +320,16 @@ namespace Seq2SeqSharp.Applications
                         {
                             foreach (var batch2tgtTokens in beam2batch2tgtTokens)
                             {
-                                using (var g = computeGraph.CreateSubGraph($"TransformerDecoder_Step_{i}"))
-                                {
-                                    (var cost2, var bssSeqList) = DecodeTransformer(batch2tgtTokens, g, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding,
-                                                                                    m_shuffleType == ShuffleEnums.NoPaddingInSrc ? null : originalSrcLengths, isTraining, beamSearchSize: m_options.BeamSearchSize,
-                                                                                    outputAlignmentSrcPos: m_options.OutputAlignment, outputSentScore: m_options.BeamSearchSize > 1);
+                                using var g = computeGraph.CreateSubGraph($"TransformerDecoder_Step_{i}");
+                                (var cost2, var bssSeqList) = DecodeTransformer(batch2tgtTokens, g, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding,
+                                                                                m_shuffleType == ShuffleEnums.NoPaddingInSrc ? null : originalSrcLengths, isTraining, beamSearchSize: m_options.BeamSearchSize,
+                                                                                outputAlignmentSrcPos: m_options.OutputAlignment, outputSentScore: m_options.BeamSearchSize > 1);
 
-                                    for (int j = 0; j < m_options.BeamSearchSize; j++)
+                                for (int j = 0; j < m_options.BeamSearchSize; j++)
+                                {
+                                    for (int k = 0; k < batchSize; k++)
                                     {
-                                        for (int k = 0; k < batchSize; k++)
-                                        {
-                                            batch2beam2seq[k].Add(bssSeqList[j][k]);
-                                        }
+                                        batch2beam2seq[k].Add(bssSeqList[j][k]);
                                     }
                                 }
                             }
@@ -367,7 +366,7 @@ namespace Seq2SeqSharp.Applications
                                 beam2batch2tgtTokens[k].Add(batch2beam2seq[j][k].OutputIds);
                                 beam2batch2alignment[k].Add(batch2beam2seq[j][k].AlignmentToSrc);
 
-                                if (batch2beam2seq[j][k].OutputIds[batch2beam2seq[j][k].OutputIds.Count - 1] != (int)SENTTAGS.END)
+                                if (batch2beam2seq[j][k].OutputIds[^1] != (int)SENTTAGS.END)
                                 {
                                     allSntsEnd = false;
                                 }
@@ -408,12 +407,10 @@ namespace Seq2SeqSharp.Applications
             IWeightTensor decEncAttnProbs = null;
             using (IWeightTensor srcTgtMask = g.BuildSrcTgtMask(srcSeqLen, tgtSeqLen, tgtOriginalLengths, srcOriginalLenghts))
             {
-                using (IWeightTensor tgtSelfTriMask = g.BuildPadSelfTriMask(tgtSeqLen, tgtOriginalLengths))
-                {
-                    IWeightTensor inputEmbs = TensorUtils.ExtractTokensEmbeddings(tgtSeqs, g, tgtEmbedding, tgtOriginalLengths, null, m_modelMetaData.TgtVocab);
-                    inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbedding, batchSize, inputEmbs, m_options.DropoutRatio);
-                    (decOutput, decEncAttnProbs) = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g, outputAttnWeights: outputAlignmentSrcPos);
-                }
+                using IWeightTensor tgtSelfTriMask = g.BuildPadSelfTriMask(tgtSeqLen, tgtOriginalLengths);
+                IWeightTensor inputEmbs = TensorUtils.ExtractTokensEmbeddings(tgtSeqs, g, tgtEmbedding, tgtOriginalLengths, null, m_modelMetaData.TgtVocab);
+                inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbedding, batchSize, inputEmbs, m_options.DropoutRatio);
+                (decOutput, decEncAttnProbs) = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g, outputAttnWeights: outputAlignmentSrcPos);
             }
 
             IWeightTensor ffLayer = decoderFFLayer.Process(decOutput, batchSize, g);
@@ -444,65 +441,63 @@ namespace Seq2SeqSharp.Applications
                 while (beamSearchSize > 0)
                 {
                     // Output "i"th target word
-                    using (var targetIdxTensor = g.Argmax(probs, 1))
+                    using var targetIdxTensor = g.Argmax(probs, 1);
+                    IWeightTensor gatherTensor = null;
+                    if (outputSentScore)
                     {
-                        IWeightTensor gatherTensor = null;
+                        gatherTensor = g.Gather(probs, targetIdxTensor, 1);
+                        gatherTensor = g.Log(gatherTensor);
+                        gatherTensor = g.View(gatherTensor, false, new long[] { batchSize, tgtSeqLen, 1 });
+                        gatherTensor = g.Sum(gatherTensor, 1, runGradient: false);
+                    }
+
+                    float[] targetIdx = targetIdxTensor.ToWeightArray();
+                    float[] alignmentSrcPos = null;
+                    float[] alignmentSrcScore = null;
+                    if (outputAlignmentSrcPos)
+                    {
+                        using (var sourcePosIdxTensor = g.Argmax(decEncAttnProbs, 1))
+                        {
+                            alignmentSrcPos = sourcePosIdxTensor.ToWeightArray();
+                        }
+
+                        var sourceScoreTensor = g.Max(decEncAttnProbs, 1);
+                        alignmentSrcScore = sourceScoreTensor.ToWeightArray();
+                    }
+
+
+                    List<BeamSearchStatus> outputTgtSeqs = new List<BeamSearchStatus>();
+                    for (int i = 0; i < batchSize; i++)
+                    {
+                        BeamSearchStatus bss = new BeamSearchStatus();
+                        bss.OutputIds.AddRange(tgtSeqs[i]);
+                        bss.OutputIds.Add((int)(targetIdx[i * tgtSeqLen + tgtSeqLen - 1]));
+
                         if (outputSentScore)
                         {
-                            gatherTensor = g.Gather(probs, targetIdxTensor, 1);
-                            gatherTensor = g.Log(gatherTensor);
-                            gatherTensor = g.View(gatherTensor, false, new long[] { batchSize, tgtSeqLen, 1 });
-                            gatherTensor = g.Sum(gatherTensor, 1, runGradient: false);
+                            bss.Score = -1.0f * gatherTensor.GetWeightAt(new long[] { i, 0, 0 });
                         }
 
-                        float[] targetIdx = targetIdxTensor.ToWeightArray();
-                        float[] alignmentSrcPos = null;
-                        float[] alignmentSrcScore = null;
                         if (outputAlignmentSrcPos)
                         {
-                            using (var sourcePosIdxTensor = g.Argmax(decEncAttnProbs, 1))
+                            Alignment align = new Alignment(0, 0);
+                            bss.AlignmentToSrc.Add(align);
+                            for (int j = 0; j < tgtSeqLen; j++)
                             {
-                                alignmentSrcPos = sourcePosIdxTensor.ToWeightArray();
-                            }
-
-                            var sourceScoreTensor = g.Max(decEncAttnProbs, 1);
-                            alignmentSrcScore = sourceScoreTensor.ToWeightArray();
-                        }
-
-
-                        List<BeamSearchStatus> outputTgtSeqs = new List<BeamSearchStatus>();
-                        for (int i = 0; i < batchSize; i++)
-                        {
-                            BeamSearchStatus bss = new BeamSearchStatus();
-                            bss.OutputIds.AddRange(tgtSeqs[i]);
-                            bss.OutputIds.Add((int)(targetIdx[i * tgtSeqLen + tgtSeqLen - 1]));
-
-                            if (outputSentScore)
-                            {
-                                bss.Score = -1.0f * gatherTensor.GetWeightAt(new long[] { i, 0, 0 });
-                            }
-
-                            if (outputAlignmentSrcPos)
-                            {
-                                Alignment align = new Alignment(0, 0);
+                                align = new Alignment((int)(alignmentSrcPos[i * tgtSeqLen + j]), alignmentSrcScore[i * tgtSeqLen + j]);
                                 bss.AlignmentToSrc.Add(align);
-                                for (int j = 0; j < tgtSeqLen; j++)
-                                {
-                                    align = new Alignment((int)(alignmentSrcPos[i * tgtSeqLen + j]), alignmentSrcScore[i * tgtSeqLen + j]);
-                                    bss.AlignmentToSrc.Add(align);
-                                }
                             }
-
-                            outputTgtSeqs.Add(bss);
                         }
 
-                        bssSeqList.Add(outputTgtSeqs);
+                        outputTgtSeqs.Add(bss);
+                    }
 
-                        beamSearchSize--;
-                        if (beamSearchSize > 0)
-                        {
-                            TensorUtils.ScatterFill(probs, 0.0f, targetIdxTensor, 1);
-                        }
+                    bssSeqList.Add(outputTgtSeqs);
+
+                    beamSearchSize--;
+                    if (beamSearchSize > 0)
+                    {
+                        TensorUtils.ScatterFill(probs, 0.0f, targetIdxTensor, 1);
                     }
                 }
                 return (0.0f, bssSeqList);
@@ -551,60 +546,56 @@ namespace Seq2SeqSharp.Applications
                 IWeightTensor ffLayer = decoderFFLayer.Process(dOutput, batchSize, g);
 
                 //Softmax for output
-                using (IWeightTensor probs = g.Softmax(ffLayer, runGradients: false, inPlace: true))
+                using IWeightTensor probs = g.Softmax(ffLayer, runGradients: false, inPlace: true);
+                if (isTraining)
                 {
-                    if (isTraining)
+                    //Calculate loss for each word in the batch
+                    for (int k = 0; k < batchSize; k++)
                     {
-                        //Calculate loss for each word in the batch
-                        for (int k = 0; k < batchSize; k++)
+                        float score_k = probs.GetWeightAt(new long[] { k, outputSnts[k][i] });
+                        if (i < originalOutputLengths[k])
                         {
-                            float score_k = probs.GetWeightAt(new long[] { k, outputSnts[k][i] });
-                            if (i < originalOutputLengths[k])
+                            var lcost = (float)-Math.Log(score_k);
+                            if (float.IsNaN(lcost))
                             {
-                                var lcost = (float)-Math.Log(score_k);
-                                if (float.IsNaN(lcost))
-                                {
-                                    throw new ArithmeticException($"Score = '{score_k}' Cost = Nan at index '{i}' word '{outputSnts[k][i]}', Output Sentence = '{String.Join(" ", outputSnts[k])}'");
-                                }
-                                else
-                                {
-                                    cost += lcost;
-                                }
+                                throw new ArithmeticException($"Score = '{score_k}' Cost = Nan at index '{i}' word '{outputSnts[k][i]}', Output Sentence = '{String.Join(" ", outputSnts[k])}'");
                             }
-
-                            probs.SetWeightAt(score_k - 1, new long[] { k, outputSnts[k][i] });
-                            ix_inputs[k] = outputSnts[k][i];
+                            else
+                            {
+                                cost += lcost;
+                            }
                         }
-                        ffLayer.CopyWeightsToGradients(probs);
+
+                        probs.SetWeightAt(score_k - 1, new long[] { k, outputSnts[k][i] });
+                        ix_inputs[k] = outputSnts[k][i];
                     }
-                    else
+                    ffLayer.CopyWeightsToGradients(probs);
+                }
+                else
+                {
+                    // Output "i"th target word
+                    using var targetIdxTensor = g.Argmax(probs, 1);
+                    float[] targetIdx = targetIdxTensor.ToWeightArray();
+                    for (int j = 0; j < targetIdx.Length; j++)
                     {
-                        // Output "i"th target word
-                        using (var targetIdxTensor = g.Argmax(probs, 1))
+                        if (setEndSentId.Contains(j) == false)
                         {
-                            float[] targetIdx = targetIdxTensor.ToWeightArray();
-                            for (int j = 0; j < targetIdx.Length; j++)
+                            outputSnts[j].Add((int)targetIdx[j]);
+
+                            if (targetIdx[j] == eosTokenId)
                             {
-                                if (setEndSentId.Contains(j) == false)
-                                {
-                                    outputSnts[j].Add((int)targetIdx[j]);
-
-                                    if (targetIdx[j] == eosTokenId)
-                                    {
-                                        setEndSentId.Add(j);
-                                    }
-                                }
+                                setEndSentId.Add(j);
                             }
-
-                            if (setEndSentId.Count == batchSize)
-                            {
-                                // All target sentences in current batch are finished, so we exit.
-                                break;
-                            }
-
-                            ix_inputs = targetIdx;
                         }
                     }
+
+                    if (setEndSentId.Count == batchSize)
+                    {
+                        // All target sentences in current batch are finished, so we exit.
+                        break;
+                    }
+
+                    ix_inputs = targetIdx;
                 }
             }
 
