@@ -29,8 +29,13 @@ namespace Seq2SeqSharp.Corpus
         /// For return vocabs: (source vocab, target vocab, classification vocab)
         /// </summary>
         /// <param name="vocabSize"></param>
-        public (Vocab, Vocab, Vocab) BuildVocabs(int vocabSize = 45000, bool sharedVocab = false)
+        public (Vocab, Vocab, Vocab) BuildVocabs(int srcVocabSize = 45000, int tgtVocabSize = 45000, bool sharedVocab = false)
         {
+            if (sharedVocab && (srcVocabSize != tgtVocabSize))
+            {
+                throw new ArgumentException($"Vocab size must be equal if sharedVocab is true. Src Vocab Size = '{srcVocabSize}', Tgt Vocab Size = '{tgtVocabSize}'");
+            }
+
             foreach (var sntPairBatch in this)
             {
                 CorpusBatch.CountSntPairTokens(sntPairBatch.SntPairs);
@@ -42,7 +47,7 @@ namespace Seq2SeqSharp.Corpus
                 CorpusBatch.MergeTokensCountSrcTgt(0, 1);
             }
 
-            (var srcVocabs, var tgtVocabs) = CorpusBatch.GenerateVocabs(vocabSize);
+            (var srcVocabs, var tgtVocabs) = CorpusBatch.GenerateVocabs(srcVocabSize, tgtVocabSize);
 
             Vocab srcVocab = srcVocabs[0];
             Vocab clsVocab = tgtVocabs[0];

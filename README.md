@@ -46,6 +46,9 @@ Seq2SeqClassificationConsole  | It's a multi-task based tool. The first task is 
 SeqLabelConsole               | Used for sequence labeling tasks, such as named entity recongizer, postag and other  
 
 ## Seq2SeqConsole for sequence-to-sequence task  
+Here is the graph that what the model looks like:  
+![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Seq2SeqModel.jpeg)
+
 You can use Seq2SeqConsole tool to train, test and visualize models.  
 Here is the command line to train a model:  
 **Seq2SeqConsole.exe -Task Train [parameters...]**  
@@ -179,7 +182,8 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
         "ValBatchSize":16,                                   
         "WarmUpSteps":8000,
         "ValidIntervalHours":0.1,
-        "VocabSize":32000,
+        "SrcVocabSize":45000,
+        "TgtVocabSize":45000,
         "VisualizeNNFilePath":null            
 }
 ```
@@ -194,10 +198,21 @@ So, train01.chs.snt has the corresponding translated sentences:
 孩子 们 挤 成 一 团 以 取暖 .  
 汽车 业 也 在 不断 地 变化 .  
 
+To apply contextual features, you can append features to the line of input text and split them by tab character.  
+Here is an example. Let's assume we have a translation model that can translate English to Chinese, Japanese and Korean, so given a English sentence, we need to apply a contextual feature to let the model know which language it should translate to.  
+In train01.enu.snt, the input will be changed to:  
+the children huddled together for warmth . \t CHS  
+the car business is constantly changing . \t CHS  
+But train01.cjk.snt is the same as train01.chs.snt in above.  
+孩子 们 挤 成 一 团 以 取暖 .  
+汽车 业 也 在 不断 地 变化 .  
 
 ## SeqClassification for sequence-classification task  
 SeqClassification is used to classify input sequence to a certain category.  Given an input sequence, the tool will add a [CLS] tag at the beginning of sequence, and then send it to the encoder. At top layer of the encoder, it will run softmax against [CLS] and decide which category the sequence belongs to.  
 This tool can be used to train a model for sequence-classification task, and test the model.  
+
+Here is the graph that what the model looks like:  
+![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/SeqClassificationModel.jpeg)
 
 Here is the configuration file for model training.  
 ```json
@@ -240,9 +255,8 @@ Here is the configuration file for model training.
 ```
 
 ### Data format for SeqCliassificationConsole tool  
-The data format is tokens along with the corresponding tags for classification per line. Tokens are inputs to the encoder, and ask model to predict tags.  
-Tags and tokens are split by tab character. It looks like [Tag1] \t [Tag2] \t ... \t [TagN] \t [Tokens in Text]  
-If data has multi-tags, model will run multi-tasks for these tags.  
+It also uses two files for each pair of data and follows the same naming convention as Seq2SeqConsole tool in above. The source file includes tokens as input to the model, and the target file includes the corresponding tags that model will predict. Each line contains one record.  
+The model supports multi-classifiers, so tags in the target file are split by tab character, such as [Tag1] \t [Tag2] \t ... \t [TagN]. Each classifiers predicts one tag.  
 
 Here is an example:  
 Tag                 |  Tokens in Sequence
@@ -251,6 +265,11 @@ Otorhinolaryngology | What should I do if I have a sore throat and a runny nose?
 Orthopedics         | How can I recuperate if my ankle is twisted? [SEP] I twisted my ankle when I went down the stairs, and now it is red and swollen. X-rays were taken and there were no fractures. May I ask how to recuperate to get better as soon as possible.  
 
 "Otorhinolaryngology" and "Orthopedics" are tags for classification and the rest of the tokens in each line are tokens for input sequence. This is an example that given title and description in medical domain, asking model to predict which specialty it should be classified. [SEP] is used to split title and description in the sequence, but it's not required in other tasks.  
+
+## Seq2SeqClassificationConsole for sequence-to-sequence and classification multi-tasks  
+Here is the graph that what the model looks like:  
+![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Seq2SeqClassificationModel.jpeg)
+
 
 ## SeqLabelConsole for sequence-labeling task  
 The usage of **SeqLabelConsole.exe** is similar as **Seq2SeqConsole.exe** in above, you can just type it in the console and it will show you usage.  

@@ -120,7 +120,13 @@ namespace Seq2SeqSharp.Applications
         [Arg("The interval hours to run model validation", "ValidIntervalHours")]
         public float ValidIntervalHours = 1.0f;
 
-        [Arg("The size of vocabulary", "VocabSize")]
-        public int VocabSize = 45000;
+        [Arg("The size of vocabulary in source side", "SrcVocabSize")]
+        public int SrcVocabSize = 45000;
+
+        [Arg("The size of vocabulary in target side", "TgtVocabSize")]
+        public int TgtVocabSize = 45000;
+
+        [Arg("It indicates if contextual features' embeddings are applied to entire input sequence rather than the first segment", "ApplyContextEmbeddingsToEntireSequence")]
+        public bool ApplyContextEmbeddingsToEntireSequence = true;
     }
 }

@@ -162,7 +162,7 @@ namespace Seq2SeqClassificationConsole
 
 
                             // We don't specify vocabulary, so we build it from train corpus
-                            (srcVocab, tgtVocab, clsVocab) = trainCorpus.BuildVocabs(opts.VocabSize, opts.SharedEmbeddings);
+                            (srcVocab, tgtVocab, clsVocab) = trainCorpus.BuildVocabs(opts.SrcVocabSize, opts.TgtVocabSize, opts.SharedEmbeddings);
                         }
 
                         //New training

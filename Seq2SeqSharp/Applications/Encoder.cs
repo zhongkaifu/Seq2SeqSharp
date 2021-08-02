@@ -31,7 +31,7 @@ namespace Seq2SeqSharp.Applications
         }
 
         static public IWeightTensor Run(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, IEncoder encoder, IModel modelMetaData, ShuffleEnums shuffleType,
-            IWeightTensor srcEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, List<List<string>> srcSnts, List<int> originalSrcLengths)
+            IWeightTensor srcEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, List<List<string>> srcSnts, List<int> originalSrcLengths, bool applyContextEmbeddingsToEntireSequence = true)
         {
             int batchSize = srcSnts.Count;
 
@@ -65,12 +65,12 @@ namespace Seq2SeqSharp.Applications
             }
 
 
-            IWeightTensor encOutput = InnerRunner(computeGraph, srcSnts, originalSrcLengths, shuffleType, encoder, modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, contextTensor);
+            IWeightTensor encOutput = InnerRunner(computeGraph, srcSnts, originalSrcLengths, shuffleType, encoder, modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, contextTensor, applyContextEmbeddingsToEntireSequence);
             return encOutput;
         }
 
         static private IWeightTensor InnerRunner(IComputeGraph computeGraph, List<List<string>> srcSnts, List<int> originalSrcLengths, ShuffleEnums shuffleType, IEncoder encoder, IModel modelMetaData,
-           IWeightTensor srcEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, IWeightTensor contextEmbeddings = null)
+           IWeightTensor srcEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, IWeightTensor contextEmbeddings = null, bool applyContextEmbeddingsToEntireSequence = true)
         {
 
             int srcSeqPaddedLen = srcSnts[0].Count;
@@ -78,7 +78,7 @@ namespace Seq2SeqSharp.Applications
 
             // Encoding input source sentences
             var srcTokensList = modelMetaData.SrcVocab.GetWordIndex(srcSnts);
-            var encOutput = RunEncoder(computeGraph, srcTokensList, encoder, modelMetaData, srcEmbedding, srcSelfMask, posEmbedding, originalSrcLengths, segmentEmbedding, contextEmbeddings);
+            var encOutput = RunEncoder(computeGraph, srcTokensList, encoder, modelMetaData, srcEmbedding, srcSelfMask, posEmbedding, originalSrcLengths, segmentEmbedding, contextEmbeddings, applyContextEmbeddingsToEntireSequence);
             if (srcSelfMask != null)
             {
                 srcSelfMask.Dispose();
@@ -97,28 +97,16 @@ namespace Seq2SeqSharp.Applications
         /// <param name="reversEncoder"></param>
         /// <param name="embeddings"></param>
         /// <returns></returns>
-        static private IWeightTensor RunEncoder(IComputeGraph g, List<List<int>> seqs, IEncoder encoder, IModel modelMetaData, IWeightTensor embeddings, IWeightTensor selfMask, IWeightTensor posEmbeddings, List<int> seqOriginalLengths, IWeightTensor segmentEmbeddings, IWeightTensor contextEmbeddings)
+        static private IWeightTensor RunEncoder(IComputeGraph g, List<List<int>> seqs, IEncoder encoder, IModel modelMetaData, IWeightTensor embeddings, IWeightTensor selfMask, IWeightTensor posEmbeddings, List<int> seqOriginalLengths, 
+            IWeightTensor segmentEmbeddings, IWeightTensor contextEmbeddings, bool applyContextEmbeddingsToEntireSequence = true)
         {
             int batchSize = seqs.Count;
-            var inputEmbs = TensorUtils.ExtractTokensEmbeddings(seqs, g, embeddings, seqOriginalLengths, segmentEmbeddings, modelMetaData.SrcVocab);
+            var inputEmbs = TensorUtils.CreateTokensEmbeddings(seqs, g, embeddings, seqOriginalLengths, segmentEmbeddings, contextEmbeddings, modelMetaData.SrcVocab, applyContextEmbeddingsToEntireSequence: applyContextEmbeddingsToEntireSequence, (float)Math.Sqrt(embeddings.Columns));
 
             if (modelMetaData.EncoderType == EncoderTypeEnums.Transformer)
             {
                 inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbeddings, batchSize, inputEmbs, 0.0f);
             }
-
-            if (contextEmbeddings != null)
-            {
-                int seqLen = seqs[0].Count;
-                int dim = contextEmbeddings.Columns;
-
-                contextEmbeddings = g.View(contextEmbeddings, dims: new long[] { batchSize, 1, dim });
-                contextEmbeddings = g.Expand(contextEmbeddings, dims: new long[] { batchSize, seqLen, dim });
-
-                inputEmbs = g.Add(inputEmbs, contextEmbeddings);
-
-            }
-
 
             return encoder.Encode(inputEmbs, batchSize, g, selfMask);
         }

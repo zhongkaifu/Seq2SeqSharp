@@ -39,7 +39,8 @@ namespace Seq2SeqSharp.Utils
         /// <param name="segmentEmbedding"></param>
         /// <param name="vocab"></param>
         /// <returns>The embedding tensor. shape: (batchsize * seqLen, embedding_dim) </returns>
-        public static IWeightTensor ExtractTokensEmbeddings(List<List<int>> seqs, IComputeGraph g, IWeightTensor embeddingsTensor, List<int> seqOriginalLengths, IWeightTensor segmentEmbedding, Vocab vocab)
+        public static IWeightTensor CreateTokensEmbeddings(List<List<int>> seqs, IComputeGraph g, IWeightTensor embeddingsTensor, List<int> seqOriginalLengths, 
+            IWeightTensor segmentEmbedding, IWeightTensor contextEmbeddings, Vocab vocab, bool applyContextEmbeddingsToEntireSequence = true, float scaleFactor = 1.0f)
         {
             if (seqs is null)
             {
@@ -72,6 +73,8 @@ namespace Seq2SeqSharp.Utils
             float[] idxs = new float[batchSize * seqLen];
             float[] segIdxs = new float[batchSize * seqLen];
 
+            List<int> segment0Length = new List<int>();
+
             for (int i = 0; i < batchSize; i++)
             {
                 int segIdx = 0;
@@ -84,19 +87,55 @@ namespace Seq2SeqSharp.Utils
                     if (token == BuildInTokens.SEP)
                     {
                         //A new segment
+
+                        if (segIdx == 0)
+                        {
+                            segment0Length.Add(j);
+                        }
+
                         segIdx++;
                     }
                 }
+
+                if (segIdx == 0)
+                {
+                    segment0Length.Add(seqLen);
+                }
             }
 
-            if (segmentEmbedding == null)
+
+            IWeightTensor embeddingRst = g.IndexSelect(embeddingsTensor, idxs);
+            if (scaleFactor != 1.0f)
             {
-                return g.IndexSelect(embeddingsTensor, idxs);
+                embeddingRst = g.Mul(embeddingRst, scaleFactor, inPlace: true);
             }
-            else
+
+            // Apply segment embeddings to the input sequence embeddings
+            if (segmentEmbedding != null)
             {
-                return g.Add(g.IndexSelect(embeddingsTensor, idxs), g.IndexSelect(segmentEmbedding, segIdxs));
+                embeddingRst = g.Add(embeddingRst, g.IndexSelect(segmentEmbedding, segIdxs));
             }
+
+            // Apply contextual feature embeddings to the input sequence embeddings
+            if (contextEmbeddings != null)
+            {
+                int dim = contextEmbeddings.Columns;
+                contextEmbeddings = g.View(contextEmbeddings, dims: new long[] { batchSize, 1, dim });
+                contextEmbeddings = g.Expand(contextEmbeddings, dims: new long[] { batchSize, seqLen, dim });
+
+                if (applyContextEmbeddingsToEntireSequence == false)
+                {
+                    //Only apply contexual feature embeddings to the first segment of the input sequence
+                    IWeightTensor featureMaskTensor = g.BuildFeatureMask(seqLen, segment0Length, embeddingsTensor.Columns); //shape: (batch_size, seqLen, dim)
+                    contextEmbeddings = g.EltMul(contextEmbeddings, featureMaskTensor);
+                }
+
+                embeddingRst = g.Add(embeddingRst, contextEmbeddings);
+
+            }
+
+            return embeddingRst;
+
         }
     }
 }

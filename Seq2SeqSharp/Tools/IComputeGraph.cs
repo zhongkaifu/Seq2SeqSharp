@@ -62,6 +62,8 @@ namespace Seq2SeqSharp
 
         IWeightTensor LeftShiftTokens(List<List<int>> input, int lastTokenToPad);
 
+        IWeightTensor BuildFeatureMask(int paddedLength, List<int> appliedLengths, int dim);
+
         IWeightTensor Sum(IWeightTensor w, int dim, bool runGradient = true);
         IWeightTensor Log(IWeightTensor w);
     }

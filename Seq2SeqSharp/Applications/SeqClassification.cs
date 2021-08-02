@@ -176,7 +176,7 @@ namespace Seq2SeqSharp.Applications
             var srcSnts = sntPairBatch.GetSrcTokens(0);
             List<int> originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
           
-            IWeightTensor encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcSnts, originalSrcLengths);
+            IWeightTensor encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcSnts, originalSrcLengths, m_options.ApplyContextEmbeddingsToEntireSequence);
 
             int srcSeqPaddedLen = srcSnts[0].Count;
             int batchSize = srcSnts.Count;

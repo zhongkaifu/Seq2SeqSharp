@@ -23,7 +23,7 @@ namespace Seq2SeqSharp.Corpus
         /// Build vocabulary from training corpus
         /// </summary>
         /// <param name="vocabSize"></param>
-        public (Vocab, List<Vocab>) BuildVocabs(int vocabSize = 45000)
+        public (Vocab, List<Vocab>) BuildVocabs(int srcVocabSize = 45000, int tgtVocabSize = 45000)
         {
             foreach (var sntPairBatch in this)
             {
@@ -32,7 +32,7 @@ namespace Seq2SeqSharp.Corpus
 
             CorpusBatch.ReduceSrcTokensToSingleGroup();
 
-            (var srcVocabs, var tgtVocabs) = CorpusBatch.GenerateVocabs(vocabSize);
+            (var srcVocabs, var tgtVocabs) = CorpusBatch.GenerateVocabs(srcVocabSize, tgtVocabSize);
             return (srcVocabs[0], tgtVocabs);
         }
     }

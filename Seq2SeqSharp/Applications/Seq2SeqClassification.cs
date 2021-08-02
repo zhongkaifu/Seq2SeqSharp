@@ -67,7 +67,7 @@ namespace Seq2SeqSharp.Applications
 
             m_modelMetaData.ShowModelInfo();
 
-            string primaryTaskStr = options.PrimaryTaskId == 0 ? "Sequence Generation" : "Sequence Classification";
+            string primaryTaskStr = options.PrimaryTaskId == 0 ? "Sequence Classification" : "Sequence Generation";
 
             Logger.WriteLine($"Max source sentence length in training corpus = '{options.MaxTrainSrcSentLength}'");
             Logger.WriteLine($"Max target sentence length in training corpus = '{options.MaxTrainTgtSentLength}'");
@@ -217,7 +217,7 @@ namespace Seq2SeqSharp.Applications
             var srcSnts = sntPairBatch.GetSrcTokens(0);
             List<int> originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
 
-            IWeightTensor encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcSnts, originalSrcLengths);
+            IWeightTensor encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcSnts, originalSrcLengths, m_options.ApplyContextEmbeddingsToEntireSequence);
 
             List<NetworkResult> nrs = new List<NetworkResult>();
             int srcSeqPaddedLen = srcSnts[0].Count;
@@ -408,7 +408,7 @@ namespace Seq2SeqSharp.Applications
             using (IWeightTensor srcTgtMask = g.BuildSrcTgtMask(srcSeqLen, tgtSeqLen, tgtOriginalLengths, srcOriginalLenghts))
             {
                 using IWeightTensor tgtSelfTriMask = g.BuildPadSelfTriMask(tgtSeqLen, tgtOriginalLengths);
-                IWeightTensor inputEmbs = TensorUtils.ExtractTokensEmbeddings(tgtSeqs, g, tgtEmbedding, tgtOriginalLengths, null, m_modelMetaData.TgtVocab);
+                IWeightTensor inputEmbs = TensorUtils.CreateTokensEmbeddings(tgtSeqs, g, tgtEmbedding, tgtOriginalLengths, null, null, m_modelMetaData.TgtVocab, scaleFactor: (float)Math.Sqrt(tgtEmbedding.Columns));
                 inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbedding, batchSize, inputEmbs, m_options.DropoutRatio);
                 (decOutput, decEncAttnProbs) = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g, outputAttnWeights: outputAlignmentSrcPos);
             }

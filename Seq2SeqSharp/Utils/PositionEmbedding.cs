@@ -13,8 +13,6 @@ namespace Seq2SeqSharp.Utils
             var Column = posEmbedding.Columns;
             int seqLen = inputEmbs.Rows / batchSize;
 
-            inputEmbs = g.Mul(inputEmbs, (float)Math.Sqrt(inputEmbs.Columns), inPlace: true);
-
             using (var posEmbeddingPeek = g.Peek(posEmbedding, 0, 0, seqLen, false))
             {
                 using (var posEmbeddingPeekView = g.View(posEmbeddingPeek, runGradient: false, dims: new long[] { 1, seqLen, Column }))

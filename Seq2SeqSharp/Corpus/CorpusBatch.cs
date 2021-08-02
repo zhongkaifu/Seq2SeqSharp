@@ -306,12 +306,12 @@ namespace Seq2SeqSharp.Corpus
         /// <param name="vocabSize"></param>
         /// <param name="sharedSrcTgtVocabGroupMapping">The mappings for shared vocabularies between source side and target side. The values in the mappings are group ids. For example: sharedSrcTgtVocabGroupMapping[0] = 1 means the first group in source
         /// side and the second group in target side are shared vocabulary</param>
-        static public (List<Vocab>, List<Vocab>) GenerateVocabs(int vocabSize = 45000)
+        static public (List<Vocab>, List<Vocab>) GenerateVocabs(int srcVocabSize = 45000, int tgtVocabSize = 45000)
         {
             Logger.WriteLine($"Building vocabulary from corpus.");
 
-            List<Vocab> srcVocabs = InnerBuildVocab(vocabSize, s_ds, "Source");
-            List<Vocab> tgtVocabs = InnerBuildVocab(vocabSize, t_ds, "Target");
+            List<Vocab> srcVocabs = InnerBuildVocab(srcVocabSize, s_ds, "Source");
+            List<Vocab> tgtVocabs = InnerBuildVocab(tgtVocabSize, t_ds, "Target");
 
             s_ds.Clear();
             t_ds.Clear();

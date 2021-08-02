@@ -139,7 +139,7 @@ namespace SeqClassificationConsole
                         {
                             Logger.WriteLine($"Building vocabulary from training corpus.");
                             // We don't specify vocabulary, so we build it from train corpus
-                            (srcVocab, tgtVocabs) = trainCorpus.BuildVocabs(opts.VocabSize);
+                            (srcVocab, tgtVocabs) = trainCorpus.BuildVocabs(opts.SrcVocabSize, opts.TgtVocabSize);
                         }
 
                         for (int i = 0; i < tgtVocabs.Count; i++)

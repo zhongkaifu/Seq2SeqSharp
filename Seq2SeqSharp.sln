@@ -13,6 +13,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		NetworkViz.png = NetworkViz.png
 		Overview.jpg = Overview.jpg
 		README.md = README.md
+		Seq2SeqClassificationModel.jpeg = Seq2SeqClassificationModel.jpeg
+		Seq2SeqModel.jpeg = Seq2SeqModel.jpeg
+		SeqClassificationModel.jpeg = SeqClassificationModel.jpeg
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TensorSharp", "TensorSharp\TensorSharp.csproj", "{75332198-952C-48DE-9F2B-21F49BC68ED2}"
@@ -25,7 +28,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SeqLabelConsole", "SeqLabel
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SeqClassificationConsole", "SeqClassificationConsole\SeqClassificationConsole.csproj", "{0FE4AB2B-DD9A-4BB5-B1BE-825F05D26998}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Seq2SeqClassificationConsole", "Seq2SeqClassificationConsole\Seq2SeqClassificationConsole.csproj", "{AA0B87F0-F5FF-4AA2-B481-124F426EAE74}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Seq2SeqClassificationConsole", "Seq2SeqClassificationConsole\Seq2SeqClassificationConsole.csproj", "{AA0B87F0-F5FF-4AA2-B481-124F426EAE74}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
