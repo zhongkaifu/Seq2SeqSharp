@@ -145,15 +145,8 @@ DECLARE_UNARY_FLOAT_TYPES(TS_Sinh, sinh)
 DECLARE_UNARY_FLOAT_TYPES(TS_Cosh, cosh)
 DECLARE_UNARY_FLOAT_TYPES(TS_Tanh, tanh)
 
-DECLARE_UNARY_FLOAT_TYPES(TS_Relu, relu)
-
 DECLARE_UNARY_FLOAT_TYPES(TS_Sigmoid, Sigmoid)
 
-template <typename T> INLINE_FUNC T relu(T w) {
-	if (w < T(0))
-		return T(0);
-	return w;
-}
 
 template <typename T> INLINE_FUNC T relud(T w, T g) {
 	if (w > T(0))
@@ -421,7 +414,7 @@ int EXPORTNAME(TensorRef* result, TensorRef* lhs, float rhs)\
 DECLARE_T_S_ALL_CPU_TYPES(TS_Add, add_op)
 DECLARE_T_S_ALL_CPU_TYPES(TS_Sub, sub_op)
 DECLARE_T_S_ALL_CPU_TYPES(TS_Rsub, rsub_op)
-DECLARE_T_S_ALL_CPU_TYPES(TS_Mul, mul_op)
+//DECLARE_T_S_ALL_CPU_TYPES(TS_Mul, mul_op)
 DECLARE_T_S_ALL_CPU_TYPES(TS_Div, div_op)
 DECLARE_T_S_ALL_CPU_TYPES(TS_Rdiv, rdiv_op)
 DECLARE_T_S_ALL_CPU_TYPES(TS_Mod, Mod_op)
@@ -448,7 +441,6 @@ int EXPORTNAME(TensorRef* result, TensorRef* lhs, TensorRef* rhs)\
 	API_END()\
 }
 
-DECLARE_T_T_ALL_CPU_TYPES(TS_CAdd, add_op)
 DECLARE_T_T_ALL_CPU_TYPES(TS_CSub, sub_op)
 DECLARE_T_T_ALL_CPU_TYPES(TS_CMul, mul_op)
 DECLARE_T_T_ALL_CPU_TYPES(TS_CDiv, div_op)

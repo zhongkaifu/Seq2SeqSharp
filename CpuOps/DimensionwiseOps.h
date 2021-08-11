@@ -7,11 +7,9 @@
 OPS_API int TS_Sum(TensorRef* result, TensorRef* src, int dimension);
 OPS_API int TS_Prod(TensorRef* result, TensorRef* src, int dimension);
 OPS_API int TS_Min(TensorRef* result, TensorRef* src, int dimension);
-OPS_API int TS_Max(TensorRef* result, TensorRef* src, int dimension);
+//OPS_API int TS_Max(TensorRef* result, TensorRef* src, int dimension);
 
 OPS_API int TS_Argmin(TensorRef *resultIndices, TensorRef* src, int dimension);
-OPS_API int TS_Argmax(TensorRef *resultIndices, TensorRef* src, int dimension);
-
 
 OPS_API int TS_SumAll(TensorRef* result, TensorRef* src);
 OPS_API int TS_ProdAll(TensorRef* result, TensorRef* src);

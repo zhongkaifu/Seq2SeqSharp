@@ -26,28 +26,31 @@ namespace Seq2SeqSharp.Corpus
 
         private static int CountWhiteSpace(string s)
         {
-            if (String.IsNullOrEmpty(s))
-            {
-                return 0;
-            }
+            string[] items = s.Split(' ');
 
-            int cnt = 1;
-            bool prevIsSpace = false;
-            foreach (char ch in s)
-            {
-                if (ch == ' ' && prevIsSpace == false)
-                {
-                    cnt++;
-                    prevIsSpace = true;
-                }
-                else
-                {
-                    prevIsSpace = false;
-                }
-            }
+            return items.Length;
 
-            return cnt;
+            //if (String.IsNullOrEmpty(s))
+            //{
+            //    return 0;
+            //}
 
+            //int cnt = 1;
+            //bool prevIsSpace = false;
+            //foreach (char ch in s)
+            //{
+            //    if (ch == ' ' && prevIsSpace == false)
+            //    {
+            //        cnt++;
+            //        prevIsSpace = true;
+            //    }
+            //    else
+            //    {
+            //        prevIsSpace = false;
+            //    }
+            //}
+
+            //return cnt;
         }
 
         public bool IsEmptyPair()

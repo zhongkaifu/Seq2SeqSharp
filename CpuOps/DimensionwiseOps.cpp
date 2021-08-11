@@ -88,27 +88,27 @@ int TS_Min(TensorRef* result, TensorRef* src, int dimension)
 }
 
 
-template<typename T>
-INLINE_FUNC void Max_Apply(TensorRef* result, TensorRef* src, int dimension)
-{
-	auto func = [](T *r, __int64 rSize, __int64 rStride, T *s, __int64 sSize, __int64 sStride)
-	{
-		T value = s[0];
-		for (__int64 i = 1; i < sSize; ++i)
-		{
-			value = max(value, s[i*sStride]);
-		}
-		*r = value;
-	};
-	ApplyDim2<T, T>(result, src, dimension, func);
-}
-
-int TS_Max(TensorRef* result, TensorRef* src, int dimension)
-{
-	API_BEGIN()
-	SWITCH_TENSOR_TYPE_ALL_CPU(result->elementType, Max_Apply, result, src, dimension)
-	API_END()
-}
+//template<typename T>
+//INLINE_FUNC void Max_Apply(TensorRef* result, TensorRef* src, int dimension)
+//{
+//	auto func = [](T *r, __int64 rSize, __int64 rStride, T *s, __int64 sSize, __int64 sStride)
+//	{
+//		T value = s[0];
+//		for (__int64 i = 1; i < sSize; ++i)
+//		{
+//			value = max(value, s[i*sStride]);
+//		}
+//		*r = value;
+//	};
+//	ApplyDim2<T, T>(result, src, dimension, func);
+//}
+//
+//int TS_Max(TensorRef* result, TensorRef* src, int dimension)
+//{
+//	API_BEGIN()
+//	SWITCH_TENSOR_TYPE_ALL_CPU(result->elementType, Max_Apply, result, src, dimension)
+//	API_END()
+//}
 
 
 
@@ -149,43 +149,6 @@ OPS_API int TS_Argmin(TensorRef *resultIndices, TensorRef* src, int dimension)
 	SWITCH_TENSOR_TYPE_ALL_CPU(src->elementType, Argmin_Apply, resultIndices, src, dimension)
 		API_END()
 }
-
-template<typename T>
-INLINE_FUNC void Argmax_Apply(TensorRef* resultIndices, TensorRef* src, int dimension)
-{
-	auto func = [](
-		float *rIndVal, __int64 rIndSize, __int64 rIndStride,
-		T *s, __int64 sSize, __int64 sStride)
-	{
-		T value = s[0];
-		float index = 0;
-		for (__int64 i = 1; i < sSize; ++i)
-		{
-			T currentVal = s[i*sStride];
-			if (currentVal > value)
-			{
-				value = currentVal;
-				index = (float)i;
-			}
-		}
-		*rIndVal = index;
-	};
-	ApplyDim2<float, T>(resultIndices, src, dimension, func);
-}
-
-OPS_API int TS_Argmax(TensorRef *resultIndices, TensorRef* src, int dimension)
-{
-	API_BEGIN()
-	
-	if(resultIndices->elementType != DType::Float32)
-	{
-		throw TSError("result indices must have type Float32");
-	}
-
-	SWITCH_TENSOR_TYPE_ALL_CPU(src->elementType, Argmax_Apply, resultIndices, src, dimension)
-	API_END()
-}
-
 
 
 template<typename T>

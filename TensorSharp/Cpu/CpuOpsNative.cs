@@ -31,7 +31,6 @@ namespace TensorSharp.Cpu
         [DllImport(dll, CallingConvention = cc)]
         public static extern IntPtr TS_GetLastError();
 
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_Fill(IntPtr result, float value);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Copy(IntPtr result, IntPtr src);
 
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Abs(IntPtr result, IntPtr src);
@@ -52,7 +51,6 @@ namespace TensorSharp.Cpu
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Trunc(IntPtr result, IntPtr src);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Frac(IntPtr result, IntPtr src);
 
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_Relu(IntPtr result, IntPtr src);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Sin(IntPtr result, IntPtr src);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Cos(IntPtr result, IntPtr src);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Tan(IntPtr result, IntPtr src);
@@ -96,7 +94,6 @@ namespace TensorSharp.Cpu
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Add(IntPtr result, IntPtr lhs, float rhs);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Sub(IntPtr result, IntPtr lhs, float rhs);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Rsub(IntPtr result, IntPtr lhs, float rhs);
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_Mul(IntPtr result, IntPtr lhs, float rhs);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Div(IntPtr result, IntPtr lhs, float rhs);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Rdiv(IntPtr result, IntPtr lhs, float rhs);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Mod(IntPtr result, IntPtr lhs, float rhs);
@@ -109,7 +106,6 @@ namespace TensorSharp.Cpu
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_neValue(IntPtr result, IntPtr lhs, float rhs);
 
 
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_CAdd(IntPtr result, IntPtr lhs, IntPtr rhs);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_CSub(IntPtr result, IntPtr lhs, IntPtr rhs);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_CMul(IntPtr result, IntPtr lhs, IntPtr rhs);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_CDiv(IntPtr result, IntPtr lhs, IntPtr rhs);
@@ -126,10 +122,9 @@ namespace TensorSharp.Cpu
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Sum(IntPtr result, IntPtr src, int dimension);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Prod(IntPtr result, IntPtr src, int dimension);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Min(IntPtr result, IntPtr src, int dimension);
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_Max(IntPtr result, IntPtr src, int dimension);
+        //[DllImport(dll, CallingConvention = cc)] public static extern int TS_Max(IntPtr result, IntPtr src, int dimension);
 
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Argmin(IntPtr result, IntPtr src, int dimension);
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_Argmax(IntPtr result, IntPtr src, int dimension);
 
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Mean(IntPtr result, IntPtr src, int dimension);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Norm(IntPtr result, IntPtr src, int dimension, float value);
@@ -166,8 +161,8 @@ namespace TensorSharp.Cpu
         public static extern int TS_Unfolded_Copy(IntPtr finput, IntPtr input, int kW, int kH, int dW, int dH, int padW, int padH, int nInputPlane, int inputWidth, int inputHeight, int outputWidth, int outputHeight);
 
 
-        [DllImport(dll, CallingConvention = cc)]
-        public static extern int TS_LayerNorm(IntPtr out_, IntPtr in_, IntPtr gamma_, IntPtr beta_, float eps, int rows, int cols);
+        //[DllImport(dll, CallingConvention = cc)]
+        //public static extern int TS_LayerNorm(IntPtr out_, IntPtr in_, IntPtr gamma_, IntPtr beta_, float eps, int rows, int cols);
 
         [DllImport(dll, CallingConvention = cc)]
         public static extern int TS_LayerNormGrad(IntPtr result, IntPtr gradGamma_, IntPtr gradBeta_, IntPtr adj_, IntPtr y_, IntPtr x_, IntPtr gamma_, IntPtr beta_, int rows, int cols, float eps);
@@ -179,10 +174,6 @@ namespace TensorSharp.Cpu
         [DllImport(dll, CallingConvention = cc)]
         public static extern int TS_AddLayerNormGrad(IntPtr result1, IntPtr result2, IntPtr gradGamma_, IntPtr gradBeta_, IntPtr adj_, IntPtr y_, IntPtr x1_, IntPtr x2_, IntPtr gamma_, IntPtr beta_, int rows, int cols, float eps);
 
-
-
-        [DllImport(dll, CallingConvention = cc)]
-        public static extern int TS_Softmax(IntPtr out_, IntPtr in_, int rows, int cols);
 
 
         [DllImport(dll, CallingConvention = cc)]

@@ -1,5 +1,6 @@
 ﻿using System;
 using TensorSharp.Core;
+using TensorSharp.Cpu.LinearAlgebra;
 
 namespace TensorSharp.Cpu
 {
@@ -514,7 +515,12 @@ namespace TensorSharp.Cpu
                     float* bPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(b);
                     float* cPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(c);
 
-                    OpenBlasNative.sgemm_(&transa, &transb, &m, &n, &k, &alpha, aPtrSingle, &lda, bPtrSingle, &ldb, &beta, cPtrSingle, &ldc);
+                   // OpenBlasNative.sgemm_(&transa, &transb, &m, &n, &k, &alpha, aPtrSingle, &lda, bPtrSingle, &ldb, &beta, cPtrSingle, &ldc);
+
+
+                    SGEMM sgemm = new SGEMM();
+                    sgemm.Run(System.Text.ASCIIEncoding.ASCII.GetString(&transa, 1), System.Text.ASCIIEncoding.ASCII.GetString(&transb, 1), m, n, k, alpha, aPtrSingle, lda, bPtrSingle, ldb, beta, cPtrSingle, ldc);
+
                 }
                 else if (c.ElementType == DType.Float64)
                 {

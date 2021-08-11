@@ -56,6 +56,21 @@ namespace TensorSharp.Cpu
             return resultTensor;
         }
 
+
+        public static Tensor CreateResultDimensionwise(Tensor result, Tensor src, int dimension)
+        {
+            if (dimension < 0 || dimension >= src.Sizes.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(dimension));
+            }
+
+            long[] desiredSize = (long[])src.Sizes.Clone();
+            desiredSize[dimension] = 1;
+            Tensor resultTensor = TensorResultBuilder.GetWriteTarget(result, src, false, desiredSize);
+
+            return resultTensor;
+        }
+
         public static void InvokeTypeMatch(MethodInfo method, params object[] args)
         {
             IEnumerable<Tensor> tensors = args.OfType<Tensor>();

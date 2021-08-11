@@ -40,16 +40,6 @@ int TS_Unfolded_Acc(
 	API_END()
 }
 
-int TS_Softmax(
-	TensorRef* out_,
-	TensorRef* in_,
-	int rows,
-	int cols)
-{
-	API_BEGIN()
-		SWITCH_TENSOR_TYPE_ALL_CPU(in_->elementType, Softmax, out_, in_, rows, cols)
-		API_END()
-}
 
 
 int TS_SoftmaxGrad(
@@ -65,17 +55,17 @@ int TS_SoftmaxGrad(
 		API_END()
 }
 
-int TS_IndexSelect(
-	TensorRef* result_,
-	TensorRef* src_,
-	TensorRef* indice_,
-	int rows,
-	int cols)
-{
-	API_BEGIN()
-		SWITCH_TENSOR_TYPE_ALL_CPU(src_->elementType, IndexSelect, result_, src_, indice_, rows, cols)
-		API_END()
-}
+//int TS_IndexSelect(
+//	TensorRef* result_,
+//	TensorRef* src_,
+//	TensorRef* indice_,
+//	int rows,
+//	int cols)
+//{
+//	API_BEGIN()
+//		SWITCH_TENSOR_TYPE_ALL_CPU(src_->elementType, IndexSelect, result_, src_, indice_, rows, cols)
+//		API_END()
+//}
 
 int TS_IndexSelectGrad(
 	TensorRef* grad_,

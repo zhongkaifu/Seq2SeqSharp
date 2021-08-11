@@ -13,10 +13,12 @@ namespace Seq2SeqSharp.Metrics
         private readonly string m_groupName;
 
         public MultiLabelsFscoreMetric(string groupName, List<string> classLabels)
-        {            
+        {
             m_classLabels = classLabels;
             m_groupName = groupName;
             ClearStatus();
+
+            Logger.WriteLine($"Added '{String.Join(" ", classLabels)}' labels to '{Name}'.");
         }
 
         public void ClearStatus()

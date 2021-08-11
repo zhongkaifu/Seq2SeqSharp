@@ -39,11 +39,6 @@ OPS_API int TS_Unfolded_Acc(
 	int outputWidth,
 	int outputHeight);
 
-OPS_API int TS_Softmax(
-	TensorRef* out_,
-	TensorRef* in_,
-	int rows,
-	int cols);
 
 OPS_API int TS_SoftmaxGrad(
 	TensorRef* grad_,
@@ -54,12 +49,12 @@ OPS_API int TS_SoftmaxGrad(
 	bool addGrad);
 
 
-OPS_API int TS_IndexSelect(
-	TensorRef* result_,
-	TensorRef* src_,
-	TensorRef* indice_,
-	int rows,
-	int cols);
+//OPS_API int TS_IndexSelect(
+//	TensorRef* result_,
+//	TensorRef* src_,
+//	TensorRef* indice_,
+//	int rows,
+//	int cols);
 
 OPS_API int TS_IndexSelectGrad(
 	TensorRef* grad_,
@@ -68,32 +63,6 @@ OPS_API int TS_IndexSelectGrad(
 	int rows,
 	int cols);
 
-
-template<typename T>
-void Softmax(TensorRef* out, TensorRef* in, int rows, int cols) {
-	T * pOut = (T*)out->buffer;
-	T * pIn = (T*)in->buffer;
-
-	for (int j = 0; j < rows; ++j) {
-		T * so = pOut + j * cols;
-		T * sp = pIn + j * cols;
-
-		T max = sp[0];
-		for (int i = 1; i < cols; ++i)
-			max = std::max(max, sp[i]);
-
-		T sum = 0.f;
-		for (int i = 0; i < cols; ++i) {
-			T ex = expf(sp[i] - max);
-			so[i] = ex;
-			sum += ex;
-		}
-
-		for (int i = 0; i < cols; ++i) {
-			so[i] /= sum;
-		}
-	}
-}
 
 template<typename T>
 void SoftmaxGrad(TensorRef* grad_, TensorRef* adj_, TensorRef* val_, int rows, int cols, bool addGrad) {
@@ -127,24 +96,24 @@ void SoftmaxGrad(TensorRef* grad_, TensorRef* adj_, TensorRef* val_, int rows, i
 
 
 
-template<typename T>
-void IndexSelect(TensorRef* result_, TensorRef* src_, TensorRef* indice_, int rows, int cols)
-{
-	T* result = (T*)result_->buffer;
-	T* src = (T*)src_->buffer;
-	T* indice = (T*)indice_->buffer;
-
-	for (int j = 0; j < rows; j++) {
-
-		int srcIdx = indice[j];
-		T* resultRow = result + j * cols;
-		T* srcRow = src + srcIdx * cols;
-
-		for (int i = 0; i < cols; ++i) {
-			resultRow[i] = srcRow[i];
-		}
-	}
-}
+//template<typename T>
+//void IndexSelect(TensorRef* result_, TensorRef* src_, TensorRef* indice_, int rows, int cols)
+//{
+//	T* result = (T*)result_->buffer;
+//	T* src = (T*)src_->buffer;
+//	T* indice = (T*)indice_->buffer;
+//
+//	for (int j = 0; j < rows; j++) {
+//
+//		int srcIdx = indice[j];
+//		T* resultRow = result + j * cols;
+//		T* srcRow = src + srcIdx * cols;
+//
+//		for (int i = 0; i < cols; ++i) {
+//			resultRow[i] = srcRow[i];
+//		}
+//	}
+//}
 
 template<typename T>
 void IndexSelectGrad(TensorRef* grad_, TensorRef* adj_, TensorRef* indice_, int rows, int cols)

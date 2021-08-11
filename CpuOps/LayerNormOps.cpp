@@ -1,18 +1,18 @@
 #include "LayerNormOps.h"
 
-int TS_LayerNorm(
-	TensorRef* out_,
-	TensorRef* in_,
-	TensorRef* gamma_,
-	TensorRef* beta_,
-	float eps,
-	int rows,
-	int cols)
-{
-	API_BEGIN()
-		SWITCH_TENSOR_TYPE_ALL_CPU(in_->elementType, LayerNorm, out_, in_, gamma_, beta_, eps, rows, cols)
-		API_END()
-}
+//int TS_LayerNorm(
+//	TensorRef* out_,
+//	TensorRef* in_,
+//	TensorRef* gamma_,
+//	TensorRef* beta_,
+//	float eps,
+//	int rows,
+//	int cols)
+//{
+//	API_BEGIN()
+//		SWITCH_TENSOR_TYPE_ALL_CPU(in_->elementType, LayerNorm, out_, in_, gamma_, beta_, eps, rows, cols)
+//		API_END()
+//}
 
 
 int TS_LayerNormGrad(

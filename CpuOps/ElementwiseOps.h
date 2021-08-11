@@ -18,7 +18,6 @@ OPS_API int TS_Round(TensorRef* result, TensorRef* src);
 OPS_API int TS_Trunc(TensorRef* result, TensorRef* src);
 OPS_API int TS_Frac(TensorRef* result, TensorRef* src);
 
-OPS_API int TS_Relu(TensorRef* result, TensorRef* src);
 OPS_API int TS_Sin(TensorRef* result, TensorRef* src);
 OPS_API int TS_Cos(TensorRef* result, TensorRef* src);
 OPS_API int TS_Tan(TensorRef* result, TensorRef* src);
@@ -71,7 +70,6 @@ OPS_API int TS_eqValue(TensorRef* result, TensorRef* lhs, float rhs);
 OPS_API int TS_neValue(TensorRef* result, TensorRef* lhs, float rhs);
 
 
-OPS_API int TS_CAdd(TensorRef* result, TensorRef* lhs, TensorRef* rhs);
 OPS_API int TS_CSub(TensorRef* result, TensorRef* lhs, TensorRef* rhs);
 OPS_API int TS_CMul(TensorRef* result, TensorRef* lhs, TensorRef* rhs);
 OPS_API int TS_CDiv(TensorRef* result, TensorRef* lhs, TensorRef* rhs);

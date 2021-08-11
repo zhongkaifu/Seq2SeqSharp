@@ -229,6 +229,12 @@ namespace Seq2SeqSharp
             var srcSnts = sntPairBatch.GetSrcTokens(0);
             List<int> originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
 
+            if (isTraining && srcSnts[0].Count > m_options.MaxTrainSrcSentLength + 2)
+            {
+                //Logger.WriteLine($"The source sentence is too long. Its length = '{srcSnts[0].Count}', but MaxTrainSrcSentLength is '{m_options.MaxTrainSrcSentLength}'. The sentence is '{String.Join(" ", srcSnts[0])}'");
+                throw new InvalidDataException($"The source sentence is too long. Its length = '{srcSnts[0].Count}', but MaxTrainSrcSentLength is '{m_options.MaxTrainSrcSentLength}'. The sentence is '{String.Join(" ", srcSnts[0])}'");
+            }
+
             IWeightTensor encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcSnts, originalSrcLengths, m_options.ApplyContextEmbeddingsToEntireSequence);
 
             List<NetworkResult> nrs = new List<NetworkResult>();

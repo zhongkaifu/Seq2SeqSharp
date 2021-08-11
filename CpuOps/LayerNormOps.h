@@ -8,14 +8,14 @@
 #include "TensorRef.h"
 #include "Vector-inl.h"
 
-OPS_API int TS_LayerNorm(
-	TensorRef* out_,
-	TensorRef* in_,
-	TensorRef* gamma_,
-	TensorRef* beta_,
-	float eps,
-	int rows,
-	int cols);
+//OPS_API int TS_LayerNorm(
+//	TensorRef* out_,
+//	TensorRef* in_,
+//	TensorRef* gamma_,
+//	TensorRef* beta_,
+//	float eps,
+//	int rows,
+//	int cols);
 
 OPS_API int TS_LayerNormGrad(
 	TensorRef * gradX_,
@@ -55,51 +55,51 @@ OPS_API int TS_AddLayerNormGrad(
 	int cols,
 	float eps);
 
-template<typename T>
-void LayerNorm(TensorRef* out_,
-	TensorRef* in_,
-	TensorRef* gamma_,
-	TensorRef* beta_,
-	float eps,
-	int rows,
-	int cols) {
-	T * out = (T*)out_->buffer;
-	T * in = (T*)in_->buffer;
-	T * alpha = (T*)gamma_->buffer;
-	T * beta = beta_ ? (T*)beta_->buffer : nullptr;
-
-#pragma omp parallel for
-	for (int j = 0; j < rows; ++j) {
-		T * so = out + j * cols;
-		const T * sp = in + j * cols;
-
-		T sum = 0.f;
-#pragma omp simd reduction(+ : sum)
-		for (int i = 0; i < cols; ++i) {
-			sum += sp[i];
-		}
-
-		T mean = sum / cols;
-		T sqSum = 0.f;
-#pragma omp simd reduction(+ : sqSum)
-		for (int i = 0; i < cols; ++i) {
-			T ex = sp[i] - mean;
-			sqSum += ex * ex;
-		}
-
-		T sigma = std::sqrt(eps + sqSum / cols);
-
-#pragma omp simd
-		for (int i = 0; i < cols; ++i) {
-			T t = alpha[i] * ((sp[i] - mean) / sigma);
-			if (beta != nullptr) {
-				t += beta[i];
-			}
-
-			so[i] = t;
-		}
-	}
-}
+//template<typename T>
+//void LayerNorm(TensorRef* out_,
+//	TensorRef* in_,
+//	TensorRef* gamma_,
+//	TensorRef* beta_,
+//	float eps,
+//	int rows,
+//	int cols) {
+//	T * out = (T*)out_->buffer;
+//	T * in = (T*)in_->buffer;
+//	T * alpha = (T*)gamma_->buffer;
+//	T * beta = beta_ ? (T*)beta_->buffer : nullptr;
+//
+//#pragma omp parallel for
+//	for (int j = 0; j < rows; ++j) {
+//		T * so = out + j * cols;
+//		const T * sp = in + j * cols;
+//
+//		T sum = 0.f;
+//#pragma omp simd reduction(+ : sum)
+//		for (int i = 0; i < cols; ++i) {
+//			sum += sp[i];
+//		}
+//
+//		T mean = sum / cols;
+//		T sqSum = 0.f;
+//#pragma omp simd reduction(+ : sqSum)
+//		for (int i = 0; i < cols; ++i) {
+//			T ex = sp[i] - mean;
+//			sqSum += ex * ex;
+//		}
+//
+//		T sigma = std::sqrt(eps + sqSum / cols);
+//
+//#pragma omp simd
+//		for (int i = 0; i < cols; ++i) {
+//			T t = alpha[i] * ((sp[i] - mean) / sigma);
+//			if (beta != nullptr) {
+//				t += beta[i];
+//			}
+//
+//			so[i] = t;
+//		}
+//	}
+//}
 
 template<typename T>
 void LayerNormGrad(TensorRef * gradX_,
