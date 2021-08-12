@@ -38,6 +38,7 @@ namespace Seq2SeqSharp.Tools
         public float LearningRateFactor { get; set; } = 1.0f;
 
         private IAllocator m_allocator;
+        public IAllocator Allocator => m_allocator;
 
         private Tensor m_TWeight = null;
         private Tensor m_TGradient = null;

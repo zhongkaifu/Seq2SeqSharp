@@ -40,13 +40,13 @@ OPS_API int TS_Unfolded_Acc(
 	int outputHeight);
 
 
-OPS_API int TS_SoftmaxGrad(
-	TensorRef* grad_,
-	TensorRef* adj_,
-	TensorRef* val_,
-	int rows,
-	int cols,
-	bool addGrad);
+//OPS_API int TS_SoftmaxGrad(
+//	TensorRef* grad_,
+//	TensorRef* adj_,
+//	TensorRef* val_,
+//	int rows,
+//	int cols,
+//	bool addGrad);
 
 
 //OPS_API int TS_IndexSelect(
@@ -56,43 +56,43 @@ OPS_API int TS_SoftmaxGrad(
 //	int rows,
 //	int cols);
 
-OPS_API int TS_IndexSelectGrad(
-	TensorRef* grad_,
-	TensorRef* adj_,
-	TensorRef* indice_,
-	int rows,
-	int cols);
+//OPS_API int TS_IndexSelectGrad(
+//	TensorRef* grad_,
+//	TensorRef* adj_,
+//	TensorRef* indice_,
+//	int rows,
+//	int cols);
 
 
-template<typename T>
-void SoftmaxGrad(TensorRef* grad_, TensorRef* adj_, TensorRef* val_, int rows, int cols, bool addGrad) {
-
-	T * grad = (T*)grad_->buffer;
-	T * adj = (T*)adj_->buffer;
-	T * val = (T*)val_->buffer;
-
-	for (int j = 0; j < rows; ++j) {
-		T * gradRow = grad + j * cols;
-		T * adjRow = adj + j * cols;
-		T * valRow = val + j * cols;
-
-		T sum = 0.f;
-		for (int i = 0; i < cols; ++i) {
-			sum += valRow[i] * adjRow[i];
-		}
-
-		for (int i = 0; i < cols; ++i) {
-			if (addGrad)
-			{
-				gradRow[i] += valRow[i] * (adjRow[i] - sum);
-			}
-			else
-			{
-				gradRow[i] = valRow[i] * (adjRow[i] - sum);
-			}
-		}
-	}
-}
+//template<typename T>
+//void SoftmaxGrad(TensorRef* grad_, TensorRef* adj_, TensorRef* val_, int rows, int cols, bool addGrad) {
+//
+//	T * grad = (T*)grad_->buffer;
+//	T * adj = (T*)adj_->buffer;
+//	T * val = (T*)val_->buffer;
+//
+//	for (int j = 0; j < rows; ++j) {
+//		T * gradRow = grad + j * cols;
+//		T * adjRow = adj + j * cols;
+//		T * valRow = val + j * cols;
+//
+//		T sum = 0.f;
+//		for (int i = 0; i < cols; ++i) {
+//			sum += valRow[i] * adjRow[i];
+//		}
+//
+//		for (int i = 0; i < cols; ++i) {
+//			if (addGrad)
+//			{
+//				gradRow[i] += valRow[i] * (adjRow[i] - sum);
+//			}
+//			else
+//			{
+//				gradRow[i] = valRow[i] * (adjRow[i] - sum);
+//			}
+//		}
+//	}
+//}
 
 
 
@@ -115,24 +115,24 @@ void SoftmaxGrad(TensorRef* grad_, TensorRef* adj_, TensorRef* val_, int rows, i
 //	}
 //}
 
-template<typename T>
-void IndexSelectGrad(TensorRef* grad_, TensorRef* adj_, TensorRef* indice_, int rows, int cols)
-{
-	T* grad = (T*)grad_->buffer;
-	T* adj = (T*)adj_->buffer;
-	T* indice = (T*)indice_->buffer;
-
-	for (int j = 0; j < rows; j++) {
-
-		int gradIdx = indice[j];
-		T* adjRow = adj + j * cols;
-		T* gradRow = grad + gradIdx * cols;
-
-		for (int i = 0; i < cols; ++i) {
-			gradRow[i] += adjRow[i];
-		}
-	}
-}
+//template<typename T>
+//void IndexSelectGrad(TensorRef* grad_, TensorRef* adj_, TensorRef* indice_, int rows, int cols)
+//{
+//	T* grad = (T*)grad_->buffer;
+//	T* adj = (T*)adj_->buffer;
+//	T* indice = (T*)indice_->buffer;
+//
+//	for (int j = 0; j < rows; j++) {
+//
+//		int gradIdx = indice[j];
+//		T* adjRow = adj + j * cols;
+//		T* gradRow = grad + gradIdx * cols;
+//
+//		for (int i = 0; i < cols; ++i) {
+//			gradRow[i] += adjRow[i];
+//		}
+//	}
+//}
 
 
 

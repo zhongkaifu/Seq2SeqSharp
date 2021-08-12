@@ -148,11 +148,11 @@ DECLARE_UNARY_FLOAT_TYPES(TS_Tanh, tanh)
 DECLARE_UNARY_FLOAT_TYPES(TS_Sigmoid, Sigmoid)
 
 
-template <typename T> INLINE_FUNC T relud(T w, T g) {
-	if (w > T(0))
-		return g;
-	return T(0);
-}
+//template <typename T> INLINE_FUNC T relud(T w, T g) {
+//	if (w > T(0))
+//		return g;
+//	return T(0);
+//}
 
 template <typename T> INLINE_FUNC T AddReluD(T t, T w, T g) {
 	if (w > T(0))
@@ -306,19 +306,19 @@ int TS_AddReluD(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* 
 }
 
 
-template<typename T>
-INLINE_FUNC void ReluD_Apply(TensorRef* result, TensorRef* srcW, TensorRef* srcG)
-{
-	auto func = [](T* r, T* y, T* x) { *r = relud(*y, *x); };
-	Apply3<T, T, T>(result, srcW, srcG, func);
-}
-
-int TS_ReluD(TensorRef* result, TensorRef* srcW, TensorRef* srcG)
-{
-	API_BEGIN()
-		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, ReluD_Apply, result, srcW, srcG)
-		API_END()
-}
+//template<typename T>
+//INLINE_FUNC void ReluD_Apply(TensorRef* result, TensorRef* srcW, TensorRef* srcG)
+//{
+//	auto func = [](T* r, T* y, T* x) { *r = relud(*y, *x); };
+//	Apply3<T, T, T>(result, srcW, srcG, func);
+//}
+//
+//int TS_ReluD(TensorRef* result, TensorRef* srcW, TensorRef* srcG)
+//{
+//	API_BEGIN()
+//		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, ReluD_Apply, result, srcW, srcG)
+//		API_END()
+//}
 
 
 template<typename T>
@@ -411,7 +411,7 @@ int EXPORTNAME(TensorRef* result, TensorRef* lhs, float rhs)\
 	API_END()\
 }
 
-DECLARE_T_S_ALL_CPU_TYPES(TS_Add, add_op)
+//DECLARE_T_S_ALL_CPU_TYPES(TS_Add, add_op)
 DECLARE_T_S_ALL_CPU_TYPES(TS_Sub, sub_op)
 DECLARE_T_S_ALL_CPU_TYPES(TS_Rsub, rsub_op)
 //DECLARE_T_S_ALL_CPU_TYPES(TS_Mul, mul_op)

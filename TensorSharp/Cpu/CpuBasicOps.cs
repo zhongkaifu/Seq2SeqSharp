@@ -346,13 +346,28 @@ namespace TensorSharp.Cpu
         [RegisterOpStorageType("addrelud", typeof(CpuStorage))]
         public Tensor AddReluD(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ) { return NativeWrapper.InvokeNullableResultElementwise(addreluD_func, result, srcX, srcY, srcZ); }
 
-        private readonly MethodInfo relud_func = NativeWrapper.GetMethod("TS_ReluD");
+      //  private readonly MethodInfo relud_func = NativeWrapper.GetMethod("TS_ReluD");
         [RegisterOpStorageType("relud", typeof(CpuStorage))]
-        public Tensor ReluD(Tensor result, Tensor w, Tensor g) { return NativeWrapper.InvokeNullableResultElementwise(relud_func, result, w, g); }
+        public Tensor ReluD(Tensor result, Tensor w, Tensor g)
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, w, false, w.Sizes);
+            TensorApplyCPU.ReluD_Apply(result, w, g);
 
-        private readonly MethodInfo add_func = NativeWrapper.GetMethod("TS_Add");
+            return writeTarget;
+
+            // return NativeWrapper.InvokeNullableResultElementwise(relud_func, result, w, g); 
+        }
+
+        //private readonly MethodInfo add_func = NativeWrapper.GetMethod("TS_Add");
         [RegisterOpStorageType("addv", typeof(CpuStorage))]
-        public Tensor Add(Tensor result, Tensor lhs, float rhs) { return NativeWrapper.InvokeNullableResultElementwise(add_func, result, lhs, rhs); }
+        public Tensor Add(Tensor result, Tensor lhs, float rhs)
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, lhs.Sizes);
+            TensorApplyCPU.TSAdd_Apply(writeTarget, lhs, rhs);
+
+            return writeTarget;
+            //return NativeWrapper.InvokeNullableResultElementwise(add_func, result, lhs, rhs); 
+        }
 
         private readonly MethodInfo sub_func = NativeWrapper.GetMethod("TS_Sub");
         [RegisterOpStorageType("subv", typeof(CpuStorage))]
@@ -361,10 +376,6 @@ namespace TensorSharp.Cpu
         private readonly MethodInfo rsub_func = NativeWrapper.GetMethod("TS_Rsub");
         [RegisterOpStorageType("rsubv", typeof(CpuStorage))]
         public Tensor Sub(Tensor result, float lhs, Tensor rhs) { return NativeWrapper.InvokeNullableResultElementwise(rsub_func, result, rhs, lhs); }
-
-        //private readonly MethodInfo mul_func = NativeWrapper.GetMethod("TS_Mul");
-        //[RegisterOpStorageType("mulv", typeof(CpuStorage))]
-        //public Tensor Mul(Tensor result, Tensor lhs, float rhs) { return NativeWrapper.InvokeNullableResultElementwise(mul_func, result, lhs, rhs); }
 
 
         [RegisterOpStorageType("mulv", typeof(CpuStorage))]
@@ -611,15 +622,6 @@ namespace TensorSharp.Cpu
         }
 
 
-        //private readonly MethodInfo layerNorm_func = NativeWrapper.GetMethod("TS_LayerNorm");
-        //[RegisterOpStorageType("layernorm", typeof(CpuStorage))]
-        //public Tensor LayerNorm(Tensor result, Tensor src, Tensor gamma_, Tensor beta_, float eps)
-        //{
-        //    Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
-        //    NativeWrapper.InvokeTypeMatch(layerNorm_func, writeTarget, src, gamma_, beta_, eps, (int)src.Sizes[0], (int)src.Sizes[1]);
-        //    return writeTarget;
-        //}
-
 
         [RegisterOpStorageType("layernorm", typeof(CpuStorage))]
         public Tensor LayerNorm(Tensor result, Tensor src, Tensor gamma_, Tensor beta_, float eps)
@@ -630,12 +632,15 @@ namespace TensorSharp.Cpu
         }
 
 
-        private readonly MethodInfo layerNormGrad_func = NativeWrapper.GetMethod("TS_LayerNormGrad");
+       // private readonly MethodInfo layerNormGrad_func = NativeWrapper.GetMethod("TS_LayerNormGrad");
         [RegisterOpStorageType("layernormgrad", typeof(CpuStorage))]
         public Tensor LayerNormGrad(Tensor result, Tensor gradGamma_, Tensor gradBeta_, Tensor adj_, Tensor y_, Tensor x_, Tensor gamma_, Tensor beta_, float eps)
         {
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, adj_, false, adj_.Sizes);
-            NativeWrapper.InvokeTypeMatch(layerNormGrad_func, writeTarget, gradGamma_, gradBeta_, adj_, y_, x_, gamma_, beta_, (int)adj_.Sizes[0], (int)adj_.Sizes[1], eps);
+            //  NativeWrapper.InvokeTypeMatch(layerNormGrad_func, writeTarget, gradGamma_, gradBeta_, adj_, y_, x_, gamma_, beta_, (int)adj_.Sizes[0], (int)adj_.Sizes[1], eps);
+
+            TensorApplyCPU.LayerNormGrad(writeTarget, gradGamma_, gradBeta_, adj_, y_, x_, gamma_, beta_, (int)adj_.Sizes[0], (int)adj_.Sizes[1], eps);
+
             return writeTarget;
         }
 
@@ -659,28 +664,6 @@ namespace TensorSharp.Cpu
             NativeWrapper.InvokeTypeMatch(addlayerNormGrad_func, writeTarget1, writeTarget2, gradGamma_, gradBeta_, adj_, y_, x1_, x2_, gamma_, beta_, (int)adj_.Sizes[0], (int)adj_.Sizes[1], eps);
         }
 
-
-        //private readonly MethodInfo indexselect_func = NativeWrapper.GetMethod("TS_IndexSelect");
-        //[RegisterOpStorageType("indexselect", typeof(CpuStorage))]
-        //public Tensor IndexSelect(Tensor result, Tensor src, Tensor indice)
-        //{
-        //    int ndim = result.DimensionCount;
-        //    long storageSize = TensorDimensionHelpers.GetStorageSize(result.Sizes, result.Strides);
-        //    long cols = result.Sizes[ndim - 1];
-
-        //    if (storageSize % cols != 0)
-        //    {
-        //        throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
-        //    }
-
-        //    long rows = storageSize / cols;
-
-        //    Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, new long[] { indice.Sizes[0], src.Sizes[1] });
-        //    NativeWrapper.InvokeTypeMatch(indexselect_func, writeTarget, src, indice, (int)rows, (int)cols);
-        //    return writeTarget;
-        //}
-
-
         [RegisterOpStorageType("indexselect", typeof(CpuStorage))]
         public Tensor IndexSelect(Tensor result, Tensor src, Tensor indice)
         {
@@ -701,7 +684,7 @@ namespace TensorSharp.Cpu
         }
 
 
-        private readonly MethodInfo indexselectgrad_func = NativeWrapper.GetMethod("TS_IndexSelectGrad");
+       // private readonly MethodInfo indexselectgrad_func = NativeWrapper.GetMethod("TS_IndexSelectGrad");
         [RegisterOpStorageType("indexselectgrad", typeof(CpuStorage))]
         public Tensor IndexSelectGrad(Tensor grad, Tensor adj, Tensor indice)
         {
@@ -721,7 +704,9 @@ namespace TensorSharp.Cpu
 
             long rows = storageSize / cols;
 
-            NativeWrapper.InvokeTypeMatch(indexselectgrad_func, grad, adj, indice, (int)rows, (int)cols);
+            //  NativeWrapper.InvokeTypeMatch(indexselectgrad_func, grad, adj, indice, (int)rows, (int)cols);
+
+            TensorApplyCPU.IndexSelectGrad(grad, adj, indice, (int)rows, (int)cols);
             return grad;
         }
 
@@ -746,7 +731,7 @@ namespace TensorSharp.Cpu
 
 
 
-        private readonly MethodInfo softmaxGrad_func = NativeWrapper.GetMethod("TS_SoftmaxGrad");
+      //  private readonly MethodInfo softmaxGrad_func = NativeWrapper.GetMethod("TS_SoftmaxGrad");
         [RegisterOpStorageType("softmaxgrad", typeof(CpuStorage))]
         public Tensor SoftmaxGrad(Tensor grad_, Tensor adj_, Tensor val_, bool addGrad = true)
         {
@@ -762,7 +747,11 @@ namespace TensorSharp.Cpu
             long rows = storageSize / cols;
 
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(grad_, adj_, false, adj_.Sizes);
-            NativeWrapper.InvokeTypeMatch(softmaxGrad_func, writeTarget, adj_, val_, (int)rows, (int)cols, addGrad);
+            //   NativeWrapper.InvokeTypeMatch(softmaxGrad_func, writeTarget, adj_, val_, (int)rows, (int)cols, addGrad);
+
+            TensorApplyCPU.SoftmaxGrad(writeTarget, adj_, val_, (int)rows, (int)cols, addGrad);
+
+
             return writeTarget;
         }
 
@@ -775,11 +764,13 @@ namespace TensorSharp.Cpu
             return tw;
         }
 
-        private readonly MethodInfo adam_func = NativeWrapper.GetMethod("TS_Adam");
+      //  private readonly MethodInfo adam_func = NativeWrapper.GetMethod("TS_Adam");
         [RegisterOpStorageType("adam", typeof(CpuStorage))]
         public Tensor Adam(Tensor tw, Tensor tg, Tensor tv, Tensor tm, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
         {
-            NativeWrapper.InvokeTypeMatch(adam_func, tw, tg, tv, tm, (int)tw.Sizes[0], (int)tw.Sizes[1], batchSize, step_size, clipval, regc, decay_rate_v, decay_rate_m, iter, eps);
+            // NativeWrapper.InvokeTypeMatch(adam_func, tw, tg, tv, tm, (int)tw.Sizes[0], (int)tw.Sizes[1], batchSize, step_size, clipval, regc, decay_rate_v, decay_rate_m, iter, eps);
+
+            TensorApplyCPU.Adam(tw, tg, tv, tm, (int)tw.Sizes[0], (int)tw.Sizes[1], batchSize, step_size, clipval, regc, decay_rate_v, decay_rate_m, iter, eps);
             return tw;
         }
 

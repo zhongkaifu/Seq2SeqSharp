@@ -17,18 +17,18 @@
 //	int rows,
 //	int cols);
 
-OPS_API int TS_LayerNormGrad(
-	TensorRef * gradX_,
-	TensorRef * gradGamma_,
-	TensorRef * gradBeta_,
-	TensorRef * adj_,
-	TensorRef * y_,
-	TensorRef * x_,
-	TensorRef * gamma_,
-	TensorRef * beta_,
-	int rows,
-	int cols,
-	float eps);
+//OPS_API int TS_LayerNormGrad(
+//	TensorRef * gradX_,
+//	TensorRef * gradGamma_,
+//	TensorRef * gradBeta_,
+//	TensorRef * adj_,
+//	TensorRef * y_,
+//	TensorRef * x_,
+//	TensorRef * gamma_,
+//	TensorRef * beta_,
+//	int rows,
+//	int cols,
+//	float eps);
 
 OPS_API int TS_AddLayerNorm(
 	TensorRef* out_,
@@ -101,113 +101,113 @@ OPS_API int TS_AddLayerNormGrad(
 //	}
 //}
 
-template<typename T>
-void LayerNormGrad(TensorRef * gradX_,
-	TensorRef * gradGamma_,
-	TensorRef * gradBeta_,
-	TensorRef * adj_,
-	TensorRef * y_,
-	TensorRef * x_,
-	TensorRef * gamma_,
-	TensorRef * beta_,
-	int rows,
-	int cols,
-	float eps) {
-	T * gradX = (T*)gradX_->buffer;
-	T * gradGamma = (T*)gradGamma_->buffer;
-	T * gradBeta = gradBeta_ ? (T*)gradBeta_->buffer : nullptr;
-	T * adj = (T*)adj_->buffer;
-	T * y = (T*)y_->buffer;
-	T * x = (T*)x_->buffer;
-	T * gamma = (T*)gamma_->buffer;
-	T * beta = beta_ ? (T*)beta_->buffer : nullptr;
-
-	if (beta) {
-#pragma omp parallel for reduction(+ : gradGamma[:cols], gradBeta[:cols])
-		for (size_t j = 0; j < rows; ++j) {
-			T * xRow = x + j * cols;
-			T * yRow = y + j * cols;
-			T * adjRow = adj + j * cols;
-			T * gradXRow = gradX + j * cols;
-
-			T sum_x = 0.f;
-			T sum_adj = 0.f;
-			T sum_adj_x = 0.f;
-			T sum_sqr = 0.f;
-
-#pragma omp simd reduction(+ : sum_x, sum_adj_x, sum_adj)
-			for (size_t i = 0; i < cols; ++i) {
-				sum_x += xRow[i];
-				sum_adj_x += adjRow[i] * (yRow[i] - (beta ? beta[i] : 0.f)) / gamma[i];
-				sum_adj += adjRow[i];
-			}
-
-			T mean = sum_x / cols;
-#pragma omp simd reduction(+ : sum_sqr)
-			for (size_t i = 0; i < cols; ++i) {
-				T ex = xRow[i] - mean;
-				sum_sqr += ex * ex;
-			}
-
-			T sigma = std::sqrt(eps + sum_sqr / cols);
-#pragma omp simd
-			for (size_t i = 0; i < cols; ++i) {
-				T grad_x = 0.f;
-				T x_hat = (yRow[i] - beta[i]) / gamma[i];
-				grad_x += cols * adjRow[i];
-				grad_x -= sum_adj;
-				grad_x -= sum_adj_x * x_hat;
-				grad_x /= cols * sigma;
-
-				gradXRow[i] += gamma[i] * grad_x;
-				gradGamma[i] += adjRow[i] * x_hat;
-				gradBeta[i] += adjRow[i];
-			}
-		}
-	}
-	else {
-#pragma omp parallel for reduction(+ : gradGamma[:cols])
-		for (size_t j = 0; j < rows; ++j) {
-			T * xRow = x + j * cols;
-			T * yRow = y + j * cols;
-			T * adjRow = adj + j * cols;
-			T *gradXRow = gradX + j * cols;
-
-			T sum_x = 0.f;
-			T sum_adj = 0.f;
-			T sum_adj_x = 0.f;
-			T sum_sqr = 0.f;
-
-#pragma omp simd reduction(+ : sum_x, sum_adj_x, sum_adj)
-			for (size_t i = 0; i < cols; ++i) {
-				sum_x += xRow[i];
-				sum_adj_x += adjRow[i] * (yRow[i] - (beta ? beta[i] : 0.f)) / gamma[i];
-				sum_adj += adjRow[i];
-			}
-
-			T mean = sum_x / cols;
-#pragma omp simd reduction(+ : sum_sqr)
-			for (size_t i = 0; i < cols; ++i) {
-				T ex = xRow[i] - mean;
-				sum_sqr += ex * ex;
-			}
-
-			T sigma = std::sqrt(eps + sum_sqr / cols);
-#pragma omp simd
-			for (size_t i = 0; i < cols; ++i) {
-				T grad_x = 0.f;
-				T x_hat = yRow[i] / gamma[i];
-				grad_x += cols * adjRow[i];
-				grad_x -= sum_adj;
-				grad_x -= sum_adj_x * x_hat;
-				grad_x /= cols * sigma;
-
-				gradXRow[i] += gamma[i] * grad_x;
-				gradGamma[i] += adjRow[i] * x_hat;
-			}
-		}
-	}
-}
+//template<typename T>
+//void LayerNormGrad(TensorRef * gradX_,
+//	TensorRef * gradGamma_,
+//	TensorRef * gradBeta_,
+//	TensorRef * adj_,
+//	TensorRef * y_,
+//	TensorRef * x_,
+//	TensorRef * gamma_,
+//	TensorRef * beta_,
+//	int rows,
+//	int cols,
+//	float eps) {
+//	T * gradX = (T*)gradX_->buffer;
+//	T * gradGamma = (T*)gradGamma_->buffer;
+//	T * gradBeta = gradBeta_ ? (T*)gradBeta_->buffer : nullptr;
+//	T * adj = (T*)adj_->buffer;
+//	T * y = (T*)y_->buffer;
+//	T * x = (T*)x_->buffer;
+//	T * gamma = (T*)gamma_->buffer;
+//	T * beta = beta_ ? (T*)beta_->buffer : nullptr;
+//
+//	if (beta) {
+//#pragma omp parallel for reduction(+ : gradGamma[:cols], gradBeta[:cols])
+//		for (size_t j = 0; j < rows; ++j) {
+//			T * xRow = x + j * cols;
+//			T * yRow = y + j * cols;
+//			T * adjRow = adj + j * cols;
+//			T * gradXRow = gradX + j * cols;
+//
+//			T sum_x = 0.f;
+//			T sum_adj = 0.f;
+//			T sum_adj_x = 0.f;
+//			T sum_sqr = 0.f;
+//
+//#pragma omp simd reduction(+ : sum_x, sum_adj_x, sum_adj)
+//			for (size_t i = 0; i < cols; ++i) {
+//				sum_x += xRow[i];
+//				sum_adj_x += adjRow[i] * (yRow[i] - (beta ? beta[i] : 0.f)) / gamma[i];
+//				sum_adj += adjRow[i];
+//			}
+//
+//			T mean = sum_x / cols;
+//#pragma omp simd reduction(+ : sum_sqr)
+//			for (size_t i = 0; i < cols; ++i) {
+//				T ex = xRow[i] - mean;
+//				sum_sqr += ex * ex;
+//			}
+//
+//			T sigma = std::sqrt(eps + sum_sqr / cols);
+//#pragma omp simd
+//			for (size_t i = 0; i < cols; ++i) {
+//				T grad_x = 0.f;
+//				T x_hat = (yRow[i] - beta[i]) / gamma[i];
+//				grad_x += cols * adjRow[i];
+//				grad_x -= sum_adj;
+//				grad_x -= sum_adj_x * x_hat;
+//				grad_x /= cols * sigma;
+//
+//				gradXRow[i] += gamma[i] * grad_x;
+//				gradGamma[i] += adjRow[i] * x_hat;
+//				gradBeta[i] += adjRow[i];
+//			}
+//		}
+//	}
+//	else {
+//#pragma omp parallel for reduction(+ : gradGamma[:cols])
+//		for (size_t j = 0; j < rows; ++j) {
+//			T * xRow = x + j * cols;
+//			T * yRow = y + j * cols;
+//			T * adjRow = adj + j * cols;
+//			T *gradXRow = gradX + j * cols;
+//
+//			T sum_x = 0.f;
+//			T sum_adj = 0.f;
+//			T sum_adj_x = 0.f;
+//			T sum_sqr = 0.f;
+//
+//#pragma omp simd reduction(+ : sum_x, sum_adj_x, sum_adj)
+//			for (size_t i = 0; i < cols; ++i) {
+//				sum_x += xRow[i];
+//				sum_adj_x += adjRow[i] * (yRow[i] - (beta ? beta[i] : 0.f)) / gamma[i];
+//				sum_adj += adjRow[i];
+//			}
+//
+//			T mean = sum_x / cols;
+//#pragma omp simd reduction(+ : sum_sqr)
+//			for (size_t i = 0; i < cols; ++i) {
+//				T ex = xRow[i] - mean;
+//				sum_sqr += ex * ex;
+//			}
+//
+//			T sigma = std::sqrt(eps + sum_sqr / cols);
+//#pragma omp simd
+//			for (size_t i = 0; i < cols; ++i) {
+//				T grad_x = 0.f;
+//				T x_hat = yRow[i] / gamma[i];
+//				grad_x += cols * adjRow[i];
+//				grad_x -= sum_adj;
+//				grad_x -= sum_adj_x * x_hat;
+//				grad_x /= cols * sigma;
+//
+//				gradXRow[i] += gamma[i] * grad_x;
+//				gradGamma[i] += adjRow[i] * x_hat;
+//			}
+//		}
+//	}
+//}
 
 
 template<typename T>

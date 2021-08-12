@@ -995,7 +995,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor src = s as WeightTensor;
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { idxs.Length, s.Sizes[^1] }, m_deviceId, name: $"{GetHashString(src.Name)}.IndexSelect", graphToBind: this);
 
-            Tensor indice = new Tensor(TensorAllocator.Allocator(m_deviceId), DType.Float32, idxs.Length);
+            Tensor indice = new Tensor(src.Allocator, DType.Float32, idxs.Length);
             indice.CopyFrom(idxs);
             Ops.IndexSelect(res.TWeight, src.TWeight, indice);
 

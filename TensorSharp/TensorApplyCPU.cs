@@ -13,6 +13,7 @@ namespace TensorSharp
 		unsafe public delegate void Apply2KernelFunction(float* x, float* y);
 		unsafe public delegate void Apply3KernelFunction(float* x, float* y, float* z);
 		unsafe public delegate void ApplyDim2KernelFuncton(float* x, long sizeX, long stridesX, float* y, long sizeY, long stridesY);
+		unsafe public delegate void ApplyDim3KernelFuncton(float* x, long sizeX, long stridesX, float* y, long sizeY, long stridesY, float* z, long sizeZ, long stridesZ);
 
 
 		unsafe static void Apply1(Tensor tensor1, Apply1KernelFunction func)
@@ -89,6 +90,73 @@ namespace TensorSharp
 		}
 
 
+
+
+		unsafe static void ApplyDim3(Tensor tensor1, Tensor tensor2, Tensor tensor3, int iterationDim, ApplyDim3KernelFuncton func)
+		{
+			float* buffer1 = (float*)CpuNativeHelpers.GetBufferStart(tensor1);
+			float* buffer2 = (float*)CpuNativeHelpers.GetBufferStart(tensor2);
+			float* buffer3 = (float*)CpuNativeHelpers.GetBufferStart(tensor3);
+
+			TensorDimIterState tensor1Iter = new TensorDimIterState(buffer1, tensor1.DimensionCount, tensor1.Sizes, tensor1.Strides, iterationDim);
+			TensorDimIterState tensor2Iter = new TensorDimIterState(buffer2, tensor2.DimensionCount, tensor2.Sizes, tensor2.Strides, iterationDim);
+			TensorDimIterState tensor3Iter = new TensorDimIterState(buffer3, tensor3.DimensionCount, tensor3.Sizes, tensor3.Strides, iterationDim);
+
+			do
+			{
+				func(tensor1Iter.data, tensor1Iter.size, tensor1Iter.stride,
+					tensor2Iter.data, tensor2Iter.size, tensor2Iter.stride,
+					tensor3Iter.data, tensor3Iter.size, tensor3Iter.stride);
+
+			} while (tensor1Iter.NextBlock() && tensor2Iter.NextBlock() && tensor3Iter.NextBlock());
+		}
+
+
+
+
+		unsafe public static void Gather_Apply(Tensor result, Tensor src, int dim, Tensor indices)
+		{
+			unsafe void func(float* rData, long rSize, long rStride,
+				float* sData, long sSize, long sStride,
+				float* iData, long iSize, long iStride)
+			{
+				for (int i = 0; i < iSize; ++i)
+				{
+					long idx = (long)*(iData + i * iStride);
+					if (idx < 0 || idx >= sSize) { throw new IndexOutOfRangeException($"Invalid index in gather. Idx = '{idx}', sSize = '{sSize}'"); }
+
+					*(rData + i * rStride) = sData[idx * sStride];
+				}
+			}
+
+			ApplyDim3(result, src, indices, dim, func);
+		}
+
+
+
+		unsafe public static void Scatter_Apply(Tensor result, Tensor src, int dim, Tensor indices)
+		{
+			unsafe void func(float* rData, long rSize, long rStride,
+				float* sData, long sSize, long sStride,
+				float* iData, long iSize, long iStride)
+			{
+
+				for (int i = 0; i < iSize; ++i)
+				{
+					long idx = (long)*(iData + i * iStride);
+					if (idx < 0 || idx >= rSize) { throw new IndexOutOfRangeException($"Invalid index in gather. Idx = '{idx}', sSize = '{sSize}'"); }
+
+					rData[idx * rStride] = *(sData + i * sStride);
+				}
+
+			}
+
+			ApplyDim3(result, src, indices, dim, func);
+		}
+
+
+
+
 		unsafe public static void Fill_Apply(Tensor result, float value)
 		{
 			unsafe void func(float* r)
@@ -148,7 +216,7 @@ namespace TensorSharp
 			ApplyDim2(resultIndices, src, dimension, func);
 		}
 
-        unsafe public static void Max_Apply(Tensor result, Tensor src, int dimension)
+		unsafe public static void Max_Apply(Tensor result, Tensor src, int dimension)
 		{
 			unsafe void func(float* r, long rSize, long rStride, float* s, long sSize, long sStride)
 			{
@@ -174,6 +242,18 @@ namespace TensorSharp
 			Apply3(result, lhs, rhs, func);
 		}
 
+		unsafe public static void TSAdd_Apply(Tensor result, Tensor src, float value)
+		{
+			unsafe void func(float* r, float* s)
+			{
+				*r = add(*s, value);
+			}
+
+			Apply2(result, src, func);
+		}
+
+
+
 		unsafe public static void TSMul_Apply(Tensor result, Tensor src, float value)
 		{
 			unsafe void func(float* r, float* s)
@@ -191,6 +271,14 @@ namespace TensorSharp
 			return w;
 
 		}
+
+		static float relud(float w, float g)
+		{
+			if (w > 0.0f)
+				return g;
+			return 0.0f;
+		}
+
 
 		static float add(float x, float y)
 		{
@@ -211,6 +299,17 @@ namespace TensorSharp
 			};
 
 			Apply2(result, src, func);
+		}
+
+
+		unsafe static public void ReluD_Apply(Tensor result, Tensor srcW, Tensor srcG)
+		{
+			unsafe void func(float* r, float* y, float* x)
+			{
+				*r = relud(*y, *x);
+			}
+
+			Apply3(result, srcW, srcG, func);
 		}
 
 
@@ -244,6 +343,42 @@ namespace TensorSharp
 			}
 		}
 
+
+		unsafe static public void SoftmaxGrad(Tensor grad_, Tensor adj_, Tensor val_, int rows, int cols, bool addGrad)
+		{
+
+			float* grad = (float*)CpuNativeHelpers.GetBufferStart(grad_);
+			float* adj = (float*)CpuNativeHelpers.GetBufferStart(adj_);
+			float* val = (float*)CpuNativeHelpers.GetBufferStart(val_);
+
+			for (int j = 0; j < rows; ++j)
+			{
+				float* gradRow = grad + j * cols;
+				float* adjRow = adj + j * cols;
+				float* valRow = val + j * cols;
+
+				float sum = 0.0f;
+				for (int i = 0; i < cols; ++i)
+				{
+					sum += valRow[i] * adjRow[i];
+				}
+
+				for (int i = 0; i < cols; ++i)
+				{
+					if (addGrad)
+					{
+						gradRow[i] += valRow[i] * (adjRow[i] - sum);
+					}
+					else
+					{
+						gradRow[i] = valRow[i] * (adjRow[i] - sum);
+					}
+				}
+			}
+		}
+
+
+
 		unsafe static public void IndexSelect(Tensor result_, Tensor src_, Tensor indice_, int rows, int cols)
 		{
 			float* result = (float*)CpuNativeHelpers.GetBufferStart(result_);
@@ -264,6 +399,26 @@ namespace TensorSharp
 			}
 		}
 
+
+		unsafe static public void IndexSelectGrad(Tensor grad_, Tensor adj_, Tensor indice_, int rows, int cols)
+		{
+			float* grad = (float*)CpuNativeHelpers.GetBufferStart(grad_);
+			float* adj = (float*)CpuNativeHelpers.GetBufferStart(adj_);
+			float* indice = (float*)CpuNativeHelpers.GetBufferStart(indice_);
+
+			for (int j = 0; j < rows; j++)
+			{
+
+				int gradIdx = (int)indice[j];
+				float* adjRow = adj + j * cols;
+				float* gradRow = grad + gradIdx * cols;
+
+				for (int i = 0; i < cols; ++i)
+				{
+					gradRow[i] += adjRow[i];
+				}
+			}
+		}
 
 
 
@@ -311,6 +466,163 @@ namespace TensorSharp
 					}
 
 					so[i] = t;
+				}
+			}
+		}
+
+
+		unsafe static public void LayerNormGrad(Tensor gradX_,
+			Tensor gradGamma_,
+			Tensor gradBeta_,
+			Tensor adj_,
+			Tensor y_,
+			Tensor x_,
+			Tensor gamma_,
+			Tensor beta_,
+			int rows,
+			int cols,
+			float eps)
+		{
+			float* gradX = (float*)CpuNativeHelpers.GetBufferStart(gradX_);
+			float* gradGamma = (float*)CpuNativeHelpers.GetBufferStart(gradGamma_);
+			float* gradBeta = gradBeta_ != null ? (float*)CpuNativeHelpers.GetBufferStart(gradBeta_) : null;
+			float* adj = (float*)CpuNativeHelpers.GetBufferStart(adj_);
+			float* y = (float*)CpuNativeHelpers.GetBufferStart(y_);
+			float* x = (float*)CpuNativeHelpers.GetBufferStart(x_);
+			float* gamma = (float*)CpuNativeHelpers.GetBufferStart(gamma_);
+			float* beta = beta_ != null ? (float*)CpuNativeHelpers.GetBufferStart(beta_) : null;
+
+			if (beta != null)
+			{
+				for (int j = 0; j < rows; ++j)
+				{
+					float* xRow = x + j * cols;
+					float* yRow = y + j * cols;
+					float* adjRow = adj + j * cols;
+					float* gradXRow = gradX + j * cols;
+
+					float sum_x = 0.0f;
+					float sum_adj = 0.0f;
+					float sum_adj_x = 0.0f;
+					float sum_sqr = 0.0f;
+
+					for (int i = 0; i < cols; ++i)
+					{
+						sum_x += xRow[i];
+						sum_adj_x += adjRow[i] * (yRow[i] - (beta != null ? beta[i] : 0.0f)) / gamma[i];
+						sum_adj += adjRow[i];
+					}
+
+					float mean = sum_x / cols;
+					for (int i = 0; i < cols; ++i)
+					{
+						float ex = xRow[i] - mean;
+						sum_sqr += ex * ex;
+					}
+
+					float sigma = (float)Math.Sqrt(eps + sum_sqr / cols);
+					for (int i = 0; i < cols; ++i)
+					{
+						float grad_x = 0.0f;
+						float x_hat = (yRow[i] - beta[i]) / gamma[i];
+						grad_x += cols * adjRow[i];
+						grad_x -= sum_adj;
+						grad_x -= sum_adj_x * x_hat;
+						grad_x /= cols * sigma;
+
+						gradXRow[i] += gamma[i] * grad_x;
+						gradGamma[i] += adjRow[i] * x_hat;
+						gradBeta[i] += adjRow[i];
+					}
+				}
+			}
+			else
+			{
+				for (int j = 0; j < rows; ++j)
+				{
+					float* xRow = x + j * cols;
+					float* yRow = y + j * cols;
+					float* adjRow = adj + j * cols;
+					float* gradXRow = gradX + j * cols;
+
+					float sum_x = 0.0f;
+					float sum_adj = 0.0f;
+					float sum_adj_x = 0.0f;
+					float sum_sqr = 0.0f;
+
+					for (int i = 0; i < cols; ++i)
+					{
+						sum_x += xRow[i];
+						sum_adj_x += adjRow[i] * (yRow[i] - (beta != null ? beta[i] : 0.0f)) / gamma[i];
+						sum_adj += adjRow[i];
+					}
+
+					float mean = sum_x / cols;
+
+					for (int i = 0; i < cols; ++i)
+					{
+						float ex = xRow[i] - mean;
+						sum_sqr += ex * ex;
+					}
+
+					float sigma = (float)Math.Sqrt(eps + sum_sqr / cols);
+
+					for (int i = 0; i < cols; ++i)
+					{
+						float grad_x = 0.0f;
+						float x_hat = yRow[i] / gamma[i];
+						grad_x += cols * adjRow[i];
+						grad_x -= sum_adj;
+						grad_x -= sum_adj_x * x_hat;
+						grad_x /= cols * sigma;
+
+						gradXRow[i] += gamma[i] * grad_x;
+						gradGamma[i] += adjRow[i] * x_hat;
+					}
+				}
+			}
+		}
+
+
+unsafe static public void Adam(Tensor tw, Tensor tg, Tensor tv, Tensor tm, int rows, int cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
+		{
+			float* w = (float*)CpuNativeHelpers.GetBufferStart(tw);
+			float* g = (float*)CpuNativeHelpers.GetBufferStart(tg);
+			float* v = (float*)CpuNativeHelpers.GetBufferStart(tv);
+			float* m = (float*)CpuNativeHelpers.GetBufferStart(tm);
+
+			for (int j = 0; j < rows; j++)
+			{
+				float* sw = w + j * cols;
+				float* sg = g + j * cols;
+				float* sv = v + j * cols;
+				float* sm = m + j * cols;
+
+				for (int i = 0; i < cols; i++)
+				{
+					if (sg[i] != 0.0)
+					{
+						float g2 = sg[i] / batchSize;
+
+						if (g2 > clipval)
+						{
+							g2 = clipval;
+						}
+						if (g2 < -clipval)
+						{
+							g2 = -clipval;
+						}
+
+						sm[i] = sm[i] * decay_rate_m + (1.0f - decay_rate_m) * g2;
+						sv[i] = sv[i] * decay_rate_v + (1.0f - decay_rate_v) * g2 * g2;
+
+					    double m_cap = sm[i] / (1.0 - Math.Pow(decay_rate_m, iter));
+						double v_cap = sv[i] / (1.0 - Math.Pow(decay_rate_v, iter));
+
+						sw[i] -= (float)(step_size * m_cap / (Math.Sqrt(v_cap) + eps));
+
+						sg[i] = 0;
+					}
 				}
 			}
 		}

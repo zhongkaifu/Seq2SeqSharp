@@ -53,8 +53,7 @@ namespace Seq2SeqSharp.Optimizer
 
                 if (m_cacheName2V.ContainsKey(item.Name) == false)
                 {
-                    IAllocator allocator = TensorAllocator.Allocator(item.DeviceId);
-                    m_cacheName2V[item.Name] = new Tensor(allocator, DType.Float32, item.Sizes);
+                    m_cacheName2V[item.Name] = new Tensor(item.Allocator, DType.Float32, item.Sizes);
                     Ops.Fill(m_cacheName2V[item.Name], 0.0f);
 
                     Logger.WriteLine($"Added weight '{item.Name}' to optimizer.");

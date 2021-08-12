@@ -47,14 +47,14 @@ OPS_API int TS_AddTanh3(TensorRef* result, TensorRef* srcX, TensorRef* srcY, Ten
 OPS_API int TS_AddTanhD(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ);
 OPS_API int TS_AddReluD(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ);
 
-OPS_API int TS_ReluD(TensorRef* result, TensorRef* srcW, TensorRef* srcG);
+//OPS_API int TS_ReluD(TensorRef* result, TensorRef* srcW, TensorRef* srcG);
 
 OPS_API int TS_AddMul(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ);
 OPS_API int TS_AddMulV(TensorRef* result, TensorRef* srcX, TensorRef* srcY, float v);
 
 OPS_API int TS_MaskFill(TensorRef* result, TensorRef* t, TensorRef* mask, float defValue);
 
-OPS_API int TS_Add(TensorRef* result, TensorRef* lhs, float rhs);
+//OPS_API int TS_Add(TensorRef* result, TensorRef* lhs, float rhs);
 OPS_API int TS_Sub(TensorRef* result, TensorRef* lhs, float rhs);
 OPS_API int TS_Rsub(TensorRef* result, TensorRef* lhs, float rhs);
 OPS_API int TS_Mul(TensorRef* result, TensorRef* lhs, float rhs);

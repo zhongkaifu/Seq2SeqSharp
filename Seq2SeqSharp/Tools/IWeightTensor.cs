@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using TensorSharp;
 
 namespace Seq2SeqSharp.Tools
 {
@@ -43,6 +44,8 @@ namespace Seq2SeqSharp.Tools
 
         bool IsWeightNull();
         bool IsGradientNull();
+
+        IAllocator Allocator { get; }
 
 
     }

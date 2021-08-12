@@ -85,7 +85,7 @@ namespace TensorSharp.Cpu
 
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddReluD(IntPtr result, IntPtr srcX, IntPtr srcY, IntPtr srcZ);
 
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_ReluD(IntPtr result, IntPtr srcW, IntPtr srcG);
+       // [DllImport(dll, CallingConvention = cc)] public static extern int TS_ReluD(IntPtr result, IntPtr srcW, IntPtr srcG);
 
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_MulMulAdd(IntPtr result, IntPtr srcX, IntPtr srcY, IntPtr srcZ, IntPtr srcW);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddTanh(IntPtr result, IntPtr srcX, IntPtr srcY);
@@ -162,10 +162,7 @@ namespace TensorSharp.Cpu
 
 
         //[DllImport(dll, CallingConvention = cc)]
-        //public static extern int TS_LayerNorm(IntPtr out_, IntPtr in_, IntPtr gamma_, IntPtr beta_, float eps, int rows, int cols);
-
-        [DllImport(dll, CallingConvention = cc)]
-        public static extern int TS_LayerNormGrad(IntPtr result, IntPtr gradGamma_, IntPtr gradBeta_, IntPtr adj_, IntPtr y_, IntPtr x_, IntPtr gamma_, IntPtr beta_, int rows, int cols, float eps);
+        //public static extern int TS_LayerNormGrad(IntPtr result, IntPtr gradGamma_, IntPtr gradBeta_, IntPtr adj_, IntPtr y_, IntPtr x_, IntPtr gamma_, IntPtr beta_, int rows, int cols, float eps);
 
 
         [DllImport(dll, CallingConvention = cc)]
@@ -176,22 +173,22 @@ namespace TensorSharp.Cpu
 
 
 
-        [DllImport(dll, CallingConvention = cc)]
-        public static extern int TS_SoftmaxGrad(IntPtr grad_, IntPtr adj_, IntPtr val_, int rows, int cols, bool addGrad);
+        //[DllImport(dll, CallingConvention = cc)]
+        //public static extern int TS_SoftmaxGrad(IntPtr grad_, IntPtr adj_, IntPtr val_, int rows, int cols, bool addGrad);
 
 
-        [DllImport(dll, CallingConvention = cc)]
-        public static extern int TS_IndexSelect(IntPtr result_, IntPtr src_, IntPtr indice_, int rows, int cols);
+        //[DllImport(dll, CallingConvention = cc)]
+        //public static extern int TS_IndexSelect(IntPtr result_, IntPtr src_, IntPtr indice_, int rows, int cols);
 
-        [DllImport(dll, CallingConvention = cc)]
-        public static extern int TS_IndexSelectGrad(IntPtr grad_, IntPtr adj_, IntPtr indice_, int rows, int cols);
+        //[DllImport(dll, CallingConvention = cc)]
+        //public static extern int TS_IndexSelectGrad(IntPtr grad_, IntPtr adj_, IntPtr indice_, int rows, int cols);
 
 
         [DllImport(dll, CallingConvention = cc)]
         public static extern int TS_RMSProp(IntPtr tw, IntPtr tg, IntPtr tc, int rows, int cols, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps);
 
-        [DllImport(dll, CallingConvention = cc)]
-        public static extern int TS_Adam(IntPtr tw, IntPtr tg, IntPtr tv, IntPtr tm, int rows, int cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps);
+        //[DllImport(dll, CallingConvention = cc)]
+        //public static extern int TS_Adam(IntPtr tw, IntPtr tg, IntPtr tv, IntPtr tm, int rows, int cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps);
 
         [DllImport(dll, CallingConvention = cc)]
         public static extern int TS_SpatialMaxPooling_updateOutput_frame(IntPtr input_p, IntPtr output_p, IntPtr ind_p, long nslices, long iwidth, long iheight, long owidth, long oheight, int kW, int kH, int dW, int dH, int padW, int padH);
@@ -200,8 +197,8 @@ namespace TensorSharp.Cpu
         public static extern int TS_SpatialMaxPooling_updateGradInput_frame(IntPtr gradInput, IntPtr gradOutput, IntPtr ind, long nslices, long iwidth, long iheight, long owidth, long oheight, int dW, int dH);
 
 
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_Gather(IntPtr result, IntPtr src, int dim, IntPtr indices);
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_Scatter(IntPtr result, IntPtr src, int dim, IntPtr indices);
+       // [DllImport(dll, CallingConvention = cc)] public static extern int TS_Gather(IntPtr result, IntPtr src, int dim, IntPtr indices);
+       // [DllImport(dll, CallingConvention = cc)] public static extern int TS_Scatter(IntPtr result, IntPtr src, int dim, IntPtr indices);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_ScatterFill(IntPtr result, float value, int dim, IntPtr indices);
     }
 }
