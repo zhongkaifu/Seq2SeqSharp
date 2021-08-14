@@ -13,14 +13,17 @@ namespace Seq2SeqSharp
         private static int[] m_deviceIds;
         private static ProcessorTypeEnums m_archType;
 
+        private static readonly object locker = new object();
+
 
         public static void InitDevices(ProcessorTypeEnums archType, int[] ids, float memoryUsageRatio = 0.9f, string[] compilerOptions = null)
         {
             m_archType = archType;
+            m_deviceIds = ids;
+            m_allocator = new IAllocator[m_deviceIds.Length];
+
             if (m_archType == ProcessorTypeEnums.GPU)
             {
-                m_deviceIds = ids;
-
                 foreach (int id in m_deviceIds)
                 {
                     Logger.WriteLine($"Initialize device '{id}'");
@@ -29,36 +32,28 @@ namespace Seq2SeqSharp
                 m_cudaContext = new TSCudaContext(m_deviceIds, memoryUsageRatio, compilerOptions);
                 m_cudaContext.Precompile(Console.Write);
                 m_cudaContext.CleanUnusedPTX();
-
-                m_allocator = new IAllocator[m_deviceIds.Length];
-            }
-            else
-            {
-                m_allocator = new IAllocator[1];
             }
         }
 
         public static IAllocator Allocator(int deviceId)
         {
+            int idx = GetDeviceIdIndex(deviceId);
             if (m_archType == ProcessorTypeEnums.GPU)
             {
-                int idx = GetDeviceIdIndex(deviceId);
                 if (m_allocator[idx] == null)
                 {
                     m_allocator[idx] = new CudaAllocator(m_cudaContext, deviceId);
                 }
-
-                return m_allocator[idx];
             }
             else
             {
-                if (m_allocator[0] == null)
+                if (m_allocator[idx] == null)
                 {
-                    m_allocator[0] = new CpuAllocator();
+                    m_allocator[idx] = new CpuAllocator();
                 }
-
-                return m_allocator[0];
             }
+
+            return m_allocator[idx];
         }
 
         private static int GetDeviceIdIndex(int id)

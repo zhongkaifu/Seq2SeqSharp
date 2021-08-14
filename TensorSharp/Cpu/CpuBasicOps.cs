@@ -363,7 +363,7 @@ namespace TensorSharp.Cpu
         public Tensor Add(Tensor result, Tensor lhs, float rhs)
         {
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, lhs.Sizes);
-            TensorApplyCPU.TSAdd_Apply(writeTarget, lhs, rhs);
+            TensorApplyCPU.Add_Apply(writeTarget, lhs, rhs);
 
             return writeTarget;
             //return NativeWrapper.InvokeNullableResultElementwise(add_func, result, lhs, rhs); 
@@ -382,7 +382,7 @@ namespace TensorSharp.Cpu
         public Tensor Mul(Tensor result, Tensor lhs, float rhs)
         {
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, lhs.Sizes);
-            TensorApplyCPU.TSMul_Apply(writeTarget, lhs, rhs);
+            TensorApplyCPU.Mul_Apply(writeTarget, lhs, rhs);
 
             return writeTarget;
         }
@@ -433,7 +433,7 @@ namespace TensorSharp.Cpu
         public Tensor Add(Tensor result, Tensor lhs, Tensor rhs)
         {
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, lhs.Sizes);
-            TensorApplyCPU.CAdd_Apply(writeTarget, lhs, rhs);
+            TensorApplyCPU.Add_Apply(writeTarget, lhs, rhs);
 
             return writeTarget;
         }
@@ -626,19 +626,15 @@ namespace TensorSharp.Cpu
         [RegisterOpStorageType("layernorm", typeof(CpuStorage))]
         public Tensor LayerNorm(Tensor result, Tensor src, Tensor gamma_, Tensor beta_, float eps)
         {
-            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
             TensorApplyCPU.LayerNorm(writeTarget, src, gamma_, beta_, eps, (int)src.Sizes[0], (int)src.Sizes[1]);
             return writeTarget;
         }
 
-
-       // private readonly MethodInfo layerNormGrad_func = NativeWrapper.GetMethod("TS_LayerNormGrad");
         [RegisterOpStorageType("layernormgrad", typeof(CpuStorage))]
         public Tensor LayerNormGrad(Tensor result, Tensor gradGamma_, Tensor gradBeta_, Tensor adj_, Tensor y_, Tensor x_, Tensor gamma_, Tensor beta_, float eps)
         {
-            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, adj_, false, adj_.Sizes);
-            //  NativeWrapper.InvokeTypeMatch(layerNormGrad_func, writeTarget, gradGamma_, gradBeta_, adj_, y_, x_, gamma_, beta_, (int)adj_.Sizes[0], (int)adj_.Sizes[1], eps);
-
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, adj_, true, adj_.Sizes);
             TensorApplyCPU.LayerNormGrad(writeTarget, gradGamma_, gradBeta_, adj_, y_, x_, gamma_, beta_, (int)adj_.Sizes[0], (int)adj_.Sizes[1], eps);
 
             return writeTarget;
@@ -724,14 +720,11 @@ namespace TensorSharp.Cpu
 
             long rows = storageSize / cols;
 
-            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
             TensorApplyCPU.Softmax(writeTarget, src, (int)rows, (int)cols);
             return writeTarget;
         }
 
-
-
-      //  private readonly MethodInfo softmaxGrad_func = NativeWrapper.GetMethod("TS_SoftmaxGrad");
         [RegisterOpStorageType("softmaxgrad", typeof(CpuStorage))]
         public Tensor SoftmaxGrad(Tensor grad_, Tensor adj_, Tensor val_, bool addGrad = true)
         {
@@ -746,9 +739,7 @@ namespace TensorSharp.Cpu
 
             long rows = storageSize / cols;
 
-            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(grad_, adj_, false, adj_.Sizes);
-            //   NativeWrapper.InvokeTypeMatch(softmaxGrad_func, writeTarget, adj_, val_, (int)rows, (int)cols, addGrad);
-
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(grad_, adj_, true, adj_.Sizes);
             TensorApplyCPU.SoftmaxGrad(writeTarget, adj_, val_, (int)rows, (int)cols, addGrad);
 
 

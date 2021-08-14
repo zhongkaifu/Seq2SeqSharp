@@ -1,6 +1,8 @@
-﻿using System;
+﻿using AdvUtils;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -482,20 +484,41 @@ namespace TensorSharp.Cpu.LinearAlgebra
                         if (BETA == ZERO)
                         {
                             C_J = J * LDC + o_c;
-                            for (I = 1; I <= M; I++)
-                            {
-                                C[I + C_J] = ZERO;
-                            }
+                            //for (I = 1; I <= M; I++)
+                            //{
+                            //    C[I + C_J] = ZERO;
+                            //}
+
+                            Span<float> spanC = new Span<float>(C + C_J + 1, M);
+                            spanC.Fill(0.0f);
                         }
                         else
                         {
                             if (BETA != ONE)
                             {
                                 C_J = J * LDC + o_c;
-                                for (I = 1; I <= M; I++)
+                                //for (I = 1; I <= M; I++)
+                                //{
+                                //    C[I + C_J] *= BETA;
+                                //}
+
+
+                                Span<float> spanC = new Span<float>(C + C_J, M);
+                                int vectorSize = Vector<float>.Count;
+                                for (I = 1; I <= M - vectorSize; I += vectorSize)
+                                {
+                                    Vector<float> vecC = new Vector<float>(spanC.Slice(I));
+                                    vecC *= BETA;
+
+                                    vecC.CopyTo(spanC.Slice(I));
+                                }
+                                for (; I <= M; I++)
                                 {
                                     C[I + C_J] *= BETA;
                                 }
+
+
+
                             }
                         }
                         for (L = 1; L <= K; L++)
@@ -505,16 +528,39 @@ namespace TensorSharp.Cpu.LinearAlgebra
                                 TEMP = ALPHA * B[L + J * LDB + o_b];
                                 C_J = J * LDC + o_c;
                                 A_L = L * LDA + o_a;
-                                for (I = 1; I <= M; I++)
+                                //for (I = 1; I <= M; I++)
+                                //{
+                                //    C[I + C_J] += TEMP * A[I + A_L];
+                                //}
+
+
+
+                                Span<float> spanC = new Span<float>(C + C_J, M);
+                                Span<float> spanA = new Span<float>(A + A_L, M);
+
+                                int vectorSize = Vector<float>.Count;
+                                for (I = 1; I <= M - vectorSize; I += vectorSize)
+                                {
+                                    Vector<float> vecC = new Vector<float>(spanC.Slice(I));
+                                    Vector<float> vecA = new Vector<float>(spanA.Slice(I));
+                                    vecC += TEMP * vecA;
+
+                                    vecC.CopyTo(spanC.Slice(I));
+                                }
+
+                                for (; I <= M; I++)
                                 {
                                     C[I + C_J] += TEMP * A[I + A_L];
                                 }
+
                             }
                         }
                     }
                 }
                 else
                 {
+
+                 //   Logger.WriteLine("1");
                     // *
                     // *           Form  C := alpha*A'*B + beta*C
                     // *
@@ -525,10 +571,35 @@ namespace TensorSharp.Cpu.LinearAlgebra
                             TEMP = ZERO;
                             A_I = I * LDA + o_a;
                             B_J = J * LDB + o_b;
-                            for (L = 1; L <= K; L++)
+                            //for (L = 1; L <= K; L++)
+                            //{
+                            //    TEMP += A[L + A_I] * B[L + B_J];
+                            //}
+
+
+
+
+                            Span<float> spanA = new Span<float>(A + A_I, K);
+                            Span<float> spanB = new Span<float>(B + B_J, K);
+
+                            int vectorSize = Vector<float>.Count;
+                            for (L = 1; L <= K - vectorSize; L += vectorSize)
+                            {
+                                Vector<float> vecA = new Vector<float>(spanA.Slice(L));
+                                Vector<float> vecB = new Vector<float>(spanB.Slice(L));
+                                TEMP += Vector.Dot(vecA, vecB);
+                            }
+                            for (; L <= K; L++)
                             {
                                 TEMP += A[L + A_I] * B[L + B_J];
                             }
+
+
+
+
+
+
+
                             if (BETA == ZERO)
                             {
                                 C[I + J * LDC + o_c] = ALPHA * TEMP;
@@ -553,17 +624,34 @@ namespace TensorSharp.Cpu.LinearAlgebra
                         if (BETA == ZERO)
                         {
                             C_J = J * LDC + o_c;
-                            for (I = 1; I <= M; I++)
-                            {
-                                C[I + C_J] = ZERO;
-                            }
+                            //for (I = 1; I <= M; I++)
+                            //{
+                            //    C[I + C_J] = ZERO;
+                            //}
+
+                            Span<float> spanC = new Span<float>(C + C_J + 1, M);
+                            spanC.Fill(0.0f);
                         }
                         else
                         {
                             if (BETA != ONE)
                             {
                                 C_J = J * LDC + o_c;
-                                for (I = 1; I <= M; I++)
+                                //for (I = 1; I <= M; I++)
+                                //{
+                                //    C[I + C_J] *= BETA;
+                                //}
+
+                                Span<float> spanC = new Span<float>(C + C_J, M);
+                                int vectorSize = Vector<float>.Count;
+                                for (I = 1; I <= M - vectorSize; I += vectorSize)
+                                {
+                                    Vector<float> vecC = new Vector<float>(spanC.Slice(I));
+                                    vecC *= BETA;
+
+                                    vecC.CopyTo(spanC.Slice(I));
+                                }
+                                for (; I <= M; I++)
                                 {
                                     C[I + C_J] *= BETA;
                                 }
@@ -576,16 +664,38 @@ namespace TensorSharp.Cpu.LinearAlgebra
                                 TEMP = ALPHA * B[J + L * LDB + o_b];
                                 C_J = J * LDC + o_c;
                                 A_L = L * LDA + o_a;
-                                for (I = 1; I <= M; I++)
+                                //for (I = 1; I <= M; I++)
+                                //{
+                                //    C[I + C_J] += TEMP * A[I + A_L];
+                                //}
+
+
+                                Span<float> spanC = new Span<float>(C + C_J, M);
+                                Span<float> spanA = new Span<float>(A + A_L, M);
+
+                                int vectorSize = Vector<float>.Count;
+                                for (I = 1; I <= M - vectorSize; I += vectorSize)
+                                {
+                                    Vector<float> vecC = new Vector<float>(spanC.Slice(I));
+                                    Vector<float> vecA = new Vector<float>(spanA.Slice(I));
+                                    vecC += TEMP * vecA;
+
+                                    vecC.CopyTo(spanC.Slice(I));
+                                }
+
+                                for (; I <= M; I++)
                                 {
                                     C[I + C_J] += TEMP * A[I + A_L];
                                 }
+
+
                             }
                         }
                     }
                 }
                 else
                 {
+            //        Logger.WriteLine("2");
                     // *
                     // *           Form  C := alpha*A'*B' + beta*C
                     // *

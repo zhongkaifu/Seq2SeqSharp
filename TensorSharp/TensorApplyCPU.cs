@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using TensorSharp.Cpu;
@@ -232,7 +234,7 @@ namespace TensorSharp
 		}
 
 
-		unsafe public static void CAdd_Apply(Tensor result, Tensor lhs, Tensor rhs)
+		unsafe public static void Add_Apply(Tensor result, Tensor lhs, Tensor rhs)
 		{
 			unsafe void func(float* r, float* left, float* right)
 			{
@@ -242,7 +244,7 @@ namespace TensorSharp
 			Apply3(result, lhs, rhs, func);
 		}
 
-		unsafe public static void TSAdd_Apply(Tensor result, Tensor src, float value)
+		unsafe public static void Add_Apply(Tensor result, Tensor src, float value)
 		{
 			unsafe void func(float* r, float* s)
 			{
@@ -254,7 +256,7 @@ namespace TensorSharp
 
 
 
-		unsafe public static void TSMul_Apply(Tensor result, Tensor src, float value)
+		unsafe public static void Mul_Apply(Tensor result, Tensor src, float value)
 		{
 			unsafe void func(float* r, float* s)
 			{
@@ -264,6 +266,7 @@ namespace TensorSharp
 			Apply2(result, src, func);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		static float relu(float w)
 		{
 			if (w < 0.0f)
@@ -272,6 +275,7 @@ namespace TensorSharp
 
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		static float relud(float w, float g)
 		{
 			if (w > 0.0f)
@@ -279,12 +283,13 @@ namespace TensorSharp
 			return 0.0f;
 		}
 
-
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		static float add(float x, float y)
 		{
 			return x + y;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		static float mul(float x, float y)
 		{
 			return x * y;
@@ -323,23 +328,44 @@ namespace TensorSharp
 			{
 				float* so = pOut + j * cols;
 				float* sp = pIn + j * cols;
-
+				
 				float max = sp[0];
 				for (int i = 1; i < cols; ++i)
 					max = Math.Max(max, sp[i]);
 
 				float sum = 0.0f;
-				for (int i = 0; i < cols; ++i)
+                for (int i = 0; i < cols; ++i)
+                {
+                    float ex = (float)Math.Exp(sp[i] - max);
+                    so[i] = ex;
+                    sum += ex;
+                }
+
+				//for (int i = 0; i < cols; ++i)
+				//{
+				//	so[i] /= sum;
+				//}
+
+
+
+				Span<float> spanSO = new Span<float>(so, cols);
+				int vectorSize = Vector<float>.Count;
+				int k = 0;
+				Vector<float> vecSum = new Vector<float>(sum);
+				for (k = 0; k < cols - vectorSize; k += vectorSize)
 				{
-					float ex = (float)Math.Exp(sp[i] - max);
-					so[i] = ex;
-					sum += ex;
+					Vector<float> vecSO = new Vector<float>(spanSO.Slice(k));
+					vecSO /= vecSum;
+
+					vecSO.CopyTo(spanSO.Slice(k));
+				}
+				for (; k < cols; k++)
+				{
+					so[k] /= sum;
 				}
 
-				for (int i = 0; i < cols; ++i)
-				{
-					so[i] /= sum;
-				}
+
+
 			}
 		}
 
@@ -440,34 +466,101 @@ namespace TensorSharp
 				float* so = outPtr + j * cols;
 				float* sp = inPtr + j * cols;
 
+				Span<float> spanSP = new Span<float>(sp, cols);
+
 				float sum = 0.0f;
-				for (int i = 0; i < cols; ++i)
+				//for (int i = 0; i < cols; ++i)
+				//{
+				//	sum += sp[i];
+				//}
+
+
+				int vectorSize = Vector<float>.Count;
+				Vector<float> vecAdded = Vector<float>.Zero;
+				int i = 0;
+
+				for (i = 0; i < cols - vectorSize; i += vectorSize)
+				{
+					Vector<float> vecSp = new Vector<float>(spanSP.Slice(i));
+					vecAdded += vecSp;
+				}
+				sum = Vector.Dot(vecAdded, Vector<float>.One);
+				for (; i < cols; i++)
 				{
 					sum += sp[i];
 				}
 
+
+
 				float mean = sum / cols;
 				float sqSum = 0.0f;
 
-				for (int i = 0; i < cols; ++i)
+				//for (int i = 0; i < cols; ++i)
+				//{
+				//	float ex = sp[i] - mean;
+				//	sqSum += ex * ex;
+				//}
+
+				Vector<float> vecMean = new Vector<float>(mean);
+				for (i = 0; i < cols - vectorSize; i += vectorSize)
 				{
-					float ex = sp[i] - mean;
-					sqSum += ex * ex;
+					Vector<float> vecSp = new Vector<float>(spanSP.Slice(i));
+					Vector<float> vecEx = vecSp - vecMean;
+					sqSum += Vector.Dot(vecEx, vecEx);
 				}
+                for (; i < cols; ++i)
+                {
+                    float ex = sp[i] - mean;
+                    sqSum += ex * ex;
+                }
 
-				float sigma = (float)Math.Sqrt(eps + sqSum / cols);
+                float sigma = (float)Math.Sqrt(eps + sqSum / cols);
 
-				for (int i = 0; i < cols; ++i)
+				Span<float> spanSO = new Span<float>(so, cols);
+				Span<float> spanAlpha = new Span<float>(alpha, cols);
+				Span<float> spanBeta = (beta != null) ? new Span<float>(beta, cols) : null;
+				Vector<float> vecSigma = new Vector<float>(sigma);
+
+				//for (int i = 0; i < cols; ++i)
+				//{
+				//	float t = alpha[i] * ((sp[i] - mean) / sigma);
+				//	if (beta != null)
+				//	{
+				//		t += beta[i];
+				//	}
+
+				//	so[i] = t;
+				//}
+
+
+				for (i = 0; i < cols - vectorSize; i += vectorSize)
 				{
-					float t = alpha[i] * ((sp[i] - mean) / sigma);
-					if (beta != null)
+					Vector<float> vecSp = new Vector<float>(spanSP.Slice(i));
+					Vector<float> vecAlpha = new Vector<float>(spanAlpha.Slice(i));
+
+					Vector<float> vecT = vecAlpha * ((vecSp - vecMean) / vecSigma);
+
+					if (spanBeta != null)
 					{
-						t += beta[i];
+						Vector<float> vecBeta = new Vector<float>(spanBeta.Slice(i));
+						vecT += vecBeta;
 					}
 
-					so[i] = t;
+					vecT.CopyTo(spanSO.Slice(i));
 				}
-			}
+                for (; i < cols; ++i)
+                {
+                    float t = alpha[i] * ((sp[i] - mean) / sigma);
+                    if (beta != null)
+                    {
+                        t += beta[i];
+                    }
+
+                    so[i] = t;
+                }
+
+
+            }
 		}
 
 
