@@ -59,13 +59,7 @@ namespace TensorSharp.Cpu
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Atan(IntPtr result, IntPtr src);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Sinh(IntPtr result, IntPtr src);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Cosh(IntPtr result, IntPtr src);
-     //   [DllImport(dll, CallingConvention = cc)] public static extern int TS_Tanh(IntPtr result, IntPtr src);
 
-        //[DllImport(dll, CallingConvention = cc)] public static extern int TS_Sigmoid(IntPtr result, IntPtr src);
-
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_TanhD(IntPtr result, IntPtr resW, IntPtr resG);
-
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_SigmoidD(IntPtr result, IntPtr resW, IntPtr resG);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Add3(IntPtr result, IntPtr x, IntPtr y, IntPtr z);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Add4(IntPtr result, IntPtr x, IntPtr y, IntPtr z, IntPtr w);
 
@@ -85,12 +79,8 @@ namespace TensorSharp.Cpu
 
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddReluD(IntPtr result, IntPtr srcX, IntPtr srcY, IntPtr srcZ);
 
-       // [DllImport(dll, CallingConvention = cc)] public static extern int TS_ReluD(IntPtr result, IntPtr srcW, IntPtr srcG);
-
-      //  [DllImport(dll, CallingConvention = cc)] public static extern int TS_MulMulAdd(IntPtr result, IntPtr srcX, IntPtr srcY, IntPtr srcZ, IntPtr srcW);
-      //  [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddTanh(IntPtr result, IntPtr srcX, IntPtr srcY);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddTanh3(IntPtr result, IntPtr srcX, IntPtr srcY, IntPtr srcZ);
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddTanhD(IntPtr result, IntPtr srcX, IntPtr srcY, IntPtr srcZ);
+        //[DllImport(dll, CallingConvention = cc)] public static extern int TS_AddTanhD(IntPtr result, IntPtr srcX, IntPtr srcY, IntPtr srcZ);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Add(IntPtr result, IntPtr lhs, float rhs);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Sub(IntPtr result, IntPtr lhs, float rhs);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Rsub(IntPtr result, IntPtr lhs, float rhs);

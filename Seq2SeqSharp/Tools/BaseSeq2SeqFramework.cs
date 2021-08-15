@@ -557,6 +557,56 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
+
+        internal void RunTest<T>(SntPairBatchStreamReader<T> reader, SntPairBatchStreamWriter writer, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice) where T : ISntPairBatch, new()
+        {
+            if (ForwardOnSingleDevice is null)
+            {
+                throw new ArgumentNullException(nameof(ForwardOnSingleDevice));
+            }
+
+            try
+            {
+                Parallel.For(0, m_deviceIds.Length, gpuIdx =>
+                {
+                    try
+                    {
+                        while (true)
+                        {
+                            (int idx, ISntPairBatch spb) = reader.GetNextBatch();
+                            if (idx < 0)
+                            {
+                                break;
+                            }
+
+                            List<NetworkResult> nrs = null;
+                                // Create a new computing graph instance
+                                using (IComputeGraph computeGraph = CreateComputGraph(gpuIdx, needBack: false))
+                            {
+                                    // Run forward part
+                                    nrs = ForwardOnSingleDevice(computeGraph, spb, gpuIdx, false);
+                            }
+
+                            writer.WriteResults(idx, nrs);
+                        }
+                    }
+                    catch (Exception err)
+                    {
+                        Logger.WriteLine(Logger.Level.err, $"Test error at processor '{gpuIdx}'. Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                        throw err;
+                    }
+                });
+
+                writer.Close();
+            }
+            catch (Exception err)
+            {
+                Logger.WriteLine(Logger.Level.err, $"Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                throw err;
+            }
+        }
+
+
         /// <summary>
         /// Evaluate the quality of model on valid corpus.
         /// </summary>

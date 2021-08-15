@@ -179,16 +179,6 @@ namespace Seq2SeqConsole
                 }
                 else if (mode == ModeEnums.Test)
                 {
-                    Logger.WriteLine($"Test model: '{opts.ModelFilePath}'");
-                    Logger.WriteLine($"Test set: '{opts.InputTestFile}'");
-                    Logger.WriteLine($"Max source sentence length: '{opts.MaxTestSrcSentLength}'");
-                    Logger.WriteLine($"Max target sentence length: '{opts.MaxTestTgtSentLength}'");
-                    Logger.WriteLine($"Beam search size: '{opts.BeamSearchSize}'");
-                    Logger.WriteLine($"Batch size: '{opts.BatchSize}'");
-                    Logger.WriteLine($"Shuffle type: '{opts.ShuffleType}'");
-                    Logger.WriteLine($"Device ids: '{opts.DeviceIds}'");
-
-
                     if (File.Exists(opts.OutputFile))
                     {
                         Logger.WriteLine(Logger.Level.err, ConsoleColor.Yellow, $"Output file '{opts.OutputFile}' exist. Delete it.");
@@ -197,34 +187,9 @@ namespace Seq2SeqConsole
 
                     //Test trained model
                     ss = new Seq2Seq(opts);
-                    List<List<List<string>>> inputBatchs = new List<List<List<string>>>(); // shape: (feature_group_size, batch_size, sequence_length)
                     Stopwatch stopwatch = Stopwatch.StartNew();
-                    foreach (string line in File.ReadLines(opts.InputTestFile))
-                    {
-                        Misc.AppendNewBatch(inputBatchs, line, opts.MaxTestSrcSentLength);
+                    ss.Test();
 
-                        if (inputBatchs[0].Count >= opts.BatchSize * ss.DeviceIds.Length)
-                        {
-                            (var outputLines, var alignments) = RunBatchTest(opts, ss, inputBatchs);
-                            File.AppendAllLines(opts.OutputFile, outputLines);
-                            if (opts.OutputAlignment)
-                            {
-                                File.AppendAllLines(opts.OutputFile + ".alignment", alignments);
-                            }
-
-                            inputBatchs.Clear();
-                        }
-                    }
-
-                    if (inputBatchs.Count > 0 && inputBatchs[0].Count > 0)
-                    {
-                        (var outputLines, var alignments) = RunBatchTest(opts, ss, inputBatchs);
-                        File.AppendAllLines(opts.OutputFile, outputLines);
-                        if (opts.OutputAlignment)
-                        {
-                            File.AppendAllLines(opts.OutputFile + ".alignment", alignments);
-                        }
-                    }
                     stopwatch.Stop();
 
                     Logger.WriteLine($"Test mode execution time elapsed: '{stopwatch.Elapsed}'");
@@ -246,40 +211,7 @@ namespace Seq2SeqConsole
                 Logger.WriteLine($"Call stack: '{err.StackTrace}'");
             }
         }
-
-
-        private static (List<string>, List<string>) RunBatchTest(Seq2SeqOptions opts, Seq2Seq ss, List<List<List<string>>> inputBatchs)
-        {
-            List<string> outputLines = new List<string>();
-            List<string> alignments = new List<string>();
-
-            NetworkResult nr = ss.Test(inputBatchs); // shape [beam size, batch size, tgt token size]
-
-            for (int batchIdx = 0; batchIdx < inputBatchs[0].Count; batchIdx++)
-            {
-                for (int beamIdx = 0; beamIdx < nr.Output.Count; beamIdx++)
-                {
-                    outputLines.Add(String.Join(" ", nr.Output[beamIdx][batchIdx]));
-
-                    if (opts.OutputAlignment)
-                    {
-                        StringBuilder sb = new StringBuilder();
-                        for (int tgtTknIdx = 0; tgtTknIdx < nr.Output[beamIdx][batchIdx].Count; tgtTknIdx++)
-                        {
-                            int srcIdx = nr.Alignment[beamIdx][batchIdx][tgtTknIdx].SrcPos;
-                            float score = nr.Alignment[beamIdx][batchIdx][tgtTknIdx].Score;
-                            sb.Append($"{tgtTknIdx}_{srcIdx}_{score}");
-                            sb.Append(' ');
-                        }
-
-                        alignments.Add(sb.ToString().Trim());
-                    }
-                }
-            }
-
-            return (outputLines, alignments);
-        }
-
+      
         private static void ShowOptions(string[] args, Seq2SeqOptions opts)
         {
             string commandLine = string.Join(" ", args);

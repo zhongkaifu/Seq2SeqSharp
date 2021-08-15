@@ -66,33 +66,15 @@ template<typename T> INLINE_FUNC T Lerp(T a, T b, T weight) {
 	return a + weight * (b - a);
 }
 
-template<typename T> INLINE_FUNC T Sigmoid(T x) {
-	return T(1) / (T(1) + exp(-x));
-}
 
-template<typename T> INLINE_FUNC T TanhD(T resW, T resG) {
-	return (T(1) - resW * resW) * resG;
-}
 
-template<typename T> INLINE_FUNC T SigmoidD(T resW, T resG) {
-	return resW * (T(1) - resW) * resG;
-}
-
-template<typename T> INLINE_FUNC T AddTanhD(T t, T resW, T resG) {
-	return t + (T(1) - resW * resW) * resG;
-}
+//template<typename T> INLINE_FUNC T AddTanhD(T t, T resW, T resG) {
+//	return t + (T(1) - resW * resW) * resG;
+//}
 
 template<typename T> INLINE_FUNC T AddMul(T x, T y, T z) {
 	return x + y * z;
 }
-
-//template<typename T> INLINE_FUNC T MulMulAdd(T x, T y, T z, T w) {
-//	return x * y + z * w;
-//}
-
-//template<typename T> INLINE_FUNC T AddTanh(T x, T y) {
-//	return tanh(x + y);
-//}
 
 template<typename T> INLINE_FUNC T AddTanh3(T x, T y, T z) {
 	return tanh(x + y + z);
@@ -143,43 +125,13 @@ DECLARE_UNARY_FLOAT_TYPES(TS_Acos, acos)
 DECLARE_UNARY_FLOAT_TYPES(TS_Atan, atan)
 DECLARE_UNARY_FLOAT_TYPES(TS_Sinh, sinh)
 DECLARE_UNARY_FLOAT_TYPES(TS_Cosh, cosh)
-//DECLARE_UNARY_FLOAT_TYPES(TS_Tanh, tanh)
 
-//DECLARE_UNARY_FLOAT_TYPES(TS_Sigmoid, Sigmoid)
 
 
 template <typename T> INLINE_FUNC T AddReluD(T t, T w, T g) {
 	if (w > T(0))
 		return t + g;
 	return t + T(0);
-}
-
-template<typename T>
-INLINE_FUNC void TanhD_Apply(TensorRef* result, TensorRef* resW, TensorRef* resG)
-{
-	auto func = [](T *r, T *x, T *y) { *r = TanhD(*x, *y); };
-	Apply3<T, T, T>(result, resW, resG, func);
-}
-
-int TS_TanhD(TensorRef* result, TensorRef* resW, TensorRef* resG)
-{
-	API_BEGIN()
-		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, TanhD_Apply, result, resW, resG)
-	API_END()
-}
-
-template<typename T>
-INLINE_FUNC void SigmoidD_Apply(TensorRef* result, TensorRef* resW, TensorRef* resG)
-{
-	auto func = [](T *r, T *x, T *y) { *r = SigmoidD(*x, *y); };
-	Apply3<T, T, T>(result, resW, resG, func);
-}
-
-int TS_SigmoidD(TensorRef* result, TensorRef* resW, TensorRef* resG)
-{
-	API_BEGIN()
-		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, SigmoidD_Apply, result, resW, resG)
-		API_END()
 }
 
 template<typename T>
@@ -315,19 +267,19 @@ int TS_AddReluD(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* 
 //}
 
 
-template<typename T>
-INLINE_FUNC void AddTanhD_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
-{
-	auto func = [](T *r, T *x, T *y, T *z) { *r = AddTanhD(*x, *y, *z); };
-	Apply4<T, T, T, T>(result, srcX, srcY, srcZ, func);
-}
-
-int TS_AddTanhD(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
-{
-	API_BEGIN()
-		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, AddTanhD_Apply, result, srcX, srcY, srcZ)
-		API_END()
-}
+//template<typename T>
+//INLINE_FUNC void AddTanhD_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
+//{
+//	auto func = [](T *r, T *x, T *y, T *z) { *r = AddTanhD(*x, *y, *z); };
+//	Apply4<T, T, T, T>(result, srcX, srcY, srcZ, func);
+//}
+//
+//int TS_AddTanhD(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
+//{
+//	API_BEGIN()
+//		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, AddTanhD_Apply, result, srcX, srcY, srcZ)
+//		API_END()
+//}
 
 
 template<typename T>

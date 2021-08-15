@@ -17,6 +17,7 @@ namespace TensorSharp
         unsafe public delegate void Apply1KernelFunction(float* x);
 		unsafe public delegate void Apply2KernelFunction(float* x, float* y);
 		unsafe public delegate void Apply3KernelFunction(float* x, float* y, float* z);
+		unsafe public delegate void Apply4KernelFunction(float* x, float* y, float* z, float* k);
 		unsafe public delegate void Apply5KernelFunction(float* x, float* y, float* z, float* k, float* l);
 		unsafe public delegate void ApplyDim2KernelFuncton(float* x, long sizeX, long stridesX, float* y, long sizeY, long stridesY);
 		unsafe public delegate void ApplyDim3KernelFuncton(float* x, long sizeX, long stridesX, float* y, long sizeY, long stridesY, float* z, long sizeZ, long stridesZ);
@@ -78,6 +79,29 @@ namespace TensorSharp
 			} while (tensor1Iter.NextBlock() && tensor2Iter.NextBlock() && tensor3Iter.NextBlock());
 		}
 
+
+		unsafe static void Apply4(Tensor tensor1, Tensor tensor2, Tensor tensor3, Tensor tensor4, Apply4KernelFunction func)
+		{
+			float* buffer1 = (float*)CpuNativeHelpers.GetBufferStart(tensor1);
+			float* buffer2 = (float*)CpuNativeHelpers.GetBufferStart(tensor2);
+			float* buffer3 = (float*)CpuNativeHelpers.GetBufferStart(tensor3);
+			float* buffer4 = (float*)CpuNativeHelpers.GetBufferStart(tensor4);
+
+			TensorIterState tensor1Iter = new TensorIterState(buffer1, tensor1.DimensionCount, tensor1.Sizes, tensor1.Strides);
+			TensorIterState tensor2Iter = new TensorIterState(buffer2, tensor2.DimensionCount, tensor2.Sizes, tensor2.Strides);
+			TensorIterState tensor3Iter = new TensorIterState(buffer3, tensor3.DimensionCount, tensor3.Sizes, tensor3.Strides);
+			TensorIterState tensor4Iter = new TensorIterState(buffer4, tensor4.DimensionCount, tensor4.Sizes, tensor4.Strides);
+
+			do
+			{
+				for (; !tensor1Iter.ReachedBlockEnd() && !tensor2Iter.ReachedBlockEnd() && !tensor3Iter.ReachedBlockEnd() && !tensor4Iter.ReachedBlockEnd();
+					tensor1Iter.BlockStep(), tensor2Iter.BlockStep(), tensor3Iter.BlockStep(), tensor4Iter.BlockStep())
+				{
+					func(tensor1Iter.data, tensor2Iter.data, tensor3Iter.data, tensor4Iter.data);
+				}
+
+			} while (tensor1Iter.NextBlock() && tensor2Iter.NextBlock() && tensor3Iter.NextBlock() && tensor4Iter.NextBlock());
+		}
 
 
 		unsafe static void Apply5(Tensor tensor1, Tensor tensor2, Tensor tensor3, Tensor tensor4, Tensor tensor5, Apply5KernelFunction func)
@@ -456,6 +480,19 @@ namespace TensorSharp
 		}
 
 
+
+		unsafe static public void SigmoidD_Apply(Tensor result, Tensor resW, Tensor resG)
+		{
+			unsafe void func(float* r, float* x, float* y)
+			{
+				*r = sigmoidD(*x, *y);
+			}
+
+			Apply3(result, resW, resG, func);
+		}
+
+
+
 		unsafe static public void Tanh_Apply(Tensor result, Tensor src)
 		{
 			unsafe void func(float* r, float* s)
@@ -465,6 +502,20 @@ namespace TensorSharp
 
 			Apply2(result, src, func);
 		}
+
+
+
+		unsafe static public void TanhD_Apply(Tensor result, Tensor resW, Tensor resG)
+		{
+			unsafe void func(float* r, float* x, float* y)
+			{
+				*r = tanhD(*x, *y);
+			}
+
+			Apply3(result, resW, resG, func);
+		}
+
+
 
 		unsafe static public void AddTanh_Apply(Tensor result, Tensor srcX, Tensor srcY)
 		{
@@ -477,6 +528,15 @@ namespace TensorSharp
 		}
 
 
+		unsafe static public void AddTanhD_Apply(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ)
+		{
+			unsafe void func(float* r, float* x, float* y, float* z)
+			{
+				*r = addtanhD(*x, *y, *z);
+
+			}
+			Apply4(result, srcX, srcY, srcZ, func);
+		}
 
 		unsafe static public void ReluD_Apply(Tensor result, Tensor srcW, Tensor srcG)
 		{
@@ -942,6 +1002,14 @@ namespace TensorSharp
 
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float sigmoidD(float resW, float resG)
+		{
+			return resW * (1.0f - resW) * resG;
+		}
+
+
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		static float mulmuladd(float x, float y, float z, float w)
 		{
 			return x * y + z * w;
@@ -953,6 +1021,17 @@ namespace TensorSharp
 			return (float)Math.Tanh(x + y);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float addtanhD(float t, float resW, float resG)
+		{
+			return t + (1.0f - resW * resW) * resG;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float tanhD(float resW, float resG)
+		{
+			return (1.0f - resW * resW) * resG;
+		}
 
 		#endregion
 	}

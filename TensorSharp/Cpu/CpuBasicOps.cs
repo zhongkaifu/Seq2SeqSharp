@@ -260,7 +260,6 @@ namespace TensorSharp.Cpu
         [RegisterOpStorageType("cosh", typeof(CpuStorage))]
         public Tensor Cosh(Tensor result, Tensor src) { return NativeWrapper.InvokeNullableResultElementwise(cosh_func, result, src); }
 
-        //private readonly MethodInfo tanh_func = NativeWrapper.GetMethod("TS_Tanh");
         [RegisterOpStorageType("tanh", typeof(CpuStorage))]
         public Tensor Tanh(Tensor result, Tensor src) 
         {
@@ -268,14 +267,9 @@ namespace TensorSharp.Cpu
             TensorApplyCPU.Tanh_Apply(writeTarget, src);
 
             return writeTarget;
-
-
-
-            //return NativeWrapper.InvokeNullableResultElementwise(tanh_func, result, src); 
         }
 
 
-        //private readonly MethodInfo sigmoid_func = NativeWrapper.GetMethod("TS_Sigmoid");
         [RegisterOpStorageType("sigmoid", typeof(CpuStorage))]
         public Tensor Sigmoid(Tensor result, Tensor src)
         {
@@ -283,17 +277,27 @@ namespace TensorSharp.Cpu
             TensorApplyCPU.Sigmoid_Apply(writeTarget, src);
 
             return writeTarget;
-
-            //return NativeWrapper.InvokeNullableResultElementwise(sigmoid_func, result, src);
         }
 
-        private readonly MethodInfo tanhD_func = NativeWrapper.GetMethod("TS_TanhD");
-        [RegisterOpStorageType("tanhD", typeof(CpuStorage))]
-        public Tensor TanhD(Tensor result, Tensor resW, Tensor resG) { return NativeWrapper.InvokeNullableResultElementwise(tanhD_func, result, resW, resG); }
 
-        private readonly MethodInfo sigmoidD_func = NativeWrapper.GetMethod("TS_SigmoidD");
+        [RegisterOpStorageType("tanhD", typeof(CpuStorage))]
+        public Tensor TanhD(Tensor result, Tensor resW, Tensor resG)
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, resW, false, resW.Sizes);
+            TensorApplyCPU.TanhD_Apply(writeTarget, resW, resG);
+
+            return writeTarget;
+        }
+
+
         [RegisterOpStorageType("sigmoidD", typeof(CpuStorage))]
-        public Tensor SigmoidD(Tensor result, Tensor resW, Tensor resG) { return NativeWrapper.InvokeNullableResultElementwise(sigmoidD_func, result, resW, resG); }
+        public Tensor SigmoidD(Tensor result, Tensor resW, Tensor resG)
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, resW, false, resW.Sizes);
+            TensorApplyCPU.SigmoidD_Apply(writeTarget, resW, resG);
+
+            return writeTarget;
+        }
 
         private readonly MethodInfo add3_func = NativeWrapper.GetMethod("TS_Add3");
         [RegisterOpStorageType("add3", typeof(CpuStorage))]
@@ -339,7 +343,6 @@ namespace TensorSharp.Cpu
         public Tensor Clamp(Tensor result, Tensor src, float min, float max) { return NativeWrapper.InvokeNullableResultElementwise(clamp_func, result, src, min, max); }
 
 
-       // private readonly MethodInfo mulmuladd_func = NativeWrapper.GetMethod("TS_MulMulAdd");
         [RegisterOpStorageType("mulmuladd", typeof(CpuStorage))]
         public Tensor MulMulAdd(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ, Tensor srcW)
         {
@@ -347,13 +350,9 @@ namespace TensorSharp.Cpu
             TensorApplyCPU.MulMulAdd_Apply(writeTarget, srcX, srcY, srcZ, srcW);
 
             return writeTarget;
-
-            // return NativeWrapper.InvokeNullableResultElementwise(mulmuladd_func, result, srcX, srcY, srcZ, srcW); 
         }
 
 
-
-        //private readonly MethodInfo addtanh_func = NativeWrapper.GetMethod("TS_AddTanh");
         [RegisterOpStorageType("addtanh", typeof(CpuStorage))]
         public Tensor AddTanh(Tensor result, Tensor srcX, Tensor srcY)
         {
@@ -361,8 +360,6 @@ namespace TensorSharp.Cpu
             TensorApplyCPU.AddTanh_Apply(writeTarget, srcX, srcY);
 
             return writeTarget;
-
-            //return NativeWrapper.InvokeNullableResultElementwise(addtanh_func, result, srcX, srcY);
         }
 
 
@@ -371,16 +368,20 @@ namespace TensorSharp.Cpu
         public Tensor AddTanh3(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ) { return NativeWrapper.InvokeNullableResultElementwise(addtanh3_func, result, srcX, srcY, srcZ); }
 
 
-        private readonly MethodInfo addtanhD_func = NativeWrapper.GetMethod("TS_AddTanhD");
         [RegisterOpStorageType("addtanhD", typeof(CpuStorage))]
-        public Tensor AddTanhD(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ) { return NativeWrapper.InvokeNullableResultElementwise(addtanhD_func, result, srcX, srcY, srcZ); }
+        public Tensor AddTanhD(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ)
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, srcX, false, srcX.Sizes);
+            TensorApplyCPU.AddTanhD_Apply(writeTarget, srcX, srcY, srcZ);
+
+            return writeTarget;
+        }
 
 
         private readonly MethodInfo addreluD_func = NativeWrapper.GetMethod("TS_AddReluD");
         [RegisterOpStorageType("addrelud", typeof(CpuStorage))]
         public Tensor AddReluD(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ) { return NativeWrapper.InvokeNullableResultElementwise(addreluD_func, result, srcX, srcY, srcZ); }
 
-      //  private readonly MethodInfo relud_func = NativeWrapper.GetMethod("TS_ReluD");
         [RegisterOpStorageType("relud", typeof(CpuStorage))]
         public Tensor ReluD(Tensor result, Tensor w, Tensor g)
         {
@@ -388,11 +389,8 @@ namespace TensorSharp.Cpu
             TensorApplyCPU.ReluD_Apply(result, w, g);
 
             return writeTarget;
-
-            // return NativeWrapper.InvokeNullableResultElementwise(relud_func, result, w, g); 
         }
 
-        //private readonly MethodInfo add_func = NativeWrapper.GetMethod("TS_Add");
         [RegisterOpStorageType("addv", typeof(CpuStorage))]
         public Tensor Add(Tensor result, Tensor lhs, float rhs)
         {
@@ -400,7 +398,6 @@ namespace TensorSharp.Cpu
             TensorApplyCPU.Add_Apply(writeTarget, lhs, rhs);
 
             return writeTarget;
-            //return NativeWrapper.InvokeNullableResultElementwise(add_func, result, lhs, rhs); 
         }
 
         private readonly MethodInfo sub_func = NativeWrapper.GetMethod("TS_Sub");

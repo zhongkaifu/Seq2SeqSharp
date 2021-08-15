@@ -111,24 +111,7 @@ namespace Seq2SeqSharp.Corpus
     }
 
 
-    public interface ISntPairBatch
-    {
-        int BatchSize { get; }
-        int SrcTokenCount { get; set; }
-        int TgtTokenCount { get; set; }
 
-        void CreateBatch(List<SntPair> sntPairs);
-        ISntPairBatch CloneSrcTokens();
-
-        ISntPairBatch GetRange(int idx, int count);
-
-        List<List<string>> GetSrcTokens(int group);
-        List<List<string>> GetTgtTokens(int group);
-
-        int GetSrcGroupSize();
-        int GetTgtGroupSize();
-
-    }
 
     public class Seq2SeqCorpusBatch : CorpusBatch
     {
@@ -144,7 +127,7 @@ namespace Seq2SeqSharp.Corpus
         }
 
 
-        public void CreateBatch(List<List<List<string>>> srcTokensGroups)
+        public override void CreateBatch(List<List<List<string>>> srcTokensGroups)
         {
 
             SrcTknsGroups = srcTokensGroups;

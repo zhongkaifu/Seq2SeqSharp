@@ -27,7 +27,6 @@ namespace Seq2SeqSharp.Corpus
             throw new NotImplementedException();
         }
 
-
         public static void TryAddPrefix(List<List<string>> tokens, string prefix)
         {
             for (int i = 0; i < tokens.Count; i++)
@@ -372,220 +371,7 @@ namespace Seq2SeqSharp.Corpus
 
             return vocabs;
         }
-
-
-        ///// <summary>
-        ///// Build vocabulary from training corpus
-        ///// </summary>
-        ///// <param name="vocabSize"></param>
-        ///// <param name="sharedSrcTgtVocabGroupMapping">The mappings for shared vocabularies between source side and target side. The values in the mappings are group ids. For example: sharedSrcTgtVocabGroupMapping[0] = 1 means the first group in source
-        ///// side and the second group in target side are shared vocabulary</param>
-        //static public (List<Vocab>, List<Vocab>) BuildVocabs(List<SntPair> sntPairs, int vocabSize = 45000, Dictionary<int, int> sharedSrcTgtVocabGroupMapping = null)
-        //{
-        //    List<Vocab> srcVocabs = new List<Vocab>();
-        //    List<Vocab> tgtVocabs = new List<Vocab>();
-
-        //    Logger.WriteLine($"Building vocabulary from corpus.");
-
-        //    // count up all words
-        //    List<Dictionary<string, int>> s_ds = new List<Dictionary<string, int>>();
-        //    List<Dictionary<string, int>> t_ds = new List<Dictionary<string, int>>();
-
-        //    Dictionary<int, int> sharedTgtSrcVocabGroupMapping = null;
-        //    if (sharedSrcTgtVocabGroupMapping != null)
-        //    {
-        //        sharedTgtSrcVocabGroupMapping = new Dictionary<int, int>();
-        //        foreach (var pair in sharedSrcTgtVocabGroupMapping)
-        //        {
-        //            sharedTgtSrcVocabGroupMapping.Add(pair.Value, pair.Key);
-        //        }
-        //    }
-
-
-
-        //    foreach (SntPair sntPair in sntPairs)
-        //    {
-        //        if (srcVocabs.Count == 0)
-        //        {
-        //            for (int i = 0; i < sntPair.SrcTokenGroups.Count; i++)
-        //            {
-        //                srcVocabs.Add(new Vocab());
-        //                s_ds.Add(new Dictionary<string, int>());
-        //            }
-        //        }
-
-        //        if (tgtVocabs.Count == 0)
-        //        {
-        //            for (int i = 0; i < sntPair.TgtTokenGroups.Count; i++)
-        //            {
-        //                tgtVocabs.Add(new Vocab());
-        //                t_ds.Add(new Dictionary<string, int>());
-        //            }
-        //        }
-
-
-        //        for (int g = 0; g < sntPair.SrcTokenGroups.Count; g++)
-        //        {
-        //            var tokens = sntPair.SrcTokenGroups[g];
-        //            for (int i = 0; i < tokens.Count; i++)
-        //            {
-        //                var token = tokens[i];
-        //                if (s_ds[g].ContainsKey(token) == true)
-        //                {
-        //                    s_ds[g][token]++;
-        //                }
-        //                else
-        //                {
-        //                    s_ds[g].Add(token, 1);
-        //                }
-
-        //                if (sharedSrcTgtVocabGroupMapping != null && sharedSrcTgtVocabGroupMapping.ContainsKey(g))
-        //                {
-        //                    var mappedTgtGroup = sharedSrcTgtVocabGroupMapping[g];
-
-        //                    if (t_ds[mappedTgtGroup].ContainsKey(token) == true)
-        //                    {
-        //                        t_ds[mappedTgtGroup][token]++;
-        //                    }
-        //                    else
-        //                    {
-        //                        t_ds[mappedTgtGroup].Add(token, 1);
-        //                    }
-
-        //                }
-        //            }
-
-        //        }
-
-
-        //        for (int g = 0; g < sntPair.TgtTokenGroups.Count; g++)
-        //        {
-        //            var tokens = sntPair.TgtTokenGroups[g];
-        //            for (int i = 0; i < tokens.Count; i++)
-        //            {
-        //                var token = tokens[i];
-        //                if (t_ds[g].ContainsKey(token) == true)
-        //                {
-        //                    t_ds[g][token]++;
-        //                }
-        //                else
-        //                {
-        //                    t_ds[g].Add(token, 1);
-        //                }
-
-        //                if (sharedTgtSrcVocabGroupMapping != null && sharedTgtSrcVocabGroupMapping.ContainsKey(g))                   
-        //                {
-        //                    var mappedSrcGroup = sharedTgtSrcVocabGroupMapping[g];
-        //                    if (s_ds[mappedSrcGroup].ContainsKey(token) == true)
-        //                    {
-        //                        s_ds[mappedSrcGroup][token]++;
-        //                    }
-        //                    else
-        //                    {
-        //                        s_ds[mappedSrcGroup].Add(token, 1);
-        //                    }
-
-        //                }
-        //            }
-
-        //        }
-
-        //    }
-
-
-        //    for (int i = 0; i < s_ds.Count; i++)
-        //    {
-        //        SortedDictionary<int, List<string>> sd = new SortedDictionary<int, List<string>>();
-
-        //        var s_d = s_ds[i];
-        //        foreach (var kv in s_d)
-        //        {
-        //            if (sd.ContainsKey(kv.Value) == false)
-        //            {
-        //                sd.Add(kv.Value, new List<string>());
-        //            }
-        //            sd[kv.Value].Add(kv.Key);
-        //        }
-
-        //        int q = 3;
-        //        foreach (var kv in sd.Reverse())
-        //        {
-        //            foreach (var token in kv.Value)
-        //            {
-        //                if (BuildInTokens.IsPreDefinedToken(token) == false)
-        //                {
-        //                    // add word to vocab
-        //                    srcVocabs[i].WordToIndex[token] = q;
-        //                    srcVocabs[i].IndexToWord[q] = token;
-        //                    srcVocabs[i].Items.Add(token);
-        //                    q++;
-
-        //                    if (q >= vocabSize)
-        //                    {
-        //                        break;
-        //                    }
-        //                }
-        //            }
-
-        //            if (q >= vocabSize)
-        //            {
-        //                break;
-        //            }
-        //        }
-
-        //        Logger.WriteLine($"Source Vocab Group '{i}': Original vocabulary size = '{s_d.Count}', Truncated vocabulary size = '{q}'");
-
-        //    }
-
-
-        //    for (int i = 0; i < t_ds.Count; i++)
-        //    {
-        //        SortedDictionary<int, List<string>> sd = new SortedDictionary<int, List<string>>();
-
-        //        var t_d = t_ds[i];
-        //        foreach (var kv in t_d)
-        //        {
-        //            if (sd.ContainsKey(kv.Value) == false)
-        //            {
-        //                sd.Add(kv.Value, new List<string>());
-        //            }
-        //            sd[kv.Value].Add(kv.Key);
-        //        }
-
-        //        int q = 3;
-        //        foreach (var kv in sd.Reverse())
-        //        {
-        //            foreach (var token in kv.Value)
-        //            {
-        //                if (BuildInTokens.IsPreDefinedToken(token) == false)
-        //                {
-        //                    // add word to vocab
-        //                    tgtVocabs[i].WordToIndex[token] = q;
-        //                    tgtVocabs[i].IndexToWord[q] = token;
-        //                    tgtVocabs[i].Items.Add(token);
-        //                    q++;
-
-        //                    if (q >= vocabSize)
-        //                    {
-        //                        break;
-        //                    }
-        //                }
-        //            }
-
-        //            if (q >= vocabSize)
-        //            {
-        //                break;
-        //            }
-        //        }
-
-        //        Logger.WriteLine($"Target Vocab Group '{i}': Original vocabulary size = '{t_d.Count}', Truncated vocabulary size = '{q}'");
-
-        //    }
-
-
-        //    return (srcVocabs, tgtVocabs);
-        //}
-
+    
         public int GetSrcGroupSize()
         {
             return SrcTknsGroups.Count;
@@ -594,6 +380,11 @@ namespace Seq2SeqSharp.Corpus
         public int GetTgtGroupSize()
         {
             return TgtTknsGroups.Count;
+        }
+
+        public virtual void CreateBatch(List<List<List<string>>> srcTokensGroups)
+        {
+            throw new NotImplementedException();
         }
     }
 }

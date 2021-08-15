@@ -152,9 +152,6 @@ namespace SeqClassificationConsole
                         ss = new SeqClassification(opts, srcVocab, tgtVocabs);
                     }
 
-
-
-
                     // Add event handler for monitoring
                     ss.StatusUpdateWatcher += Ss_StatusUpdateWatcher;
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;
@@ -182,15 +179,6 @@ namespace SeqClassificationConsole
                 //}
                 else if (mode == ModeEnums.Test)
                 {
-                    Logger.WriteLine($"Test model: '{opts.ModelFilePath}'");
-                    Logger.WriteLine($"Test set: '{opts.InputTestFile}'");
-                    Logger.WriteLine($"Max test sentence length: '{opts.MaxTestSentLength}'");
-                    Logger.WriteLine($"Beam search size: '{opts.BeamSearchSize}'");
-                    Logger.WriteLine($"Batch size: '{opts.BatchSize}'");
-                    Logger.WriteLine($"Shuffle type: '{opts.ShuffleType}'");
-                    Logger.WriteLine($"Device ids: '{opts.DeviceIds}'");
-
-
                     if (File.Exists(opts.OutputFile))
                     {
                         Logger.WriteLine(Logger.Level.err, ConsoleColor.Yellow, $"Output file '{opts.OutputFile}' exist. Delete it.");
@@ -199,25 +187,10 @@ namespace SeqClassificationConsole
 
                     //Test trained model
                     ss = new SeqClassification(opts);
-                    List<List<List<string>>> inputBatchs = new List<List<List<string>>>();
                     Stopwatch stopwatch = Stopwatch.StartNew();
-                    foreach (string line in File.ReadLines(opts.InputTestFile))
-                    {
-                        Misc.AppendNewBatch(inputBatchs, line, opts.MaxTestSentLength);
 
-                        if (inputBatchs[0].Count >= opts.BatchSize * ss.DeviceIds.Length)
-                        {
-                            var outputLines = RunBatchTest(opts, ss, inputBatchs);
-                            File.AppendAllLines(opts.OutputFile, outputLines);
-                            inputBatchs.Clear();
-                        }
-                    }
+                    ss.Test();
 
-                    if (inputBatchs.Count > 0 && inputBatchs[0].Count > 0)
-                    {
-                        var outputLines = RunBatchTest(opts, ss, inputBatchs);
-                        File.AppendAllLines(opts.OutputFile, outputLines);
-                    }
                     stopwatch.Stop();
 
                     Logger.WriteLine($"Test mode execution time elapsed: '{stopwatch.Elapsed}'");
@@ -238,47 +211,6 @@ namespace SeqClassificationConsole
                 Logger.WriteLine($"Exception: '{err.Message}'");
                 Logger.WriteLine($"Call stack: '{err.StackTrace}'");
             }
-        }
-
-        private static List<string> RunBatchTest(SeqClassificationOptions opts, SeqClassification ss, List<List<List<string>>> inputBatchs)
-        {
-            if (opts is null)
-            {
-                throw new ArgumentNullException(nameof(opts));
-            }
-
-            if (ss is null)
-            {
-                throw new ArgumentNullException(nameof(ss));
-            }
-
-            if (inputBatchs is null)
-            {
-                throw new ArgumentNullException(nameof(inputBatchs));
-            }
-
-            List<string> outputLines = new List<string>();
-            for (int i = 0; i < inputBatchs[0].Count; i++)
-            {
-                outputLines.Add("");
-            }
-
-            List<NetworkResult> nrs = ss.Test(inputBatchs); // shape [beam size, batch size, tgt token size]
-
-            foreach (var nr in nrs)
-            {
-                for (int batchIdx = 0; batchIdx < inputBatchs[0].Count; batchIdx++)
-                {
-                    outputLines[batchIdx] += ("\t" + String.Join(" ", nr.Output[0][batchIdx])); 
-                }
-            }
-
-            for (int i = 0; i < inputBatchs[0].Count; i++)
-            {
-                outputLines[i] = outputLines[i].Trim();
-            }
-
-            return outputLines;
-        }
+        }       
     }
 }

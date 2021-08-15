@@ -87,6 +87,16 @@ namespace Seq2SeqSharp.Applications
             return RunTest(spb, RunForwardOnSingleDevice);
         }
 
+
+        public void Test()
+        {
+            SntPairBatchStreamReader<SeqClassificationMultiTasksCorpusBatch> reader = new SntPairBatchStreamReader<SeqClassificationMultiTasksCorpusBatch>(m_options.InputTestFile, m_options.BatchSize, m_options.MaxTestSentLength);
+            SntPairBatchStreamWriter writer = new SntPairBatchStreamWriter(m_options.OutputFile);
+            RunTest<SeqClassificationMultiTasksCorpusBatch>(reader, writer, RunForwardOnSingleDevice);
+        }
+
+
+
         private bool CreateTrainableParameters(IModel modelMetaData)
         {
             Logger.WriteLine($"Creating encoders...");

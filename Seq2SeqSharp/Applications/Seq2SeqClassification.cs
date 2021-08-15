@@ -186,6 +186,15 @@ namespace Seq2SeqSharp.Applications
             return nrs;
         }
 
+
+        public void Test()
+        {
+            SntPairBatchStreamReader<Seq2SeqClassificationCorpusBatch> reader = new SntPairBatchStreamReader<Seq2SeqClassificationCorpusBatch>(m_options.InputTestFile, m_options.BatchSize, m_options.MaxTestSrcSentLength);
+            SntPairBatchStreamWriter writer = new SntPairBatchStreamWriter(m_options.OutputFile);
+            RunTest<Seq2SeqClassificationCorpusBatch>(reader, writer, RunForwardOnSingleDevice);
+        }
+
+
         /// <summary>
         /// Get networks on specific devices
         /// </summary>

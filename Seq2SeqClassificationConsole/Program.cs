@@ -219,16 +219,6 @@ namespace Seq2SeqClassificationConsole
                 }
                 else if (mode == ModeEnums.Test)
                 {
-                    Logger.WriteLine($"Test model: '{opts.ModelFilePath}'");
-                    Logger.WriteLine($"Test set: '{opts.InputTestFile}'");
-                    Logger.WriteLine($"Max source sentence length: '{opts.MaxTestSrcSentLength}'");
-                    Logger.WriteLine($"Max target sentence length: '{opts.MaxTestTgtSentLength}'");
-                    Logger.WriteLine($"Beam search size: '{opts.BeamSearchSize}'");
-                    Logger.WriteLine($"Batch size: '{opts.BatchSize}'");
-                    Logger.WriteLine($"Shuffle type: '{opts.ShuffleType}'");
-                    Logger.WriteLine($"Device ids: '{opts.DeviceIds}'");
-
-
                     if (File.Exists(opts.OutputFile))
                     {
                         Logger.WriteLine(Logger.Level.err, ConsoleColor.Yellow, $"Output file '{opts.OutputFile}' exist. Delete it.");
@@ -237,34 +227,9 @@ namespace Seq2SeqClassificationConsole
 
                     //Test trained model
                     ss = new Seq2SeqClassification(opts);
-                    List<List<List<string>>> inputBatchs = new List<List<List<string>>>();
                     Stopwatch stopwatch = Stopwatch.StartNew();
-                    foreach (string line in File.ReadLines(opts.InputTestFile))
-                    {
-                        Misc.AppendNewBatch(inputBatchs, line, opts.MaxTestSrcSentLength);
-
-                        if (inputBatchs[0].Count >= opts.BatchSize * ss.DeviceIds.Length)
-                        {
-                            (var outputLines, var alignments) = RunBatchTest(opts, ss, inputBatchs);
-                            File.AppendAllLines(opts.OutputFile, outputLines);
-                            if (opts.OutputAlignment)
-                            {
-                                File.AppendAllLines(opts.OutputFile + ".alignment", alignments);
-                            }
-
-                            inputBatchs.Clear();
-                        }
-                    }
-
-                    if (inputBatchs.Count > 0 && inputBatchs[0].Count > 0)
-                    {
-                        (var outputLines, var alignments) = RunBatchTest(opts, ss, inputBatchs);
-                        File.AppendAllLines(opts.OutputFile, outputLines);
-                        if (opts.OutputAlignment)
-                        {
-                            File.AppendAllLines(opts.OutputFile + ".alignment", alignments);
-                        }
-                    }
+                    ss.Test();
+                    
                     stopwatch.Stop();
 
                     Logger.WriteLine($"Test mode execution time elapsed: '{stopwatch.Elapsed}'");
@@ -285,41 +250,6 @@ namespace Seq2SeqClassificationConsole
                 Logger.WriteLine($"Exception: '{err.Message}'");
                 Logger.WriteLine($"Call stack: '{err.StackTrace}'");
             }
-        }
-
-        private static (List<string>, List<string>) RunBatchTest(Seq2SeqClassificationOptions opts, Seq2SeqClassification ss, List<List<List<string>>> inputBatchs)
-        {
-            List<string> outputLines = new List<string>();
-            List<string> alignments = new List<string>();
-
-            List<NetworkResult> nrs = ss.Test(inputBatchs); // shape [beam size, batch size, tgt token size]
-
-            for (int batchIdx = 0; batchIdx < inputBatchs[0].Count; batchIdx++)
-            {
-                string clsTag = nrs[0].Output[0][batchIdx][0];
-                NetworkResult tgtNR = nrs[1];
-
-                for (int beamIdx = 0; beamIdx < tgtNR.Output.Count; beamIdx++)
-                {
-                    outputLines.Add(clsTag + "\t" + String.Join(" ", tgtNR.Output[beamIdx][batchIdx]));
-
-                    if (opts.OutputAlignment)
-                    {
-                        StringBuilder sb = new StringBuilder();
-                        for (int tgtTknIdx = 0; tgtTknIdx < tgtNR.Output[beamIdx][batchIdx].Count; tgtTknIdx++)
-                        {
-                            int srcIdx = tgtNR.Alignment[beamIdx][batchIdx][tgtTknIdx].SrcPos;
-                            float score = tgtNR.Alignment[beamIdx][batchIdx][tgtTknIdx].Score;
-                            sb.Append($"{tgtTknIdx}_{srcIdx}_{score}");
-                            sb.Append(' ');
-                        }
-
-                        alignments.Add(sb.ToString().Trim());
-                    }
-                }
-            }
-
-            return (outputLines, alignments);
         }
 
         private static void ShowOptions(string[] args, Seq2SeqClassificationOptions opts)

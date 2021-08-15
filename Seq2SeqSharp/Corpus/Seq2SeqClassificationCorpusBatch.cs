@@ -33,7 +33,7 @@ namespace Seq2SeqSharp.Corpus
         }
 
 
-        public void CreateBatch(List<List<List<string>>> srcTokensGroups)
+        public override void CreateBatch(List<List<List<string>>> srcTokensGroups)
         {
             SrcTknsGroups = srcTokensGroups;
 
