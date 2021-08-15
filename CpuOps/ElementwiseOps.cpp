@@ -86,13 +86,13 @@ template<typename T> INLINE_FUNC T AddMul(T x, T y, T z) {
 	return x + y * z;
 }
 
-template<typename T> INLINE_FUNC T MulMulAdd(T x, T y, T z, T w) {
-	return x * y + z * w;
-}
+//template<typename T> INLINE_FUNC T MulMulAdd(T x, T y, T z, T w) {
+//	return x * y + z * w;
+//}
 
-template<typename T> INLINE_FUNC T AddTanh(T x, T y) {
-	return tanh(x + y);
-}
+//template<typename T> INLINE_FUNC T AddTanh(T x, T y) {
+//	return tanh(x + y);
+//}
 
 template<typename T> INLINE_FUNC T AddTanh3(T x, T y, T z) {
 	return tanh(x + y + z);
@@ -143,16 +143,10 @@ DECLARE_UNARY_FLOAT_TYPES(TS_Acos, acos)
 DECLARE_UNARY_FLOAT_TYPES(TS_Atan, atan)
 DECLARE_UNARY_FLOAT_TYPES(TS_Sinh, sinh)
 DECLARE_UNARY_FLOAT_TYPES(TS_Cosh, cosh)
-DECLARE_UNARY_FLOAT_TYPES(TS_Tanh, tanh)
+//DECLARE_UNARY_FLOAT_TYPES(TS_Tanh, tanh)
 
-DECLARE_UNARY_FLOAT_TYPES(TS_Sigmoid, Sigmoid)
+//DECLARE_UNARY_FLOAT_TYPES(TS_Sigmoid, Sigmoid)
 
-
-//template <typename T> INLINE_FUNC T relud(T w, T g) {
-//	if (w > T(0))
-//		return g;
-//	return T(0);
-//}
 
 template <typename T> INLINE_FUNC T AddReluD(T t, T w, T g) {
 	if (w > T(0))
@@ -246,34 +240,34 @@ int TS_Lerp(TensorRef* result, TensorRef* srcA, TensorRef* srcB, float weight)
 
 
 
-template<typename T>
-INLINE_FUNC void MulMulAdd_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ, TensorRef* srcW)
-{
-	auto func = [](T *r, T *x, T *y, T *z, T *w) { *r = MulMulAdd(*x, *y, *z, *w); };
-	Apply5<T, T, T, T, T>(result, srcX, srcY, srcZ, srcW, func);
-}
+//template<typename T>
+//INLINE_FUNC void MulMulAdd_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ, TensorRef* srcW)
+//{
+//	auto func = [](T *r, T *x, T *y, T *z, T *w) { *r = MulMulAdd(*x, *y, *z, *w); };
+//	Apply5<T, T, T, T, T>(result, srcX, srcY, srcZ, srcW, func);
+//}
+//
+//int TS_MulMulAdd(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ, TensorRef* srcW)
+//{
+//	API_BEGIN()
+//		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, MulMulAdd_Apply, result, srcX, srcY, srcZ, srcW)
+//		API_END()
+//}
 
-int TS_MulMulAdd(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ, TensorRef* srcW)
-{
-	API_BEGIN()
-		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, MulMulAdd_Apply, result, srcX, srcY, srcZ, srcW)
-		API_END()
-}
 
-
-template<typename T>
-INLINE_FUNC void AddTanh_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY)
-{
-	auto func = [](T *r, T *x, T *y) { *r = AddTanh(*x, *y); };
-	Apply3<T, T, T>(result, srcX, srcY, func);
-}
-
-int TS_AddTanh(TensorRef* result, TensorRef* srcX, TensorRef* srcY)
-{
-	API_BEGIN()
-		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, AddTanh_Apply, result, srcX, srcY)
-		API_END()
-}
+//template<typename T>
+//INLINE_FUNC void AddTanh_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY)
+//{
+//	auto func = [](T *r, T *x, T *y) { *r = AddTanh(*x, *y); };
+//	Apply3<T, T, T>(result, srcX, srcY, func);
+//}
+//
+//int TS_AddTanh(TensorRef* result, TensorRef* srcX, TensorRef* srcY)
+//{
+//	API_BEGIN()
+//		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, AddTanh_Apply, result, srcX, srcY)
+//		API_END()
+//}
 
 
 template<typename T>
@@ -442,7 +436,7 @@ int EXPORTNAME(TensorRef* result, TensorRef* lhs, TensorRef* rhs)\
 }
 
 DECLARE_T_T_ALL_CPU_TYPES(TS_CSub, sub_op)
-DECLARE_T_T_ALL_CPU_TYPES(TS_CMul, mul_op)
+//DECLARE_T_T_ALL_CPU_TYPES(TS_CMul, mul_op)
 DECLARE_T_T_ALL_CPU_TYPES(TS_CDiv, div_op)
 DECLARE_T_T_ALL_CPU_TYPES(TS_CMod, Mod_op)
 

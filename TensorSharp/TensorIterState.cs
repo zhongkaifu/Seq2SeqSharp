@@ -6,19 +6,20 @@ using System.Threading.Tasks;
 
 namespace TensorSharp
 {
-    public class TensorIterState
-    {
+	public class TensorIterState
+	{
 
-	long[] sizes;
-    long[] strides;
+		long[] sizes;
+		long[] strides;
 
-	
-	long elementCount, stride, size;
+
+		long elementCount, stride, size;
 		int dim;
 		long[] counter;
+		int step;
 
 		long index;
-        unsafe public float* data;
+		unsafe public float* data;
 
 
 		long ElementCount(int dimCount, long[] sizes)
@@ -33,10 +34,11 @@ namespace TensorSharp
 		}
 
 
-		unsafe public TensorIterState(float* buffer, int dimCount, long[] sizes, long[] strides)
+		unsafe public TensorIterState(float* buffer, int dimCount, long[] sizes, long[] strides, int step = 1)
 		{
 			this.sizes = sizes;
 			this.strides = strides;
+			this.step = step;
 
 			index = 0;
 			data = buffer;
@@ -66,6 +68,11 @@ namespace TensorSharp
 				}
 			}
 
+			if (size % step != 0)
+			{
+				throw new ArgumentException($"Size '{size}' mod step '{step}' must be zero.");
+			}
+
 
 			// Counter keeps track of how many iterations have been performed on each dimension
 			// that is *not* part of the above contiguous block
@@ -88,8 +95,8 @@ namespace TensorSharp
 		{
 			unsafe
 			{
-				index++;
-				data += stride;
+				index += step;
+				data += (stride * step);
 			}
 		}
 

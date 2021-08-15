@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AdvUtils;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -11,12 +12,14 @@ namespace TensorSharp
 {
 	public class TensorApplyCPU
 	{
-		unsafe public delegate void Apply1KernelFunction(float* x);
+
+        #region Tensor iteration methods
+        unsafe public delegate void Apply1KernelFunction(float* x);
 		unsafe public delegate void Apply2KernelFunction(float* x, float* y);
 		unsafe public delegate void Apply3KernelFunction(float* x, float* y, float* z);
+		unsafe public delegate void Apply5KernelFunction(float* x, float* y, float* z, float* k, float* l);
 		unsafe public delegate void ApplyDim2KernelFuncton(float* x, long sizeX, long stridesX, float* y, long sizeY, long stridesY);
 		unsafe public delegate void ApplyDim3KernelFuncton(float* x, long sizeX, long stridesX, float* y, long sizeY, long stridesY, float* z, long sizeZ, long stridesZ);
-
 
 		unsafe static void Apply1(Tensor tensor1, Apply1KernelFunction func)
 		{
@@ -35,13 +38,13 @@ namespace TensorSharp
 		}
 
 
-		unsafe static void Apply2(Tensor tensor1, Tensor tensor2, Apply2KernelFunction func)
+		unsafe static void Apply2(Tensor tensor1, Tensor tensor2, Apply2KernelFunction func, int step = 1)
 		{
 			float* buffer1 = (float*)CpuNativeHelpers.GetBufferStart(tensor1);
 			float* buffer2 = (float*)CpuNativeHelpers.GetBufferStart(tensor2);
 
-			TensorIterState tensor1Iter = new TensorIterState(buffer1, tensor1.DimensionCount, tensor1.Sizes, tensor1.Strides);
-			TensorIterState tensor2Iter = new TensorIterState(buffer2, tensor2.DimensionCount, tensor2.Sizes, tensor2.Strides);
+			TensorIterState tensor1Iter = new TensorIterState(buffer1, tensor1.DimensionCount, tensor1.Sizes, tensor1.Strides, step);
+			TensorIterState tensor2Iter = new TensorIterState(buffer2, tensor2.DimensionCount, tensor2.Sizes, tensor2.Strides, step);
 
 			do
 			{
@@ -53,15 +56,16 @@ namespace TensorSharp
 			} while (tensor1Iter.NextBlock() && tensor2Iter.NextBlock());
 		}
 
-		unsafe static void Apply3(Tensor tensor1, Tensor tensor2, Tensor tensor3, Apply3KernelFunction func)
+
+		unsafe static void Apply3(Tensor tensor1, Tensor tensor2, Tensor tensor3, Apply3KernelFunction func, int step = 1)
 		{
 			float* buffer1 = (float*)CpuNativeHelpers.GetBufferStart(tensor1);
 			float* buffer2 = (float*)CpuNativeHelpers.GetBufferStart(tensor2);
 			float* buffer3 = (float*)CpuNativeHelpers.GetBufferStart(tensor3);
 
-			TensorIterState tensor1Iter = new TensorIterState(buffer1, tensor1.DimensionCount, tensor1.Sizes, tensor1.Strides);
-			TensorIterState tensor2Iter = new TensorIterState(buffer2, tensor2.DimensionCount, tensor2.Sizes, tensor2.Strides);
-			TensorIterState tensor3Iter = new TensorIterState(buffer3, tensor3.DimensionCount, tensor3.Sizes, tensor3.Strides);
+			TensorIterState tensor1Iter = new TensorIterState(buffer1, tensor1.DimensionCount, tensor1.Sizes, tensor1.Strides, step);
+			TensorIterState tensor2Iter = new TensorIterState(buffer2, tensor2.DimensionCount, tensor2.Sizes, tensor2.Strides, step);
+			TensorIterState tensor3Iter = new TensorIterState(buffer3, tensor3.DimensionCount, tensor3.Sizes, tensor3.Strides, step);
 
 			do
 			{
@@ -72,6 +76,34 @@ namespace TensorSharp
 				}
 
 			} while (tensor1Iter.NextBlock() && tensor2Iter.NextBlock() && tensor3Iter.NextBlock());
+		}
+
+
+
+		unsafe static void Apply5(Tensor tensor1, Tensor tensor2, Tensor tensor3, Tensor tensor4, Tensor tensor5, Apply5KernelFunction func)
+		{
+			float* buffer1 = (float*)CpuNativeHelpers.GetBufferStart(tensor1);
+			float* buffer2 = (float*)CpuNativeHelpers.GetBufferStart(tensor2);
+			float* buffer3 = (float*)CpuNativeHelpers.GetBufferStart(tensor3);
+			float* buffer4 = (float*)CpuNativeHelpers.GetBufferStart(tensor4);
+			float* buffer5 = (float*)CpuNativeHelpers.GetBufferStart(tensor5);
+
+
+			TensorIterState tensor1Iter = new TensorIterState(buffer1, tensor1.DimensionCount, tensor1.Sizes, tensor1.Strides);
+			TensorIterState tensor2Iter = new TensorIterState(buffer2, tensor2.DimensionCount, tensor2.Sizes, tensor2.Strides);
+			TensorIterState tensor3Iter = new TensorIterState(buffer3, tensor3.DimensionCount, tensor3.Sizes, tensor3.Strides);
+			TensorIterState tensor4Iter = new TensorIterState(buffer4, tensor4.DimensionCount, tensor4.Sizes, tensor4.Strides);
+			TensorIterState tensor5Iter = new TensorIterState(buffer5, tensor5.DimensionCount, tensor5.Sizes, tensor5.Strides);
+
+			do
+			{
+				for (; !tensor1Iter.ReachedBlockEnd() && !tensor2Iter.ReachedBlockEnd() && !tensor3Iter.ReachedBlockEnd() && !tensor4Iter.ReachedBlockEnd() && !tensor5Iter.ReachedBlockEnd();
+					tensor1Iter.BlockStep(), tensor2Iter.BlockStep(), tensor3Iter.BlockStep(), tensor4Iter.BlockStep(), tensor5Iter.BlockStep())
+				{
+					func(tensor1Iter.data, tensor2Iter.data, tensor3Iter.data, tensor4Iter.data, tensor5Iter.data);
+				}
+
+			} while (tensor1Iter.NextBlock() && tensor2Iter.NextBlock() && tensor3Iter.NextBlock() && tensor4Iter.NextBlock() && tensor5Iter.NextBlock());
 		}
 
 
@@ -114,9 +146,9 @@ namespace TensorSharp
 		}
 
 
+        #endregion
 
-
-		unsafe public static void Gather_Apply(Tensor result, Tensor src, int dim, Tensor indices)
+        unsafe public static void Gather_Apply(Tensor result, Tensor src, int dim, Tensor indices)
 		{
 			unsafe void func(float* rData, long rSize, long rStride,
 				float* sData, long sSize, long sStride,
@@ -172,11 +204,28 @@ namespace TensorSharp
 
 		unsafe public static void Copy_Apply(Tensor result, Tensor src)
 		{
-			unsafe void func(float* r, float* s)
+			int vectorSize = Vector<float>.Count;
+			if (result.Strides[^1] == 1 && src.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
 			{
-				*r = *s;
+				unsafe void funcVec(float* r, float* s)
+				{
+					Span<float> spanR = new Span<float>(r, vectorSize);
+					Span<float> spanS = new Span<float>(s, vectorSize);
+
+					Vector<float> vecS = new Vector<float>(spanS);
+					vecS.CopyTo(spanR);
+				}
+
+				Apply2(result, src, funcVec, vectorSize);
 			}
-			Apply2(result, src, func);
+			else
+			{
+				unsafe void func(float* r, float* s)
+				{
+					*r = *s;
+				}
+				Apply2(result, src, func);
+			}
 		}
 
 
@@ -236,75 +285,197 @@ namespace TensorSharp
 
 		unsafe public static void Add_Apply(Tensor result, Tensor lhs, Tensor rhs)
 		{
-			unsafe void func(float* r, float* left, float* right)
+			int vectorSize = Vector<float>.Count;
+			if (result.Strides[^1] == 1 && lhs.Strides[^1] == 1 && rhs.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
 			{
-				*r = add(*left, *right);
-			}
+				unsafe void funcVec(float* r, float* left, float* right)
+				{
+					Span<float> spanR = new Span<float>(r, vectorSize);
+					Span<float> spanLeft = new Span<float>(left, vectorSize);
+					Span<float> spanRight = new Span<float>(right, vectorSize);
 
-			Apply3(result, lhs, rhs, func);
+					Vector<float> vecLeft = new Vector<float>(spanLeft);
+					Vector<float> vecRight = new Vector<float>(spanRight);
+
+					Vector<float> vecR = vecLeft + vecRight;
+					vecR.CopyTo(spanR);
+
+				}
+
+				Apply3(result, lhs, rhs, funcVec, vectorSize);
+			}
+			else
+			{
+				unsafe void func(float* r, float* left, float* right)
+				{
+					*r = add(*left, *right);
+				}
+
+				Apply3(result, lhs, rhs, func);
+			}
 		}
 
 		unsafe public static void Add_Apply(Tensor result, Tensor src, float value)
 		{
-			unsafe void func(float* r, float* s)
+			int vectorSize = Vector<float>.Count;
+			if (result.Strides[^1] == 1 && src.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
 			{
-				*r = add(*s, value);
-			}
+				//Logger.WriteLine($"ADDTS Vector.");
 
-			Apply2(result, src, func);
+				unsafe void funcVec(float* r, float* s)
+				{
+					Span<float> spanR = new Span<float>(r, vectorSize);
+					Span<float> spanS = new Span<float>(s, vectorSize);
+
+					Vector<float> vecS = new Vector<float>(spanS);
+					Vector<float> vecV = new Vector<float>(value);
+
+					Vector<float> vecR = vecS + vecV;
+					vecR.CopyTo(spanR);
+
+				}
+
+				Apply2(result, src, funcVec, vectorSize);
+			}
+			else
+			{
+				unsafe void func(float* r, float* s)
+				{
+					*r = add(*s, value);
+				}
+
+				Apply2(result, src, func);
+			}
 		}
 
 
 
 		unsafe public static void Mul_Apply(Tensor result, Tensor src, float value)
 		{
-			unsafe void func(float* r, float* s)
+			int vectorSize = Vector<float>.Count;
+			if (result.Strides[^1] == 1 && src.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
 			{
-				*r = mul(*s, value);
+				unsafe void funcVec(float* r, float* s)
+				{
+					Span<float> spanR = new Span<float>(r, vectorSize);
+					Span<float> spanS = new Span<float>(s, vectorSize);
+
+					Vector<float> vecS = new Vector<float>(spanS);
+					Vector<float> vecV = new Vector<float>(value);
+
+					Vector<float> vecR = vecS * vecV;
+					vecR.CopyTo(spanR);
+				}
+
+				Apply2(result, src, funcVec, vectorSize);
 			}
+			else
+			{
+				unsafe void func(float* r, float* s)
+				{
+					*r = mul(*s, value);
+				}
 
-			Apply2(result, src, func);
+				Apply2(result, src, func);
+			}
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		static float relu(float w)
-		{
-			if (w < 0.0f)
-				return 0.0f;
-			return w;
 
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		static float relud(float w, float g)
+		unsafe public static void Mul_Apply(Tensor result, Tensor lhs, Tensor rhs)
 		{
-			if (w > 0.0f)
-				return g;
-			return 0.0f;
-		}
+			int vectorSize = Vector<float>.Count;
+			if (result.Strides[^1] == 1 && lhs.Strides[^1] == 1 && rhs.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
+			{
+				unsafe void funcVec(float* r, float* left, float* right)
+				{
+					Span<float> spanR = new Span<float>(r, vectorSize);
+					Span<float> spanLeft = new Span<float>(left, vectorSize);
+					Span<float> spanRight = new Span<float>(right, vectorSize);
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		static float add(float x, float y)
-		{
-			return x + y;
-		}
+					Vector<float> vecLeft = new Vector<float>(spanLeft);
+					Vector<float> vecRight = new Vector<float>(spanRight);
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		static float mul(float x, float y)
-		{
-			return x * y;
+					Vector<float> vecR = vecLeft * vecRight;
+					vecR.CopyTo(spanR);
+
+				}
+
+				Apply3(result, lhs, rhs, funcVec, vectorSize);
+			}
+			else
+			{
+				unsafe void func(float* r, float* left, float* right)
+				{
+					*r = mul(*left, *right);
+				}
+
+				Apply3(result, lhs, rhs, func);
+			}
 		}
 
 
 		unsafe static public void Relu_Apply(Tensor result, Tensor src)
 		{
+			int vectorSize = Vector<float>.Count;
+			if (result.Strides[^1] == 1 && src.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
+			{
+				unsafe void funcVec(float* r, float* s)
+				{
+					Span<float> spanR = new Span<float>(r, vectorSize);
+					Span<float> spanS = new Span<float>(s, vectorSize);
+
+					Vector<float> vecS = new Vector<float>(spanS);
+
+					Vector<float> vecR = Vector.Max(vecS, Vector<float>.Zero);
+					vecR.CopyTo(spanR);
+				}
+
+				Apply2(result, src, funcVec, vectorSize);
+			}
+			else
+			{
+				unsafe void func(float* r, float* s)
+				{
+					*r = relu(*s);
+				};
+
+				Apply2(result, src, func);
+			}
+		}
+
+
+
+		unsafe static public void Sigmoid_Apply(Tensor result, Tensor src)
+		{
 			unsafe void func(float* r, float* s)
 			{
-				*r = relu(*s);
+				*r = sigmoid(*s);
 			};
 
 			Apply2(result, src, func);
 		}
+
+
+		unsafe static public void Tanh_Apply(Tensor result, Tensor src)
+		{
+			unsafe void func(float* r, float* s)
+			{
+				*r = (float)Math.Tanh(*s);
+			};
+
+			Apply2(result, src, func);
+		}
+
+		unsafe static public void AddTanh_Apply(Tensor result, Tensor srcX, Tensor srcY)
+		{
+			unsafe void func(float* r, float* x, float* y)
+			{
+				*r = addtanh(*x, *y);
+			}
+
+			Apply3(result, srcX, srcY, func);
+		}
+
 
 
 		unsafe static public void ReluD_Apply(Tensor result, Tensor srcW, Tensor srcG)
@@ -318,6 +489,16 @@ namespace TensorSharp
 		}
 
 
+		unsafe static public void MulMulAdd_Apply(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ, Tensor srcW)
+		{
+			unsafe void func(float* r, float* x, float* y, float* z, float* w)
+			{
+				*r = mulmuladd(*x, *y, *z, *w);
+			}
+
+			Apply5(result, srcX, srcY, srcZ, srcW, func);
+		}
+
 
 		unsafe static public void Softmax(Tensor tOut, Tensor tIn, int rows, int cols)
 		{
@@ -328,18 +509,18 @@ namespace TensorSharp
 			{
 				float* so = pOut + j * cols;
 				float* sp = pIn + j * cols;
-				
+
 				float max = sp[0];
 				for (int i = 1; i < cols; ++i)
 					max = Math.Max(max, sp[i]);
 
 				float sum = 0.0f;
-                for (int i = 0; i < cols; ++i)
-                {
-                    float ex = (float)Math.Exp(sp[i] - max);
-                    so[i] = ex;
-                    sum += ex;
-                }
+				for (int i = 0; i < cols; ++i)
+				{
+					float ex = (float)Math.Exp(sp[i] - max);
+					so[i] = ex;
+					sum += ex;
+				}
 
 				//for (int i = 0; i < cols; ++i)
 				//{
@@ -508,13 +689,13 @@ namespace TensorSharp
 					Vector<float> vecEx = vecSp - vecMean;
 					sqSum += Vector.Dot(vecEx, vecEx);
 				}
-                for (; i < cols; ++i)
-                {
-                    float ex = sp[i] - mean;
-                    sqSum += ex * ex;
-                }
+				for (; i < cols; ++i)
+				{
+					float ex = sp[i] - mean;
+					sqSum += ex * ex;
+				}
 
-                float sigma = (float)Math.Sqrt(eps + sqSum / cols);
+				float sigma = (float)Math.Sqrt(eps + sqSum / cols);
 
 				Span<float> spanSO = new Span<float>(so, cols);
 				Span<float> spanAlpha = new Span<float>(alpha, cols);
@@ -548,19 +729,19 @@ namespace TensorSharp
 
 					vecT.CopyTo(spanSO.Slice(i));
 				}
-                for (; i < cols; ++i)
-                {
-                    float t = alpha[i] * ((sp[i] - mean) / sigma);
-                    if (beta != null)
-                    {
-                        t += beta[i];
-                    }
+				for (; i < cols; ++i)
+				{
+					float t = alpha[i] * ((sp[i] - mean) / sigma);
+					if (beta != null)
+					{
+						t += beta[i];
+					}
 
-                    so[i] = t;
-                }
+					so[i] = t;
+				}
 
 
-            }
+			}
 		}
 
 
@@ -677,7 +858,7 @@ namespace TensorSharp
 		}
 
 
-unsafe static public void Adam(Tensor tw, Tensor tg, Tensor tv, Tensor tm, int rows, int cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
+		unsafe static public void Adam(Tensor tw, Tensor tg, Tensor tv, Tensor tm, int rows, int cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
 		{
 			float* w = (float*)CpuNativeHelpers.GetBufferStart(tw);
 			float* g = (float*)CpuNativeHelpers.GetBufferStart(tg);
@@ -709,7 +890,7 @@ unsafe static public void Adam(Tensor tw, Tensor tg, Tensor tv, Tensor tm, int r
 						sm[i] = sm[i] * decay_rate_m + (1.0f - decay_rate_m) * g2;
 						sv[i] = sv[i] * decay_rate_v + (1.0f - decay_rate_v) * g2 * g2;
 
-					    double m_cap = sm[i] / (1.0 - Math.Pow(decay_rate_m, iter));
+						double m_cap = sm[i] / (1.0 - Math.Pow(decay_rate_m, iter));
 						double v_cap = sv[i] / (1.0 - Math.Pow(decay_rate_v, iter));
 
 						sw[i] -= (float)(step_size * m_cap / (Math.Sqrt(v_cap) + eps));
@@ -719,5 +900,60 @@ unsafe static public void Adam(Tensor tw, Tensor tg, Tensor tv, Tensor tm, int r
 				}
 			}
 		}
+
+
+		#region Internal operations
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float relu(float w)
+		{
+			if (w < 0.0f)
+				return 0.0f;
+			return w;
+
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float relud(float w, float g)
+		{
+			if (w > 0.0f)
+				return g;
+			return 0.0f;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float add(float x, float y)
+		{
+			return x + y;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float mul(float x, float y)
+		{
+			return x * y;
+		}
+
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float sigmoid(float x)
+		{
+			return (float)(1.0 / (1.0 + Math.Exp(-x)));
+		}
+
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float mulmuladd(float x, float y, float z, float w)
+		{
+			return x * y + z * w;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float addtanh(float x, float y)
+		{
+			return (float)Math.Tanh(x + y);
+		}
+
+
+		#endregion
 	}
 }

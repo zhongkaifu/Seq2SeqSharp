@@ -59,9 +59,9 @@ namespace TensorSharp.Cpu
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Atan(IntPtr result, IntPtr src);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Sinh(IntPtr result, IntPtr src);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Cosh(IntPtr result, IntPtr src);
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_Tanh(IntPtr result, IntPtr src);
+     //   [DllImport(dll, CallingConvention = cc)] public static extern int TS_Tanh(IntPtr result, IntPtr src);
 
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_Sigmoid(IntPtr result, IntPtr src);
+        //[DllImport(dll, CallingConvention = cc)] public static extern int TS_Sigmoid(IntPtr result, IntPtr src);
 
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_TanhD(IntPtr result, IntPtr resW, IntPtr resG);
 
@@ -87,8 +87,8 @@ namespace TensorSharp.Cpu
 
        // [DllImport(dll, CallingConvention = cc)] public static extern int TS_ReluD(IntPtr result, IntPtr srcW, IntPtr srcG);
 
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_MulMulAdd(IntPtr result, IntPtr srcX, IntPtr srcY, IntPtr srcZ, IntPtr srcW);
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddTanh(IntPtr result, IntPtr srcX, IntPtr srcY);
+      //  [DllImport(dll, CallingConvention = cc)] public static extern int TS_MulMulAdd(IntPtr result, IntPtr srcX, IntPtr srcY, IntPtr srcZ, IntPtr srcW);
+      //  [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddTanh(IntPtr result, IntPtr srcX, IntPtr srcY);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddTanh3(IntPtr result, IntPtr srcX, IntPtr srcY, IntPtr srcZ);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddTanhD(IntPtr result, IntPtr srcX, IntPtr srcY, IntPtr srcZ);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Add(IntPtr result, IntPtr lhs, float rhs);
@@ -107,7 +107,7 @@ namespace TensorSharp.Cpu
 
 
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_CSub(IntPtr result, IntPtr lhs, IntPtr rhs);
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_CMul(IntPtr result, IntPtr lhs, IntPtr rhs);
+       // [DllImport(dll, CallingConvention = cc)] public static extern int TS_CMul(IntPtr result, IntPtr lhs, IntPtr rhs);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_CDiv(IntPtr result, IntPtr lhs, IntPtr rhs);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_CMod(IntPtr result, IntPtr lhs, IntPtr rhs);
 
