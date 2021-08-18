@@ -384,6 +384,29 @@ namespace Seq2SeqSharp.Tools
             return (srcShuffledFilePath, tgtShuffledFilePath);
         }
 
+
+        public bool SameSntLen(List<List<string>> groups, int[] lens)
+        {
+            for (int i = 0; i < lens.Length; i++)
+            {
+                if (lens[i] != groups[i].Count)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public void UpdateSntLen(List<List<string>> groups, int[] lens)
+        {
+            for (int i = 0; i < lens.Length; i++)
+            {
+                lens[i] = groups[i].Count;
+            }
+
+        }
+
         public IEnumerator<T> GetEnumerator()
         {
             (string srcShuffledFilePath, string tgtShuffledFilePath) = ShuffleAll();
@@ -391,8 +414,8 @@ namespace Seq2SeqSharp.Tools
             using (StreamReader srSrc = new StreamReader(srcShuffledFilePath))
             {
                 using StreamReader srTgt = new StreamReader(tgtShuffledFilePath);
-                int lastSrcSntLen = -1;
-                int lastTgtSntLen = -1;
+                int[] lastSrcSntLen = null;
+                int[] lastTgtSntLen = null;
                 int maxOutputsSize = m_batchSize * 10000;
                 List<SntPair> outputs = new List<SntPair>();
 
@@ -408,8 +431,26 @@ namespace Seq2SeqSharp.Tools
                     var tgtLine = srTgt.ReadLine().Trim();
                     SntPair sntPair = new SntPair(srcLine, tgtLine);
 
-                    if ((lastTgtSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInTgt && lastTgtSntLen != sntPair.TgtTokenGroups[0].Count) ||
-                        (lastSrcSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInSrc && lastSrcSntLen != sntPair.SrcTokenGroups[0].Count) ||
+
+                    if (lastSrcSntLen == null)
+                    {
+                        lastSrcSntLen = new int[sntPair.SrcTokenGroups.Count];
+                        lastTgtSntLen = new int[sntPair.TgtTokenGroups.Count];
+
+                        for (int i = 0; i < lastSrcSntLen.Length; i++)
+                        {
+                            lastSrcSntLen[i] = -1;                            
+                        }
+
+                        for (int i = 0; i < lastTgtSntLen.Length; i++)
+                        {
+                            lastTgtSntLen[i] = -1;
+                        }
+                    }
+
+
+                    if ((lastTgtSntLen[0] > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInTgt && SameSntLen(sntPair.TgtTokenGroups, lastTgtSntLen) == false) ||
+                        (lastSrcSntLen[0] > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInSrc && SameSntLen(sntPair.SrcTokenGroups, lastSrcSntLen) == false) ||
                         outputs.Count > maxOutputsSize)
                     {
                         // InnerShuffle(outputs);
@@ -426,8 +467,8 @@ namespace Seq2SeqSharp.Tools
 
                     outputs.Add(sntPair);
 
-                    lastSrcSntLen = sntPair.SrcTokenGroups[0].Count;
-                    lastTgtSntLen = sntPair.TgtTokenGroups[0].Count;
+                    UpdateSntLen(sntPair.SrcTokenGroups, lastSrcSntLen);
+                    UpdateSntLen(sntPair.TgtTokenGroups, lastTgtSntLen);
                 }
 
                 // InnerShuffle(outputs);

@@ -117,7 +117,7 @@ namespace Seq2SeqSharp.Applications
                 contextDim = modelMetaData.HiddenDim;
             }
 
-            m_encoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer($"FeedForward_Encoder", contextDim, modelMetaData.ClsVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
+            m_encoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer($"FeedForward_Encoder", contextDim * 2, modelMetaData.ClsVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
 
             if (modelMetaData.EncoderType == EncoderTypeEnums.Transformer)
             {
@@ -176,8 +176,8 @@ namespace Seq2SeqSharp.Applications
             (IEncoder encoder, IWeightTensor srcEmbedding, IFeedForwardLayer encoderFFLayer, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding) = GetNetworksOnDeviceAt(deviceIdIdx);
 
             IWeightTensor encOutput1 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, 0);
-            IWeightTensor encOutput2 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, ShuffleEnums.Random, encoder, m_modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, 1);
-            IWeightTensor encOutput = computeGraph.EltMul(encOutput1, encOutput2);
+            IWeightTensor encOutput2 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, 1);
+            IWeightTensor encOutput = computeGraph.ConcatColumns(encOutput1, encOutput2);
             IWeightTensor ffLayer = encoderFFLayer.Process(encOutput, batchSize, computeGraph);
 
             float cost = 0.0f;
