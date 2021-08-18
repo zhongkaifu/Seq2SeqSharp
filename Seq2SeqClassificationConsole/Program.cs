@@ -30,26 +30,6 @@ namespace Seq2SeqClassificationConsole
             }
         }
 
-        private static void Ss_StatusUpdateWatcher(object sender, EventArgs e)
-        {
-            CostEventArg ep = e as CostEventArg;
-
-            TimeSpan ts = DateTime.Now - ep.StartDateTime;
-            double sentPerMin = 0;
-            double wordPerSec = 0;
-            if (ts.TotalMinutes > 0)
-            {
-                sentPerMin = ep.ProcessedSentencesInTotal / ts.TotalMinutes;
-            }
-
-            if (ts.TotalSeconds > 0)
-            {
-                wordPerSec = ep.ProcessedWordsInTotal / ts.TotalSeconds;
-            }
-
-            Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate:F6}, AvgCost = {ep.AvgCostInTotal:F4}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin:F}, WordPerSec = {wordPerSec:F}");
-        }
-
         private static void Main(string[] args)
         {
             try
@@ -173,7 +153,7 @@ namespace Seq2SeqClassificationConsole
                     taskId2metrics.Add(0, task0Metrics);
 
                     // Add event handler for monitoring
-                    ss.StatusUpdateWatcher += Ss_StatusUpdateWatcher;
+                    ss.StatusUpdateWatcher += Misc.Ss_StatusUpdateWatcher;
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;
 
                     // Kick off training

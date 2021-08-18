@@ -88,32 +88,6 @@ int TS_Min(TensorRef* result, TensorRef* src, int dimension)
 }
 
 
-//template<typename T>
-//INLINE_FUNC void Max_Apply(TensorRef* result, TensorRef* src, int dimension)
-//{
-//	auto func = [](T *r, __int64 rSize, __int64 rStride, T *s, __int64 sSize, __int64 sStride)
-//	{
-//		T value = s[0];
-//		for (__int64 i = 1; i < sSize; ++i)
-//		{
-//			value = max(value, s[i*sStride]);
-//		}
-//		*r = value;
-//	};
-//	ApplyDim2<T, T>(result, src, dimension, func);
-//}
-//
-//int TS_Max(TensorRef* result, TensorRef* src, int dimension)
-//{
-//	API_BEGIN()
-//	SWITCH_TENSOR_TYPE_ALL_CPU(result->elementType, Max_Apply, result, src, dimension)
-//	API_END()
-//}
-
-
-
-
-
 template<typename T>
 INLINE_FUNC void Argmin_Apply(TensorRef* resultIndices, TensorRef* src, int dimension)
 {

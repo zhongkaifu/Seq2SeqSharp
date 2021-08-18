@@ -14,11 +14,11 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace SeqClassificationConsole
+namespace SeqSimilarityConsole
 {
     class Program
     {
-        private static SeqClassificationOptions opts = new SeqClassificationOptions();
+        private static SeqSimilarityOptions opts = new SeqSimilarityOptions();
         private static void Ss_EvaluationWatcher(object sender, EventArgs e)
         {
             EvaluationEventArg ep = e as EvaluationEventArg;
@@ -30,10 +30,10 @@ namespace SeqClassificationConsole
             }
         }
 
-        private static void ShowOptions(string[] args, SeqClassificationOptions opts)
+        private static void ShowOptions(string[] args, SeqSimilarityOptions opts)
         {
             string commandLine = string.Join(" ", args);
-            Logger.WriteLine($"SeqClassificationConsole v2.3.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
+            Logger.WriteLine($"SeqSimilarityConsole v2.3.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
             Logger.WriteLine($"Command Line = '{commandLine}'");
 
             string strOpts = JsonConvert.SerializeObject(opts);
@@ -51,20 +51,20 @@ namespace SeqClassificationConsole
                 if (string.IsNullOrEmpty(opts.ConfigFilePath) == false)
                 {
                     Logger.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
-                    opts = JsonConvert.DeserializeObject<SeqClassificationOptions>(File.ReadAllText(opts.ConfigFilePath));
+                    opts = JsonConvert.DeserializeObject<SeqSimilarityOptions>(File.ReadAllText(opts.ConfigFilePath));
                 }
 
-                Logger.LogFile = $"{nameof(SeqClassificationConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log";
+                Logger.LogFile = $"{nameof(SeqSimilarityConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log";
                 ShowOptions(args, opts);
 
-                SeqClassification ss = null;
+                SeqSimilarity ss = null;
                 ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.Task);
                 ShuffleEnums shuffleType = (ShuffleEnums)Enum.Parse(typeof(ShuffleEnums), opts.ShuffleType);
 
                 if (mode == ModeEnums.Train)
                 {
                     // Load train corpus
-                    SeqClassificationMultiTasksCorpus trainCorpus = new SeqClassificationMultiTasksCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang,  batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
+                    SeqClassificationMultiTasksCorpus trainCorpus = new SeqClassificationMultiTasksCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
                         maxSentLength: opts.MaxTrainSentLength, shuffleEnums: shuffleType);
                     // Load valid corpus
                     SeqClassificationMultiTasksCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new SeqClassificationMultiTasksCorpus(opts.ValidCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSentLength, shuffleEnums: shuffleType);
@@ -91,13 +91,11 @@ namespace SeqClassificationConsole
                     {
                         //Incremental training
                         Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
-                        ss = new SeqClassification(opts);
-                       
-                        for (int i = 0; i < ss.ClsVocabs.Count; i++)
-                        {
-                            taskId2metrics.Add(i, new List<IMetric>());
-                            taskId2metrics[i].Add(new MultiLabelsFscoreMetric("", ss.ClsVocabs[i].GetAllTokens(keepBuildInTokens: false)));
-                        }
+                        ss = new SeqSimilarity(opts);
+
+                            taskId2metrics.Add(0, new List<IMetric>());
+                            taskId2metrics[0].Add(new MultiLabelsFscoreMetric("", ss.ClsVocab.GetAllTokens(keepBuildInTokens: false)));
+                        
                     }
                     else
                     {
@@ -129,7 +127,7 @@ namespace SeqClassificationConsole
                         }
 
                         //New training
-                        ss = new SeqClassification(opts, srcVocab, tgtVocabs);
+                        ss = new SeqSimilarity(opts, srcVocab, tgtVocabs[0]);
                     }
 
                     // Add event handler for monitoring
@@ -166,7 +164,7 @@ namespace SeqClassificationConsole
                     }
 
                     //Test trained model
-                    ss = new SeqClassification(opts);
+                    ss = new SeqSimilarity(opts);
                     Stopwatch stopwatch = Stopwatch.StartNew();
 
                     ss.Test();
@@ -191,6 +189,6 @@ namespace SeqClassificationConsole
                 Logger.WriteLine($"Exception: '{err.Message}'");
                 Logger.WriteLine($"Call stack: '{err.StackTrace}'");
             }
-        }       
+        }
     }
 }

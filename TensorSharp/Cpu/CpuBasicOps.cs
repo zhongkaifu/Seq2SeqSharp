@@ -474,7 +474,6 @@ namespace TensorSharp.Cpu
         [RegisterOpStorageType("subt", typeof(CpuStorage))]
         public Tensor Sub(Tensor result, Tensor lhs, Tensor rhs) { return NativeWrapper.InvokeNullableResultElementwise(csub_func, result, lhs, rhs); }
 
-        //private readonly MethodInfo cmul_func = NativeWrapper.GetMethod("TS_CMul");
         [RegisterOpStorageType("mult", typeof(CpuStorage))]
         public Tensor Mul(Tensor result, Tensor lhs, Tensor rhs)        
         {
@@ -482,8 +481,6 @@ namespace TensorSharp.Cpu
             TensorApplyCPU.Mul_Apply(writeTarget, lhs, rhs);
 
             return writeTarget;
-
-            // return NativeWrapper.InvokeNullableResultElementwise(cmul_func, result, lhs, rhs); 
         }
 
         private readonly MethodInfo cdiv_func = NativeWrapper.GetMethod("TS_CDiv");
@@ -520,11 +517,6 @@ namespace TensorSharp.Cpu
         public Tensor NotEqual(Tensor result, Tensor lhs, Tensor rhs) { return NativeWrapper.InvokeNullableResultElementwise(neTensor_func, result, lhs, rhs); }
 
 
-        //private readonly MethodInfo sum_func = NativeWrapper.GetMethod("TS_Sum");
-        //[RegisterOpStorageType("sum", typeof(CpuStorage))]
-        //public Tensor Sum(Tensor result, Tensor src, int dimension) { return NativeWrapper.InvokeNullableResultDimensionwise(sum_func, result, src, dimension); }
-
-
         [RegisterOpStorageType("sum", typeof(CpuStorage))]
         public Tensor Sum(Tensor result, Tensor src, int dimension)
         {
@@ -543,11 +535,6 @@ namespace TensorSharp.Cpu
         private readonly MethodInfo min_func = NativeWrapper.GetMethod("TS_Min");
         [RegisterOpStorageType("min", typeof(CpuStorage))]
         public Tensor Min(Tensor result, Tensor src, int dimension) { return NativeWrapper.InvokeNullableResultDimensionwise(min_func, result, src, dimension); }
-
-        //private readonly MethodInfo max_func = NativeWrapper.GetMethod("TS_Max");
-        //[RegisterOpStorageType("max", typeof(CpuStorage))]
-        //public Tensor Max(Tensor result, Tensor src, int dimension) { return NativeWrapper.InvokeNullableResultDimensionwise(max_func, result, src, dimension); }
-
 
 
         [RegisterOpStorageType("max", typeof(CpuStorage))]
@@ -719,7 +706,6 @@ namespace TensorSharp.Cpu
         }
 
 
-       // private readonly MethodInfo indexselectgrad_func = NativeWrapper.GetMethod("TS_IndexSelectGrad");
         [RegisterOpStorageType("indexselectgrad", typeof(CpuStorage))]
         public Tensor IndexSelectGrad(Tensor grad, Tensor adj, Tensor indice)
         {
@@ -738,9 +724,6 @@ namespace TensorSharp.Cpu
             }
 
             long rows = storageSize / cols;
-
-            //  NativeWrapper.InvokeTypeMatch(indexselectgrad_func, grad, adj, indice, (int)rows, (int)cols);
-
             TensorApplyCPU.IndexSelectGrad(grad, adj, indice, (int)rows, (int)cols);
             return grad;
         }
@@ -794,12 +777,9 @@ namespace TensorSharp.Cpu
             return tw;
         }
 
-      //  private readonly MethodInfo adam_func = NativeWrapper.GetMethod("TS_Adam");
         [RegisterOpStorageType("adam", typeof(CpuStorage))]
         public Tensor Adam(Tensor tw, Tensor tg, Tensor tv, Tensor tm, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
         {
-            // NativeWrapper.InvokeTypeMatch(adam_func, tw, tg, tv, tm, (int)tw.Sizes[0], (int)tw.Sizes[1], batchSize, step_size, clipval, regc, decay_rate_v, decay_rate_m, iter, eps);
-
             TensorApplyCPU.Adam(tw, tg, tv, tm, (int)tw.Sizes[0], (int)tw.Sizes[1], batchSize, step_size, clipval, regc, decay_rate_v, decay_rate_m, iter, eps);
             return tw;
         }

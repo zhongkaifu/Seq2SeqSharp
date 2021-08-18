@@ -42,18 +42,7 @@ namespace Seq2SeqSharp.Applications
             IWeightTensor contextTensor = null;
             for (int i = 1; i < sntPairBatch.GetSrcGroupSize(); i++)
             {
-                var contextTokens = InsertCLSToken(sntPairBatch.GetSrcTokens(i));
-                var originalSrcContextLength = BuildInTokens.PadSentences(contextTokens);
-                IWeightTensor encContextOutput = InnerRunner(computeGraph, contextTokens, originalSrcContextLength, ShuffleEnums.Random, encoder, modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding);
-
-                int contextPaddedLen = contextTokens[0].Count;
-                float[] contextCLSIdxs = new float[batchSize];
-                for (int j = 0; j < batchSize; j++)
-                {
-                    contextCLSIdxs[j] = j * contextPaddedLen;
-                }
-
-                IWeightTensor contextCLSOutput = computeGraph.IndexSelect(encContextOutput, contextCLSIdxs);
+                var contextCLSOutput = BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, encoder, modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, i);
                 if (contextTensor == null)
                 {
                     contextTensor = contextCLSOutput;
@@ -67,6 +56,23 @@ namespace Seq2SeqSharp.Applications
 
             IWeightTensor encOutput = InnerRunner(computeGraph, srcSnts, originalSrcLengths, shuffleType, encoder, modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, contextTensor, applyContextEmbeddingsToEntireSequence);
             return encOutput;
+        }
+
+        public static IWeightTensor BuildTensorForSourceTokenGroupAt(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, IEncoder encoder, IModel modelMetaData, IWeightTensor srcEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, int i)
+        {
+            var contextTokens = InsertCLSToken(sntPairBatch.GetSrcTokens(i));
+            var originalSrcContextLength = BuildInTokens.PadSentences(contextTokens);
+            IWeightTensor encContextOutput = InnerRunner(computeGraph, contextTokens, originalSrcContextLength, ShuffleEnums.Random, encoder, modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding);
+
+            int contextPaddedLen = contextTokens[0].Count;
+            float[] contextCLSIdxs = new float[sntPairBatch.BatchSize];
+            for (int j = 0; j < sntPairBatch.BatchSize; j++)
+            {
+                contextCLSIdxs[j] = j * contextPaddedLen;
+            }
+
+            IWeightTensor contextCLSOutput = computeGraph.IndexSelect(encContextOutput, contextCLSIdxs);
+            return contextCLSOutput;
         }
 
         static private IWeightTensor InnerRunner(IComputeGraph computeGraph, List<List<string>> srcSnts, List<int> originalSrcLengths, ShuffleEnums shuffleType, IEncoder encoder, IModel modelMetaData,
