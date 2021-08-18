@@ -42,7 +42,7 @@ namespace Seq2SeqSharp.Applications
             IWeightTensor contextTensor = null;
             for (int i = 1; i < sntPairBatch.GetSrcGroupSize(); i++)
             {
-                var contextCLSOutput = BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, encoder, modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, i);
+                var contextCLSOutput = BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, shuffleType, encoder, modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, i);
                 if (contextTensor == null)
                 {
                     contextTensor = contextCLSOutput;
@@ -58,11 +58,11 @@ namespace Seq2SeqSharp.Applications
             return encOutput;
         }
 
-        public static IWeightTensor BuildTensorForSourceTokenGroupAt(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, IEncoder encoder, IModel modelMetaData, IWeightTensor srcEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, int i)
+        public static IWeightTensor BuildTensorForSourceTokenGroupAt(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, ShuffleEnums shuffleType, IEncoder encoder, IModel modelMetaData, IWeightTensor srcEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, int i)
         {
             var contextTokens = InsertCLSToken(sntPairBatch.GetSrcTokens(i));
             var originalSrcContextLength = BuildInTokens.PadSentences(contextTokens);
-            IWeightTensor encContextOutput = InnerRunner(computeGraph, contextTokens, originalSrcContextLength, ShuffleEnums.Random, encoder, modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding);
+            IWeightTensor encContextOutput = InnerRunner(computeGraph, contextTokens, originalSrcContextLength, shuffleType, encoder, modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding);
 
             int contextPaddedLen = contextTokens[0].Count;
             float[] contextCLSIdxs = new float[sntPairBatch.BatchSize];

@@ -175,19 +175,10 @@ namespace Seq2SeqSharp.Applications
 
             (IEncoder encoder, IWeightTensor srcEmbedding, IFeedForwardLayer encoderFFLayer, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding) = GetNetworksOnDeviceAt(deviceIdIdx);
 
-            var srcSnts1 = sntPairBatch.GetSrcTokens(0);
-            List<int> originalSrc1Lengths = BuildInTokens.PadSentences(srcSnts1);
-
-            var srcSnts2 = sntPairBatch.GetSrcTokens(1);
-            List<int> originalSrc2Lengths = BuildInTokens.PadSentences(srcSnts2);
-
-            IWeightTensor encOutput1 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, encoder, m_modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, 0);
-            IWeightTensor encOutput2 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, encoder, m_modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, 1);
-
+            IWeightTensor encOutput1 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, 0);
+            IWeightTensor encOutput2 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, ShuffleEnums.Random, encoder, m_modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, 1);
             IWeightTensor encOutput = computeGraph.EltMul(encOutput1, encOutput2);
-
             IWeightTensor ffLayer = encoderFFLayer.Process(encOutput, batchSize, computeGraph);
-
 
             float cost = 0.0f;
             NetworkResult nr = new NetworkResult
