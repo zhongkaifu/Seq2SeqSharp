@@ -12,8 +12,8 @@ namespace Seq2SeqSharp.Corpus
         public string SrcSnt;
         public string TgtSnt;
 
-        public string SrcGroupLenId = "";
-        public string TgtGroupLenId = "";
+        public long SrcGroupLenId = 0;
+        public long TgtGroupLenId = 0;
 
 
         public int SrcLength = 0;
@@ -31,20 +31,20 @@ namespace Seq2SeqSharp.Corpus
         }
 
 
-        private static string CountGroupLens(string s)
+        private static long CountGroupLens(string s)
         {
-            StringBuilder sb = new StringBuilder();
+            long r = 0;
             string[] items = s.Split('\t');
 
             foreach (var item in items)
             {
-                int len = item.Split(' ').Length;
+                r = r * 10000;
 
-                sb.Append(len.ToString());
-                sb.Append("_");
+                int len = item.Split(' ').Length;
+                r += len;
             }
 
-            return sb.ToString();
+            return r;
         }
 
         private static int CountWhiteSpace(string s)

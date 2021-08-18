@@ -149,10 +149,10 @@ namespace Seq2SeqSharp.Tools
 
 
             //Put sentence pair with same source length into the bucket
-            Dictionary<string, List<RawSntPair>> dict = new Dictionary<string, List<RawSntPair>>(); //<source sentence length, sentence pair set>
+            Dictionary<long, List<RawSntPair>> dict = new Dictionary<long, List<RawSntPair>>(); //<source sentence length, sentence pair set>
             foreach (RawSntPair item in rawSntPairs)
             {
-                string length = m_shuffleEnums == ShuffleEnums.NoPaddingInSrc ? item.SrcGroupLenId : item.TgtGroupLenId;
+                long length = m_shuffleEnums == ShuffleEnums.NoPaddingInSrc ? item.SrcGroupLenId : item.TgtGroupLenId;
 
                 if (dict.ContainsKey(length) == false)
                 {
@@ -166,7 +166,7 @@ namespace Seq2SeqSharp.Tools
             Parallel.ForEach(dict, pair =>
             //foreach (KeyValuePair<int, List<SntPair>> pair in dict)
             {
-                Random rnd2 = new Random(DateTime.Now.Millisecond + pair.Key.Length);
+                Random rnd2 = new Random(DateTime.Now.Millisecond + (int)pair.Key);
 
                 List<RawSntPair> sntPairList = pair.Value;
                 for (int i = 0; i < sntPairList.Count; i++)
@@ -180,7 +180,7 @@ namespace Seq2SeqSharp.Tools
 
 
             //Split large bucket to smaller buckets
-            Dictionary<string, List<RawSntPair>> dictSB = new Dictionary<string, List<RawSntPair>>();
+            Dictionary<long, List<RawSntPair>> dictSB = new Dictionary<long, List<RawSntPair>>();
 
             foreach (var pair in dict)
             {
@@ -195,28 +195,28 @@ namespace Seq2SeqSharp.Tools
                     for (int i = 0; i < N; i++)
                     {
                         var pairs = pair.Value.GetRange(i * m_batchSize, m_batchSize);
-                        dictSB.Add(pair.Key + 10000 * i, pairs);
+                        dictSB.Add(pair.Key + 10000000 * i, pairs);
                     }
 
                     if (pair.Value.Count % m_batchSize != 0)
                     {
-                        dictSB.Add(pair.Key + 10000 * N, pair.Value.GetRange(m_batchSize * N, pair.Value.Count % m_batchSize));
+                        dictSB.Add(pair.Key + 10000000 * N, pair.Value.GetRange(m_batchSize * N, pair.Value.Count % m_batchSize));
                     }
                 }
             }
 
             rawSntPairs.Clear();
 
-            string[] keys = dictSB.Keys.ToArray();
+            long[] keys = dictSB.Keys.ToArray();
             for (int i = 0; i < keys.Length; i++)
             {
                 int idx = rnd.Next(0, keys.Length);
-                string  tmp = keys[i];
+                long  tmp = keys[i];
                 keys[i] = keys[idx];
                 keys[idx] = tmp;
             }
 
-            foreach (string key in keys)
+            foreach (long key in keys)
             {
                 rawSntPairs.AddRange(dictSB[key]);
             }
