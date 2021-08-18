@@ -12,6 +12,10 @@ namespace Seq2SeqSharp.Corpus
         public string SrcSnt;
         public string TgtSnt;
 
+        public string SrcGroupLenId = "";
+        public string TgtGroupLenId = "";
+
+
         public int SrcLength = 0;
         public int TgtLength = 0;
         public RawSntPair(string s, string t)
@@ -22,6 +26,25 @@ namespace Seq2SeqSharp.Corpus
             SrcLength = CountWhiteSpace(s);
             TgtLength = CountWhiteSpace(t);
 
+            SrcGroupLenId = CountGroupLens(s);
+            TgtGroupLenId = CountGroupLens(t);
+        }
+
+
+        private static string CountGroupLens(string s)
+        {
+            StringBuilder sb = new StringBuilder();
+            string[] items = s.Split('\t');
+
+            foreach (var item in items)
+            {
+                int len = item.Split(' ').Length;
+
+                sb.Append(len.ToString());
+                sb.Append("_");
+            }
+
+            return sb.ToString();
         }
 
         private static int CountWhiteSpace(string s)
@@ -30,27 +53,7 @@ namespace Seq2SeqSharp.Corpus
 
             return items.Length;
 
-            //if (String.IsNullOrEmpty(s))
-            //{
-            //    return 0;
-            //}
 
-            //int cnt = 1;
-            //bool prevIsSpace = false;
-            //foreach (char ch in s)
-            //{
-            //    if (ch == ' ' && prevIsSpace == false)
-            //    {
-            //        cnt++;
-            //        prevIsSpace = true;
-            //    }
-            //    else
-            //    {
-            //        prevIsSpace = false;
-            //    }
-            //}
-
-            //return cnt;
         }
 
         public bool IsEmptyPair()

@@ -149,10 +149,10 @@ namespace Seq2SeqSharp.Tools
 
 
             //Put sentence pair with same source length into the bucket
-            Dictionary<int, List<RawSntPair>> dict = new Dictionary<int, List<RawSntPair>>(); //<source sentence length, sentence pair set>
+            Dictionary<string, List<RawSntPair>> dict = new Dictionary<string, List<RawSntPair>>(); //<source sentence length, sentence pair set>
             foreach (RawSntPair item in rawSntPairs)
             {
-                int length = m_shuffleEnums == ShuffleEnums.NoPaddingInSrc ? item.SrcLength : item.TgtLength;
+                string length = m_shuffleEnums == ShuffleEnums.NoPaddingInSrc ? item.SrcGroupLenId : item.TgtGroupLenId;
 
                 if (dict.ContainsKey(length) == false)
                 {
@@ -166,7 +166,7 @@ namespace Seq2SeqSharp.Tools
             Parallel.ForEach(dict, pair =>
             //foreach (KeyValuePair<int, List<SntPair>> pair in dict)
             {
-                Random rnd2 = new Random(DateTime.Now.Millisecond + pair.Key);
+                Random rnd2 = new Random(DateTime.Now.Millisecond + pair.Key.Length);
 
                 List<RawSntPair> sntPairList = pair.Value;
                 for (int i = 0; i < sntPairList.Count; i++)
@@ -180,7 +180,7 @@ namespace Seq2SeqSharp.Tools
 
 
             //Split large bucket to smaller buckets
-            Dictionary<int, List<RawSntPair>> dictSB = new Dictionary<int, List<RawSntPair>>();
+            Dictionary<string, List<RawSntPair>> dictSB = new Dictionary<string, List<RawSntPair>>();
 
             foreach (var pair in dict)
             {
@@ -207,16 +207,16 @@ namespace Seq2SeqSharp.Tools
 
             rawSntPairs.Clear();
 
-            int[] keys = dictSB.Keys.ToArray();
+            string[] keys = dictSB.Keys.ToArray();
             for (int i = 0; i < keys.Length; i++)
             {
                 int idx = rnd.Next(0, keys.Length);
-                int tmp = keys[i];
+                string  tmp = keys[i];
                 keys[i] = keys[idx];
                 keys[idx] = tmp;
             }
 
-            foreach (int key in keys)
+            foreach (string key in keys)
             {
                 rawSntPairs.AddRange(dictSB[key]);
             }
