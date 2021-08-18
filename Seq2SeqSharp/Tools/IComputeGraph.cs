@@ -66,5 +66,8 @@ namespace Seq2SeqSharp
 
         IWeightTensor Sum(IWeightTensor w, int dim, bool runGradient = true);
         IWeightTensor Log(IWeightTensor w);
+
+        IWeightTensor Rsqrt(IWeightTensor w);
+
     }
 }
