@@ -44,7 +44,7 @@ namespace Seq2SeqSharp.Metrics
 
         public double GetPrimaryScore()
         {
-            return (1.0 - totalSimScore) / totalSimScoreNum;
+            return 1.0 - (totalSimScore / (float)totalSimScoreNum);
         }
 
         public string GetScoreStr()
