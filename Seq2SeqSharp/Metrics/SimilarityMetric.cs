@@ -30,7 +30,7 @@ namespace Seq2SeqSharp.Metrics
                     float hypSimScore = float.Parse(hypTokens[i]);
                     float refSimScore = float.Parse(refTokens[0][i]);
 
-                    totalSimScore = Math.Abs(hypSimScore - refSimScore);
+                    totalSimScore += Math.Abs(hypSimScore - refSimScore);
                     totalSimScoreNum++;
                 }
             }
