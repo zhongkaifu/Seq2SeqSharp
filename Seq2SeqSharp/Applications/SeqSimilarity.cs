@@ -208,7 +208,7 @@ namespace Seq2SeqSharp.Applications
                     float golden_score_k = float.Parse(tgtSnts[k][0]); // Get golden similiary score from target side
                     
                     probs.SetWeightAt(score_k - golden_score_k, new long[] { k, 0 });
-                    cost += (float)-Math.Log(Math.Abs(score_k - golden_score_k));                   
+                    cost += (float)Math.Abs(score_k - golden_score_k);                   
                 }
 
                 probs.CopyWeightsToGradients(probs);

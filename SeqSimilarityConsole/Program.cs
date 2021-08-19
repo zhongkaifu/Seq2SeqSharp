@@ -74,6 +74,8 @@ namespace SeqSimilarityConsole
 
                     // Create metrics
                     Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>();
+                    taskId2metrics.Add(0, new List<IMetric>());
+                    taskId2metrics[0].Add(new SimilarityMetric());
 
                     // Create optimizer
                     IOptimizer optimizer = null;
@@ -91,11 +93,7 @@ namespace SeqSimilarityConsole
                     {
                         //Incremental training
                         Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
-                        ss = new SeqSimilarity(opts);
-
-                            taskId2metrics.Add(0, new List<IMetric>());
-                            taskId2metrics[0].Add(new MultiLabelsFscoreMetric("", ss.ClsVocab.GetAllTokens(keepBuildInTokens: false)));
-                        
+                        ss = new SeqSimilarity(opts);                        
                     }
                     else
                     {
@@ -118,12 +116,6 @@ namespace SeqSimilarityConsole
                             Logger.WriteLine($"Building vocabulary from training corpus.");
                             // We don't specify vocabulary, so we build it from train corpus
                             (srcVocab, tgtVocabs) = trainCorpus.BuildVocabs(opts.SrcVocabSize, opts.TgtVocabSize);
-                        }
-
-                        for (int i = 0; i < tgtVocabs.Count; i++)
-                        {
-                            taskId2metrics.Add(i, new List<IMetric>());
-                            taskId2metrics[i].Add(new MultiLabelsFscoreMetric("", tgtVocabs[i].GetAllTokens(keepBuildInTokens: false)));
                         }
 
                         //New training
