@@ -40,8 +40,6 @@ namespace TensorSharp.Cpu
 
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Sqrt(IntPtr result, IntPtr src);
 
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_Rsqrt(IntPtr result, IntPtr src);
-
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Exp(IntPtr result, IntPtr src);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Log(IntPtr result, IntPtr src);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Log1p(IntPtr result, IntPtr src);
@@ -63,7 +61,7 @@ namespace TensorSharp.Cpu
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Add3(IntPtr result, IntPtr x, IntPtr y, IntPtr z);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Add4(IntPtr result, IntPtr x, IntPtr y, IntPtr z, IntPtr w);
 
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddMul(IntPtr result, IntPtr x, IntPtr y, IntPtr z);
+      //  [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddMul(IntPtr result, IntPtr x, IntPtr y, IntPtr z);
 
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddMulV(IntPtr result, IntPtr x, IntPtr y, float z);
 
@@ -72,7 +70,6 @@ namespace TensorSharp.Cpu
 
 
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Atan2(IntPtr result, IntPtr srcY, IntPtr srcX);
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_Pow(IntPtr result, IntPtr src, float value);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Tpow(IntPtr result, float value, IntPtr src);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Lerp(IntPtr result, IntPtr srcA, IntPtr srcB, float weight);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Clamp(IntPtr result, IntPtr src, float min, float max);

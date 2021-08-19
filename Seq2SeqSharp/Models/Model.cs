@@ -26,6 +26,8 @@ namespace Seq2SeqSharp.Models
         public bool EnableCoverageModel { get; set; }
         public bool SharedEmbeddings { get; set; }
 
+        public string SimilarityType { get; set; }
+
         public Vocab ClsVocab
         {
             get

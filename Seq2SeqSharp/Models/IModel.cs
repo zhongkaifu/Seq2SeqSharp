@@ -21,6 +21,7 @@ namespace Seq2SeqSharp
         public bool SharedEmbeddings { get; set; }
         public Vocab ClsVocab { get; set; }
 
+        public string SimilarityType { get; set; }
 
         public void AddWeights(string name, float[] weights);
 

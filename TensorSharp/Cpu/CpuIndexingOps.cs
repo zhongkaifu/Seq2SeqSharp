@@ -49,7 +49,7 @@ namespace TensorSharp.Cpu
             //    NativeWrapper.InvokeTypeMatch(gather_func, writeTarget, src, dim, indices);
 
 
-            TensorApplyCPU.Gather_Apply(writeTarget, src, dim, indices);
+            TensorApplyCPU.Gather(writeTarget, src, dim, indices);
 
             return writeTarget;
         }
@@ -92,7 +92,7 @@ namespace TensorSharp.Cpu
             //    NativeWrapper.InvokeTypeMatch(scatter_func, writeTarget, src, dim, indices);
 
 
-            TensorApplyCPU.Scatter_Apply(writeTarget, src, dim, indices);
+            TensorApplyCPU.Scatter(writeTarget, src, dim, indices);
 
 
             return writeTarget;

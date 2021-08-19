@@ -66,9 +66,9 @@ template<typename T> INLINE_FUNC T Lerp(T a, T b, T weight) {
 	return a + weight * (b - a);
 }
 
-template<typename T> INLINE_FUNC T AddMul(T x, T y, T z) {
-	return x + y * z;
-}
+//template<typename T> INLINE_FUNC T AddMul(T x, T y, T z) {
+//	return x + y * z;
+//}
 
 template<typename T> INLINE_FUNC T AddTanh3(T x, T y, T z) {
 	return tanh(x + y + z);
@@ -143,20 +143,6 @@ int TS_Atan2(TensorRef* result, TensorRef* srcY, TensorRef* srcX)
 }
 
 template<typename T>
-INLINE_FUNC void Pow_Apply(TensorRef* result, TensorRef* src, float value)
-{
-	auto func = [value](T *r, T *s) { *r = pow(*s, (T)value); };
-	Apply2<T, T>(result, src, func);
-}
-
-int TS_Pow(TensorRef* result, TensorRef* src, float value)
-{
-	API_BEGIN()
-	SWITCH_TENSOR_TYPE_FLOAT(result->elementType, Pow_Apply, result, src, value)
-	API_END()
-}
-
-template<typename T>
 INLINE_FUNC void Tpow_Apply(TensorRef* result, float value, TensorRef* src)
 {
 	auto func = [value](T *r, T *s) { *r = pow((T)value, *s); };
@@ -215,19 +201,19 @@ int TS_AddReluD(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* 
 }
 
 
-template<typename T>
-INLINE_FUNC void AddMul_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
-{
-	auto func = [](T *r, T *x, T *y, T *z) { *r = AddMul(*x, *y, *z); };
-	Apply4<T, T, T, T>(result, srcX, srcY, srcZ, func);
-}
-
-int TS_AddMul(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
-{
-	API_BEGIN()
-		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, AddMul_Apply, result, srcX, srcY, srcZ)
-		API_END()
-}
+//template<typename T>
+//INLINE_FUNC void AddMul_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
+//{
+//	auto func = [](T *r, T *x, T *y, T *z) { *r = AddMul(*x, *y, *z); };
+//	Apply4<T, T, T, T>(result, srcX, srcY, srcZ, func);
+//}
+//
+//int TS_AddMul(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
+//{
+//	API_BEGIN()
+//		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, AddMul_Apply, result, srcX, srcY, srcZ)
+//		API_END()
+//}
 
 
 template<typename T>

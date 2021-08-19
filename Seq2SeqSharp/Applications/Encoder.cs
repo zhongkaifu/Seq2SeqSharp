@@ -30,6 +30,29 @@ namespace Seq2SeqSharp.Applications
             return newTokens;
         }
 
+        public static (MultiProcessorNetworkWrapper<IEncoder>, int) CreateEncoders(IModel modelMetaData, Options options, RoundArray<int> raDeviceIds)
+        {
+            int contextDim;
+            MultiProcessorNetworkWrapper<IEncoder> encoder = null;
+            if (modelMetaData.EncoderType == EncoderTypeEnums.BiLSTM)
+            {
+                encoder = new MultiProcessorNetworkWrapper<IEncoder>(
+                    new BiEncoder("BiLSTMEncoder", modelMetaData.HiddenDim, modelMetaData.EncoderEmbeddingDim, modelMetaData.EncoderLayerDepth, raDeviceIds.GetNextItem(), isTrainable: options.IsEncoderTrainable), raDeviceIds.ToArray());
+
+                contextDim = modelMetaData.HiddenDim * 2;
+            }
+            else
+            {
+                encoder = new MultiProcessorNetworkWrapper<IEncoder>(
+                    new TransformerEncoder("TransformerEncoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.EncoderEmbeddingDim, modelMetaData.EncoderLayerDepth, options.DropoutRatio, raDeviceIds.GetNextItem(),
+                    isTrainable: options.IsEncoderTrainable, learningRateFactor: options.EncoderStartLearningRateFactor), raDeviceIds.ToArray());
+
+                contextDim = modelMetaData.HiddenDim;
+            }
+
+            return (encoder, contextDim);
+        }
+
         static public IWeightTensor Run(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, IEncoder encoder, IModel modelMetaData, ShuffleEnums shuffleType,
             IWeightTensor srcEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, List<List<string>> srcSnts, List<int> originalSrcLengths, bool applyContextEmbeddingsToEntireSequence = true)
         {

@@ -25,8 +25,7 @@ namespace Seq2SeqSharp
         [Arg("It indicates if the decoder is trainable", "IsDecoderTrainable")]
         public bool IsDecoderTrainable = true;
 
-        [Arg("It indicates if the encoder is trainable", "IsEncoderTrainable")]
-        public bool IsEncoderTrainable = true;
+
 
         [Arg("It indicates if the src embedding is trainable", "IsSrcEmbeddingTrainable")]
         public bool IsSrcEmbeddingTrainable = true;

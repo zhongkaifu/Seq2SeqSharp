@@ -1,4 +1,6 @@
 ﻿using AdvUtils;
+using Seq2SeqSharp.Applications;
+using Seq2SeqSharp.Optimizer;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,6 +24,11 @@ namespace Seq2SeqSharp.Utils
             currentIdx = (currentIdx + 1) % m_array.Length;
 
             return item;
+        }
+
+        public T[] ToArray()
+        {
+            return m_array;
         }
     }
 
@@ -78,6 +85,22 @@ namespace Seq2SeqSharp.Utils
             }
 
             Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate:F6}, AvgCost = {ep.AvgCostInTotal:F4}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin:F}, WordPerSec = {wordPerSec:F}");
+        }
+
+        public static IOptimizer CreateOptimizer(Options opts)
+        {
+            // Create optimizer
+            IOptimizer optimizer = null;
+            if (String.Equals(opts.Optimizer, "Adam", StringComparison.InvariantCultureIgnoreCase))
+            {
+                optimizer = new AdamOptimizer(opts.GradClip, opts.Beta1, opts.Beta2);
+            }
+            else
+            {
+                optimizer = new RMSPropOptimizer(opts.GradClip, opts.Beta1);
+            }
+
+            return optimizer;
         }
     }
 }

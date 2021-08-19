@@ -50,21 +50,23 @@ namespace Seq2SeqSharp.Applications
                 EncoderTypeEnums encoderType = (EncoderTypeEnums)Enum.Parse(typeof(EncoderTypeEnums), options.EncoderType);
 
                 m_modelMetaData = new SeqSimilarityModel(options.HiddenSize, options.EmbeddingDim, options.EncoderLayerDepth, options.MultiHeadNum,
-                    encoderType, srcVocab, clsVocab, options.EnableSegmentEmbeddings);
+                    encoderType, srcVocab, clsVocab, options.EnableSegmentEmbeddings, m_options.SimilarityType);
 
                 //Initializng weights in encoders and decoders
                 CreateTrainableParameters(m_modelMetaData);
             }
 
             m_modelMetaData.ShowModelInfo();
-
-            Logger.WriteLine($"Max source sentence length in training corpus = '{options.MaxTrainSentLength}'");
-            Logger.WriteLine($"BeamSearch Size = '{options.BeamSearchSize}'");
+            Logger.WriteLine($"Similarity Type = '{options.SimilarityType}'");
         }
 
 
-        public void Train(int maxTrainingEpoch, SeqClassificationMultiTasksCorpus trainCorpus, SeqClassificationMultiTasksCorpus validCorpus, ILearningRate learningRate, Dictionary<int, List<IMetric>> taskId2metrics, IOptimizer optimizer)
+        public void Train(int maxTrainingEpoch, SeqClassificationMultiTasksCorpus trainCorpus, SeqClassificationMultiTasksCorpus validCorpus, ILearningRate learningRate, IMetric metric, IOptimizer optimizer)
         {
+            Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>();
+            taskId2metrics.Add(0, new List<IMetric>());
+            taskId2metrics[0].Add(metric);
+
             Logger.WriteLine("Start to train...");
             for (int i = 0; i < maxTrainingEpoch; i++)
             {
@@ -103,19 +105,7 @@ namespace Seq2SeqSharp.Applications
             RoundArray<int> raDeviceIds = new RoundArray<int>(DeviceIds);
 
             int contextDim;
-            if (modelMetaData.EncoderType == EncoderTypeEnums.BiLSTM)
-            {
-                m_encoder = new MultiProcessorNetworkWrapper<IEncoder>(
-                    new BiEncoder("BiLSTMEncoder", modelMetaData.HiddenDim, modelMetaData.EncoderEmbeddingDim, modelMetaData.EncoderLayerDepth, raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
-                contextDim = modelMetaData.HiddenDim * 2;
-            }
-            else
-            {
-                m_encoder = new MultiProcessorNetworkWrapper<IEncoder>(
-                    new TransformerEncoder("TransformerEncoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.EncoderEmbeddingDim, modelMetaData.EncoderLayerDepth, m_options.DropoutRatio, raDeviceIds.GetNextItem(),
-                    isTrainable: true, learningRateFactor: m_options.EncoderStartLearningRateFactor), DeviceIds);
-                contextDim = modelMetaData.HiddenDim;
-            }
+            (m_encoder, contextDim) = Encoder.CreateEncoders(modelMetaData, m_options, raDeviceIds);
 
             m_encoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer($"FeedForward_Encoder", contextDim, modelMetaData.ClsVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
 
@@ -183,47 +173,81 @@ namespace Seq2SeqSharp.Applications
             IWeightTensor encOutput1 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, 0); // output shape: [batch_size, dim]
             IWeightTensor encOutput2 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, 1); // output_shape: [batch_size, dim]
 
-            var w12 = computeGraph.EltMul(encOutput1, encOutput2);
-            w12 = computeGraph.Sum(w12, 1);
 
-
-            var w1 = computeGraph.EltMul(encOutput1, encOutput1);
-            w1 = computeGraph.Sum(w1, 1);
-
-            var w2 = computeGraph.EltMul(encOutput2, encOutput2);
-            w2 = computeGraph.Sum(w2, 1);
-
-            var n12 = computeGraph.EltMul(w1, w2);
-            n12 = computeGraph.Rsqrt(n12);
-
-
-            var probs = computeGraph.EltMul(w12, n12);
-
-            if (isTraining)
+            if (m_modelMetaData.SimilarityType.Equals("Continuous", StringComparison.InvariantCultureIgnoreCase))
             {
-                var tgtSnts = sntPairBatch.GetTgtTokens(0);
-                for (int k = 0; k < batchSize; k++)
+                // Cosine similairy
+                var w12 = computeGraph.EltMul(encOutput1, encOutput2);
+                w12 = computeGraph.Sum(w12, 1);
+                var w1 = computeGraph.EltMul(encOutput1, encOutput1);
+                w1 = computeGraph.Sum(w1, 1);
+                var w2 = computeGraph.EltMul(encOutput2, encOutput2);
+                w2 = computeGraph.Sum(w2, 1);
+                var n12 = computeGraph.EltMul(w1, w2);
+                n12 = computeGraph.Rsqrt(n12);
+                var probs = computeGraph.EltMul(w12, n12);
+                if (isTraining)
                 {
-                    float score_k = probs.GetWeightAt(new long[] { k, 0 });
-                    float golden_score_k = float.Parse(tgtSnts[k][0]); // Get golden similiary score from target side
-                    
-                    probs.SetWeightAt(score_k - golden_score_k, new long[] { k, 0 });
-                    cost += (float)Math.Abs(score_k - golden_score_k);                   
+                    var tgtSnts = sntPairBatch.GetTgtTokens(0);
+                    for (int k = 0; k < batchSize; k++)
+                    {
+                        float golden_score_k = float.Parse(tgtSnts[k][0]); // Get golden similiary score from target side
+                        float score_k = probs.GetWeightAt(new long[] { k, 0 });
+
+                        probs.SetWeightAt(score_k - golden_score_k, new long[] { k, 0 });
+                        cost += (float)Math.Abs(score_k - golden_score_k);
+                    }
+
+                    probs.CopyWeightsToGradients(probs);
+                    nr.Cost = cost / batchSize;
                 }
+                else
+                {
+                    nr.Output.Add(new List<List<string>>());
+                    for (int k = 0; k < batchSize; k++)
+                    {
+                        float score_k = probs.GetWeightAt(new long[] { k, 0 });
 
-                probs.CopyWeightsToGradients(probs);
-
-                nr.Cost = cost / batchSize;
+                        nr.Output[0].Add(new List<string>());
+                        nr.Output[0][k].Add(score_k.ToString());
+                    }
+                }
             }
             else
-            {            
-                nr.Output.Add(new List<List<string>>());
-                for (int k = 0; k < batchSize; k++)
+            {
+                IWeightTensor encOutput = computeGraph.EltMul(encOutput1, encOutput2);
+                IWeightTensor ffLayer = encoderFFLayer.Process(encOutput, batchSize, computeGraph);
+                using (IWeightTensor probs = computeGraph.Softmax(ffLayer, runGradients: false, inPlace: true))
                 {
-                    float score_k = probs.GetWeightAt(new long[] { k, 0 });
+                    if (isTraining)
+                    {
+                        var tgtSnts = sntPairBatch.GetTgtTokens(0);
+                        for (int k = 0; k < batchSize; k++)
+                        {
+                            int ix_targets_k_j = m_modelMetaData.ClsVocab.GetWordIndex(tgtSnts[k][0]);
+                            float score_k = probs.GetWeightAt(new long[] { k, ix_targets_k_j });
+                            cost += (float)-Math.Log(score_k);
+                            probs.SetWeightAt(score_k - 1, new long[] { k, ix_targets_k_j });
+                        }
 
-                    nr.Output[0].Add(new List<string>());
-                    nr.Output[0][k].Add(score_k.ToString());
+                        ffLayer.CopyWeightsToGradients(probs);
+
+                        nr.Cost = cost / batchSize;
+                    }
+                    else
+                    {
+                        // Output "i"th target word
+                        using var targetIdxTensor = computeGraph.Argmax(probs, 1);
+                        float[] targetIdx = targetIdxTensor.ToWeightArray();
+                        List<string> targetWords = m_modelMetaData.ClsVocab.ConvertIdsToString(targetIdx.ToList());
+                        nr.Output.Add(new List<List<string>>());
+
+                        for (int k = 0; k < batchSize; k++)
+                        {
+                            nr.Output[0].Add(new List<string>());
+                            nr.Output[0][k].Add(targetWords[k]);
+                        }
+                    }
                 }
             }
 

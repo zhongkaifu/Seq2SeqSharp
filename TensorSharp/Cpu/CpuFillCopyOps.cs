@@ -13,7 +13,7 @@ namespace TensorSharp.Cpu
         [RegisterOpStorageType("fill", typeof(CpuStorage))]
         public void Fill(Tensor result, float value)
         {
-            TensorApplyCPU.Fill_Apply(result, value);
+            TensorApplyCPU.Fill(result, value);
         }
 
 
@@ -25,7 +25,7 @@ namespace TensorSharp.Cpu
                 throw new InvalidOperationException("Tensors must have equal numbers of elements");
             }
 
-            TensorApplyCPU.Copy_Apply(result, src);
+            TensorApplyCPU.Copy(result, src);
         }
 
     }

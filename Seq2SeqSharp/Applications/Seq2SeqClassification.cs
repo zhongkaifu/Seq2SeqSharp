@@ -81,21 +81,7 @@ namespace Seq2SeqSharp.Applications
             RoundArray<int> raDeviceIds = new RoundArray<int>(DeviceIds);
 
             int contextDim;
-            if (modelMetaData.EncoderType == EncoderTypeEnums.BiLSTM)
-            {
-                m_encoder = new MultiProcessorNetworkWrapper<IEncoder>(
-                    new BiEncoder("BiLSTMEncoder", modelMetaData.HiddenDim, modelMetaData.EncoderEmbeddingDim, modelMetaData.EncoderLayerDepth, raDeviceIds.GetNextItem(), isTrainable: m_options.IsEncoderTrainable), DeviceIds);
-
-                contextDim = modelMetaData.HiddenDim * 2;
-            }
-            else
-            {
-                m_encoder = new MultiProcessorNetworkWrapper<IEncoder>(
-                    new TransformerEncoder("TransformerEncoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.EncoderEmbeddingDim, modelMetaData.EncoderLayerDepth, m_options.DropoutRatio, raDeviceIds.GetNextItem(),
-                    isTrainable: m_options.IsEncoderTrainable, learningRateFactor: m_options.EncoderStartLearningRateFactor), DeviceIds);
-
-                contextDim = modelMetaData.HiddenDim;
-            }
+            (m_encoder, contextDim) = Encoder.CreateEncoders(modelMetaData, m_options, raDeviceIds);
 
             if (modelMetaData.DecoderType == DecoderTypeEnums.AttentionLSTM)
             {

@@ -21,5 +21,9 @@ namespace Seq2SeqSharp.Applications
 
         [Arg("Maxmium sentence length in training corpus", "MaxTrainSentLength")]
         public int MaxTrainSentLength = 110;
+
+
+        [Arg("The type of similarity. Value: Continuous, Discrete. Continuous is by default.", "SimilarityType")]
+        public string SimilarityType = "Continuous";
     }
 }

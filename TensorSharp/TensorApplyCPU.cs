@@ -172,7 +172,7 @@ namespace TensorSharp
 
         #endregion
 
-        unsafe public static void Gather_Apply(Tensor result, Tensor src, int dim, Tensor indices)
+        unsafe public static void Gather(Tensor result, Tensor src, int dim, Tensor indices)
 		{
 			unsafe void func(float* rData, long rSize, long rStride,
 				float* sData, long sSize, long sStride,
@@ -192,7 +192,7 @@ namespace TensorSharp
 
 
 
-		unsafe public static void Scatter_Apply(Tensor result, Tensor src, int dim, Tensor indices)
+		unsafe public static void Scatter(Tensor result, Tensor src, int dim, Tensor indices)
 		{
 			unsafe void func(float* rData, long rSize, long rStride,
 				float* sData, long sSize, long sStride,
@@ -215,7 +215,7 @@ namespace TensorSharp
 
 
 
-		unsafe public static void Fill_Apply(Tensor result, float value)
+		unsafe public static void Fill(Tensor result, float value)
 		{
 			unsafe void func(float* r)
 			{
@@ -226,7 +226,7 @@ namespace TensorSharp
 		}
 
 
-		unsafe public static void Copy_Apply(Tensor result, Tensor src)
+		unsafe public static void Copy(Tensor result, Tensor src)
 		{
 			int vectorSize = Vector<float>.Count;
 			if (result.Strides[^1] == 1 && src.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
@@ -253,7 +253,7 @@ namespace TensorSharp
 		}
 
 
-		unsafe public static void Sum_Apply(Tensor result, Tensor src, int dimension)
+		unsafe public static void Sum(Tensor result, Tensor src, int dimension)
 		{
 			unsafe void func(float* r, long rSize, long rStride, float* s, long sSize, long sStride)
 			{
@@ -268,7 +268,7 @@ namespace TensorSharp
 		}
 
 
-		unsafe public static void Argmax_Apply(Tensor resultIndices, Tensor src, int dimension)
+		unsafe public static void Argmax(Tensor resultIndices, Tensor src, int dimension)
 		{
 
 			unsafe void func(float* rIndVal, long rIndSize, long rIndStride,
@@ -291,7 +291,7 @@ namespace TensorSharp
 			ApplyDim2(resultIndices, src, dimension, func);
 		}
 
-		unsafe public static void Max_Apply(Tensor result, Tensor src, int dimension)
+		unsafe public static void Max(Tensor result, Tensor src, int dimension)
 		{
 			unsafe void func(float* r, long rSize, long rStride, float* s, long sSize, long sStride)
 			{
@@ -307,7 +307,7 @@ namespace TensorSharp
 		}
 
 
-		unsafe public static void Add_Apply(Tensor result, Tensor lhs, Tensor rhs)
+		unsafe public static void Add(Tensor result, Tensor lhs, Tensor rhs)
 		{
 			int vectorSize = Vector<float>.Count;
 			if (result.Strides[^1] == 1 && lhs.Strides[^1] == 1 && rhs.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
@@ -339,7 +339,7 @@ namespace TensorSharp
 			}
 		}
 
-		unsafe public static void Add_Apply(Tensor result, Tensor src, float value)
+		unsafe public static void Add(Tensor result, Tensor src, float value)
 		{
 			int vectorSize = Vector<float>.Count;
 			if (result.Strides[^1] == 1 && src.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
@@ -373,8 +373,18 @@ namespace TensorSharp
 		}
 
 
+		unsafe public static void Pow(Tensor result, Tensor src, float value)
+		{
+				unsafe void func(float* r, float* s)
+				{
+					*r = (float)Math.Pow(*s, value);
+				}
 
-		unsafe public static void Mul_Apply(Tensor result, Tensor src, float value)
+				Apply2(result, src, func);			
+		}
+
+
+		unsafe public static void Mul(Tensor result, Tensor src, float value)
 		{
 			int vectorSize = Vector<float>.Count;
 			if (result.Strides[^1] == 1 && src.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
@@ -405,7 +415,7 @@ namespace TensorSharp
 		}
 
 
-		unsafe public static void Mul_Apply(Tensor result, Tensor lhs, Tensor rhs)
+		unsafe public static void Mul(Tensor result, Tensor lhs, Tensor rhs)
 		{
 			int vectorSize = Vector<float>.Count;
 			if (result.Strides[^1] == 1 && lhs.Strides[^1] == 1 && rhs.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
@@ -438,7 +448,7 @@ namespace TensorSharp
 		}
 
 
-		unsafe static public void Relu_Apply(Tensor result, Tensor src)
+		unsafe static public void Relu(Tensor result, Tensor src)
 		{
 			int vectorSize = Vector<float>.Count;
 			if (result.Strides[^1] == 1 && src.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
@@ -468,8 +478,38 @@ namespace TensorSharp
 		}
 
 
+		unsafe static public void Rsqrt(Tensor result, Tensor src)
+		{
+			int vectorSize = Vector<float>.Count;
+			if (result.Strides[^1] == 1 && src.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
+			{
+				unsafe void funcVec(float* r, float* s)
+				{
+					Span<float> spanR = new Span<float>(r, vectorSize);
+					Span<float> spanS = new Span<float>(s, vectorSize);
 
-		unsafe static public void Sigmoid_Apply(Tensor result, Tensor src)
+					Vector<float> vecS = new Vector<float>(spanS);
+
+					Vector<float> vecR = Vector<float>.One / Vector.SquareRoot(vecS);
+					vecR.CopyTo(spanR);
+				}
+
+				Apply2(result, src, funcVec, vectorSize);
+			}
+			else
+			{
+				unsafe void func(float* r, float* s)
+				{
+					*r = (float)(1.0 / Math.Sqrt(*s));
+				};
+
+				Apply2(result, src, func);
+			}
+		}
+
+
+
+		unsafe static public void Sigmoid(Tensor result, Tensor src)
 		{
 			unsafe void func(float* r, float* s)
 			{
@@ -481,7 +521,7 @@ namespace TensorSharp
 
 
 
-		unsafe static public void SigmoidD_Apply(Tensor result, Tensor resW, Tensor resG)
+		unsafe static public void SigmoidD(Tensor result, Tensor resW, Tensor resG)
 		{
 			unsafe void func(float* r, float* x, float* y)
 			{
@@ -493,7 +533,7 @@ namespace TensorSharp
 
 
 
-		unsafe static public void Tanh_Apply(Tensor result, Tensor src)
+		unsafe static public void Tanh(Tensor result, Tensor src)
 		{
 			unsafe void func(float* r, float* s)
 			{
@@ -505,7 +545,7 @@ namespace TensorSharp
 
 
 
-		unsafe static public void TanhD_Apply(Tensor result, Tensor resW, Tensor resG)
+		unsafe static public void TanhD(Tensor result, Tensor resW, Tensor resG)
 		{
 			unsafe void func(float* r, float* x, float* y)
 			{
@@ -517,7 +557,7 @@ namespace TensorSharp
 
 
 
-		unsafe static public void AddTanh_Apply(Tensor result, Tensor srcX, Tensor srcY)
+		unsafe static public void AddTanh(Tensor result, Tensor srcX, Tensor srcY)
 		{
 			unsafe void func(float* r, float* x, float* y)
 			{
@@ -528,7 +568,7 @@ namespace TensorSharp
 		}
 
 
-		unsafe static public void AddTanhD_Apply(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ)
+		unsafe static public void AddTanhD(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ)
 		{
 			unsafe void func(float* r, float* x, float* y, float* z)
 			{
@@ -538,7 +578,7 @@ namespace TensorSharp
 			Apply4(result, srcX, srcY, srcZ, func);
 		}
 
-		unsafe static public void ReluD_Apply(Tensor result, Tensor srcW, Tensor srcG)
+		unsafe static public void ReluD(Tensor result, Tensor srcW, Tensor srcG)
 		{
 			unsafe void func(float* r, float* y, float* x)
 			{
@@ -549,7 +589,7 @@ namespace TensorSharp
 		}
 
 
-		unsafe static public void MulMulAdd_Apply(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ, Tensor srcW)
+		unsafe static public void MulMulAdd(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ, Tensor srcW)
 		{
 			unsafe void func(float* r, float* x, float* y, float* z, float* w)
 			{
@@ -558,6 +598,20 @@ namespace TensorSharp
 
 			Apply5(result, srcX, srcY, srcZ, srcW, func);
 		}
+
+
+
+
+		unsafe static public void AddMul(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ)
+		{
+			unsafe void func(float* r, float* x, float* y, float* z)
+			{
+				*r = addmul(*x, *y, *z);
+			}
+
+			Apply4(result, srcX, srcY, srcZ, func);
+		}
+
 
 
 		unsafe static public void Softmax(Tensor tOut, Tensor tIn, int rows, int cols)
@@ -1013,6 +1067,12 @@ namespace TensorSharp
 		static float mulmuladd(float x, float y, float z, float w)
 		{
 			return x * y + z * w;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float addmul(float x, float y, float z)
+		{
+			return x + y * z;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

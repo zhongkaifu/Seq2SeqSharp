@@ -73,27 +73,26 @@ namespace SeqSimilarityConsole
                     ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);
 
                     // Create metrics
-                    Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>();
-                    taskId2metrics.Add(0, new List<IMetric>());
-                    taskId2metrics[0].Add(new SimilarityMetric());
+                    IMetric metric = null;
+
+                    if (opts.SimilarityType == "Continuous")
+                    {
+                        metric = new SimilarityMetric();
+                    }
 
                     // Create optimizer
-                    IOptimizer optimizer = null;
-                    if (String.Equals(opts.Optimizer, "Adam", StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        optimizer = new AdamOptimizer(opts.GradClip, opts.Beta1, opts.Beta2);
-                    }
-                    else
-                    {
-                        optimizer = new RMSPropOptimizer(opts.GradClip, opts.Beta1);
-                    }
-
+                    IOptimizer optimizer = Misc.CreateOptimizer(opts);
 
                     if (!String.IsNullOrEmpty(opts.ModelFilePath) && File.Exists(opts.ModelFilePath))
                     {
                         //Incremental training
                         Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
-                        ss = new SeqSimilarity(opts);                        
+                        ss = new SeqSimilarity(opts);
+
+                        if (metric == null)
+                        {
+                            metric = new MultiLabelsFscoreMetric("", ss.ClsVocab.GetAllTokens(keepBuildInTokens: false));
+                        }
                     }
                     else
                     {
@@ -118,6 +117,11 @@ namespace SeqSimilarityConsole
                             (srcVocab, tgtVocabs) = trainCorpus.BuildVocabs(opts.SrcVocabSize, opts.TgtVocabSize);
                         }
 
+                        if (metric == null)
+                        {
+                            metric = new MultiLabelsFscoreMetric("", tgtVocabs[0].GetAllTokens(keepBuildInTokens: false));
+                        }
+
                         //New training
                         ss = new SeqSimilarity(opts, srcVocab, tgtVocabs[0]);
                     }
@@ -127,7 +131,7 @@ namespace SeqSimilarityConsole
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;
 
                     // Kick off training
-                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, taskId2metrics: taskId2metrics);
+                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, metric: metric);
                 }
                 //else if (mode == ModeEnums.Valid)
                 //{
@@ -182,5 +186,7 @@ namespace SeqSimilarityConsole
                 Logger.WriteLine($"Call stack: '{err.StackTrace}'");
             }
         }
+
+
     }
 }

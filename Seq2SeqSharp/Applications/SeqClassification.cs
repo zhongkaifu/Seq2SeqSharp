@@ -103,19 +103,7 @@ namespace Seq2SeqSharp.Applications
             RoundArray<int> raDeviceIds = new RoundArray<int>(DeviceIds);
 
             int contextDim;
-            if (modelMetaData.EncoderType == EncoderTypeEnums.BiLSTM)
-            {
-                m_encoder = new MultiProcessorNetworkWrapper<IEncoder>(
-                    new BiEncoder("BiLSTMEncoder", modelMetaData.HiddenDim, modelMetaData.EncoderEmbeddingDim, modelMetaData.EncoderLayerDepth, raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
-                contextDim = modelMetaData.HiddenDim * 2;
-            }
-            else
-            {
-                m_encoder = new MultiProcessorNetworkWrapper<IEncoder>(
-                    new TransformerEncoder("TransformerEncoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.EncoderEmbeddingDim, modelMetaData.EncoderLayerDepth, m_options.DropoutRatio, raDeviceIds.GetNextItem(),
-                    isTrainable: true, learningRateFactor: m_options.EncoderStartLearningRateFactor), DeviceIds);
-                contextDim = modelMetaData.HiddenDim;
-            }
+            (m_encoder, contextDim) = Encoder.CreateEncoders(modelMetaData, m_options, raDeviceIds);
 
             m_encoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>[modelMetaData.ClsVocabs.Count];
             for (int i = 0; i < modelMetaData.ClsVocabs.Count; i++)

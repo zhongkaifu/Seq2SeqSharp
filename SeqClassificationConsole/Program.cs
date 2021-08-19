@@ -76,15 +76,7 @@ namespace SeqClassificationConsole
                     Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>();
 
                     // Create optimizer
-                    IOptimizer optimizer = null;
-                    if (String.Equals(opts.Optimizer, "Adam", StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        optimizer = new AdamOptimizer(opts.GradClip, opts.Beta1, opts.Beta2);
-                    }
-                    else
-                    {
-                        optimizer = new RMSPropOptimizer(opts.GradClip, opts.Beta1);
-                    }
+                    IOptimizer optimizer = Misc.CreateOptimizer(opts);
 
 
                     if (!String.IsNullOrEmpty(opts.ModelFilePath) && File.Exists(opts.ModelFilePath))

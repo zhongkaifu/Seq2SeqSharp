@@ -65,15 +65,7 @@ namespace SeqLabelConsole
                 ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);
 
                 // Create optimizer
-                IOptimizer optimizer = null;
-                if (String.Equals(opts.Optimizer, "Adam", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    optimizer = new AdamOptimizer(opts.GradClip, opts.Beta1, opts.Beta2);
-                }
-                else
-                {
-                    optimizer = new RMSPropOptimizer(opts.GradClip, opts.Beta1);
-                }
+                IOptimizer optimizer = Misc.CreateOptimizer(opts);
 
                 // Create metrics
                 List<IMetric> metrics = new List<IMetric>();
