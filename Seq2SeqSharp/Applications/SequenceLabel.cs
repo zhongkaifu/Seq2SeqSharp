@@ -151,8 +151,7 @@ namespace Seq2SeqSharp
             // Reset networks
             encoder.Reset(g.GetWeightFactory(), srcSnts.Count);
 
-
-            List<int> originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
+            var originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
             int seqLen = srcSnts[0].Count;
             int batchSize = srcSnts.Count;
 
@@ -217,7 +216,7 @@ namespace Seq2SeqSharp
         /// <param name="reversEncoder"></param>
         /// <param name="Embedding"></param>
         /// <returns></returns>
-        private IWeightTensor Encode(IComputeGraph g, List<List<string>> srcSnts, IEncoder encoder, IWeightTensor Embedding, IWeightTensor srcSelfMask, IWeightTensor posEmbedding, List<int> originalSrcLengths)
+        private IWeightTensor Encode(IComputeGraph g, List<List<string>> srcSnts, IEncoder encoder, IWeightTensor Embedding, IWeightTensor srcSelfMask, IWeightTensor posEmbedding, float[] originalSrcLengths)
         {
             int seqLen = srcSnts[0].Count;
             int batchSize = srcSnts.Count;
@@ -227,7 +226,7 @@ namespace Seq2SeqSharp
             // Generate batch-first based input embeddings
             for (int j = 0; j < batchSize; j++)
             {
-                int originalLength = originalSrcLengths[j];
+                int originalLength = (int)originalSrcLengths[j];
                 for (int i = 0; i < seqLen; i++)
                 {
                     int ix_source = m_modelMetaData.SrcVocab.GetWordIndex(srcSnts[j][i], logUnk: true);

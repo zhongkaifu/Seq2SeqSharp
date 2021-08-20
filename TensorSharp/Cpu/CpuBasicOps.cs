@@ -313,7 +313,6 @@ namespace TensorSharp.Cpu
         public Tensor Add4(Tensor result, Tensor x, Tensor y, Tensor z, Tensor w) { return NativeWrapper.InvokeNullableResultElementwise(add4_func, result, x, y, z, w); }
 
 
-       // private readonly MethodInfo addmul_func = NativeWrapper.GetMethod("TS_AddMul");
         [RegisterOpStorageType("addmul", typeof(CpuStorage))]
         public Tensor AddMul(Tensor result, Tensor x, Tensor y, Tensor z)
         {
@@ -321,8 +320,69 @@ namespace TensorSharp.Cpu
             TensorApplyCPU.AddMul(writeTarget, x, y, z);
 
             return writeTarget;
-            // return NativeWrapper.InvokeNullableResultElementwise(addmul_func, result, x, y, z); 
         }
+
+
+        [RegisterOpStorageType("buildsrctgtmask", typeof(CpuStorage))]
+        public Tensor BuildSrcTgtMask(Tensor result, Tensor srcOriginalLengths, Tensor tgtOriginalLengths, int srcPaddedSeqLen, int tgtPaddedSeqLen, float value, float maskedValue)
+        {
+
+            int ndim = result.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(result.Sizes, result.Strides);
+            long cols = result.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+            TensorApplyCPU.BuildSrcTgtMask(result, srcOriginalLengths, tgtOriginalLengths, (int)rows, (int)cols, tgtPaddedSeqLen, value, maskedValue);
+            return result;
+        }
+
+
+
+        [RegisterOpStorageType("buildselfmask", typeof(CpuStorage))]
+        public Tensor BuildSelfMask(Tensor result, Tensor originalLengths, int paddedSeqLen, float value, float maskedValue)
+        {
+            int ndim = result.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(result.Sizes, result.Strides);
+            long cols = result.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+            TensorApplyCPU.BuildSelfMask(result, originalLengths, (int)rows, (int)cols, paddedSeqLen, value, maskedValue);
+            return result;
+        }
+
+
+        [RegisterOpStorageType("buildselftrimask", typeof(CpuStorage))]
+        public Tensor BuildSelfTriMask(Tensor result, Tensor originalLengths, int paddedSeqLen, float value, float maskedValue)
+        {
+            int ndim = result.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(result.Sizes, result.Strides);
+            long cols = result.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+            TensorApplyCPU.BuildSelfTriMask(result, originalLengths, (int)rows, (int)cols, paddedSeqLen, value, maskedValue);
+            return result;
+        }
+
+
+
 
         private readonly MethodInfo addmulv_func = NativeWrapper.GetMethod("TS_AddMulV");
         [RegisterOpStorageType("addmulv", typeof(CpuStorage))]

@@ -1679,21 +1679,14 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public IWeightTensor BuildPadSelfMask(int paddedLength, List<int> originalLengths)
+        public IWeightTensor BuildPadSelfMask(int paddedLength, float[] originalLengths)
         {
-            float[] buf = new float[originalLengths.Count * paddedLength * paddedLength];
-            Array.Fill(buf, -99999999.0f);
-
-            for (int k = 0; k < originalLengths.Count; k++)
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { originalLengths.Length, paddedLength, paddedLength }, m_deviceId, name: $"SelfMask_{m_deviceId}", graphToBind: this);
+            using (Tensor originalLengthsTensor = new Tensor(res.Allocator, DType.Float32, originalLengths.Length))
             {
-                for (int i = 0; i < originalLengths[k]; i++)
-                {
-                    Array.Fill(buf, 0.0f, k * (paddedLength * paddedLength) + i * paddedLength, originalLengths[k]);
-                }
+                originalLengthsTensor.CopyFrom(originalLengths);
+                Ops.BuildSelfMask(res.TWeight, originalLengthsTensor, paddedLength, 0.0f, -99999999.0f);
             }
-
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { originalLengths.Count, paddedLength, paddedLength }, m_deviceId, name: $"SelfMask_{m_deviceId}", graphToBind: this);
-            res.SetWeightArray(buf);
 
             if (m_needsBackprop)
             {
@@ -1708,24 +1701,14 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightTensor BuildPadSelfTriMask(int paddedLength, List<int> originalLengths)
+        public IWeightTensor BuildPadSelfTriMask(int paddedLength, float[] originalLengths)
         {
-            float[] buf = new float[originalLengths.Count * paddedLength * paddedLength];
-            for (int k = 0; k < originalLengths.Count; k++)
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { originalLengths.Length, paddedLength, paddedLength }, m_deviceId, name: $"SelfTriMask_{m_deviceId}", graphToBind: this);
+            using (Tensor originalLengthsTensor = new Tensor(res.Allocator, DType.Float32, originalLengths.Length))
             {
-                int offset_k = k * (paddedLength * paddedLength);
-                for (int i = 0; i < originalLengths[k]; i++)
-                {
-                    int offset_k_i = offset_k + i * paddedLength;
-                    Array.Fill(buf, 0.0f, offset_k_i, i + 1);
-                    Array.Fill(buf, -99999999.0f, offset_k_i + i + 1, paddedLength - (i + 1));
-                }
-
-                Array.Fill(buf, -99999999.0f, offset_k + originalLengths[k] * paddedLength, (paddedLength - originalLengths[k]) * paddedLength);
+                originalLengthsTensor.CopyFrom(originalLengths);
+                Ops.BuildSelfTriMask(res.TWeight, originalLengthsTensor, paddedLength, 0.0f, -99999999.0f);
             }
-
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { originalLengths.Count, paddedLength, paddedLength }, m_deviceId, name: $"SelfTriMask_{m_deviceId}", graphToBind: this);
-            res.SetWeightArray(buf);
 
             if (m_needsBackprop)
             {
@@ -1741,33 +1724,19 @@ namespace Seq2SeqSharp.Tools
 
 
 
-        public IWeightTensor BuildSrcTgtMask(int srcPaddedLength, int tgtPaddedLength, List<int> tgtOriginalLengths, List<int> srcOriginalLengths = null)
+        public IWeightTensor BuildSrcTgtMask(int srcPaddedLength, int tgtPaddedLength, float[] tgtOriginalLengths, float[] srcOriginalLengths)
         {
-            float[] buf = new float[tgtOriginalLengths.Count * tgtPaddedLength * srcPaddedLength];
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { tgtOriginalLengths.Length, tgtPaddedLength, srcPaddedLength }, m_deviceId, name: $"SrcTgtMask_{m_deviceId}", graphToBind: this);
 
-            for (int k = 0; k < tgtOriginalLengths.Count; k++) // batch size
+            using (Tensor tgtOriginalLengthsTensor = new Tensor(res.Allocator, DType.Float32, tgtOriginalLengths.Length))
             {
-                int offset_k = k * (tgtPaddedLength * srcPaddedLength);
-
-                if (srcOriginalLengths == null)
+                using (Tensor srcOriginalLengthsTensor = new Tensor(res.Allocator, DType.Float32, srcOriginalLengths.Length))
                 {
-                    Array.Fill(buf, 0.0f, offset_k, tgtOriginalLengths[k] * srcPaddedLength);
+                    srcOriginalLengthsTensor.CopyFrom(srcOriginalLengths);
+                    tgtOriginalLengthsTensor.CopyFrom(tgtOriginalLengths);
+                    Ops.BuildSrcTgtMask(res.TWeight, srcOriginalLengthsTensor, tgtOriginalLengthsTensor, srcPaddedLength, tgtPaddedLength, 0.0f, -99999999.0f);
                 }
-                else
-                {
-                    for (int i = 0; i < tgtOriginalLengths[k]; i++)
-                    {
-                        int offset_k_i = offset_k + i * srcPaddedLength;
-                        Array.Fill(buf, 0.0f, offset_k_i, srcOriginalLengths[k]);
-                        Array.Fill(buf, -99999999.0f, offset_k_i + srcOriginalLengths[k], srcPaddedLength - srcOriginalLengths[k]);
-                    }
-                }
-
-                Array.Fill(buf, -99999999.0f, offset_k + tgtOriginalLengths[k] * srcPaddedLength, (tgtPaddedLength - tgtOriginalLengths[k]) * srcPaddedLength);
             }
-
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { tgtOriginalLengths.Count, tgtPaddedLength, srcPaddedLength }, m_deviceId, name: $"SrcTgtMask_{m_deviceId}", graphToBind: this);
-            res.SetWeightArray(buf);
 
             if (m_needsBackprop)
             {

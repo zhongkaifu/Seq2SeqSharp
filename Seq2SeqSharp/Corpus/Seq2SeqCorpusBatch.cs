@@ -18,10 +18,13 @@ namespace Seq2SeqSharp.Corpus
 
         public int SrcLength = 0;
         public int TgtLength = 0;
-        public RawSntPair(string s, string t)
+
+        private long maxSeqLength = 0;
+        public RawSntPair(string s, string t, long maxSeqLength)
         {
             SrcSnt = s;
             TgtSnt = t;
+            this.maxSeqLength = maxSeqLength;
 
             SrcLength = CountWhiteSpace(s);
             TgtLength = CountWhiteSpace(t);
@@ -31,14 +34,14 @@ namespace Seq2SeqSharp.Corpus
         }
 
 
-        private static long CountGroupLens(string s)
+        private long CountGroupLens(string s)
         {
             long r = 0;
             string[] items = s.Split('\t');
 
             foreach (var item in items)
             {
-                r = r * 10000;
+                r = r * maxSeqLength;
 
                 int len = item.Split(' ').Length;
                 r += len;
@@ -47,7 +50,7 @@ namespace Seq2SeqSharp.Corpus
             return r;
         }
 
-        private static int CountWhiteSpace(string s)
+        private int CountWhiteSpace(string s)
         {
             string[] items = s.Split(' ');
 

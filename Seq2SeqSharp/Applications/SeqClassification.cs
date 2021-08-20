@@ -172,7 +172,7 @@ namespace Seq2SeqSharp.Applications
             (IEncoder encoder, IWeightTensor srcEmbedding, List<IFeedForwardLayer> encoderFFLayer, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding) = GetNetworksOnDeviceAt(deviceIdIdx);
 
             var srcSnts = sntPairBatch.GetSrcTokens(0);
-            List<int> originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
+            var originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
           
             IWeightTensor encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcSnts, originalSrcLengths, m_options.ApplyContextEmbeddingsToEntireSequence);
 

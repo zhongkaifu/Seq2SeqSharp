@@ -483,6 +483,106 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
   }
 }
 
+
+  __global__ void BuildSrcTgtMask(float* __restrict__ result, float* __restrict__ srcOriginalLengths, float* __restrict__ tgtOriginalLengths, int rows, int cols, int tgtPaddedSeqLen, float value, float maskedValue)
+{
+
+    for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+
+      float* resultRow = result + j * cols;
+      int batchIdx = j / tgtPaddedSeqLen;
+      int seqIdxInBatch = j % tgtPaddedSeqLen;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+         int srcOriginalLength = srcOriginalLengths[batchIdx];
+         int tgtOriginalLength = tgtOriginalLengths[batchIdx];
+
+
+         if (id < srcOriginalLength && seqIdxInBatch < tgtOriginalLength)
+         {
+             resultRow[id] = value;
+         }
+         else
+         {
+             resultRow[id] = maskedValue;
+         }
+
+        }
+      }
+    }
+  }
+}
+
+
+  __global__ void BuildSelfMask(float* __restrict__ result, float* __restrict__ originalLengths, int rows, int cols, int paddedSeqLen, float value, float maskedValue)
+{
+
+    for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+
+      float* resultRow = result + j * cols;
+      int batchIdx = j / paddedSeqLen;
+      int seqIdxInBatch = j % paddedSeqLen;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+         int originalLength = originalLengths[batchIdx];
+
+         if (id < originalLength && seqIdxInBatch < originalLength)
+         {
+             resultRow[id] = value;
+         }
+         else
+         {
+             resultRow[id] = maskedValue;
+         }
+
+        }
+      }
+    }
+  }
+}
+
+
+  __global__ void BuildSelfTriMask(float* __restrict__ result, float* __restrict__ originalLengths, int rows, int cols, int paddedSeqLen, float value, float maskedValue)
+{
+
+    for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+
+      float* resultRow = result + j * cols;
+      int batchIdx = j / paddedSeqLen;
+      int seqIdxInBatch = j % paddedSeqLen;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+         int originalLength = originalLengths[batchIdx];
+
+         if (id < originalLength && seqIdxInBatch < originalLength && id <= seqIdxInBatch)
+         {
+             resultRow[id] = value;
+         }
+         else
+         {
+             resultRow[id] = maskedValue;
+         }
+
+        }
+      }
+    }
+  }
+}
+
+
+
   __global__ void IndexSelectGrad(float* __restrict__ grad, float* __restrict__ adj, float* __restrict__ indice, int rows, int cols)
   {
     for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -807,6 +907,97 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
 
 
+        private void BuildSrcTgtMask(TSCudaContext context, Tensor result, Tensor srcOriginalLengths, Tensor tgtOriginalLengths, int tgtPaddedSeqLen, float value, float maskedValue)
+        {
+            CudaContext cudaContext = context.CudaContextForTensor(srcOriginalLengths);
+
+            cudaContext.SetCurrent();
+
+            int ndim = result.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(result.Sizes, result.Strides);
+            long cols = result.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+
+            dim3 threads = new dim3((uint)Math.Min(512, rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+
+            CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
+            CUdeviceptr srcOriginalLengthsPtr = CudaHelpers.GetBufferStart(srcOriginalLengths);
+            CUdeviceptr tgtOriginalLengthsPtr = CudaHelpers.GetBufferStart(tgtOriginalLengths);
+
+            Invoke(context, cudaContext, "BuildSrcTgtMask", grid, threads, threads.x * sizeof(float), CUstream.NullStream, resultPtr, srcOriginalLengthsPtr, tgtOriginalLengthsPtr, rows, cols, tgtPaddedSeqLen, value, maskedValue);
+        }
+
+
+
+        private void BuildSelfMask(TSCudaContext context, Tensor result, Tensor originalLengths, int paddedSeqLen, float value, float maskedValue)
+        {
+            CudaContext cudaContext = context.CudaContextForTensor(originalLengths);
+
+            cudaContext.SetCurrent();
+
+            int ndim = result.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(result.Sizes, result.Strides);
+            long cols = result.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+
+            dim3 threads = new dim3((uint)Math.Min(512, rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+
+            CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
+            CUdeviceptr originalLengthsPtr = CudaHelpers.GetBufferStart(originalLengths);
+
+
+            Invoke(context, cudaContext, "BuildSelfMask", grid, threads, threads.x * sizeof(float), CUstream.NullStream, resultPtr, originalLengthsPtr, rows, cols, paddedSeqLen, value, maskedValue);
+
+
+        }
+
+
+        private void BuildSelfTriMask(TSCudaContext context, Tensor result, Tensor originalLengths, int paddedSeqLen, float value, float maskedValue)
+        {
+            CudaContext cudaContext = context.CudaContextForTensor(originalLengths);
+
+            cudaContext.SetCurrent();
+
+            int ndim = result.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(result.Sizes, result.Strides);
+            long cols = result.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+
+            dim3 threads = new dim3((uint)Math.Min(512, rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+
+            CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
+            CUdeviceptr originalLengthsPtr = CudaHelpers.GetBufferStart(originalLengths);
+
+
+            Invoke(context, cudaContext, "BuildSelfTriMask", grid, threads, threads.x * sizeof(float), CUstream.NullStream, resultPtr, originalLengthsPtr, rows, cols, paddedSeqLen, value, maskedValue);
+
+
+        }
+
         private void IndexSelect(TSCudaContext context, Tensor result, Tensor src, Tensor indice)
         {
             CudaContext cudaContext = context.CudaContextForTensor(src);
@@ -1015,6 +1206,38 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             return grad;
         }
 
+
+        public Tensor BuildSrcTgtMask(Tensor result, Tensor srcOriginalLengths, Tensor tgtOriginalLengths, int srcPaddedSeqLen, int tgtPaddedSeqLen, float value, float maskedValue)
+        {
+            TSCudaContext context = CudaHelpers.TSContextForTensor(srcOriginalLengths);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, srcOriginalLengths, true, new long[] { srcOriginalLengths.Sizes[0], tgtPaddedSeqLen, srcPaddedSeqLen });
+
+            BuildSrcTgtMask(context, writeTarget, srcOriginalLengths, tgtOriginalLengths, tgtPaddedSeqLen, value, maskedValue);
+
+            return writeTarget;
+        }
+
+
+        public Tensor BuildSelfMask(Tensor result, Tensor originalLengths, int paddedSeqLen, float value, float maskedValue)
+        {
+            TSCudaContext context = CudaHelpers.TSContextForTensor(originalLengths);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, originalLengths, true, new long[] { originalLengths.Sizes[0], paddedSeqLen, paddedSeqLen });
+
+            BuildSelfMask(context, writeTarget, originalLengths, paddedSeqLen, value, maskedValue);
+
+            return writeTarget;
+        }
+
+
+        public Tensor BuildSelfTriMask(Tensor result, Tensor originalLengths, int paddedSeqLen, float value, float maskedValue)
+        {
+            TSCudaContext context = CudaHelpers.TSContextForTensor(originalLengths);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, originalLengths, true, new long[] { originalLengths.Sizes[0], paddedSeqLen, paddedSeqLen });
+
+            BuildSelfTriMask(context, writeTarget, originalLengths, paddedSeqLen, value, maskedValue);
+
+            return writeTarget;
+        }
 
         public Tensor IndexSelect(Tensor result, Tensor src, Tensor indice)
         {

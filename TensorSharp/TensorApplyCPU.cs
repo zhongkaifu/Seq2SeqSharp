@@ -613,6 +613,93 @@ namespace TensorSharp
 		}
 
 
+		unsafe static public void BuildSelfMask(Tensor result, Tensor originalLengths, int rows, int cols, int paddedSeqLen, float value, float maskedValue)
+		{
+			float* ptResult = (float*)CpuNativeHelpers.GetBufferStart(result);
+			float* ptOriginalLengths = (float*)CpuNativeHelpers.GetBufferStart(originalLengths);
+
+			for (int j = 0; j < rows; j++)
+			{
+				float* resultRow = ptResult + j * cols;
+				int batchIdx = j / paddedSeqLen;
+				int seqIdxInBatch = j % paddedSeqLen;
+
+				for (int id = 0; id < cols; id++)
+				{
+					int originalLength = (int)ptOriginalLengths[batchIdx];
+					if (id < originalLength && seqIdxInBatch < originalLength)
+					{
+						resultRow[id] = value;
+					}
+					else
+					{
+						resultRow[id] = maskedValue;
+					}
+				}
+			}
+		}
+
+
+
+		unsafe static public void BuildSelfTriMask(Tensor result, Tensor originalLengths, int rows, int cols, int paddedSeqLen, float value, float maskedValue)
+		{
+			float* ptResult = (float*)CpuNativeHelpers.GetBufferStart(result);
+			float* ptOriginalLengths = (float*)CpuNativeHelpers.GetBufferStart(originalLengths);
+
+			for (int j = 0; j < rows; j++)
+			{
+				float* resultRow = ptResult + j * cols;
+				int batchIdx = j / paddedSeqLen;
+				int seqIdxInBatch = j % paddedSeqLen;
+
+				for (int id = 0; id < cols; id++)
+				{
+					int originalLength = (int)ptOriginalLengths[batchIdx];
+					if (id < originalLength && seqIdxInBatch < originalLength && id <= seqIdxInBatch)
+					{
+						resultRow[id] = value;
+					}
+					else
+					{
+						resultRow[id] = maskedValue;
+					}
+
+				}
+			}
+		}
+
+
+
+		unsafe static public void BuildSrcTgtMask(Tensor result, Tensor srcOriginalLengths, Tensor tgtOriginalLengths, int rows, int cols, int tgtPaddedSeqLen, float value, float maskedValue)
+		{
+			float* ptResult = (float*)CpuNativeHelpers.GetBufferStart(result);
+			float* ptSrcOriginalLengths = (float*)CpuNativeHelpers.GetBufferStart(srcOriginalLengths);
+			float* ptTgtOriginalLengths = (float*)CpuNativeHelpers.GetBufferStart(tgtOriginalLengths);
+
+			for (int j = 0; j < rows; j++)
+			{
+				float* resultRow = ptResult + j * cols;
+				int batchIdx = j / tgtPaddedSeqLen;
+				int seqIdxInBatch = j % tgtPaddedSeqLen;
+
+				for (int id = 0; id < cols; id++)
+				{
+					int srcOriginalLength = (int)ptSrcOriginalLengths[batchIdx];
+					int tgtOriginalLength = (int)ptTgtOriginalLengths[batchIdx];
+
+					if (id < srcOriginalLength && seqIdxInBatch < tgtOriginalLength)
+					{
+						resultRow[id] = value;
+					}
+					else
+					{
+						resultRow[id] = maskedValue;
+					}
+				}
+			}
+		}
+
+
 
 		unsafe static public void Softmax(Tensor tOut, Tensor tIn, int rows, int cols)
 		{

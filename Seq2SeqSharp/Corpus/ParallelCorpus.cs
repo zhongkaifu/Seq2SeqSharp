@@ -31,9 +31,9 @@ namespace Seq2SeqSharp.Tools
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>
-        public static List<int> PadSentences(List<List<string>> s, int maxLen = -1)
+        public static float[] PadSentences(List<List<string>> s, int maxLen = -1)
         {
-            List<int> originalLengths = new List<int>();
+            float[] originalLengths = new float[s.Count];
 
             if (maxLen <= 0)
             {
@@ -49,7 +49,7 @@ namespace Seq2SeqSharp.Tools
             for (int i = 0; i < s.Count; i++)
             {
                 int count = s[i].Count;
-                originalLengths.Add(count);
+                originalLengths[i] = count;
 
                 for (int j = 0; j < maxLen - count; j++)
                 {
@@ -66,9 +66,9 @@ namespace Seq2SeqSharp.Tools
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>
-        public static List<int> PadSentences(List<List<int>> s, int tokenToPad, int maxLen = -1)
+        public static float[] PadSentences(List<List<int>> s, int tokenToPad, int maxLen = -1)
         {
-            List<int> originalLengths = new List<int>();
+            float[] originalLengths = new float[s.Count];
 
             if (maxLen <= 0)
             {
@@ -84,7 +84,7 @@ namespace Seq2SeqSharp.Tools
             for (int i = 0; i < s.Count; i++)
             {
                 int count = s[i].Count;
-                originalLengths.Add(count);
+                originalLengths[i] = count;
 
                 for (int j = 0; j < maxLen - count; j++)
                 {
@@ -258,7 +258,7 @@ namespace Seq2SeqSharp.Tools
                         break;
                     }
 
-                    RawSntPair rawSntPair = new RawSntPair(srSrc.ReadLine(), srTgt.ReadLine());
+                    RawSntPair rawSntPair = new RawSntPair(srSrc.ReadLine(), srTgt.ReadLine(), Math.Max(m_maxSrcSentLength, m_maxTgtSentLength));
                     if (rawSntPair.IsEmptyPair())
                     {
                         break;

@@ -54,7 +54,7 @@ namespace Seq2SeqSharp.Applications
         }
 
         static public IWeightTensor Run(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, IEncoder encoder, IModel modelMetaData, ShuffleEnums shuffleType,
-            IWeightTensor srcEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, List<List<string>> srcSnts, List<int> originalSrcLengths, bool applyContextEmbeddingsToEntireSequence = true)
+            IWeightTensor srcEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, List<List<string>> srcSnts, float[] originalSrcLengths, bool applyContextEmbeddingsToEntireSequence = true)
         {
             int batchSize = srcSnts.Count;
 
@@ -98,7 +98,7 @@ namespace Seq2SeqSharp.Applications
             return contextCLSOutput;
         }
 
-        static private IWeightTensor InnerRunner(IComputeGraph computeGraph, List<List<string>> srcSnts, List<int> originalSrcLengths, ShuffleEnums shuffleType, IEncoder encoder, IModel modelMetaData,
+        static private IWeightTensor InnerRunner(IComputeGraph computeGraph, List<List<string>> srcSnts, float[] originalSrcLengths, ShuffleEnums shuffleType, IEncoder encoder, IModel modelMetaData,
            IWeightTensor srcEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, IWeightTensor contextEmbeddings = null, bool applyContextEmbeddingsToEntireSequence = true)
         {
 
@@ -126,7 +126,7 @@ namespace Seq2SeqSharp.Applications
         /// <param name="reversEncoder"></param>
         /// <param name="embeddings"></param>
         /// <returns></returns>
-        static private IWeightTensor RunEncoder(IComputeGraph g, List<List<int>> seqs, IEncoder encoder, IModel modelMetaData, IWeightTensor embeddings, IWeightTensor selfMask, IWeightTensor posEmbeddings, List<int> seqOriginalLengths, 
+        static private IWeightTensor RunEncoder(IComputeGraph g, List<List<int>> seqs, IEncoder encoder, IModel modelMetaData, IWeightTensor embeddings, IWeightTensor selfMask, IWeightTensor posEmbeddings, float[] seqOriginalLengths, 
             IWeightTensor segmentEmbeddings, IWeightTensor contextEmbeddings, bool applyContextEmbeddingsToEntireSequence = true)
         {
             int batchSize = seqs.Count;
