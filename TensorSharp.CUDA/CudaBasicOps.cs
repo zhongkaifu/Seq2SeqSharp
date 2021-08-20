@@ -515,6 +515,25 @@ namespace TensorSharp.CUDA
         public Tensor IndexSelectGrad(Tensor grad, Tensor adj, Tensor indice) { return advFuncKernels.IndexSelectGrad(grad, adj, indice); }
 
 
+        [RegisterOpStorageType("buildsrctgtmask", typeof(CudaStorage))]
+        public Tensor BuildSrcTgtMask(Tensor result, Tensor srcOriginalLengths, Tensor tgtOriginalLengths, int srcPaddedSeqLength, int tgtPaddedSeqLength, float value, float maskedValue)
+        {
+            return advFuncKernels.BuildSrcTgtMask(result, srcOriginalLengths, tgtOriginalLengths, srcPaddedSeqLength, tgtPaddedSeqLength, value, maskedValue);
+        }
+
+
+        [RegisterOpStorageType("buildselfmask", typeof(CudaStorage))]
+        public Tensor BuildSelfMask(Tensor result, Tensor originalLengths, int paddedSeqLength, float value, float maskedValue)
+        {
+            return advFuncKernels.BuildSelfMask(result, originalLengths, paddedSeqLength, value, maskedValue);
+        }
+
+
+        [RegisterOpStorageType("buildselftrimask", typeof(CudaStorage))]
+        public Tensor BuildSelfTriMask(Tensor result, Tensor originalLengths, int paddedSeqLength, float value, float maskedValue)
+        {
+            return advFuncKernels.BuildSelfTriMask(result, originalLengths, paddedSeqLength, value, maskedValue);
+        }
 
         [RegisterOpStorageType("softmax", typeof(CudaStorage))]
         public Tensor Softmax(Tensor result, Tensor src) { return advFuncKernels.Softmax(result, src); }

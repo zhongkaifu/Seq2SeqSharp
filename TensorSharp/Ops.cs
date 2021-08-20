@@ -199,6 +199,23 @@ namespace TensorSharp
         public static Tensor IndexSelect(Tensor result, Tensor src, Tensor indice) { return (Tensor)OpRegistry.Invoke("indexselect", result, src, indice); }
         public static Tensor IndexSelectGrad(Tensor grad, Tensor adj, Tensor indice) { return (Tensor)OpRegistry.Invoke("indexselectgrad", grad, adj, indice); }
 
+
+        public static Tensor BuildSrcTgtMask(Tensor result, Tensor srcOriginalLengths, Tensor tgtOriginalLengths, int srcPaddedSeqLength, int tgtPaddedSeqLength, float value, float maskedValue)
+        {
+            return (Tensor)OpRegistry.Invoke("buildsrctgtmask", result, srcOriginalLengths, tgtOriginalLengths, srcPaddedSeqLength, tgtPaddedSeqLength, value, maskedValue);
+        }
+
+        public static Tensor BuildSelfMask(Tensor result, Tensor originalLengths, int paddedSeqLength, float value, float maskedValue)
+        {
+            return (Tensor)OpRegistry.Invoke("buildselfmask", result, originalLengths, paddedSeqLength, value, maskedValue);
+        }
+
+        public static Tensor BuildSelfTriMask(Tensor result, Tensor originalLengths, int paddedSeqLength, float value, float maskedValue)
+        {
+            return (Tensor)OpRegistry.Invoke("buildselftrimask", result, originalLengths, paddedSeqLength, value, maskedValue);
+        }
+
+
         public static Tensor LayerNorm(Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-09f) { return (Tensor)OpRegistry.Invoke("layernorm", result, src, alpha, beta, eps); }
         public static Tensor LayerNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps = 1e-09f) { return (Tensor)OpRegistry.Invoke("layernormgrad", outGrad, alphaGrad, betaGrad, inGrad, y, x, alpha, beta, eps); }
 

@@ -81,21 +81,7 @@ namespace Seq2SeqSharp.Applications
             RoundArray<int> raDeviceIds = new RoundArray<int>(DeviceIds);
 
             int contextDim;
-            if (modelMetaData.EncoderType == EncoderTypeEnums.BiLSTM)
-            {
-                m_encoder = new MultiProcessorNetworkWrapper<IEncoder>(
-                    new BiEncoder("BiLSTMEncoder", modelMetaData.HiddenDim, modelMetaData.EncoderEmbeddingDim, modelMetaData.EncoderLayerDepth, raDeviceIds.GetNextItem(), isTrainable: m_options.IsEncoderTrainable), DeviceIds);
-
-                contextDim = modelMetaData.HiddenDim * 2;
-            }
-            else
-            {
-                m_encoder = new MultiProcessorNetworkWrapper<IEncoder>(
-                    new TransformerEncoder("TransformerEncoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.EncoderEmbeddingDim, modelMetaData.EncoderLayerDepth, m_options.DropoutRatio, raDeviceIds.GetNextItem(),
-                    isTrainable: m_options.IsEncoderTrainable, learningRateFactor: m_options.EncoderStartLearningRateFactor), DeviceIds);
-
-                contextDim = modelMetaData.HiddenDim;
-            }
+            (m_encoder, contextDim) = Encoder.CreateEncoders(modelMetaData, m_options, raDeviceIds);
 
             if (modelMetaData.DecoderType == DecoderTypeEnums.AttentionLSTM)
             {
@@ -224,7 +210,7 @@ namespace Seq2SeqSharp.Applications
             (IEncoder encoder, IDecoder decoder, IFeedForwardLayer encoderFFLayer, IFeedForwardLayer decoderFFLayer, IWeightTensor srcEmbedding, IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding) = GetNetworksOnDeviceAt(deviceIdIdx);
 
             var srcSnts = sntPairBatch.GetSrcTokens(0);
-            List<int> originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
+            var originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
 
             IWeightTensor encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcSnts, originalSrcLengths, m_options.ApplyContextEmbeddingsToEntireSequence);
 
@@ -402,7 +388,7 @@ namespace Seq2SeqSharp.Applications
         }
 
         private (float, List<List<BeamSearchStatus>>) DecodeTransformer(List<List<int>> tgtSeqs, IComputeGraph g, IWeightTensor encOutputs, TransformerDecoder decoder, IFeedForwardLayer decoderFFLayer,
-            IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, List<int> srcOriginalLenghts, bool isTraining = true, int beamSearchSize = 1, bool outputAlignmentSrcPos = false, bool outputSentScore = true)
+            IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, float[] srcOriginalLenghts, bool isTraining = true, int beamSearchSize = 1, bool outputAlignmentSrcPos = false, bool outputSentScore = true)
         {
             int eosTokenId = m_modelMetaData.TgtVocab.GetWordIndex(BuildInTokens.EOS, logUnk: true);
             float cost = 0.0f;
@@ -534,7 +520,7 @@ namespace Seq2SeqSharp.Applications
             }
 
             // Initialize variables accoridng to current mode
-            List<int> originalOutputLengths = isTraining ? BuildInTokens.PadSentences(outputSnts, eosTokenId) : null;
+            var originalOutputLengths = isTraining ? BuildInTokens.PadSentences(outputSnts, eosTokenId) : null;
             int seqLen = isTraining ? outputSnts[0].Count : 64;
             HashSet<int> setEndSentId = isTraining ? null : new HashSet<int>();
 

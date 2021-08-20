@@ -54,6 +54,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("The input file for test.", "InputTestFile")]
         public string InputTestFile = null;
 
+        [Arg("It indicates if the encoder is trainable", "IsEncoderTrainable")]
+        public bool IsEncoderTrainable = true;
+
         [Arg("Maxmium epoch number during training. Default is 100", "MaxEpochNum")]
         public int MaxEpochNum = 100;
 

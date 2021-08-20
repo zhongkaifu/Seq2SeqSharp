@@ -42,5 +42,7 @@
       <HintPath>..\dll\AdvUtils.dll</HintPath>
     </Reference>
   </ItemGroup>
-  <PropertyGroup />
+  <PropertyGroup>
+    <Authors>Zhongkai Fu</Authors>
+  </PropertyGroup>
 </Project>

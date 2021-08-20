@@ -215,7 +215,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ConvolutionUnfold.cpp" />
-    <ClCompile Include="FillCopyOps.cpp" />
     <ClCompile Include="DimensionwiseOps.cpp" />
     <ClCompile Include="dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
@@ -248,7 +247,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConvolutionUnfold.h" />
-    <ClInclude Include="FillCopyOps.h" />
     <ClInclude Include="DimensionwiseOps.h" />
     <ClInclude Include="GatherScatterOps.h" />
     <ClInclude Include="General.h" />

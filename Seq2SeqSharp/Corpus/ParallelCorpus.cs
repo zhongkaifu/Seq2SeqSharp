@@ -31,9 +31,9 @@ namespace Seq2SeqSharp.Tools
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>
-        public static List<int> PadSentences(List<List<string>> s, int maxLen = -1)
+        public static float[] PadSentences(List<List<string>> s, int maxLen = -1)
         {
-            List<int> originalLengths = new List<int>();
+            float[] originalLengths = new float[s.Count];
 
             if (maxLen <= 0)
             {
@@ -49,7 +49,7 @@ namespace Seq2SeqSharp.Tools
             for (int i = 0; i < s.Count; i++)
             {
                 int count = s[i].Count;
-                originalLengths.Add(count);
+                originalLengths[i] = count;
 
                 for (int j = 0; j < maxLen - count; j++)
                 {
@@ -66,9 +66,9 @@ namespace Seq2SeqSharp.Tools
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>
-        public static List<int> PadSentences(List<List<int>> s, int tokenToPad, int maxLen = -1)
+        public static float[] PadSentences(List<List<int>> s, int tokenToPad, int maxLen = -1)
         {
-            List<int> originalLengths = new List<int>();
+            float[] originalLengths = new float[s.Count];
 
             if (maxLen <= 0)
             {
@@ -84,7 +84,7 @@ namespace Seq2SeqSharp.Tools
             for (int i = 0; i < s.Count; i++)
             {
                 int count = s[i].Count;
-                originalLengths.Add(count);
+                originalLengths[i] = count;
 
                 for (int j = 0; j < maxLen - count; j++)
                 {
@@ -149,10 +149,10 @@ namespace Seq2SeqSharp.Tools
 
 
             //Put sentence pair with same source length into the bucket
-            Dictionary<int, List<RawSntPair>> dict = new Dictionary<int, List<RawSntPair>>(); //<source sentence length, sentence pair set>
+            Dictionary<long, List<RawSntPair>> dict = new Dictionary<long, List<RawSntPair>>(); //<source sentence length, sentence pair set>
             foreach (RawSntPair item in rawSntPairs)
             {
-                int length = m_shuffleEnums == ShuffleEnums.NoPaddingInSrc ? item.SrcLength : item.TgtLength;
+                long length = m_shuffleEnums == ShuffleEnums.NoPaddingInSrc ? item.SrcGroupLenId : item.TgtGroupLenId;
 
                 if (dict.ContainsKey(length) == false)
                 {
@@ -166,7 +166,7 @@ namespace Seq2SeqSharp.Tools
             Parallel.ForEach(dict, pair =>
             //foreach (KeyValuePair<int, List<SntPair>> pair in dict)
             {
-                Random rnd2 = new Random(DateTime.Now.Millisecond + pair.Key);
+                Random rnd2 = new Random(DateTime.Now.Millisecond + (int)pair.Key);
 
                 List<RawSntPair> sntPairList = pair.Value;
                 for (int i = 0; i < sntPairList.Count; i++)
@@ -180,7 +180,7 @@ namespace Seq2SeqSharp.Tools
 
 
             //Split large bucket to smaller buckets
-            Dictionary<int, List<RawSntPair>> dictSB = new Dictionary<int, List<RawSntPair>>();
+            Dictionary<long, List<RawSntPair>> dictSB = new Dictionary<long, List<RawSntPair>>();
 
             foreach (var pair in dict)
             {
@@ -195,28 +195,28 @@ namespace Seq2SeqSharp.Tools
                     for (int i = 0; i < N; i++)
                     {
                         var pairs = pair.Value.GetRange(i * m_batchSize, m_batchSize);
-                        dictSB.Add(pair.Key + 10000 * i, pairs);
+                        dictSB.Add(pair.Key + 10000000 * i, pairs);
                     }
 
                     if (pair.Value.Count % m_batchSize != 0)
                     {
-                        dictSB.Add(pair.Key + 10000 * N, pair.Value.GetRange(m_batchSize * N, pair.Value.Count % m_batchSize));
+                        dictSB.Add(pair.Key + 10000000 * N, pair.Value.GetRange(m_batchSize * N, pair.Value.Count % m_batchSize));
                     }
                 }
             }
 
             rawSntPairs.Clear();
 
-            int[] keys = dictSB.Keys.ToArray();
+            long[] keys = dictSB.Keys.ToArray();
             for (int i = 0; i < keys.Length; i++)
             {
                 int idx = rnd.Next(0, keys.Length);
-                int tmp = keys[i];
+                long  tmp = keys[i];
                 keys[i] = keys[idx];
                 keys[idx] = tmp;
             }
 
-            foreach (int key in keys)
+            foreach (long key in keys)
             {
                 rawSntPairs.AddRange(dictSB[key]);
             }
@@ -258,7 +258,7 @@ namespace Seq2SeqSharp.Tools
                         break;
                     }
 
-                    RawSntPair rawSntPair = new RawSntPair(srSrc.ReadLine(), srTgt.ReadLine());
+                    RawSntPair rawSntPair = new RawSntPair(srSrc.ReadLine(), srTgt.ReadLine(), Math.Max(m_maxSrcSentLength, m_maxTgtSentLength));
                     if (rawSntPair.IsEmptyPair())
                     {
                         break;
@@ -384,6 +384,29 @@ namespace Seq2SeqSharp.Tools
             return (srcShuffledFilePath, tgtShuffledFilePath);
         }
 
+
+        public bool SameSntLen(List<List<string>> groups, int[] lens)
+        {
+            for (int i = 0; i < lens.Length; i++)
+            {
+                if (lens[i] != groups[i].Count)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public void UpdateSntLen(List<List<string>> groups, int[] lens)
+        {
+            for (int i = 0; i < lens.Length; i++)
+            {
+                lens[i] = groups[i].Count;
+            }
+
+        }
+
         public IEnumerator<T> GetEnumerator()
         {
             (string srcShuffledFilePath, string tgtShuffledFilePath) = ShuffleAll();
@@ -391,8 +414,8 @@ namespace Seq2SeqSharp.Tools
             using (StreamReader srSrc = new StreamReader(srcShuffledFilePath))
             {
                 using StreamReader srTgt = new StreamReader(tgtShuffledFilePath);
-                int lastSrcSntLen = -1;
-                int lastTgtSntLen = -1;
+                int[] lastSrcSntLen = null;
+                int[] lastTgtSntLen = null;
                 int maxOutputsSize = m_batchSize * 10000;
                 List<SntPair> outputs = new List<SntPair>();
 
@@ -408,8 +431,26 @@ namespace Seq2SeqSharp.Tools
                     var tgtLine = srTgt.ReadLine().Trim();
                     SntPair sntPair = new SntPair(srcLine, tgtLine);
 
-                    if ((lastTgtSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInTgt && lastTgtSntLen != sntPair.TgtTokenGroups[0].Count) ||
-                        (lastSrcSntLen > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInSrc && lastSrcSntLen != sntPair.SrcTokenGroups[0].Count) ||
+
+                    if (lastSrcSntLen == null)
+                    {
+                        lastSrcSntLen = new int[sntPair.SrcTokenGroups.Count];
+                        lastTgtSntLen = new int[sntPair.TgtTokenGroups.Count];
+
+                        for (int i = 0; i < lastSrcSntLen.Length; i++)
+                        {
+                            lastSrcSntLen[i] = -1;                            
+                        }
+
+                        for (int i = 0; i < lastTgtSntLen.Length; i++)
+                        {
+                            lastTgtSntLen[i] = -1;
+                        }
+                    }
+
+
+                    if ((lastTgtSntLen[0] > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInTgt && SameSntLen(sntPair.TgtTokenGroups, lastTgtSntLen) == false) ||
+                        (lastSrcSntLen[0] > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInSrc && SameSntLen(sntPair.SrcTokenGroups, lastSrcSntLen) == false) ||
                         outputs.Count > maxOutputsSize)
                     {
                         // InnerShuffle(outputs);
@@ -426,8 +467,8 @@ namespace Seq2SeqSharp.Tools
 
                     outputs.Add(sntPair);
 
-                    lastSrcSntLen = sntPair.SrcTokenGroups[0].Count;
-                    lastTgtSntLen = sntPair.TgtTokenGroups[0].Count;
+                    UpdateSntLen(sntPair.SrcTokenGroups, lastSrcSntLen);
+                    UpdateSntLen(sntPair.TgtTokenGroups, lastTgtSntLen);
                 }
 
                 // InnerShuffle(outputs);

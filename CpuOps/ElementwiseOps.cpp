@@ -66,15 +66,9 @@ template<typename T> INLINE_FUNC T Lerp(T a, T b, T weight) {
 	return a + weight * (b - a);
 }
 
-
-
-//template<typename T> INLINE_FUNC T AddTanhD(T t, T resW, T resG) {
-//	return t + (T(1) - resW * resW) * resG;
+//template<typename T> INLINE_FUNC T AddMul(T x, T y, T z) {
+//	return x + y * z;
 //}
-
-template<typename T> INLINE_FUNC T AddMul(T x, T y, T z) {
-	return x + y * z;
-}
 
 template<typename T> INLINE_FUNC T AddTanh3(T x, T y, T z) {
 	return tanh(x + y + z);
@@ -149,20 +143,6 @@ int TS_Atan2(TensorRef* result, TensorRef* srcY, TensorRef* srcX)
 }
 
 template<typename T>
-INLINE_FUNC void Pow_Apply(TensorRef* result, TensorRef* src, float value)
-{
-	auto func = [value](T *r, T *s) { *r = pow(*s, (T)value); };
-	Apply2<T, T>(result, src, func);
-}
-
-int TS_Pow(TensorRef* result, TensorRef* src, float value)
-{
-	API_BEGIN()
-	SWITCH_TENSOR_TYPE_FLOAT(result->elementType, Pow_Apply, result, src, value)
-	API_END()
-}
-
-template<typename T>
 INLINE_FUNC void Tpow_Apply(TensorRef* result, float value, TensorRef* src)
 {
 	auto func = [value](T *r, T *s) { *r = pow((T)value, *s); };
@@ -189,37 +169,6 @@ int TS_Lerp(TensorRef* result, TensorRef* srcA, TensorRef* srcB, float weight)
 	SWITCH_TENSOR_TYPE_FLOAT(result->elementType, Lerp_Apply, result, srcA, srcB, weight)
 	API_END()
 }
-
-
-
-//template<typename T>
-//INLINE_FUNC void MulMulAdd_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ, TensorRef* srcW)
-//{
-//	auto func = [](T *r, T *x, T *y, T *z, T *w) { *r = MulMulAdd(*x, *y, *z, *w); };
-//	Apply5<T, T, T, T, T>(result, srcX, srcY, srcZ, srcW, func);
-//}
-//
-//int TS_MulMulAdd(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ, TensorRef* srcW)
-//{
-//	API_BEGIN()
-//		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, MulMulAdd_Apply, result, srcX, srcY, srcZ, srcW)
-//		API_END()
-//}
-
-
-//template<typename T>
-//INLINE_FUNC void AddTanh_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY)
-//{
-//	auto func = [](T *r, T *x, T *y) { *r = AddTanh(*x, *y); };
-//	Apply3<T, T, T>(result, srcX, srcY, func);
-//}
-//
-//int TS_AddTanh(TensorRef* result, TensorRef* srcX, TensorRef* srcY)
-//{
-//	API_BEGIN()
-//		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, AddTanh_Apply, result, srcX, srcY)
-//		API_END()
-//}
 
 
 template<typename T>
@@ -253,48 +202,18 @@ int TS_AddReluD(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* 
 
 
 //template<typename T>
-//INLINE_FUNC void ReluD_Apply(TensorRef* result, TensorRef* srcW, TensorRef* srcG)
+//INLINE_FUNC void AddMul_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
 //{
-//	auto func = [](T* r, T* y, T* x) { *r = relud(*y, *x); };
-//	Apply3<T, T, T>(result, srcW, srcG, func);
-//}
-//
-//int TS_ReluD(TensorRef* result, TensorRef* srcW, TensorRef* srcG)
-//{
-//	API_BEGIN()
-//		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, ReluD_Apply, result, srcW, srcG)
-//		API_END()
-//}
-
-
-//template<typename T>
-//INLINE_FUNC void AddTanhD_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
-//{
-//	auto func = [](T *r, T *x, T *y, T *z) { *r = AddTanhD(*x, *y, *z); };
+//	auto func = [](T *r, T *x, T *y, T *z) { *r = AddMul(*x, *y, *z); };
 //	Apply4<T, T, T, T>(result, srcX, srcY, srcZ, func);
 //}
 //
-//int TS_AddTanhD(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
+//int TS_AddMul(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
 //{
 //	API_BEGIN()
-//		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, AddTanhD_Apply, result, srcX, srcY, srcZ)
+//		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, AddMul_Apply, result, srcX, srcY, srcZ)
 //		API_END()
 //}
-
-
-template<typename T>
-INLINE_FUNC void AddMul_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
-{
-	auto func = [](T *r, T *x, T *y, T *z) { *r = AddMul(*x, *y, *z); };
-	Apply4<T, T, T, T>(result, srcX, srcY, srcZ, func);
-}
-
-int TS_AddMul(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
-{
-	API_BEGIN()
-		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, AddMul_Apply, result, srcX, srcY, srcZ)
-		API_END()
-}
 
 
 template<typename T>
@@ -357,10 +276,9 @@ int EXPORTNAME(TensorRef* result, TensorRef* lhs, float rhs)\
 	API_END()\
 }
 
-//DECLARE_T_S_ALL_CPU_TYPES(TS_Add, add_op)
+
 DECLARE_T_S_ALL_CPU_TYPES(TS_Sub, sub_op)
 DECLARE_T_S_ALL_CPU_TYPES(TS_Rsub, rsub_op)
-//DECLARE_T_S_ALL_CPU_TYPES(TS_Mul, mul_op)
 DECLARE_T_S_ALL_CPU_TYPES(TS_Div, div_op)
 DECLARE_T_S_ALL_CPU_TYPES(TS_Rdiv, rdiv_op)
 DECLARE_T_S_ALL_CPU_TYPES(TS_Mod, Mod_op)
@@ -388,7 +306,6 @@ int EXPORTNAME(TensorRef* result, TensorRef* lhs, TensorRef* rhs)\
 }
 
 DECLARE_T_T_ALL_CPU_TYPES(TS_CSub, sub_op)
-//DECLARE_T_T_ALL_CPU_TYPES(TS_CMul, mul_op)
 DECLARE_T_T_ALL_CPU_TYPES(TS_CDiv, div_op)
 DECLARE_T_T_ALL_CPU_TYPES(TS_CMod, Mod_op)
 

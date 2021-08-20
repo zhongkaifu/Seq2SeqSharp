@@ -29,17 +29,15 @@ OPS_API int TS_Cosh(TensorRef* result, TensorRef* src);
 
 
 OPS_API int TS_Atan2(TensorRef* result, TensorRef* srcY, TensorRef* srcX);
-OPS_API int TS_Pow(TensorRef* result, TensorRef* src, float value);
 OPS_API int TS_Tpow(TensorRef* result, float value, TensorRef* src);
 OPS_API int TS_Lerp(TensorRef* result, TensorRef* srcA, TensorRef* srcB, float weight);
 OPS_API int TS_Clamp(TensorRef* result, TensorRef* src, float min, float max);
 
 OPS_API int TS_AddTanh3(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ);
-//OPS_API int TS_AddTanhD(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ);
 OPS_API int TS_AddReluD(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ);
 
 
-OPS_API int TS_AddMul(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ);
+//OPS_API int TS_AddMul(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ);
 OPS_API int TS_AddMulV(TensorRef* result, TensorRef* srcX, TensorRef* srcY, float v);
 
 OPS_API int TS_MaskFill(TensorRef* result, TensorRef* t, TensorRef* mask, float defValue);
@@ -60,7 +58,6 @@ OPS_API int TS_neValue(TensorRef* result, TensorRef* lhs, float rhs);
 
 
 OPS_API int TS_CSub(TensorRef* result, TensorRef* lhs, TensorRef* rhs);
-//OPS_API int TS_CMul(TensorRef* result, TensorRef* lhs, TensorRef* rhs);
 OPS_API int TS_CDiv(TensorRef* result, TensorRef* lhs, TensorRef* rhs);
 OPS_API int TS_CMod(TensorRef* result, TensorRef* lhs, TensorRef* rhs);
 

@@ -12,45 +12,51 @@ namespace Seq2SeqSharp.Corpus
         public string SrcSnt;
         public string TgtSnt;
 
+        public long SrcGroupLenId = 0;
+        public long TgtGroupLenId = 0;
+
+
         public int SrcLength = 0;
         public int TgtLength = 0;
-        public RawSntPair(string s, string t)
+
+        private long maxSeqLength = 0;
+        public RawSntPair(string s, string t, long maxSeqLength)
         {
             SrcSnt = s;
             TgtSnt = t;
+            this.maxSeqLength = maxSeqLength;
 
             SrcLength = CountWhiteSpace(s);
             TgtLength = CountWhiteSpace(t);
 
+            SrcGroupLenId = CountGroupLens(s);
+            TgtGroupLenId = CountGroupLens(t);
         }
 
-        private static int CountWhiteSpace(string s)
+
+        private long CountGroupLens(string s)
+        {
+            long r = 0;
+            string[] items = s.Split('\t');
+
+            foreach (var item in items)
+            {
+                r = r * maxSeqLength;
+
+                int len = item.Split(' ').Length;
+                r += len;
+            }
+
+            return r;
+        }
+
+        private int CountWhiteSpace(string s)
         {
             string[] items = s.Split(' ');
 
             return items.Length;
 
-            //if (String.IsNullOrEmpty(s))
-            //{
-            //    return 0;
-            //}
 
-            //int cnt = 1;
-            //bool prevIsSpace = false;
-            //foreach (char ch in s)
-            //{
-            //    if (ch == ' ' && prevIsSpace == false)
-            //    {
-            //        cnt++;
-            //        prevIsSpace = true;
-            //    }
-            //    else
-            //    {
-            //        prevIsSpace = false;
-            //    }
-            //}
-
-            //return cnt;
         }
 
         public bool IsEmptyPair()

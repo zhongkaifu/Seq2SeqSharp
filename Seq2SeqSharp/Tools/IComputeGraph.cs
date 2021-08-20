@@ -55,10 +55,10 @@ namespace Seq2SeqSharp
         IWeightTensor Scatter(IWeightTensor source, IWeightTensor indices, int dim, bool runGradient = true, params long[] shape);
         IWeightTensor Sub(float v, IWeightTensor w1, bool runGradient = true);
 
-        IWeightTensor BuildSrcTgtMask(int srcPaddedLength, int tgtPaddedLength, List<int> tgtOriginalLengths, List<int> srcOriginalLengths = null);
-        IWeightTensor BuildPadSelfTriMask(int paddedLength, List<int> originalLengths);
+        IWeightTensor BuildSrcTgtMask(int srcPaddedLength, int tgtPaddedLength, float[] tgtOriginalLengths, float[] srcOriginalLengths);
+        IWeightTensor BuildPadSelfTriMask(int paddedLength, float[] originalLengths);
 
-        IWeightTensor BuildPadSelfMask(int paddedLength, List<int> originalLengths);
+        IWeightTensor BuildPadSelfMask(int paddedLength, float[] originalLengths);
 
         IWeightTensor LeftShiftTokens(List<List<int>> input, int lastTokenToPad);
 
@@ -66,5 +66,8 @@ namespace Seq2SeqSharp
 
         IWeightTensor Sum(IWeightTensor w, int dim, bool runGradient = true);
         IWeightTensor Log(IWeightTensor w);
+
+        IWeightTensor Rsqrt(IWeightTensor w);
+
     }
 }
