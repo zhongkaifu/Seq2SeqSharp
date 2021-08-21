@@ -102,7 +102,7 @@ namespace Seq2SeqSharp.Tools
         private readonly float m_regc = 1e-10f; // L2 regularization strength
         private int m_weightsUpdateCount = 0;
         private double m_avgCostPerWordInTotalInLastEpoch = 10000.0;
-        private double m_bestPrimaryScore = 0.0f;
+        private Dictionary<string, double> m_bestPrimaryScoreDict = new Dictionary<string, double>();
         private readonly int m_primaryTaskId = 0;
         private readonly object locker = new object();
         private SortedList<string, IMultiProcessorNetworkWrapper> m_name2network;
@@ -628,6 +628,16 @@ namespace Seq2SeqSharp.Tools
             List<string> hypSents = new List<string>();
 
 
+            double bestPrimaryScore = 0.0;
+            if (m_bestPrimaryScoreDict.ContainsKey(prefixName) == false)
+            {
+                m_bestPrimaryScoreDict.Add(prefixName, 0.0);
+            }
+            else
+            {
+                bestPrimaryScore = m_bestPrimaryScoreDict[prefixName];
+            }
+
             // Clear inner status of each metrics
             foreach (var pair in taskId2metrics)
             {
@@ -665,21 +675,22 @@ namespace Seq2SeqSharp.Tools
                     int taskId = pair.Key;
                     List<IMetric> metrics = pair.Value;
 
-                    sb.AppendLine($"Metrics result on task '{taskId}':");
+                    sb.AppendLine($"Metrics result on task '{taskId}' on data set '{prefixName}':");
                     foreach (IMetric metric in metrics)
                     {
                         sb.AppendLine($"{metric.Name} = {metric.GetScoreStr()}");
                     }
-
-                    if (metrics[0].GetPrimaryScore() > m_bestPrimaryScore && taskId == m_primaryTaskId) // The first metric in the primary task is the primary metric
+                
+                    if (metrics[0].GetPrimaryScore() > bestPrimaryScore && taskId == m_primaryTaskId) // The first metric in the primary task is the primary metric
                     {
-                        if (m_bestPrimaryScore > 0.0f)
+                        if (bestPrimaryScore > 0.0f)
                         {
-                            sb.AppendLine($"We got a better primary metric '{metrics[0].Name}' score '{metrics[0].GetPrimaryScore():F}' on the primary task '{taskId}'. The previous score is '{m_bestPrimaryScore:F}'");
+                            sb.AppendLine($"We got a better primary metric '{metrics[0].Name}' score '{metrics[0].GetPrimaryScore():F}' on the primary task '{taskId}' and data set '{prefixName}'. The previous score is '{bestPrimaryScore:F}'");
                         }
 
                         //We have a better primary score on valid set
-                        m_bestPrimaryScore = metrics[0].GetPrimaryScore();
+                        bestPrimaryScore = metrics[0].GetPrimaryScore();
+                        m_bestPrimaryScoreDict[prefixName] = bestPrimaryScore;
                         betterModel = true;
                     }
                 }
