@@ -47,12 +47,13 @@ namespace Seq2SeqConsole
                 Seq2Seq ss = null;
                 ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.Task);
                 ShuffleEnums shuffleType = (ShuffleEnums)Enum.Parse(typeof(ShuffleEnums), opts.ShuffleType);
+                TooLongSequence tooLongSequence = (TooLongSequence)Enum.Parse(typeof(TooLongSequence), opts.TooLongSequence);
 
                 if (mode == ModeEnums.Train)
                 {
                     // Load train corpus
                     Seq2SeqCorpus trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
-                        maxSrcSentLength: opts.MaxTrainSrcSentLength, maxTgtSentLength: opts.MaxTrainTgtSentLength, shuffleEnums: shuffleType);
+                        maxSrcSentLength: opts.MaxTrainSrcSentLength, maxTgtSentLength: opts.MaxTrainTgtSentLength, shuffleEnums: shuffleType, tooLongSequence: tooLongSequence);
 
                     // Load valid corpus
                     List<Seq2SeqCorpus> validCorpusList = new List<Seq2SeqCorpus>();
@@ -61,7 +62,7 @@ namespace Seq2SeqConsole
                         string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
                         foreach (var validCorpusPath in validCorpusPathList)
                         {
-                            validCorpusList.Add(new Seq2SeqCorpus(validCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSrcSentLength, opts.MaxTestTgtSentLength, shuffleEnums: shuffleType));
+                            validCorpusList.Add(new Seq2SeqCorpus(validCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSrcSentLength, opts.MaxTestTgtSentLength, shuffleEnums: shuffleType, tooLongSequence: tooLongSequence));
                         }
 
                     }
@@ -125,7 +126,7 @@ namespace Seq2SeqConsole
                     List<IMetric> metrics = CreateMetrics();
 
                     // Load valid corpus
-                    Seq2SeqCorpus validCorpus = new Seq2SeqCorpus(opts.ValidCorpusPaths, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSrcSentLength, opts.MaxTestTgtSentLength, shuffleEnums: shuffleType);
+                    Seq2SeqCorpus validCorpus = new Seq2SeqCorpus(opts.ValidCorpusPaths, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSrcSentLength, opts.MaxTestTgtSentLength, shuffleEnums: shuffleType, tooLongSequence: tooLongSequence);
 
                     ss = new Seq2Seq(opts);
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;

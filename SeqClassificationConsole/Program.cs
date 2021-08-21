@@ -60,12 +60,13 @@ namespace SeqClassificationConsole
                 SeqClassification ss = null;
                 ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.Task);
                 ShuffleEnums shuffleType = (ShuffleEnums)Enum.Parse(typeof(ShuffleEnums), opts.ShuffleType);
+                TooLongSequence tooLongSequence = (TooLongSequence)Enum.Parse(typeof(TooLongSequence), opts.TooLongSequence);
 
                 if (mode == ModeEnums.Train)
                 {
                     // Load train corpus
                     SeqClassificationMultiTasksCorpus trainCorpus = new SeqClassificationMultiTasksCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang,  batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
-                        maxSentLength: opts.MaxTrainSentLength, shuffleEnums: shuffleType);
+                        maxSentLength: opts.MaxTrainSentLength, shuffleEnums: shuffleType, tooLongSequence: tooLongSequence);
 
                     // Load valid corpus
                     List<SeqClassificationMultiTasksCorpus> validCorpusList = new List<SeqClassificationMultiTasksCorpus>();
@@ -74,7 +75,7 @@ namespace SeqClassificationConsole
                         string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
                         foreach (var validCorpusPath in validCorpusPathList)
                         {
-                            validCorpusList.Add(new SeqClassificationMultiTasksCorpus(validCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSentLength, shuffleEnums: shuffleType));
+                            validCorpusList.Add(new SeqClassificationMultiTasksCorpus(validCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSentLength, shuffleEnums: shuffleType, tooLongSequence: tooLongSequence));
                         }
 
                     }

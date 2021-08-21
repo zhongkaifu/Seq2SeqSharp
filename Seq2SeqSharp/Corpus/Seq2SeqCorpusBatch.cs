@@ -20,19 +20,48 @@ namespace Seq2SeqSharp.Corpus
         public int TgtLength = 0;
 
         private long maxSeqLength = 0;
-        public RawSntPair(string s, string t, long maxSeqLength)
+        public RawSntPair(string s, string t, long maxSrcSeqLength, long maxTgtSeqLength, bool truncateTooLongSeq)
         {
-            SrcSnt = s;
-            TgtSnt = t;
-            this.maxSeqLength = maxSeqLength;
+            this.maxSeqLength = Math.Max(maxSrcSeqLength, maxTgtSeqLength);
+
+            if (truncateTooLongSeq)
+            {
+                s = TruncateSeq(s, maxSrcSeqLength);
+                t = TruncateSeq(t, maxTgtSeqLength);
+            }
 
             SrcLength = CountWhiteSpace(s);
             TgtLength = CountWhiteSpace(t);
 
             SrcGroupLenId = CountGroupLens(s);
             TgtGroupLenId = CountGroupLens(t);
+
+
+            SrcSnt = s;
+            TgtSnt = t;
         }
 
+        public string TruncateSeq(string str, long maxSeqLength)
+        {
+            string[] items = str.Split('\t');
+            List<string> results = new List<string>();
+
+            foreach (var item in items)
+            {
+                string[] tokens = item.Split(' ');
+
+                if (tokens.Length <= maxSeqLength)
+                {
+                    results.Add(item);
+                }
+                else
+                {
+                    results.Add(String.Join(" ", tokens, 0, maxSeqLength));
+                }
+            }
+
+            return String.Join("\t", results);
+        }
 
         private long CountGroupLens(string s)
         {

@@ -11,6 +11,12 @@ using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.Tools
 {
+    public enum TooLongSequence
+    {
+        Ignore,
+        Truncation
+    }
+
     public class ParallelCorpus<T> : IEnumerable<T> where T : ISntPairBatch, new()
     {
         internal int m_maxSrcSentLength = 32;
@@ -28,6 +34,7 @@ namespace Seq2SeqSharp.Tools
 
         public string CorpusName;
 
+        private TooLongSequence m_tooLongSequence = TooLongSequence.Ignore;
 
         private void Shuffle(List<RawSntPair> rawSntPairs)
         {
@@ -155,7 +162,7 @@ namespace Seq2SeqSharp.Tools
                         break;
                     }
 
-                    RawSntPair rawSntPair = new RawSntPair(srSrc.ReadLine(), srTgt.ReadLine(), Math.Max(m_maxSrcSentLength, m_maxTgtSentLength));
+                    RawSntPair rawSntPair = new RawSntPair(srSrc.ReadLine(), srTgt.ReadLine(), m_maxSrcSentLength, m_maxTgtSentLength, m_tooLongSequence == TooLongSequence.Truncation);
                     if (rawSntPair.IsEmptyPair())
                     {
                         break;
@@ -392,13 +399,15 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSrcSentLength = 32, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random)
+        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSrcSentLength = 32, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random, TooLongSequence tooLongSequence = TooLongSequence.Ignore)
         {
-            Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSrcSentLength = '{maxSrcSentLength}',  MaxTgtSentLength = '{maxTgtSentLength}', aggregateSrcLengthForShuffle = '{shuffleEnums}'");
+            Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSrcSentLength = '{maxSrcSentLength}',  MaxTgtSentLength = '{maxTgtSentLength}', aggregateSrcLengthForShuffle = '{shuffleEnums}', TooLongSequence = '{tooLongSequence}'");
             m_batchSize = batchSize;
             m_blockSize = shuffleBlockSize;
             m_maxSrcSentLength = maxSrcSentLength;
             m_maxTgtSentLength = maxTgtSentLength;
+
+            m_tooLongSequence = tooLongSequence;
 
             m_shuffleEnums = shuffleEnums;
             CorpusName = corpusFilePath;
