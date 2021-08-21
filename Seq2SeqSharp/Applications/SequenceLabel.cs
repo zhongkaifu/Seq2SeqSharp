@@ -90,7 +90,7 @@ namespace Seq2SeqSharp
 
             Dictionary<string, IEnumerable<ISntPairBatch>> validCorpusDict = new Dictionary<string, IEnumerable<ISntPairBatch>>();
             string primaryValidCorpusName = "";
-            if (validCorpusList != null)
+            if (validCorpusList != null && validCorpusList.Count > 0)
             {
                 primaryValidCorpusName = validCorpusList[0].CorpusName;
                 foreach (var item in validCorpusList)
