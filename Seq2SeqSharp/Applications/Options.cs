@@ -112,7 +112,7 @@ namespace Seq2SeqSharp.Applications
         public int ValBatchSize = 1;
 
         [Arg("Valid corpus folder path", "ValidCorpusPath")]
-        public string ValidCorpusPath = null;
+        public string ValidCorpusPaths = null;
 
         [Arg("The number of steps for warming up", "WarmUpSteps")]
         public int WarmUpSteps = 8000;

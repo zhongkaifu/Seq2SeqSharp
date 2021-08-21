@@ -61,18 +61,29 @@ namespace Seq2SeqSharp.Applications
         }
 
 
-        public void Train(int maxTrainingEpoch, SeqClassificationMultiTasksCorpus trainCorpus, SeqClassificationMultiTasksCorpus validCorpus, ILearningRate learningRate, IMetric metric, IOptimizer optimizer)
+        public void Train(int maxTrainingEpoch, SeqClassificationMultiTasksCorpus trainCorpus, List<SeqClassificationMultiTasksCorpus> validCorpusList, ILearningRate learningRate, IMetric metric, IOptimizer optimizer)
         {
             Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>();
             taskId2metrics.Add(0, new List<IMetric>());
             taskId2metrics[0].Add(metric);
+
+            Dictionary<string, IEnumerable<ISntPairBatch>> validCorpusDict = new Dictionary<string, IEnumerable<ISntPairBatch>>();
+            string primaryValidCorpusName = "";
+            if (validCorpusList != null)
+            {
+                primaryValidCorpusName = validCorpusList[0].CorpusName;
+                foreach (var item in validCorpusList)
+                {
+                    validCorpusDict.Add(item.CorpusName, item);
+                }
+            }
 
             Logger.WriteLine("Start to train...");
             for (int i = 0; i < maxTrainingEpoch; i++)
             {
                 // Train one epoch over given devices. Forward part is implemented in RunForwardOnSingleDevice function in below, 
                 // backward, weights updates and other parts are implemented in the framework. You can see them in BaseSeq2SeqFramework.cs
-                TrainOneEpoch(i, trainCorpus, validCorpus, learningRate, optimizer, taskId2metrics, m_modelMetaData, RunForwardOnSingleDevice);
+                TrainOneEpoch(i, trainCorpus, validCorpusDict, primaryValidCorpusName, learningRate, optimizer, taskId2metrics, m_modelMetaData, RunForwardOnSingleDevice);
             }
         }
 

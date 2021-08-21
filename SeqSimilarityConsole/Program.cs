@@ -66,8 +66,17 @@ namespace SeqSimilarityConsole
                     // Load train corpus
                     SeqClassificationMultiTasksCorpus trainCorpus = new SeqClassificationMultiTasksCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
                         maxSentLength: opts.MaxTrainSentLength, shuffleEnums: shuffleType);
+
                     // Load valid corpus
-                    SeqClassificationMultiTasksCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new SeqClassificationMultiTasksCorpus(opts.ValidCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSentLength, shuffleEnums: shuffleType);
+                    List<SeqClassificationMultiTasksCorpus> validCorpusList = new List<SeqClassificationMultiTasksCorpus>();
+                    if (String.IsNullOrEmpty(opts.ValidCorpusPaths) == false)
+                    {
+                        string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
+                        foreach (var validCorpusPath in validCorpusPathList)
+                        {
+                            validCorpusList.Add(new SeqClassificationMultiTasksCorpus(opts.ValidCorpusPaths, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSentLength, shuffleEnums: shuffleType));
+                        }
+                    }
 
                     // Create learning rate
                     ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);
@@ -131,7 +140,7 @@ namespace SeqSimilarityConsole
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;
 
                     // Kick off training
-                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, metric: metric);
+                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList, learningRate: learningRate, optimizer: optimizer, metric: metric);
                 }
                 //else if (mode == ModeEnums.Valid)
                 //{

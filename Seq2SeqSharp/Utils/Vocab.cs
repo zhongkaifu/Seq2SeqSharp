@@ -1,4 +1,5 @@
 ﻿using AdvUtils;
+using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Concurrent;

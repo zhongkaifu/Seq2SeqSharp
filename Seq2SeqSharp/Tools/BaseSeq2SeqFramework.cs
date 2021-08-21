@@ -205,7 +205,7 @@ namespace Seq2SeqSharp.Tools
             return modelMetaData;
         }
 
-        internal void TrainOneEpoch(int ep, IEnumerable<ISntPairBatch> trainCorpus, IEnumerable<ISntPairBatch> validCorpus, ILearningRate learningRate, IOptimizer solver, Dictionary<int, List<IMetric>> taskId2metrics, IModel modelMetaData,
+        internal void TrainOneEpoch(int ep, IEnumerable<ISntPairBatch> trainCorpus, Dictionary<string, IEnumerable<ISntPairBatch>> validCorpusDict, string primaryValidCorpusId, ILearningRate learningRate, IOptimizer solver, Dictionary<int, List<IMetric>> taskId2metrics, IModel modelMetaData,
             Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice)
         {
             int processedLineInTotal = 0;
@@ -347,7 +347,7 @@ namespace Seq2SeqSharp.Tools
                     TimeSpan ts = DateTime.Now - m_lastCheckPointDateTime;
                     if (ts.TotalHours > m_validIntervalHours)
                     {
-                        CreateCheckPoint(validCorpus, taskId2metrics, modelMetaData, ForwardOnSingleDevice, avgCostPerWordInTotal);
+                        CreateCheckPoint(validCorpusDict, primaryValidCorpusId, taskId2metrics, modelMetaData, ForwardOnSingleDevice, avgCostPerWordInTotal);
                         m_lastCheckPointDateTime = DateTime.Now;
                     }
 
@@ -422,16 +422,22 @@ namespace Seq2SeqSharp.Tools
             return (cost, srcWordCnts, tgtWordCnts, processedLine);
         }
 
-        private void CreateCheckPoint(IEnumerable<ISntPairBatch> validCorpus, Dictionary<int, List<IMetric>> taskId2metrics, IModel modelMetaData, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice, double avgCostPerWordInTotal)
+        private void CreateCheckPoint(Dictionary<string, IEnumerable<ISntPairBatch>> validCorpusDict, string primaryValidCorpusId, Dictionary<int, List<IMetric>> taskId2metrics, IModel modelMetaData, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice, double avgCostPerWordInTotal)
         {
-            if (validCorpus != null)
+            if (validCorpusDict != null && validCorpusDict.Count > 0)
             {
                 ReleaseGradientOnAllDevices();
 
                 // The valid corpus is provided, so evaluate the model.
-                if (RunValid(validCorpus, ForwardOnSingleDevice, taskId2metrics, outputToFile: true) == true || File.Exists(m_modelFilePath) == false)
+
+                foreach (var pair in validCorpusDict)
                 {
-                    SaveModel(modelMetaData);
+                    var betterResult = RunValid(pair.Value, ForwardOnSingleDevice, taskId2metrics, outputToFile: true, prefixName: pair.Key);
+
+                    if ((pair.Key == primaryValidCorpusId && betterResult == true) || File.Exists(m_modelFilePath) == false)
+                    {
+                        SaveModel(modelMetaData);
+                    }
                 }
             }
             else if (m_avgCostPerWordInTotalInLastEpoch > avgCostPerWordInTotal || File.Exists(m_modelFilePath) == false)
@@ -615,7 +621,7 @@ namespace Seq2SeqSharp.Tools
         /// <param name="metrics">A set of metrics. The first one is the primary metric</param>
         /// <param name="outputToFile">It indicates if valid corpus and results should be dumped to files</param>
         /// <returns>true if we get a better result on primary metric, otherwise, false</returns>
-        internal bool RunValid(IEnumerable<ISntPairBatch> validCorpus, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> RunNetwork, Dictionary<int, List<IMetric>> taskId2metrics,  bool outputToFile = false)
+        internal bool RunValid(IEnumerable<ISntPairBatch> validCorpus, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> RunNetwork, Dictionary<int, List<IMetric>> taskId2metrics,  bool outputToFile = false, string prefixName = "valid")
         {
             List<string> srcSents = new List<string>();
             List<string> refSents = new List<string>();
@@ -682,7 +688,7 @@ namespace Seq2SeqSharp.Tools
                 {
                     EvaluationWatcher(this, new EvaluationEventArg()
                     {
-                        Title = $"Evaluation result for model '{m_modelFilePath}'",
+                        Title = $"Evaluation result for model '{m_modelFilePath}' on test set '{prefixName}'",
                         Message = sb.ToString(),
                         Color = ConsoleColor.Green
                     }); ;
@@ -691,9 +697,9 @@ namespace Seq2SeqSharp.Tools
 
             if (outputToFile)
             {
-                File.WriteAllLines("valid_src.txt", srcSents);
-                File.WriteAllLines("valid_ref.txt", refSents);
-                File.WriteAllLines("valid_hyp.txt", hypSents);
+                File.WriteAllLines($"{prefixName}_src.txt", srcSents);
+                File.WriteAllLines($"{prefixName}_ref.txt", refSents);
+                File.WriteAllLines($"{prefixName}_hyp.txt", hypSents);
             }
 
             return betterModel;

@@ -1,6 +1,7 @@
 ﻿using AdvUtils;
 using Newtonsoft.Json;
 using Seq2SeqSharp;
+using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Metrics;
 using Seq2SeqSharp.Optimizer;
 using Seq2SeqSharp.Tools;
@@ -44,7 +45,15 @@ namespace SeqLabelConsole
                 SeqLabelingCorpus trainCorpus = new SeqLabelingCorpus(opts.TrainCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxSentLength);
 
                 // Load valid corpus
-                SeqLabelingCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new SeqLabelingCorpus(opts.ValidCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxSentLength);
+                List<SeqLabelingCorpus> validCorpusList = new List<SeqLabelingCorpus>();
+                if (String.IsNullOrEmpty(opts.ValidCorpusPaths) == false)
+                {
+                    string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
+                    foreach (var validCorpusPath in validCorpusPathList)
+                    {
+                        validCorpusList.Add(new SeqLabelingCorpus(opts.ValidCorpusPaths, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxSentLength));
+                    }
+                }
 
                 // Load or build vocabulary
                 Vocab srcVocab = null;
@@ -95,16 +104,16 @@ namespace SeqLabelConsole
                 sl.StatusUpdateWatcher += Misc.Ss_StatusUpdateWatcher;
 
                 // Kick off training
-                sl.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, metrics: metrics);
+                sl.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList, learningRate: learningRate, optimizer: optimizer, metrics: metrics);
 
 
             }
             else if (mode == ModeEnums.Valid)
             {
-                Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPath}'");
+                Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPaths}'");
 
                 // Load valid corpus
-                SeqLabelingCorpus validCorpus = new SeqLabelingCorpus(opts.ValidCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
+                SeqLabelingCorpus validCorpus = new SeqLabelingCorpus(opts.ValidCorpusPaths, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
                 (Vocab srcVocab, Vocab tgtVocab) = validCorpus.BuildVocabs();
 
                 // Create metrics
