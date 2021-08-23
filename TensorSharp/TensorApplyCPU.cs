@@ -641,6 +641,30 @@ namespace TensorSharp
 
 
 
+		unsafe static public void BuildTriMask(Tensor result, int rows, int cols, float value, float maskedValue)
+		{
+			float* ptResult = (float*)CpuNativeHelpers.GetBufferStart(result);
+
+			for (int j = 0; j < rows; j++)
+			{
+				float* resultRow = ptResult + j * cols;
+				for (int id = 0; id < cols; id++)
+				{
+
+					if (id <= j)
+					{
+						resultRow[id] = value;
+					}
+					else
+					{
+						resultRow[id] = maskedValue;
+					}
+				}
+			}
+		}
+
+
+
 		unsafe static public void BuildSelfTriMask(Tensor result, Tensor originalLengths, int rows, int cols, int paddedSeqLen, float value, float maskedValue)
 		{
 			float* ptResult = (float*)CpuNativeHelpers.GetBufferStart(result);

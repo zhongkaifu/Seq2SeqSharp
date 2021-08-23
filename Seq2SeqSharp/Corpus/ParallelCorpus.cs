@@ -56,7 +56,20 @@ namespace Seq2SeqSharp.Tools
             Dictionary<long, List<RawSntPair>> dict = new Dictionary<long, List<RawSntPair>>(); //<source sentence length, sentence pair set>
             foreach (RawSntPair item in rawSntPairs)
             {
-                long length = m_shuffleEnums == ShuffleEnums.NoPaddingInSrc ? item.SrcGroupLenId : item.TgtGroupLenId;
+                long length = 0;
+
+                if (m_shuffleEnums == ShuffleEnums.NoPaddingInSrc)
+                {
+                    length = item.SrcGroupLenId;
+                }
+                else if (m_shuffleEnums == ShuffleEnums.NoPadding)
+                {
+                    length = item.GroupLenId;
+                }
+                else
+                {
+                    length = item.TgtGroupLenId;
+                }
 
                 if (dict.ContainsKey(length) == false)
                 {
@@ -355,6 +368,7 @@ namespace Seq2SeqSharp.Tools
 
                     if ((lastTgtSntLen[0] > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInTgt && SameSntLen(sntPair.TgtTokenGroups, lastTgtSntLen) == false) ||
                         (lastSrcSntLen[0] > 0 && m_shuffleEnums == ShuffleEnums.NoPaddingInSrc && SameSntLen(sntPair.SrcTokenGroups, lastSrcSntLen) == false) ||
+                        (lastSrcSntLen[0] > 0 && lastTgtSntLen[0] > 0 && m_shuffleEnums == ShuffleEnums.NoPadding && (SameSntLen(sntPair.TgtTokenGroups, lastTgtSntLen) == false || SameSntLen(sntPair.SrcTokenGroups, lastSrcSntLen) == false)) ||
                         outputs.Count > maxOutputsSize)
                     {
                         // InnerShuffle(outputs);

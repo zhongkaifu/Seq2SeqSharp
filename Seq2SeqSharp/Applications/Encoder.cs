@@ -101,9 +101,9 @@ namespace Seq2SeqSharp.Applications
         static private IWeightTensor InnerRunner(IComputeGraph computeGraph, List<List<string>> srcSnts, float[] originalSrcLengths, ShuffleEnums shuffleType, IEncoder encoder, IModel modelMetaData,
            IWeightTensor srcEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, IWeightTensor contextEmbeddings = null, bool applyContextEmbeddingsToEntireSequence = true)
         {
-
+            int batchSize = srcSnts.Count;
             int srcSeqPaddedLen = srcSnts[0].Count;
-            IWeightTensor srcSelfMask = shuffleType == ShuffleEnums.NoPaddingInSrc ? null : computeGraph.BuildPadSelfMask(srcSeqPaddedLen, originalSrcLengths); // The length of source sentences are same in a single mini-batch, so we don't have source mask.
+            IWeightTensor srcSelfMask = (shuffleType == ShuffleEnums.NoPaddingInSrc || shuffleType == ShuffleEnums.NoPadding || batchSize == 1) ? null : computeGraph.BuildPadSelfMask(srcSeqPaddedLen, originalSrcLengths); // The length of source sentences are same in a single mini-batch, so we don't have source mask.
 
             // Encoding input source sentences
             var srcTokensList = modelMetaData.SrcVocab.GetWordIndex(srcSnts);

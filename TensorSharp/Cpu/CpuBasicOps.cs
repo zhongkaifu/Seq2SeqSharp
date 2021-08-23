@@ -382,6 +382,23 @@ namespace TensorSharp.Cpu
         }
 
 
+        [RegisterOpStorageType("buildtrimask", typeof(CpuStorage))]
+        public Tensor BuildTriMask(Tensor result, float value, float maskedValue)
+        {
+            int ndim = result.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(result.Sizes, result.Strides);
+            long cols = result.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+            TensorApplyCPU.BuildTriMask(result, (int)rows, (int)cols, value, maskedValue);
+            return result;
+        }
 
 
         private readonly MethodInfo addmulv_func = NativeWrapper.GetMethod("TS_AddMulV");

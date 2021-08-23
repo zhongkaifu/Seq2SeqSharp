@@ -293,12 +293,9 @@ namespace Seq2SeqSharp.Tools
 
                                 if (isOutOfMemException)
                                 {
-                                    batchSplitFactor *= 2;
-                                    Logger.WriteLine($"Got an exception ('{oomMessage}'), so we increase batch split factor to {batchSplitFactor}, and retry it.");
-
-                                    if (batchSplitFactor >= sntPairBatchs[0].BatchSize)
+                                    batchSplitFactor = TryToSplitBatchFactor(sntPairBatchs, batchSplitFactor, oomMessage);
+                                    if (batchSplitFactor < 0)
                                     {
-                                        Logger.WriteLine($"Batch split factor is larger than batch size, so ignore current mini-batch.");
                                         break;
                                     }
                                 }
@@ -322,12 +319,9 @@ namespace Seq2SeqSharp.Tools
                         }
                         catch (OutOfMemoryException err)
                         {
-                            batchSplitFactor *= 2;
-                            Logger.WriteLine($"Got an exception ('{err.Message}'), so we increase batch split factor to {batchSplitFactor}, and retry it.");
-
-                            if (batchSplitFactor >= sntPairBatchs[0].BatchSize)
+                            batchSplitFactor = TryToSplitBatchFactor(sntPairBatchs, batchSplitFactor, err.Message);
+                            if (batchSplitFactor < 0)
                             {
-                                Logger.WriteLine($"Batch split factor is larger than batch size, so ignore current mini-batch.");
                                 break;
                             }
                         }
@@ -357,6 +351,39 @@ namespace Seq2SeqSharp.Tools
 
             Logger.WriteLine(Logger.Level.info, ConsoleColor.Green, $"Epoch '{ep}' took '{DateTime.Now - startDateTime}' time to finish. AvgCost = {avgCostPerWordInTotal:F6}, AvgCostInLastEpoch = {m_avgCostPerWordInTotalInLastEpoch:F6}");
             m_avgCostPerWordInTotalInLastEpoch = avgCostPerWordInTotal;
+        }
+
+
+
+        private int TryToSplitBatchFactor(List<ISntPairBatch> sntPairBatchs, int batchSplitFactor, string message)
+        {
+            int maxBatchSize = 0;
+            List<string> batchSizeList = new List<string>();
+            List<string> srcTokenSizeList = new List<string>();
+            List<string> tgtTokenSizeList = new List<string>();
+
+            foreach (var batch in sntPairBatchs)
+            {
+                batchSizeList.Add(batch.BatchSize.ToString());
+                srcTokenSizeList.Add(batch.SrcTokenCount.ToString());
+                tgtTokenSizeList.Add(batch.TgtTokenCount.ToString());
+
+                if (maxBatchSize < batch.BatchSize)
+                {
+                    maxBatchSize = batch.BatchSize;
+                }
+            }
+
+            batchSplitFactor *= 2;
+            Logger.WriteLine($"Got an exception ('{message}'), so retry it with batch split factor '{batchSplitFactor}'. Batch size: '{String.Join(" ", batchSizeList)}', Src token size: '{String.Join(" ", srcTokenSizeList)}', Tgt token size: '{String.Join(" ", tgtTokenSizeList)}'");
+
+            if (batchSplitFactor >= maxBatchSize)
+            {
+                Logger.WriteLine($"Batch split factor is larger than batch size, so ignore current mini-batch.");
+                batchSplitFactor = -1;
+            }
+
+            return batchSplitFactor;
         }
 
         private (float, int, int, int) RunNetwork(Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice, List<ISntPairBatch> sntPairBatchs, int batchSplitFactor)

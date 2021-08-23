@@ -14,7 +14,7 @@ namespace Seq2SeqSharp.Corpus
 
         public long SrcGroupLenId = 0;
         public long TgtGroupLenId = 0;
-
+        public long GroupLenId = 0;
 
         public int SrcLength = 0;
         public int TgtLength = 0;
@@ -33,9 +33,9 @@ namespace Seq2SeqSharp.Corpus
             SrcLength = CountWhiteSpace(s);
             TgtLength = CountWhiteSpace(t);
 
-            SrcGroupLenId = CountGroupLens(s);
-            TgtGroupLenId = CountGroupLens(t);
-
+            SrcGroupLenId = GenerateGroupLenId(s);
+            TgtGroupLenId = GenerateGroupLenId(t);
+            GroupLenId = GenerateGroupLenId(s + "\t" + t);
 
             SrcSnt = s;
             TgtSnt = t;
@@ -63,7 +63,7 @@ namespace Seq2SeqSharp.Corpus
             return String.Join("\t", results);
         }
 
-        private long CountGroupLens(string s)
+        private long GenerateGroupLenId(string s)
         {
             long r = 0;
             string[] items = s.Split('\t');

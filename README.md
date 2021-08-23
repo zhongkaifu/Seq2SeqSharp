@@ -44,6 +44,7 @@ Seq2SeqConsole                | Used for sequence-to-sequence tasks, such as mac
 SeqClassificationConsole      | Used for sequence classification tasks, such as intention detection. It supports multi-tasks, which means a single model can be trained or tested by multi-classification tasks  
 Seq2SeqClassificationConsole  | It's a multi-task based tool. The first task is for sequence-to-sequence, and the second task is for sequence classification. The model is jointly trained by these two tasks. Its model can be also test on Seq2SeqConsole and SeqClassificationConsole  
 SeqLabelConsole               | Used for sequence labeling tasks, such as named entity recongizer, postag and other  
+SeqSimilarity                 | Used for similarity calculation between two sequences. It supports to both discrete similarity (binary-classifier) and continuous similarity (consine distance)  
 
 ## Seq2SeqConsole for sequence-to-sequence task  
 Here is the graph that what the model looks like:  
@@ -296,6 +297,10 @@ author       | S_NOR
 of           | S_NOR  
 Seq2SeqSharp | S_SFT  
 .            | S_NOR  
+
+## SeqSimilarityConsole for sequences similarity calculation  
+Each line in data set contains two sequences and the tool can calculate their similairy. These two sequences are split by tab character.  
+
 
 # Release Package  
 You can download the release package from (here)[https://github.com/zhongkaifu/Seq2SeqSharp/releases/tag/20210125] . The release package includes Seq2SeqSharp binary files, model files and test files. For models, the release package includes many different models trained by Seq2SeqSharp, such as machine translation models between English and Chinese, Japanese, German, question-answer model for medical domain in Chinese and others. These models were trained using Transformer layers. The training config files are also included in the package. Test input file contains one sentence per line, and the corresponding reference file has one sentence per line. All sentences were already encoded to subwords by SentencePiece, so the package also includes the model and vocabulary of SentencePiece.  

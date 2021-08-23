@@ -1701,7 +1701,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightTensor BuildPadSelfTriMask(int paddedLength, float[] originalLengths)
+        public IWeightTensor BuildSelfTriMask(int paddedLength, float[] originalLengths)
         {
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { originalLengths.Length, paddedLength, paddedLength }, m_deviceId, name: $"SelfTriMask_{m_deviceId}", graphToBind: this);
             using (Tensor originalLengthsTensor = new Tensor(res.Allocator, DType.Float32, originalLengths.Length))
@@ -1722,6 +1722,22 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+        public IWeightTensor BuildTriMask(int paddedLength, int batchSize)
+        {
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { paddedLength, paddedLength }, m_deviceId, name: $"SelfTriMask2_{m_deviceId}", graphToBind: this);
+            Ops.BuildTriMask(res.TWeight, 0.0f, -99999999.0f);
+
+            if (m_needsBackprop)
+            {
+                void backward()
+                {
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
 
 
         public IWeightTensor BuildSrcTgtMask(int srcPaddedLength, int tgtPaddedLength, float[] tgtOriginalLengths, float[] srcOriginalLengths)
