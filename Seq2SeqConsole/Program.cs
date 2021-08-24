@@ -38,7 +38,7 @@ namespace Seq2SeqConsole
                 if (string.IsNullOrEmpty(opts.ConfigFilePath) == false)
                 {
                     Console.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
-                    opts = JsonConvert.DeserializeObject<Seq2SeqOptions>(File.ReadAllText(opts.ConfigFilePath));
+                    opts = JsonConvert.DeserializeObject<Seq2SeqOptions>(File.ReadAllText(opts.ConfigFilePath));                
                 }
 
                 Logger.LogFile = $"{nameof(Seq2SeqConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log";
