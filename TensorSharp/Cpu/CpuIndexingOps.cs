@@ -11,11 +11,6 @@ namespace TensorSharp.Cpu
         {
         }
 
-    //    private readonly MethodInfo gather_func = NativeWrapper.GetMethod("TS_Gather");
-    //    private readonly MethodInfo scatter_func = NativeWrapper.GetMethod("TS_Scatter");
-        private readonly MethodInfo scatterFill_func = NativeWrapper.GetMethod("TS_ScatterFill");
-
-
         [RegisterOpStorageType("gather", typeof(CpuStorage))]
         public Tensor Gather(Tensor result, Tensor src, int dim, Tensor indices)
         {
@@ -45,9 +40,6 @@ namespace TensorSharp.Cpu
             }
 
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, indices.Allocator, src.ElementType, false, indices.Sizes);
-
-            //    NativeWrapper.InvokeTypeMatch(gather_func, writeTarget, src, dim, indices);
-
 
             TensorApplyCPU.Gather(writeTarget, src, dim, indices);
 
@@ -89,9 +81,6 @@ namespace TensorSharp.Cpu
 
             Tensor writeTarget = result;
 
-            //    NativeWrapper.InvokeTypeMatch(scatter_func, writeTarget, src, dim, indices);
-
-
             TensorApplyCPU.Scatter(writeTarget, src, dim, indices);
 
 
@@ -123,7 +112,7 @@ namespace TensorSharp.Cpu
 
             Tensor writeTarget = result;
 
-            NativeWrapper.InvokeTypeMatch(scatterFill_func, writeTarget, value, dim, indices);
+            TensorApplyCPU.ScatterFill(writeTarget, value, dim, indices);         
             return writeTarget;
         }
     }

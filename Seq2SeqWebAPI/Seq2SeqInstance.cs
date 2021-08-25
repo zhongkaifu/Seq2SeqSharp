@@ -10,7 +10,6 @@ namespace Seq2SeqWebAPI
     public static class Seq2SeqInstance
     {
         static private object locker = new object();
-        static private string m_modelFilePath;
         static private Seq2Seq m_seq2seq;
         static public void Initialization(string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, string processorType)
         {

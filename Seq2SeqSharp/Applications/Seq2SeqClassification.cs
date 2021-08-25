@@ -298,37 +298,25 @@ namespace Seq2SeqSharp.Applications
                 }
                 else
                 {
-                    List<List<List<int>>> beam2batch2tgtTokens = new List<List<List<int>>>(); // (beam_search_size, batch_size, tgt_token_size)
-                    List<List<List<Alignment>>> beam2batch2alignment = null; // (beam_search_size, batch_size, tgt_token_size)
-
-                    beam2batch2tgtTokens.Add(tgtTokensList);
+                    List<List<BeamSearchStatus>> beam2batchStatus = Decoder.InitBeamSearchStatusListList(batchSize, tgtTokensList);
                     for (int i = 0; i < m_options.MaxTestTgtSentLength; i++)
                     {
-                        List<List<BeamSearchStatus>> batch2beam2seq = new List<List<BeamSearchStatus>>(); //(batch_size, beam_search_size)
-                        for (int j = 0; j < batchSize; j++)
-                        {
-                            batch2beam2seq.Add(new List<BeamSearchStatus>());
-                        }
-
+                        List<List<BeamSearchStatus>> batch2beam2seq = null; //(batch_size, beam_search_size)
                         try
                         {
-                            foreach (var batch2tgtTokens in beam2batch2tgtTokens)
+                            foreach (var batchStatus in beam2batchStatus)
                             {
+                                var batch2tgtTokens = Decoder.ExtractBatchTokens(batchStatus);
                                 using var g = computeGraph.CreateSubGraph($"TransformerDecoder_Step_{i}");
                                 (var cost2, var bssSeqList) = Decoder.DecodeTransformer(batch2tgtTokens, g, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding,
                                                                                 originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, isTraining, beamSearchSize: m_options.BeamSearchSize,
-                                                                                outputAlignmentSrcPos: m_options.OutputAlignment, outputSentScore: m_options.BeamSearchSize > 1);
+                                                                                outputSentScore: m_options.BeamSearchSize > 1, previousBeamSearchResults: batchStatus);
 
-                                for (int j = 0; j < m_options.BeamSearchSize; j++)
-                                {
-                                    for (int k = 0; k < batchSize; k++)
-                                    {
-                                        batch2beam2seq[k].Add(bssSeqList[j][k]);
-                                    }
-                                }
+                                bssSeqList = Decoder.SwapBeamAndBatch(bssSeqList);
+                                batch2beam2seq = Decoder.MergeTwoBeamSearchStatus(batch2beam2seq, bssSeqList);
                             }
                         }
-                        catch (OutOfMemoryException err)
+                        catch (OutOfMemoryException)
                         {
                             Logger.WriteLine(Logger.Level.warn, $"We have out of memory while generating '{i}th' tokens, so terminate decoding for current sequences.");
                             break;
@@ -343,38 +331,16 @@ namespace Seq2SeqSharp.Applications
                             }
                         }
 
-                        beam2batch2tgtTokens.Clear();
-                        beam2batch2alignment = new List<List<List<Alignment>>>();
-                        for (int k = 0; k < m_options.BeamSearchSize; k++)
-                        {
-                            beam2batch2tgtTokens.Add(new List<List<int>>());
-                            beam2batch2alignment.Add(new List<List<Alignment>>());
-                        }
 
-                        // Convert shape from (batch, beam, seq) to (beam, batch, seq), and check if all output sentences are ended. If so, we will stop decoding.
-                        bool allSntsEnd = true;
-                        for (int j = 0; j < batchSize; j++)
-                        {
-                            for (int k = 0; k < m_options.BeamSearchSize; k++)
-                            {
-                                beam2batch2tgtTokens[k].Add(batch2beam2seq[j][k].OutputIds);
-                                beam2batch2alignment[k].Add(batch2beam2seq[j][k].AlignmentToSrc);
-
-                                if (batch2beam2seq[j][k].OutputIds[^1] != (int)SENTTAGS.END)
-                                {
-                                    allSntsEnd = false;
-                                }
-                            }
-                        }
-                        if (allSntsEnd)
+                        beam2batchStatus = Decoder.SwapBeamAndBatch(batch2beam2seq);
+                        if (Decoder.AreAllSentsCompleted(beam2batchStatus))
                         {
                             break;
                         }
                     }
 
                     nr.Cost = 0.0f;
-                    nr.Output = m_modelMetaData.TgtVocab.ConvertIdsToString(beam2batch2tgtTokens);
-                    nr.Alignment = beam2batch2alignment;
+                    nr.Output = m_modelMetaData.TgtVocab.ExtractTokens(beam2batchStatus);
                 }
             }
 

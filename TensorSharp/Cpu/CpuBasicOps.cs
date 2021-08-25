@@ -192,9 +192,14 @@ namespace TensorSharp.Cpu
         [RegisterOpStorageType("exp", typeof(CpuStorage))]
         public Tensor Exp(Tensor result, Tensor src) { return NativeWrapper.InvokeNullableResultElementwise(exp_func, result, src); }
 
-        private readonly MethodInfo log_func = NativeWrapper.GetMethod("TS_Log");
         [RegisterOpStorageType("log", typeof(CpuStorage))]
-        public Tensor Log(Tensor result, Tensor src) { return NativeWrapper.InvokeNullableResultElementwise(log_func, result, src); }
+        public Tensor Log(Tensor result, Tensor src) 
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
+            TensorApplyCPU.Log(writeTarget, src);
+
+            return writeTarget;
+        }
 
         private readonly MethodInfo log1p_func = NativeWrapper.GetMethod("TS_Log1p");
         [RegisterOpStorageType("log1p", typeof(CpuStorage))]

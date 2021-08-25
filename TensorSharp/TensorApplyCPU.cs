@@ -202,7 +202,7 @@ namespace TensorSharp
 				for (int i = 0; i < iSize; ++i)
 				{
 					long idx = (long)*(iData + i * iStride);
-					if (idx < 0 || idx >= rSize) { throw new IndexOutOfRangeException($"Invalid index in gather. Idx = '{idx}', sSize = '{sSize}'"); }
+					if (idx < 0 || idx >= rSize) { throw new IndexOutOfRangeException($"Invalid index in scatter. Idx = '{idx}', rSize = '{rSize}'"); }
 
 					rData[idx * rStride] = *(sData + i * sStride);
 				}
@@ -212,6 +212,24 @@ namespace TensorSharp
 			ApplyDim3(result, src, indices, dim, func);
 		}
 
+
+
+		unsafe public static void ScatterFill(Tensor result, float value, int dim, Tensor indices)
+		{
+			unsafe void func(float* rData, long rSize, long rStride, float* iData, long iSize, long iStride)
+			{
+				for (int i = 0; i < iSize; ++i)
+				{
+					long idx = (long)*(iData + i * iStride);
+					if (idx < 0 || idx >= rSize) { throw new IndexOutOfRangeException($"Invalid index in ScatterFill. Idx = '{idx}', rSize = '{rSize}'"); }
+
+					rData[idx * rStride] = value;
+				}
+
+			}
+
+			ApplyDim2(result, indices, dim, func);
+		}
 
 
 
@@ -543,6 +561,16 @@ namespace TensorSharp
 			Apply2(result, src, func);
 		}
 
+
+		unsafe static public void Log(Tensor result, Tensor src)
+		{
+			unsafe void func(float* r, float* s)
+			{
+				*r = (float)Math.Log(*s);
+			};
+
+			Apply2(result, src, func);
+		}
 
 
 		unsafe static public void TanhD(Tensor result, Tensor resW, Tensor resG)

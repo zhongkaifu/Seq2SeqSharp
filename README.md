@@ -9,7 +9,8 @@ Transformer encoder and decoder
 Attention based LSTM decoder with coverage model  
 Bi-directional LSTM encoder  
 Support multi-platforms, such as Windows, Linux, Mac and others  
-Built-in several networks for sequence-to-sequence task and sequence-labeling task  
+Built-in several networks for sequence-to-sequence, sequence-classification, sequence-labeling and sequence similarity task  
+Include console tools and web apis for built-in networks  
 Graph based neural network  
 Automatic differentiation  
 Tensor based operations  
@@ -45,6 +46,11 @@ SeqClassificationConsole      | Used for sequence classification tasks, such as 
 Seq2SeqClassificationConsole  | It's a multi-task based tool. The first task is for sequence-to-sequence, and the second task is for sequence classification. The model is jointly trained by these two tasks. Its model can be also test on Seq2SeqConsole and SeqClassificationConsole  
 SeqLabelConsole               | Used for sequence labeling tasks, such as named entity recongizer, postag and other  
 SeqSimilarity                 | Used for similarity calculation between two sequences. It supports to both discrete similarity (binary-classifier) and continuous similarity (consine distance)  
+
+It also provides web service APIs for above tasks.  
+ame                          |   Comments  
+------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Seq2SeqWebAPI                | Web Service RESTful API for sequence-to-sequence tasks, such as machine translation, automatic summarization and so on    
 
 ## Seq2SeqConsole for sequence-to-sequence task  
 Here is the graph that what the model looks like:  

@@ -19,12 +19,10 @@ namespace Seq2SeqSharp.Tools
     {
         public float Cost;
         public List<List<List<string>>> Output; // (beam_size, batch_size, seq_len)
-        public List<List<List<Alignment>>> Alignment; // (beam_size, batch_size, seq_len)
 
         public NetworkResult()
         {
             Output = null;
-            Alignment = null;
 
         }
 
@@ -60,11 +58,6 @@ namespace Seq2SeqSharp.Tools
             while (Output.Count < nr.Output.Count)
             {
                 Output.Add(new List<List<string>>());
-
-                if (nr.Alignment != null)
-                {
-                    Alignment.Add(new List<List<Alignment>>());
-                }
             }
 
             for (int beamIdx = 0; beamIdx < nr.Output.Count; beamIdx++)
@@ -72,13 +65,7 @@ namespace Seq2SeqSharp.Tools
           
                 for (int batchIdx = 0; batchIdx < nr.Output[beamIdx].Count; batchIdx++)
                 {
-
                     Output[beamIdx].Add(nr.Output[beamIdx][batchIdx]);
-                    if (nr.Alignment != null)
-                    {
-                        Alignment[beamIdx].Add(nr.Alignment[beamIdx][batchIdx]);
-                    }
-
                 }
 
             }
@@ -491,11 +478,6 @@ namespace Seq2SeqSharp.Tools
                         {
                             Output = new List<List<List<string>>>()
                         };
-                        if (tasks[i].Alignment != null)
-                        {
-                            nr.Alignment = new List<List<List<Alignment>>>();
-                        }
-
                         rs.Add(nr);
                     }
                 }

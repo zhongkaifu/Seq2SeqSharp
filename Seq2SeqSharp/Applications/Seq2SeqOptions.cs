@@ -44,9 +44,6 @@ namespace Seq2SeqSharp
         [Arg("Maxmium tgt sentence length in training corpus", "MaxTrainTgtSentLength")]
         public int MaxTrainTgtSentLength = 110;
 
-        [Arg("It indicates if output alignment between target tokens and source tokens", "OutputAlignment")]
-        public bool OutputAlignment = false;
-
         [Arg("The metric for sequence generation task. It supports BLEU and RougeL", "SeqGenerationMetric")]
         public string SeqGenerationMetric = "BLEU";
 

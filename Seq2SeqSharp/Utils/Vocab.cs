@@ -197,18 +197,18 @@ namespace Seq2SeqSharp.Utils
             return result;
         }
 
-        public List<List<List<string>>> ConvertIdsToString(List<List<List<int>>> beam2seqs)
+        public List<List<List<string>>> ExtractTokens(List<List<BeamSearchStatus>> beam2batch2seq)
         {
             List<List<List<string>>> result = new List<List<List<string>>>();
             lock (locker)
             {
-                foreach (var seqs in beam2seqs)
+                foreach (var batch2seq in beam2batch2seq)
                 {
                     List<List<string>> b = new List<List<string>>();
-                    foreach (var seq in seqs)
+                    foreach (var seq in batch2seq)
                     {
                         List<string> r = new List<string>();
-                        foreach (int idx in seq)
+                        foreach (int idx in seq.OutputIds)
                         {
                             if (!IndexToWord.TryGetValue(idx, out string letter))
                             {

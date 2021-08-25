@@ -31,8 +31,115 @@ namespace Seq2SeqSharp.Applications
             return decoder;
         }
 
+
+
+        public static List<List<int>> ExtractBatchTokens(List<BeamSearchStatus> batchStatus)
+        {
+            List<List<int>> batchTokens = new List<List<int>>();
+            foreach (var item in batchStatus)
+            {
+                batchTokens.Add(item.OutputIds);
+            }
+
+            return batchTokens;
+        }
+
+        /// <summary>
+        /// Initialize beam search status for all beam search and batch results
+        /// </summary>
+        /// <param name="beamSearchSize"></param>
+        /// <param name="batchSize"></param>
+        /// <param name="tgtTokensList"></param>
+        /// <returns>shape: (beam_search_size, batch_size)</returns>
+        public static List<List<BeamSearchStatus>> InitBeamSearchStatusListList(int batchSize, List<List<int>> tgtTokensList)
+        {
+            List<List<BeamSearchStatus>> beam2batchStatus = new List<List<BeamSearchStatus>>();
+
+            List<BeamSearchStatus> bssList = new List<BeamSearchStatus>();
+            for (int i = 0; i < batchSize; i++)
+            {
+                BeamSearchStatus bss = new BeamSearchStatus();
+                bss.OutputIds.AddRange(tgtTokensList[i]);
+                bssList.Add(bss);
+            }
+
+            beam2batchStatus.Add(bssList);
+
+            return beam2batchStatus;
+        }
+
+
+
+        /// <summary>
+        /// swap shape: (beam_search_size, batch_size) <-> (batch_size, beam_search_size)
+        /// </summary>
+        /// <param name="input"></param>
+        public static List<List<BeamSearchStatus>> SwapBeamAndBatch(List<List<BeamSearchStatus>> input)
+        {
+            int size1 = input.Count;
+            int size2 = input[0].Count;
+
+            List<List<BeamSearchStatus>> output = new List<List<BeamSearchStatus>>();
+            for (int k = 0; k < size2; k++)
+            {
+                output.Add(new List<BeamSearchStatus>());
+            }
+
+            for (int j = 0; j < size1; j++)
+            {
+                for (int k = 0; k < size2; k++)
+                {
+                    output[k].Add(input[j][k]);
+                }
+            }
+
+                return output;
+        }
+
+        public static bool AreAllSentsCompleted(List<List<BeamSearchStatus>> input)
+        {
+            foreach (var seqs in input)
+            {
+                foreach (var seq in seqs)
+                {
+                    if (seq.OutputIds[^1] != (int)SENTTAGS.END)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+
+
+        public static List<List<BeamSearchStatus>> MergeTwoBeamSearchStatus(List<List<BeamSearchStatus>> input1, List<List<BeamSearchStatus>> input2)
+        {
+            if (input1 == null)
+            {
+                return input2;
+            }
+
+            if (input2 == null)
+            {
+                return input1;
+            }
+
+            List<List<BeamSearchStatus>> output = new List<List<BeamSearchStatus>>();
+            for (int i = 0; i < input1.Count; i++)
+            {
+                output.Add(new List<BeamSearchStatus>());
+                output[i].AddRange(input1[i]);
+                output[i].AddRange(input2[i]);
+            }
+
+            return output;
+        }
+
         public static (float, List<List<BeamSearchStatus>>) DecodeTransformer(List<List<int>> tgtSeqs, IComputeGraph g, IWeightTensor encOutputs, TransformerDecoder decoder, IFeedForwardLayer decoderFFLayer,
-            IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, float[] srcOriginalLenghts, Vocab tgtVocab, ShuffleEnums shuffleType, float dropoutRatio, bool isTraining = true, int beamSearchSize = 1, bool outputAlignmentSrcPos = false, bool outputSentScore = true)
+            IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, float[] srcOriginalLenghts, Vocab tgtVocab, ShuffleEnums shuffleType, float dropoutRatio, bool isTraining = true, int beamSearchSize = 1, 
+            bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null)
         {
             int eosTokenId = tgtVocab.GetWordIndex(BuildInTokens.EOS, logUnk: true);
             float cost = 0.0f;
@@ -60,7 +167,21 @@ namespace Seq2SeqSharp.Applications
 
             IWeightTensor decOutput;
             IWeightTensor decEncAttnProbs;
-            (decOutput, decEncAttnProbs) = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g, outputAttnWeights: outputAlignmentSrcPos);
+            (decOutput, decEncAttnProbs) = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g, outputAttnWeights: false);
+
+
+            if (isTraining == false)
+            {
+                float[] decOutputIdx = new float[batchSize];
+                for (int i = 0; i < batchSize; i++)
+                {
+                    decOutputIdx[i] = tgtSeqLen * (i + 1) - 1;
+                }
+
+                decOutput = g.IndexSelect(decOutput, decOutputIdx);
+            }
+
+
 
             IWeightTensor ffLayer = decoderFFLayer.Process(decOutput, batchSize, g);
             IWeightTensor probs = g.Softmax(ffLayer, runGradients: false, inPlace: true);
@@ -96,48 +217,20 @@ namespace Seq2SeqSharp.Applications
                     {
                         gatherTensor = g.Gather(probs, targetIdxTensor, 1);
                         gatherTensor = g.Log(gatherTensor);
-                        gatherTensor = g.View(gatherTensor, false, new long[] { batchSize, tgtSeqLen, 1 });
-                        gatherTensor = g.Sum(gatherTensor, 1, runGradient: false);
                     }
 
                     float[] targetIdx = targetIdxTensor.ToWeightArray();
-                    float[] alignmentSrcPos = null;
-                    float[] alignmentSrcScore = null;
-                    if (outputAlignmentSrcPos)
-                    {
-                        using (var sourcePosIdxTensor = g.Argmax(decEncAttnProbs, 1))
-                        {
-                            alignmentSrcPos = sourcePosIdxTensor.ToWeightArray();
-                        }
-
-                        var sourceScoreTensor = g.Max(decEncAttnProbs, 1);
-                        alignmentSrcScore = sourceScoreTensor.ToWeightArray();
-                    }
-
-
                     List<BeamSearchStatus> outputTgtSeqs = new List<BeamSearchStatus>();
                     for (int i = 0; i < batchSize; i++)
                     {
                         BeamSearchStatus bss = new BeamSearchStatus();
                         bss.OutputIds.AddRange(tgtSeqs[i]);
-                        bss.OutputIds.Add((int)(targetIdx[i * tgtSeqLen + tgtSeqLen - 1]));
+                        bss.OutputIds.Add((int)(targetIdx[i]));
 
                         if (outputSentScore)
                         {
-                            bss.Score = -1.0f * gatherTensor.GetWeightAt(new long[] { i, 0, 0 });
+                            bss.Score = previousBeamSearchResults[i].Score  + -1.0f * gatherTensor.GetWeightAt(new long[] { i, 0});
                         }
-
-                        if (outputAlignmentSrcPos)
-                        {
-                            Alignment align = new Alignment(0, 0);
-                            bss.AlignmentToSrc.Add(align);
-                            for (int j = 0; j < tgtSeqLen; j++)
-                            {
-                                align = new Alignment((int)(alignmentSrcPos[i * tgtSeqLen + j]), alignmentSrcScore[i * tgtSeqLen + j]);
-                                bss.AlignmentToSrc.Add(align);
-                            }
-                        }
-
                         outputTgtSeqs.Add(bss);
                     }
 
