@@ -20,12 +20,12 @@ namespace SeqClassificationWebAPI.Controllers
             _logger = logger;
         }
 
-        [HttpGet("Classify")]
-        public string Classify(string inFeature1, string inFeature2)
+        [HttpGet("{input1}/{input2}")]
+        public string Classify(string input1, string input2)
         {
-            var output = SeqClassificationInstance.Call(inFeature1, inFeature2);
+            var output = SeqClassificationInstance.Call(input1, input2);
 
-            Logger.WriteLine($"'{inFeature1}' | '{inFeature2}' -> '{output}'");
+            Logger.WriteLine($"'{input1}' | '{input2}' -> '{output}'");
             return output;
         }
     }

@@ -19,7 +19,7 @@ namespace SeqSimilarityWebAPI.Controllers
             _logger = logger;
         }
 
-        [HttpGet("Similarity")]
+        [HttpGet("{input1}/{input2}")]
         public string Similarity(string input1, string input2)
         {
             var output = SeqSimilarityInstance.Call(input1, input2);
