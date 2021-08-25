@@ -81,9 +81,9 @@ namespace Seq2SeqSharp.Applications
             return encOutput;
         }
 
-        public static IWeightTensor BuildTensorForSourceTokenGroupAt(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, ShuffleEnums shuffleType, IEncoder encoder, IModel modelMetaData, IWeightTensor srcEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, int i)
+        public static IWeightTensor BuildTensorForSourceTokenGroupAt(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, ShuffleEnums shuffleType, IEncoder encoder, IModel modelMetaData, IWeightTensor srcEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, int groupId)
         {
-            var contextTokens = InsertCLSToken(sntPairBatch.GetSrcTokens(i));
+            var contextTokens = InsertCLSToken(sntPairBatch.GetSrcTokens(groupId));
             var originalSrcContextLength = BuildInTokens.PadSentences(contextTokens);
             IWeightTensor encContextOutput = InnerRunner(computeGraph, contextTokens, originalSrcContextLength, shuffleType, encoder, modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding);
 

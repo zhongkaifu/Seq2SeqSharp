@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AdvUtils;
 
 namespace SeqClassificationWebAPI.Controllers
 {
@@ -19,10 +20,13 @@ namespace SeqClassificationWebAPI.Controllers
             _logger = logger;
         }
 
-        [HttpGet("{input}")]
-        public string Get(string input)
+        [HttpGet("Classify")]
+        public string Classify(string inFeature1, string inFeature2)
         {
-            return SeqClassificationInstance.Call(input);
+            var output = SeqClassificationInstance.Call(inFeature1, inFeature2);
+
+            Logger.WriteLine($"'{inFeature1}' | '{inFeature2}' -> '{output}'");
+            return output;
         }
     }
 }

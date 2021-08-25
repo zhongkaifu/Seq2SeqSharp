@@ -13,4 +13,10 @@
     <ProjectReference Include="..\Seq2SeqSharp\Seq2SeqSharp.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="AdvUtils">
+      <HintPath>..\dll\AdvUtils.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

@@ -45,12 +45,15 @@ Seq2SeqConsole                | Used for sequence-to-sequence tasks, such as mac
 SeqClassificationConsole      | Used for sequence classification tasks, such as intention detection. It supports multi-tasks, which means a single model can be trained or tested by multi-classification tasks  
 Seq2SeqClassificationConsole  | It's a multi-task based tool. The first task is for sequence-to-sequence, and the second task is for sequence classification. The model is jointly trained by these two tasks. Its model can be also test on Seq2SeqConsole and SeqClassificationConsole  
 SeqLabelConsole               | Used for sequence labeling tasks, such as named entity recongizer, postag and other  
-SeqSimilarity                 | Used for similarity calculation between two sequences. It supports to both discrete similarity (binary-classifier) and continuous similarity (consine distance)  
+SeqSimilarityConsole          | Used for similarity calculation between two sequences. It supports to both discrete similarity (binary-classifier) and continuous similarity (consine distance)  
 
 It also provides web service APIs for above tasks.  
-ame                          |   Comments  
-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-Seq2SeqWebAPI                | Web Service RESTful API for sequence-to-sequence tasks, such as machine translation, automatic summarization and so on    
+ame                      |   Comments  
+-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Seq2SeqWebAPI            | Web Service RESTful API for sequence-to-sequence tasks. It hosts models trained by Seq2SeqConsole and infer online.    
+SeqClassificationWebAPI  | Web Service RESTful API for sequence classification tasks. It hosts models trained by SeqClassificationConsole and infer online.  
+SeqSimilarityWebAPI      | Web Service RESTful API for sequences similarity tasks. It hosts models trained by SeqSimilarityConsole and infer online.  
+
 
 ## Seq2SeqConsole for sequence-to-sequence task  
 Here is the graph that what the model looks like:  
