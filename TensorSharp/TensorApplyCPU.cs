@@ -202,7 +202,7 @@ namespace TensorSharp
 				for (int i = 0; i < iSize; ++i)
 				{
 					long idx = (long)*(iData + i * iStride);
-					if (idx < 0 || idx >= rSize) { throw new IndexOutOfRangeException($"Invalid index in gather. Idx = '{idx}', sSize = '{sSize}'"); }
+					if (idx < 0 || idx >= rSize) { throw new IndexOutOfRangeException($"Invalid index in scatter. Idx = '{idx}', rSize = '{rSize}'"); }
 
 					rData[idx * rStride] = *(sData + i * sStride);
 				}
@@ -212,6 +212,24 @@ namespace TensorSharp
 			ApplyDim3(result, src, indices, dim, func);
 		}
 
+
+
+		unsafe public static void ScatterFill(Tensor result, float value, int dim, Tensor indices)
+		{
+			unsafe void func(float* rData, long rSize, long rStride, float* iData, long iSize, long iStride)
+			{
+				for (int i = 0; i < iSize; ++i)
+				{
+					long idx = (long)*(iData + i * iStride);
+					if (idx < 0 || idx >= rSize) { throw new IndexOutOfRangeException($"Invalid index in ScatterFill. Idx = '{idx}', rSize = '{rSize}'"); }
+
+					rData[idx * rStride] = value;
+				}
+
+			}
+
+			ApplyDim2(result, indices, dim, func);
+		}
 
 
 
@@ -544,6 +562,16 @@ namespace TensorSharp
 		}
 
 
+		unsafe static public void Log(Tensor result, Tensor src)
+		{
+			unsafe void func(float* r, float* s)
+			{
+				*r = (float)Math.Log(*s);
+			};
+
+			Apply2(result, src, func);
+		}
+
 
 		unsafe static public void TanhD(Tensor result, Tensor resW, Tensor resG)
 		{
@@ -628,6 +656,30 @@ namespace TensorSharp
 				{
 					int originalLength = (int)ptOriginalLengths[batchIdx];
 					if (id < originalLength && seqIdxInBatch < originalLength)
+					{
+						resultRow[id] = value;
+					}
+					else
+					{
+						resultRow[id] = maskedValue;
+					}
+				}
+			}
+		}
+
+
+
+		unsafe static public void BuildTriMask(Tensor result, int rows, int cols, float value, float maskedValue)
+		{
+			float* ptResult = (float*)CpuNativeHelpers.GetBufferStart(result);
+
+			for (int j = 0; j < rows; j++)
+			{
+				float* resultRow = ptResult + j * cols;
+				for (int id = 0; id < cols; id++)
+				{
+
+					if (id <= j)
 					{
 						resultRow[id] = value;
 					}

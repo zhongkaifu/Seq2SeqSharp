@@ -6,7 +6,7 @@ using System.IO;
 
 namespace Seq2SeqSharp
 {
-    internal class TransformerDecoder : IDecoder
+    public class TransformerDecoder : IDecoder
     {
         private readonly List<MultiHeadAttention> m_selfAttns = new List<MultiHeadAttention>();
         private readonly List<MultiHeadAttention> m_encAttns = new List<MultiHeadAttention>();
@@ -99,15 +99,13 @@ namespace Seq2SeqSharp
                 IWeightTensor selfMaskTensor = null;
                 if (tgtSelfMask != null)
                 {
-                    using var keyMaskView = subg.View(tgtSelfMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenQ });
-                    selfMaskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ });
+                    selfMaskTensor = subg.Expand(tgtSelfMask, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ });
                 }
 
                 IWeightTensor crossMaskTensor = null;
                 if (srcTgtMask != null)
                 {
-                    using var keyMaskView = subg.View(srcTgtMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenK });
-                    crossMaskTensor = subg.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK });
+                    crossMaskTensor = subg.Expand(srcTgtMask, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK });
                 }
 
                 for (int k = 0; k < m_selfAttns.Count; k++)

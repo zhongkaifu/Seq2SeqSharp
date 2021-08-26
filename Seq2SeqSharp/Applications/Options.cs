@@ -93,11 +93,14 @@ namespace Seq2SeqSharp.Applications
         [Arg("The shuffle block size", "ShuffleBlockSize")]
         public int ShuffleBlockSize = -1;
 
-        [Arg("Type of shuffling. It could be NoPaddingInSrc, NoPaddingInTgt and Random", "ShuffleType")]
+        [Arg("Shuffle Type. It could be NoPaddingInSrc, NoPaddingInTgt and Random", "ShuffleType")]
         public string ShuffleType = "Random";
 
         [Arg("Task to execute. It could be Train, Valid, Test, DumpVocab or Help", "Task")]
         public string Task = "Help";
+
+        [Arg("How to deal with too long sequence. It can be Ignore or Truncation", "TooLongSequence")]
+        public string TooLongSequence = "Ignore";
 
         [Arg("Target language name.", "TgtLang")]
         public string TgtLang;
@@ -112,7 +115,7 @@ namespace Seq2SeqSharp.Applications
         public int ValBatchSize = 1;
 
         [Arg("Valid corpus folder path", "ValidCorpusPath")]
-        public string ValidCorpusPath = null;
+        public string ValidCorpusPaths = null;
 
         [Arg("The number of steps for warming up", "WarmUpSteps")]
         public int WarmUpSteps = 8000;

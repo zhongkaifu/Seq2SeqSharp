@@ -19,12 +19,10 @@ namespace Seq2SeqSharp.Tools
     {
         public float Cost;
         public List<List<List<string>>> Output; // (beam_size, batch_size, seq_len)
-        public List<List<List<Alignment>>> Alignment; // (beam_size, batch_size, seq_len)
 
         public NetworkResult()
         {
             Output = null;
-            Alignment = null;
 
         }
 
@@ -60,11 +58,6 @@ namespace Seq2SeqSharp.Tools
             while (Output.Count < nr.Output.Count)
             {
                 Output.Add(new List<List<string>>());
-
-                if (nr.Alignment != null)
-                {
-                    Alignment.Add(new List<List<Alignment>>());
-                }
             }
 
             for (int beamIdx = 0; beamIdx < nr.Output.Count; beamIdx++)
@@ -72,13 +65,7 @@ namespace Seq2SeqSharp.Tools
           
                 for (int batchIdx = 0; batchIdx < nr.Output[beamIdx].Count; batchIdx++)
                 {
-
                     Output[beamIdx].Add(nr.Output[beamIdx][batchIdx]);
-                    if (nr.Alignment != null)
-                    {
-                        Alignment[beamIdx].Add(nr.Alignment[beamIdx][batchIdx]);
-                    }
-
                 }
 
             }
@@ -102,7 +89,7 @@ namespace Seq2SeqSharp.Tools
         private readonly float m_regc = 1e-10f; // L2 regularization strength
         private int m_weightsUpdateCount = 0;
         private double m_avgCostPerWordInTotalInLastEpoch = 10000.0;
-        private double m_bestPrimaryScore = 0.0f;
+        private Dictionary<string, double> m_bestPrimaryScoreDict = new Dictionary<string, double>();
         private readonly int m_primaryTaskId = 0;
         private readonly object locker = new object();
         private SortedList<string, IMultiProcessorNetworkWrapper> m_name2network;
@@ -205,7 +192,7 @@ namespace Seq2SeqSharp.Tools
             return modelMetaData;
         }
 
-        internal void TrainOneEpoch(int ep, IEnumerable<ISntPairBatch> trainCorpus, IEnumerable<ISntPairBatch> validCorpus, ILearningRate learningRate, IOptimizer solver, Dictionary<int, List<IMetric>> taskId2metrics, IModel modelMetaData,
+        internal void TrainOneEpoch(int ep, IEnumerable<ISntPairBatch> trainCorpus, Dictionary<string, IEnumerable<ISntPairBatch>> validCorpusDict, string primaryValidCorpusId, ILearningRate learningRate, IOptimizer solver, Dictionary<int, List<IMetric>> taskId2metrics, IModel modelMetaData,
             Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice)
         {
             int processedLineInTotal = 0;
@@ -293,12 +280,9 @@ namespace Seq2SeqSharp.Tools
 
                                 if (isOutOfMemException)
                                 {
-                                    batchSplitFactor *= 2;
-                                    Logger.WriteLine($"Got an exception ('{oomMessage}'), so we increase batch split factor to {batchSplitFactor}, and retry it.");
-
-                                    if (batchSplitFactor >= sntPairBatchs[0].BatchSize)
+                                    batchSplitFactor = TryToSplitBatchFactor(sntPairBatchs, batchSplitFactor, oomMessage);
+                                    if (batchSplitFactor < 0)
                                     {
-                                        Logger.WriteLine($"Batch split factor is larger than batch size, so ignore current mini-batch.");
                                         break;
                                     }
                                 }
@@ -322,12 +306,9 @@ namespace Seq2SeqSharp.Tools
                         }
                         catch (OutOfMemoryException err)
                         {
-                            batchSplitFactor *= 2;
-                            Logger.WriteLine($"Got an exception ('{err.Message}'), so we increase batch split factor to {batchSplitFactor}, and retry it.");
-
-                            if (batchSplitFactor >= sntPairBatchs[0].BatchSize)
+                            batchSplitFactor = TryToSplitBatchFactor(sntPairBatchs, batchSplitFactor, err.Message);
+                            if (batchSplitFactor < 0)
                             {
-                                Logger.WriteLine($"Batch split factor is larger than batch size, so ignore current mini-batch.");
                                 break;
                             }
                         }
@@ -347,7 +328,7 @@ namespace Seq2SeqSharp.Tools
                     TimeSpan ts = DateTime.Now - m_lastCheckPointDateTime;
                     if (ts.TotalHours > m_validIntervalHours)
                     {
-                        CreateCheckPoint(validCorpus, taskId2metrics, modelMetaData, ForwardOnSingleDevice, avgCostPerWordInTotal);
+                        CreateCheckPoint(validCorpusDict, primaryValidCorpusId, taskId2metrics, modelMetaData, ForwardOnSingleDevice, avgCostPerWordInTotal);
                         m_lastCheckPointDateTime = DateTime.Now;
                     }
 
@@ -357,6 +338,39 @@ namespace Seq2SeqSharp.Tools
 
             Logger.WriteLine(Logger.Level.info, ConsoleColor.Green, $"Epoch '{ep}' took '{DateTime.Now - startDateTime}' time to finish. AvgCost = {avgCostPerWordInTotal:F6}, AvgCostInLastEpoch = {m_avgCostPerWordInTotalInLastEpoch:F6}");
             m_avgCostPerWordInTotalInLastEpoch = avgCostPerWordInTotal;
+        }
+
+
+
+        private int TryToSplitBatchFactor(List<ISntPairBatch> sntPairBatchs, int batchSplitFactor, string message)
+        {
+            int maxBatchSize = 0;
+            List<string> batchSizeList = new List<string>();
+            List<string> srcTokenSizeList = new List<string>();
+            List<string> tgtTokenSizeList = new List<string>();
+
+            foreach (var batch in sntPairBatchs)
+            {
+                batchSizeList.Add(batch.BatchSize.ToString());
+                srcTokenSizeList.Add(batch.SrcTokenCount.ToString());
+                tgtTokenSizeList.Add(batch.TgtTokenCount.ToString());
+
+                if (maxBatchSize < batch.BatchSize)
+                {
+                    maxBatchSize = batch.BatchSize;
+                }
+            }
+
+            batchSplitFactor *= 2;
+            Logger.WriteLine($"Got an exception ('{message}'), so retry it with batch split factor '{batchSplitFactor}'. Batch size: '{String.Join(" ", batchSizeList)}', Src token size: '{String.Join(" ", srcTokenSizeList)}', Tgt token size: '{String.Join(" ", tgtTokenSizeList)}'");
+
+            if (batchSplitFactor >= maxBatchSize)
+            {
+                Logger.WriteLine($"Batch split factor is larger than batch size, so ignore current mini-batch.");
+                batchSplitFactor = -1;
+            }
+
+            return batchSplitFactor;
         }
 
         private (float, int, int, int) RunNetwork(Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice, List<ISntPairBatch> sntPairBatchs, int batchSplitFactor)
@@ -422,16 +436,22 @@ namespace Seq2SeqSharp.Tools
             return (cost, srcWordCnts, tgtWordCnts, processedLine);
         }
 
-        private void CreateCheckPoint(IEnumerable<ISntPairBatch> validCorpus, Dictionary<int, List<IMetric>> taskId2metrics, IModel modelMetaData, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice, double avgCostPerWordInTotal)
+        private void CreateCheckPoint(Dictionary<string, IEnumerable<ISntPairBatch>> validCorpusDict, string primaryValidCorpusId, Dictionary<int, List<IMetric>> taskId2metrics, IModel modelMetaData, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice, double avgCostPerWordInTotal)
         {
-            if (validCorpus != null)
+            if (validCorpusDict != null && validCorpusDict.Count > 0)
             {
                 ReleaseGradientOnAllDevices();
 
                 // The valid corpus is provided, so evaluate the model.
-                if (RunValid(validCorpus, ForwardOnSingleDevice, taskId2metrics, outputToFile: true) == true || File.Exists(m_modelFilePath) == false)
+
+                foreach (var pair in validCorpusDict)
                 {
-                    SaveModel(modelMetaData);
+                    var betterResult = RunValid(pair.Value, ForwardOnSingleDevice, taskId2metrics, outputToFile: true, prefixName: pair.Key);
+
+                    if ((pair.Key == primaryValidCorpusId && betterResult == true) || File.Exists(m_modelFilePath) == false)
+                    {
+                        SaveModel(modelMetaData);
+                    }
                 }
             }
             else if (m_avgCostPerWordInTotalInLastEpoch > avgCostPerWordInTotal || File.Exists(m_modelFilePath) == false)
@@ -458,11 +478,6 @@ namespace Seq2SeqSharp.Tools
                         {
                             Output = new List<List<List<string>>>()
                         };
-                        if (tasks[i].Alignment != null)
-                        {
-                            nr.Alignment = new List<List<List<Alignment>>>();
-                        }
-
                         rs.Add(nr);
                     }
                 }
@@ -615,12 +630,22 @@ namespace Seq2SeqSharp.Tools
         /// <param name="metrics">A set of metrics. The first one is the primary metric</param>
         /// <param name="outputToFile">It indicates if valid corpus and results should be dumped to files</param>
         /// <returns>true if we get a better result on primary metric, otherwise, false</returns>
-        internal bool RunValid(IEnumerable<ISntPairBatch> validCorpus, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> RunNetwork, Dictionary<int, List<IMetric>> taskId2metrics,  bool outputToFile = false)
+        internal bool RunValid(IEnumerable<ISntPairBatch> validCorpus, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> RunNetwork, Dictionary<int, List<IMetric>> taskId2metrics,  bool outputToFile = false, string prefixName = "valid")
         {
             List<string> srcSents = new List<string>();
             List<string> refSents = new List<string>();
             List<string> hypSents = new List<string>();
 
+
+            double bestPrimaryScore = 0.0;
+            if (m_bestPrimaryScoreDict.ContainsKey(prefixName) == false)
+            {
+                m_bestPrimaryScoreDict.Add(prefixName, 0.0);
+            }
+            else
+            {
+                bestPrimaryScore = m_bestPrimaryScoreDict[prefixName];
+            }
 
             // Clear inner status of each metrics
             foreach (var pair in taskId2metrics)
@@ -659,21 +684,22 @@ namespace Seq2SeqSharp.Tools
                     int taskId = pair.Key;
                     List<IMetric> metrics = pair.Value;
 
-                    sb.AppendLine($"Metrics result on task '{taskId}':");
+                    sb.AppendLine($"Metrics result on task '{taskId}' on data set '{prefixName}':");
                     foreach (IMetric metric in metrics)
                     {
                         sb.AppendLine($"{metric.Name} = {metric.GetScoreStr()}");
                     }
-
-                    if (metrics[0].GetPrimaryScore() > m_bestPrimaryScore && taskId == m_primaryTaskId) // The first metric in the primary task is the primary metric
+                
+                    if (metrics[0].GetPrimaryScore() > bestPrimaryScore && taskId == m_primaryTaskId) // The first metric in the primary task is the primary metric
                     {
-                        if (m_bestPrimaryScore > 0.0f)
+                        if (bestPrimaryScore > 0.0f)
                         {
-                            sb.AppendLine($"We got a better primary metric '{metrics[0].Name}' score '{metrics[0].GetPrimaryScore():F}' on the primary task '{taskId}'. The previous score is '{m_bestPrimaryScore:F}'");
+                            sb.AppendLine($"We got a better primary metric '{metrics[0].Name}' score '{metrics[0].GetPrimaryScore():F}' on the primary task '{taskId}' and data set '{prefixName}'. The previous score is '{bestPrimaryScore:F}'");
                         }
 
                         //We have a better primary score on valid set
-                        m_bestPrimaryScore = metrics[0].GetPrimaryScore();
+                        bestPrimaryScore = metrics[0].GetPrimaryScore();
+                        m_bestPrimaryScoreDict[prefixName] = bestPrimaryScore;
                         betterModel = true;
                     }
                 }
@@ -682,7 +708,7 @@ namespace Seq2SeqSharp.Tools
                 {
                     EvaluationWatcher(this, new EvaluationEventArg()
                     {
-                        Title = $"Evaluation result for model '{m_modelFilePath}'",
+                        Title = $"Evaluation result for model '{m_modelFilePath}' on test set '{prefixName}'",
                         Message = sb.ToString(),
                         Color = ConsoleColor.Green
                     }); ;
@@ -691,9 +717,9 @@ namespace Seq2SeqSharp.Tools
 
             if (outputToFile)
             {
-                File.WriteAllLines("valid_src.txt", srcSents);
-                File.WriteAllLines("valid_ref.txt", refSents);
-                File.WriteAllLines("valid_hyp.txt", hypSents);
+                File.WriteAllLines($"{prefixName}_src.txt", srcSents);
+                File.WriteAllLines($"{prefixName}_ref.txt", refSents);
+                File.WriteAllLines($"{prefixName}_hyp.txt", hypSents);
             }
 
             return betterModel;

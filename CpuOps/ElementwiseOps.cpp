@@ -66,10 +66,6 @@ template<typename T> INLINE_FUNC T Lerp(T a, T b, T weight) {
 	return a + weight * (b - a);
 }
 
-//template<typename T> INLINE_FUNC T AddMul(T x, T y, T z) {
-//	return x + y * z;
-//}
-
 template<typename T> INLINE_FUNC T AddTanh3(T x, T y, T z) {
 	return tanh(x + y + z);
 }
@@ -103,7 +99,6 @@ DECLARE_UNARY_ALL_CPU_TYPES(TS_Sign, sgn)
 
 DECLARE_UNARY_FLOAT_TYPES(TS_Sqrt, sqrt)
 DECLARE_UNARY_FLOAT_TYPES(TS_Exp, exp)
-DECLARE_UNARY_FLOAT_TYPES(TS_Log, log)
 DECLARE_UNARY_FLOAT_TYPES(TS_Log1p, log1p)
 DECLARE_UNARY_FLOAT_TYPES(TS_Floor, floor)
 DECLARE_UNARY_FLOAT_TYPES(TS_Ceil, ceil)
@@ -199,22 +194,6 @@ int TS_AddReluD(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* 
 		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, AddReluD_Apply, result, srcX, srcY, srcZ)
 		API_END()
 }
-
-
-//template<typename T>
-//INLINE_FUNC void AddMul_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
-//{
-//	auto func = [](T *r, T *x, T *y, T *z) { *r = AddMul(*x, *y, *z); };
-//	Apply4<T, T, T, T>(result, srcX, srcY, srcZ, func);
-//}
-//
-//int TS_AddMul(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
-//{
-//	API_BEGIN()
-//		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, AddMul_Apply, result, srcX, srcY, srcZ)
-//		API_END()
-//}
-
 
 template<typename T>
 INLINE_FUNC void AddMulV_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY, float v)

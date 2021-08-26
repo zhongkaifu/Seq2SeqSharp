@@ -8,6 +8,7 @@ namespace Seq2SeqSharp.Utils
     {
         NoPaddingInSrc = 0,
         NoPaddingInTgt,
+        NoPadding,
         Random
     }
 }

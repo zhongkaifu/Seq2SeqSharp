@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "Seq2SeqClassificationConsole": {
+      "commandName": "Project",
+      "commandLineArgs": "-ConfigFilePath train_cls_opts.json",
+      "workingDirectory": "C:\\Test"
+    }
+  }
+}

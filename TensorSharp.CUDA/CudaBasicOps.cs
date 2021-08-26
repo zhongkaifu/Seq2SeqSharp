@@ -535,6 +535,12 @@ namespace TensorSharp.CUDA
             return advFuncKernels.BuildSelfTriMask(result, originalLengths, paddedSeqLength, value, maskedValue);
         }
 
+        [RegisterOpStorageType("buildtrimask", typeof(CudaStorage))]
+        public Tensor BuildTriMask(Tensor result, float value, float maskedValue)
+        {
+            return advFuncKernels.BuildTriMask(result, value, maskedValue);
+        }
+
         [RegisterOpStorageType("softmax", typeof(CudaStorage))]
         public Tensor Softmax(Tensor result, Tensor src) { return advFuncKernels.Softmax(result, src); }
 

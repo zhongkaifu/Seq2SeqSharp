@@ -41,7 +41,6 @@ namespace TensorSharp.Cpu
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Sqrt(IntPtr result, IntPtr src);
 
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Exp(IntPtr result, IntPtr src);
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_Log(IntPtr result, IntPtr src);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Log1p(IntPtr result, IntPtr src);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Floor(IntPtr result, IntPtr src);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Ceil(IntPtr result, IntPtr src);
@@ -61,7 +60,6 @@ namespace TensorSharp.Cpu
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Add3(IntPtr result, IntPtr x, IntPtr y, IntPtr z);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Add4(IntPtr result, IntPtr x, IntPtr y, IntPtr z, IntPtr w);
 
-      //  [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddMul(IntPtr result, IntPtr x, IntPtr y, IntPtr z);
 
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_AddMulV(IntPtr result, IntPtr x, IntPtr y, float z);
 
@@ -161,6 +159,6 @@ namespace TensorSharp.Cpu
         [DllImport(dll, CallingConvention = cc)]
         public static extern int TS_SpatialMaxPooling_updateGradInput_frame(IntPtr gradInput, IntPtr gradOutput, IntPtr ind, long nslices, long iwidth, long iheight, long owidth, long oheight, int dW, int dH);
 
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_ScatterFill(IntPtr result, float value, int dim, IntPtr indices);
+      //  [DllImport(dll, CallingConvention = cc)] public static extern int TS_ScatterFill(IntPtr result, float value, int dim, IntPtr indices);
     }
 }

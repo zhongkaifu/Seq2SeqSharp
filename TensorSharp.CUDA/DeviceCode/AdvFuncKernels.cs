@@ -583,6 +583,33 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
 
 
+  __global__ void BuildTriMask(float* __restrict__ result, int rows, int cols, float value, float maskedValue)
+{
+
+    for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float* resultRow = result + j * cols;
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+
+            if (id <= j)
+            {
+                resultRow[id] = value;
+            }
+            else
+            {
+                resultRow[id] = maskedValue;
+            }
+        }
+      }
+    }
+  }
+}
+
+
+
   __global__ void IndexSelectGrad(float* __restrict__ grad, float* __restrict__ adj, float* __restrict__ indice, int rows, int cols)
   {
     for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -994,9 +1021,38 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
 
             Invoke(context, cudaContext, "BuildSelfTriMask", grid, threads, threads.x * sizeof(float), CUstream.NullStream, resultPtr, originalLengthsPtr, rows, cols, paddedSeqLen, value, maskedValue);
-
-
         }
+
+
+
+        private void BuildTriMask(TSCudaContext context, Tensor result, float value, float maskedValue)
+        {
+            CudaContext cudaContext = context.CudaContextForTensor(result);
+
+            cudaContext.SetCurrent();
+
+            int ndim = result.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(result.Sizes, result.Strides);
+            long cols = result.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+
+            dim3 threads = new dim3((uint)Math.Min(512, rows));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+
+            CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
+
+
+            Invoke(context, cudaContext, "BuildTriMask", grid, threads, threads.x * sizeof(float), CUstream.NullStream, resultPtr, rows, cols, value, maskedValue);
+        }
+
+
 
         private void IndexSelect(TSCudaContext context, Tensor result, Tensor src, Tensor indice)
         {
@@ -1237,6 +1293,14 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             BuildSelfTriMask(context, writeTarget, originalLengths, paddedSeqLen, value, maskedValue);
 
             return writeTarget;
+        }
+
+        public Tensor BuildTriMask(Tensor result, float value, float maskedValue)
+        {
+            TSCudaContext context = CudaHelpers.TSContextForTensor(result);
+            BuildTriMask(context, result, value, maskedValue);
+
+            return result;
         }
 
         public Tensor IndexSelect(Tensor result, Tensor src, Tensor indice)

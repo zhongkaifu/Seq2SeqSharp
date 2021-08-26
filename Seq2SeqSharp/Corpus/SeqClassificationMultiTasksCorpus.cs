@@ -13,8 +13,8 @@ namespace Seq2SeqSharp.Corpus
 
     public class SeqClassificationMultiTasksCorpus : ParallelCorpus<SeqClassificationMultiTasksCorpusBatch>
     {        
-        public SeqClassificationMultiTasksCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSentLength = 128, ShuffleEnums shuffleEnums = ShuffleEnums.Random)
-            : base(corpusFilePath, srcLangName, tgtLangName, batchSize, shuffleBlockSize, maxSentLength, maxSentLength, shuffleEnums: shuffleEnums)
+        public SeqClassificationMultiTasksCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int shuffleBlockSize = -1, int maxSentLength = 128, ShuffleEnums shuffleEnums = ShuffleEnums.Random, TooLongSequence tooLongSequence = TooLongSequence.Ignore)
+            : base(corpusFilePath, srcLangName, tgtLangName, batchSize, shuffleBlockSize, maxSentLength, maxSentLength, shuffleEnums: shuffleEnums, tooLongSequence: tooLongSequence)
         {
 
         }

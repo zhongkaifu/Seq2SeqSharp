@@ -38,7 +38,7 @@ namespace Seq2SeqConsole
                 if (string.IsNullOrEmpty(opts.ConfigFilePath) == false)
                 {
                     Console.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
-                    opts = JsonConvert.DeserializeObject<Seq2SeqOptions>(File.ReadAllText(opts.ConfigFilePath));
+                    opts = JsonConvert.DeserializeObject<Seq2SeqOptions>(File.ReadAllText(opts.ConfigFilePath));                
                 }
 
                 Logger.LogFile = $"{nameof(Seq2SeqConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log";
@@ -47,14 +47,25 @@ namespace Seq2SeqConsole
                 Seq2Seq ss = null;
                 ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.Task);
                 ShuffleEnums shuffleType = (ShuffleEnums)Enum.Parse(typeof(ShuffleEnums), opts.ShuffleType);
+                TooLongSequence tooLongSequence = (TooLongSequence)Enum.Parse(typeof(TooLongSequence), opts.TooLongSequence);
 
                 if (mode == ModeEnums.Train)
                 {
                     // Load train corpus
                     Seq2SeqCorpus trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
-                        maxSrcSentLength: opts.MaxTrainSrcSentLength, maxTgtSentLength: opts.MaxTrainTgtSentLength, shuffleEnums: shuffleType);
+                        maxSrcSentLength: opts.MaxTrainSrcSentLength, maxTgtSentLength: opts.MaxTrainTgtSentLength, shuffleEnums: shuffleType, tooLongSequence: tooLongSequence);
+
                     // Load valid corpus
-                    Seq2SeqCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new Seq2SeqCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSrcSentLength, opts.MaxTestTgtSentLength, shuffleEnums: shuffleType);
+                    List<Seq2SeqCorpus> validCorpusList = new List<Seq2SeqCorpus>();
+                    if (String.IsNullOrEmpty(opts.ValidCorpusPaths) == false)
+                    {
+                        string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
+                        foreach (var validCorpusPath in validCorpusPathList)
+                        {
+                            validCorpusList.Add(new Seq2SeqCorpus(validCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSrcSentLength, opts.MaxTestTgtSentLength, shuffleEnums: shuffleType, tooLongSequence: tooLongSequence));
+                        }
+
+                    }
 
                     // Create learning rate
                     ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);
@@ -63,20 +74,7 @@ namespace Seq2SeqConsole
                     IOptimizer optimizer = Misc.CreateOptimizer(opts);
 
                     // Create metrics
-                    IMetric seqGenMetric = null;
-                    if (opts.SeqGenerationMetric.Equals("BLEU", StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        seqGenMetric = new BleuMetric();
-                    }
-                    else
-                    {
-                        seqGenMetric = new RougeMetric();
-                    }
-                    List<IMetric> metrics = new List<IMetric>
-                    {
-                        seqGenMetric,
-                        new LengthRatioMetric()
-                    };
+                    List<IMetric> metrics = CreateMetrics();
 
                     if (!String.IsNullOrEmpty(opts.ModelFilePath) && File.Exists(opts.ModelFilePath))
                     {
@@ -118,30 +116,17 @@ namespace Seq2SeqConsole
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;
 
                     // Kick off training
-                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpus: validCorpus, learningRate: learningRate, optimizer: optimizer, metrics: metrics);
+                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList, learningRate: learningRate, optimizer: optimizer, metrics: metrics);
                 }
                 else if (mode == ModeEnums.Valid)
                 {
-                    Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPath}'");
+                    Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPaths}'");
 
                     // Create metrics
-                    IMetric seqGenMetric = null;
-                    if (opts.SeqGenerationMetric.Equals("BLEU", StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        seqGenMetric = new BleuMetric();
-                    }
-                    else
-                    {
-                        seqGenMetric = new RougeMetric();
-                    }
-                    List<IMetric> metrics = new List<IMetric>
-                {
-                        seqGenMetric,
-                    new LengthRatioMetric()
-                    };
+                    List<IMetric> metrics = CreateMetrics();
 
                     // Load valid corpus
-                    Seq2SeqCorpus validCorpus = new Seq2SeqCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSrcSentLength, opts.MaxTestTgtSentLength, shuffleEnums: shuffleType);
+                    Seq2SeqCorpus validCorpus = new Seq2SeqCorpus(opts.ValidCorpusPaths, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSrcSentLength, opts.MaxTestTgtSentLength, shuffleEnums: shuffleType, tooLongSequence: tooLongSequence);
 
                     ss = new Seq2Seq(opts);
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;
@@ -181,7 +166,26 @@ namespace Seq2SeqConsole
                 Logger.WriteLine($"Call stack: '{err.StackTrace}'");
             }
         }
-      
+
+        private static List<IMetric> CreateMetrics()
+        {
+            IMetric seqGenMetric = null;
+            if (opts.SeqGenerationMetric.Equals("BLEU", StringComparison.InvariantCultureIgnoreCase))
+            {
+                seqGenMetric = new BleuMetric();
+            }
+            else
+            {
+                seqGenMetric = new RougeMetric();
+            }
+            List<IMetric> metrics = new List<IMetric>
+                    {
+                        seqGenMetric,
+                        new LengthRatioMetric()
+                    };
+            return metrics;
+        }
+
         private static void ShowOptions(string[] args, Seq2SeqOptions opts)
         {
             string commandLine = string.Join(" ", args);
