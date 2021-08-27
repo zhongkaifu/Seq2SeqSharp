@@ -31,8 +31,9 @@ namespace SeqWebAPIs
                 int maxTestSrcSentLength = int.Parse(Configuration["Seq2Seq:MaxSrcTokenSize"]);
                 int maxTestTgtSentLength = int.Parse(Configuration["Seq2Seq:MaxTgtTokenSize"]);
                 var processorType = Configuration["Seq2Seq:ProcessorType"];
+                string deviceIds = Configuration["Seq2Seq:DeviceIds"];
 
-                Seq2SeqInstance.Initialization(modelFilePath, maxTestSrcSentLength, maxTestTgtSentLength, processorType);
+                Seq2SeqInstance.Initialization(modelFilePath, maxTestSrcSentLength, maxTestTgtSentLength, processorType, deviceIds);
             }
 
             if (String.IsNullOrEmpty(Configuration["SeqClassification:ModelFilePath"]) == false)
@@ -42,8 +43,9 @@ namespace SeqWebAPIs
                 var modelFilePath = Configuration["SeqClassification:ModelFilePath"];
                 int maxTestSentLength = int.Parse(Configuration["SeqClassification:MaxTokenSize"]);
                 var processorType = Configuration["SeqClassification:ProcessorType"];
+                string deviceIds = Configuration["SeqClassification:DeviceIds"];
 
-                SeqClassificationInstance.Initialization(modelFilePath, maxTestSentLength, processorType);
+                SeqClassificationInstance.Initialization(modelFilePath, maxTestSentLength, processorType, deviceIds);
             }
 
             if (String.IsNullOrEmpty(Configuration["SeqSimilarity:ModelFilePath"]) == false)
@@ -53,8 +55,9 @@ namespace SeqWebAPIs
                 var modelFilePath = Configuration["SeqSimilarity:ModelFilePath"];
                 int maxTestSentLength = int.Parse(Configuration["SeqSimilarity:MaxTokenSize"]);
                 var processorType = Configuration["SeqSimilarity:ProcessorType"];
+                string deviceIds = Configuration["SeqSimilarity:DeviceIds"];
 
-                SeqSimilarityInstance.Initialization(modelFilePath, maxTestSentLength, processorType);
+                SeqSimilarityInstance.Initialization(modelFilePath, maxTestSentLength, processorType, deviceIds);
             }
         }
 

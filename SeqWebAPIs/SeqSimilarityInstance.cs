@@ -11,12 +11,13 @@ namespace SeqSimilarityWebAPI
     {
         static private object locker = new object();
         static private SeqSimilarity m_seqSimilarity;
-        static public void Initialization(string modelFilePath, int maxTestSentLength, string processorType)
+        static public void Initialization(string modelFilePath, int maxTestSentLength, string processorType, string deviceIds)
         {
             SeqSimilarityOptions opts = new SeqSimilarityOptions();
             opts.ModelFilePath = modelFilePath;
             opts.MaxTestSentLength = maxTestSentLength;
             opts.ProcessorType = processorType;
+            opts.DeviceIds = deviceIds;
 
             m_seqSimilarity = new SeqSimilarity(opts);
         }

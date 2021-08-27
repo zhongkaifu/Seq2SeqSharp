@@ -12,13 +12,14 @@ namespace Seq2SeqWebAPI
     {
         static private object locker = new object();
         static private Seq2Seq m_seq2seq;
-        static public void Initialization(string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, string processorType)
+        static public void Initialization(string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, string processorType, string deviceIds)
         {
             Seq2SeqOptions opts = new Seq2SeqOptions();
             opts.ModelFilePath = modelFilePath;
             opts.MaxTestSrcSentLength = maxTestSrcSentLength;
             opts.MaxTestTgtSentLength = maxTestTgtSentLength;
             opts.ProcessorType = processorType;
+            opts.DeviceIds = deviceIds;
 
             m_seq2seq = new Seq2Seq(opts);
         }

@@ -11,12 +11,13 @@ namespace SeqClassificationWebAPI
     {
         static private object locker = new object();
         static private SeqClassification m_seqClassification;
-        static public void Initialization(string modelFilePath, int maxTestSentLength, string processorType)
+        static public void Initialization(string modelFilePath, int maxTestSentLength, string processorType, string deviceIds)
         {
             SeqClassificationOptions opts = new SeqClassificationOptions();
             opts.ModelFilePath = modelFilePath;
             opts.MaxTestSentLength = maxTestSentLength;
             opts.ProcessorType = processorType;
+            opts.DeviceIds = deviceIds;
 
             m_seqClassification = new SeqClassification(opts);
         }
