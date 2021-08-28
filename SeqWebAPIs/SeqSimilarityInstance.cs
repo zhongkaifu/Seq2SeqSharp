@@ -5,33 +5,34 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace SeqClassificationWebAPI
+namespace SeqSimilarityWebAPI
 {
-    public static class SeqClassificationInstance
+    static public class SeqSimilarityInstance
     {
         static private object locker = new object();
-        static private SeqClassification m_seqClassification;
-        static public void Initialization(string modelFilePath, int maxTestSentLength, string processorType)
+        static private SeqSimilarity m_seqSimilarity;
+        static public void Initialization(string modelFilePath, int maxTestSentLength, string processorType, string deviceIds)
         {
-            SeqClassificationOptions opts = new SeqClassificationOptions();
+            SeqSimilarityOptions opts = new SeqSimilarityOptions();
             opts.ModelFilePath = modelFilePath;
             opts.MaxTestSentLength = maxTestSentLength;
             opts.ProcessorType = processorType;
+            opts.DeviceIds = deviceIds;
 
-            m_seqClassification = new SeqClassification(opts);
+            m_seqSimilarity = new SeqSimilarity(opts);
         }
 
         static public string Call(string input1, string input2)
         {
             List<List<List<string>>> groupBatchTokens = new List<List<List<string>>>();
 
-            // Build features in group 1
+            // Build group 1 features for input string 1
             List<string> tokens = input1.Split(' ').ToList();
             List<List<String>> batchTokens = new List<List<string>>();
             batchTokens.Add(tokens);
             groupBatchTokens.Add(batchTokens);
 
-            // Build features in group 2
+            // Build group 2 features for input string 2
             tokens = input2.Split(' ').ToList();
             batchTokens = new List<List<string>>();
             batchTokens.Add(tokens);
@@ -40,7 +41,7 @@ namespace SeqClassificationWebAPI
 
             lock (locker)
             {
-                List<NetworkResult> nrs = m_seqClassification.Test(groupBatchTokens);
+                List<NetworkResult> nrs = m_seqSimilarity.Test(groupBatchTokens);
 
                 List<string> tags = new List<string>();
                 foreach (var nr in nrs)
