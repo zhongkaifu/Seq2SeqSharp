@@ -103,7 +103,14 @@ namespace Seq2SeqSharp.Tools
             {
                 if (pair.Value.Count <= m_batchSize)
                 {
-                    dictSB.Add(pair.Key, pair.Value);
+                    if (dictSB.ContainsKey(pair.Key) == false)
+                    {
+                        dictSB.Add(pair.Key, pair.Value);
+                    }
+                    else
+                    {
+                        dictSB[pair.Key].AddRange(pair.Value);
+                    }
                 }
                 else
                 {
@@ -112,12 +119,12 @@ namespace Seq2SeqSharp.Tools
                     for (int i = 0; i < N; i++)
                     {
                         var pairs = pair.Value.GetRange(i * m_batchSize, m_batchSize);
-                        dictSB.Add(pair.Key + 10000000 * i, pairs);
+                        dictSB.Add(pair.Key + 10000000 * m_maxSrcSentLength * i, pairs);
                     }
 
                     if (pair.Value.Count % m_batchSize != 0)
                     {
-                        dictSB.Add(pair.Key + 10000000 * N, pair.Value.GetRange(m_batchSize * N, pair.Value.Count % m_batchSize));
+                        dictSB.Add(pair.Key + 10000000 * m_maxSrcSentLength * N, pair.Value.GetRange(m_batchSize * N, pair.Value.Count % m_batchSize));
                     }
                 }
             }
