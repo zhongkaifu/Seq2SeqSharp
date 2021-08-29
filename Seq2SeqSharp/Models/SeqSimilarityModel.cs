@@ -16,7 +16,7 @@ namespace Seq2SeqSharp.Models
         }
 
         public SeqSimilarityModel(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, Vocab clsVocab, bool enableSegmentEmbeddings, string similarityType)
-                        : base(hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings)
+                        : base(hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, false)
         {
             ClsVocab = clsVocab;
             SimilarityType = similarityType;

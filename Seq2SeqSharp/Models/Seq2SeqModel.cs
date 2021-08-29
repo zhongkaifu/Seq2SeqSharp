@@ -13,8 +13,8 @@ namespace Seq2SeqSharp
         }
 
         public Seq2SeqModel(int hiddenDim, int encoderEmbeddingDim, int decoderEmbeddingDim, int encoderLayerDepth, int decoderLayerDepth, int multiHeadNum, 
-            EncoderTypeEnums encoderType, DecoderTypeEnums decoderType, Vocab srcVocab, Vocab tgtVocab, bool enableCoverageModel, bool sharedEmbeddings, bool enableSegmentEmbeddings)
-            :base(hiddenDim, encoderLayerDepth, encoderType, encoderEmbeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings)
+            EncoderTypeEnums encoderType, DecoderTypeEnums decoderType, Vocab srcVocab, Vocab tgtVocab, bool enableCoverageModel, bool sharedEmbeddings, bool enableSegmentEmbeddings, bool applyContextEmbeddingsToEntireSequence)
+            :base(hiddenDim, encoderLayerDepth, encoderType, encoderEmbeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, applyContextEmbeddingsToEntireSequence)
         {
             DecoderEmbeddingDim = decoderEmbeddingDim;
             DecoderLayerDepth = decoderLayerDepth;

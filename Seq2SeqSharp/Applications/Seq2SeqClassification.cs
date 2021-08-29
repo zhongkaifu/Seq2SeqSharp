@@ -59,20 +59,13 @@ namespace Seq2SeqSharp.Applications
                 DecoderTypeEnums decoderType = (DecoderTypeEnums)Enum.Parse(typeof(DecoderTypeEnums), options.DecoderType);
 
                 m_modelMetaData = new Seq2SeqClassificationModel(options.HiddenSize, options.SrcEmbeddingDim, options.TgtEmbeddingDim, options.EncoderLayerDepth, options.DecoderLayerDepth, options.MultiHeadNum,
-                    encoderType, decoderType, srcVocab, tgtVocab, clsVocab, options.EnableCoverageModel, options.SharedEmbeddings, options.EnableSegmentEmbeddings);
+                    encoderType, decoderType, srcVocab, tgtVocab, clsVocab, options.EnableCoverageModel, options.SharedEmbeddings, options.EnableSegmentEmbeddings, options.ApplyContextEmbeddingsToEntireSequence);
 
                 //Initializng weights in encoders and decoders
                 CreateTrainableParameters(m_modelMetaData);
             }
 
             m_modelMetaData.ShowModelInfo();
-
-            string primaryTaskStr = options.PrimaryTaskId == 0 ? "Sequence Classification" : "Sequence Generation";
-
-            Logger.WriteLine($"Max source sentence length in training corpus = '{options.MaxTrainSrcSentLength}'");
-            Logger.WriteLine($"Max target sentence length in training corpus = '{options.MaxTrainTgtSentLength}'");
-            Logger.WriteLine($"BeamSearch Size = '{options.BeamSearchSize}'");
-            Logger.WriteLine($"Primary task = '{primaryTaskStr}'");
         }
 
         private bool CreateTrainableParameters(IModel modelMetaData)
@@ -212,7 +205,7 @@ namespace Seq2SeqSharp.Applications
             var srcSnts = sntPairBatch.GetSrcTokens(0);
             var originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
 
-            IWeightTensor encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcSnts, originalSrcLengths, m_options.ApplyContextEmbeddingsToEntireSequence);
+            IWeightTensor encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcSnts, originalSrcLengths);
 
             List<NetworkResult> nrs = new List<NetworkResult>();
             int srcSeqPaddedLen = srcSnts[0].Count;

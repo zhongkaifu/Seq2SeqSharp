@@ -59,19 +59,13 @@ namespace Seq2SeqSharp
                 DecoderTypeEnums decoderType = (DecoderTypeEnums)Enum.Parse(typeof(DecoderTypeEnums), options.DecoderType);
 
                 m_modelMetaData = new Seq2SeqModel(options.HiddenSize, options.SrcEmbeddingDim, options.TgtEmbeddingDim, options.EncoderLayerDepth, options.DecoderLayerDepth, options.MultiHeadNum,
-                    encoderType, decoderType, srcVocab, tgtVocab, options.EnableCoverageModel, options.SharedEmbeddings, options.EnableSegmentEmbeddings);
+                    encoderType, decoderType, srcVocab, tgtVocab, options.EnableCoverageModel, options.SharedEmbeddings, options.EnableSegmentEmbeddings, options.ApplyContextEmbeddingsToEntireSequence);
 
                 //Initializng weights in encoders and decoders
                 CreateTrainableParameters(m_modelMetaData);
             }
 
             m_modelMetaData.ShowModelInfo();
-
-            Logger.WriteLine($"Encoder is trainable: '{options.IsEncoderTrainable}'");
-            Logger.WriteLine($"Decoder is trainable: '{options.IsDecoderTrainable}'");
-            Logger.WriteLine($"Max source sentence length in training corpus = '{options.MaxTrainSrcSentLength}'");
-            Logger.WriteLine($"Max target sentence length in training corpus = '{options.MaxTrainTgtSentLength}'");
-            Logger.WriteLine($"BeamSearch Size = '{options.BeamSearchSize}'");
         }
 
         private bool CreateTrainableParameters(IModel modelMetaData)
@@ -225,7 +219,7 @@ namespace Seq2SeqSharp
                 throw new InvalidDataException($"The source sentence is too long. Its length = '{srcSnts[0].Count}', but MaxTrainSrcSentLength is '{m_options.MaxTrainSrcSentLength}'. The sentence is '{String.Join(" ", srcSnts[0])}'");
             }
 
-            IWeightTensor encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcSnts, originalSrcLengths, m_options.ApplyContextEmbeddingsToEntireSequence);
+            IWeightTensor encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcSnts, originalSrcLengths);
 
             List<NetworkResult> nrs = new List<NetworkResult>();
 

@@ -28,6 +28,9 @@ namespace Seq2SeqSharp.Models
 
         public string SimilarityType { get; set; }
 
+        public bool ApplyContextEmbeddingsToEntireSequence { get; set; }
+
+
         public Vocab ClsVocab
         {
             get
@@ -65,7 +68,8 @@ namespace Seq2SeqSharp.Models
 
         }
 
-        public Model(int hiddenDim, int encoderLayerDepth, EncoderTypeEnums encoderType, int encoderEmbeddingDim, int multiHeadNum, Vocab srcVocab, bool enableSegmentEmbeddings)
+        public Model(int hiddenDim, int encoderLayerDepth, EncoderTypeEnums encoderType, int encoderEmbeddingDim, int multiHeadNum, Vocab srcVocab, 
+            bool enableSegmentEmbeddings, bool applyContextEmbeddingsToEntireSequence)
         {
             HiddenDim = hiddenDim;
             EncoderLayerDepth = encoderLayerDepth;
@@ -74,6 +78,7 @@ namespace Seq2SeqSharp.Models
             SrcVocab = srcVocab;
             EncoderEmbeddingDim = encoderEmbeddingDim;
             EnableSegmentEmbeddings = enableSegmentEmbeddings;
+            ApplyContextEmbeddingsToEntireSequence = applyContextEmbeddingsToEntireSequence;
 
             Name2Weights = new Dictionary<string, float[]>();
         }
@@ -110,7 +115,14 @@ namespace Seq2SeqSharp.Models
             Logger.WriteLine($"Hidden layer dim: '{HiddenDim}'");
             Logger.WriteLine($"Enable segment embeddings: '{EnableSegmentEmbeddings}'");
             Logger.WriteLine($"Enable shared embeddings: '{SharedEmbeddings}'");
+            Logger.WriteLine($"Apply context embeddings to entire sequence: '{ApplyContextEmbeddingsToEntireSequence}'");
             Logger.WriteLine($"Multi-head size: '{MultiHeadNum}'");
+
+
+            if (String.IsNullOrEmpty(SimilarityType) == false)
+            {
+                Logger.WriteLine($"Similarity Type: '{SimilarityType}'");
+            }
 
             if (SrcVocab != null)
             {

@@ -57,7 +57,6 @@ namespace Seq2SeqSharp.Applications
             }
 
             m_modelMetaData.ShowModelInfo();
-            Logger.WriteLine($"Similarity Type = '{options.SimilarityType}'");
         }
 
 

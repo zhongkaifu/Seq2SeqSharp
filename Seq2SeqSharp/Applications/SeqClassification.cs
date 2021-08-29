@@ -50,16 +50,13 @@ namespace Seq2SeqSharp.Applications
                 EncoderTypeEnums encoderType = (EncoderTypeEnums)Enum.Parse(typeof(EncoderTypeEnums), options.EncoderType);
 
                 m_modelMetaData = new SeqClassificationModel(options.HiddenSize, options.EmbeddingDim, options.EncoderLayerDepth, options.MultiHeadNum,
-                    encoderType, srcVocab, clsVocabs, options.EnableSegmentEmbeddings);
+                    encoderType, srcVocab, clsVocabs, options.EnableSegmentEmbeddings, options.ApplyContextEmbeddingsToEntireSequence);
 
                 //Initializng weights in encoders and decoders
                 CreateTrainableParameters(m_modelMetaData);
             }
 
             m_modelMetaData.ShowModelInfo();
-
-            Logger.WriteLine($"Max source sentence length in training corpus = '{options.MaxTrainSentLength}'");
-            Logger.WriteLine($"BeamSearch Size = '{options.BeamSearchSize}'");
         }
 
 
@@ -186,7 +183,7 @@ namespace Seq2SeqSharp.Applications
             var srcSnts = sntPairBatch.GetSrcTokens(0);
             var originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
           
-            IWeightTensor encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcSnts, originalSrcLengths, m_options.ApplyContextEmbeddingsToEntireSequence);
+            IWeightTensor encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcSnts, originalSrcLengths);
 
             int srcSeqPaddedLen = srcSnts[0].Count;
             int batchSize = srcSnts.Count;

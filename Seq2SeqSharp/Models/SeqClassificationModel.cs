@@ -15,8 +15,8 @@ namespace Seq2SeqSharp.Models
 
         }
 
-        public SeqClassificationModel(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, List<Vocab> clsVocabs, bool enableSegmentEmbeddings)
-                        : base(hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings)
+        public SeqClassificationModel(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, List<Vocab> clsVocabs, bool enableSegmentEmbeddings, bool applyContextEmbeddingsToEntireSequence)
+                        : base(hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, applyContextEmbeddingsToEntireSequence)
         {
             ClsVocabs = clsVocabs;
         }

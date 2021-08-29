@@ -23,6 +23,8 @@ namespace Seq2SeqSharp
 
         public string SimilarityType { get; set; }
 
+        public bool ApplyContextEmbeddingsToEntireSequence { get; set; }
+
         public void AddWeights(string name, float[] weights);
 
         public float[] GetWeights(string name);
