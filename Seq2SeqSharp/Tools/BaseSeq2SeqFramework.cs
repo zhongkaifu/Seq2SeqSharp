@@ -280,7 +280,7 @@ namespace Seq2SeqSharp.Tools
 
                                 if (isOutOfMemException)
                                 {
-                                    batchSplitFactor = TryToSplitBatchFactor(sntPairBatchs, batchSplitFactor);
+                                    batchSplitFactor = TryToSplitBatchFactor(sntPairBatchs, batchSplitFactor, oomMessage);
                                     if (batchSplitFactor < 0)
                                     {
                                         break;
@@ -306,7 +306,7 @@ namespace Seq2SeqSharp.Tools
                         }
                         catch (OutOfMemoryException err)
                         {
-                            batchSplitFactor = TryToSplitBatchFactor(sntPairBatchs, batchSplitFactor);
+                            batchSplitFactor = TryToSplitBatchFactor(sntPairBatchs, batchSplitFactor, err.Message);
                             if (batchSplitFactor < 0)
                             {
                                 break;
@@ -342,7 +342,7 @@ namespace Seq2SeqSharp.Tools
 
 
 
-        private int TryToSplitBatchFactor(List<ISntPairBatch> sntPairBatchs, int batchSplitFactor)
+        private int TryToSplitBatchFactor(List<ISntPairBatch> sntPairBatchs, int batchSplitFactor, string message)
         {
             int maxBatchSize = 0;
             int maxTokenSize = 0;
@@ -362,7 +362,7 @@ namespace Seq2SeqSharp.Tools
             }
 
             batchSplitFactor *= 2;
-            Logger.WriteLine($" Out of memory. Retrying with batch split factor '{batchSplitFactor}'. Max batch size '{maxBatchSize}', Max token size '{maxTokenSize}'");
+            Logger.WriteLine($" {message} Retrying with batch split factor '{batchSplitFactor}'. Max batch size '{maxBatchSize}', Max token size '{maxTokenSize}'");
 
             if (batchSplitFactor >= maxBatchSize)
             {

@@ -90,7 +90,10 @@ namespace SeqWebAPIs
                 processorType = Configuration["Seq2SeqClassification:ProcessorType"];
                 deviceIds = Configuration["Seq2SeqClassification:DeviceIds"];
 
-                Seq2SeqClassificationInstances.Initialization(key2ModelFilePath, maxTestSrcSentLength, maxTestTgtSentLength, processorType, deviceIds);
+                if (key2ModelFilePath.Count > 0)
+                {
+                    Seq2SeqClassificationInstances.Initialization(key2ModelFilePath, maxTestSrcSentLength, maxTestTgtSentLength, processorType, deviceIds);
+                }
             }
         }
 

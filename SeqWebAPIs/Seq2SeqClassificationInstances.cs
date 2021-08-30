@@ -32,6 +32,10 @@ namespace SeqWebAPIs
         }
         static public (string, string) Call(string key, List<string> inputFeatureGroups)
         {
+            if (m_key2Instance.ContainsKey(key) == false)
+            {
+                return ("", "");
+            }
 
             List<List<List<string>>> groupBatchTokens = new List<List<List<string>>>();
             foreach (var inputFeatureGroup in inputFeatureGroups)
