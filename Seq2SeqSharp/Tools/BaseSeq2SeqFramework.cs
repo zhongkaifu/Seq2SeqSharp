@@ -345,15 +345,15 @@ namespace Seq2SeqSharp.Tools
         private int TryToSplitBatchFactor(List<ISntPairBatch> sntPairBatchs, int batchSplitFactor, string message)
         {
             int maxBatchSize = 0;
-            List<string> batchSizeList = new List<string>();
-            List<string> srcTokenSizeList = new List<string>();
-            List<string> tgtTokenSizeList = new List<string>();
+            int maxTokenSize = 0;
+
 
             foreach (var batch in sntPairBatchs)
             {
-                batchSizeList.Add(batch.BatchSize.ToString());
-                srcTokenSizeList.Add(batch.SrcTokenCount.ToString());
-                tgtTokenSizeList.Add(batch.TgtTokenCount.ToString());
+                if (maxTokenSize < batch.SrcTokenCount + batch.TgtTokenCount)
+                {
+                    maxTokenSize = batch.SrcTokenCount + batch.TgtTokenCount;
+                }
 
                 if (maxBatchSize < batch.BatchSize)
                 {
@@ -362,7 +362,7 @@ namespace Seq2SeqSharp.Tools
             }
 
             batchSplitFactor *= 2;
-            Logger.WriteLine($"Got an exception ('{message}'), so retry it with batch split factor '{batchSplitFactor}'. Batch size: '{String.Join(" ", batchSizeList)}', Src token size: '{String.Join(" ", srcTokenSizeList)}', Tgt token size: '{String.Join(" ", tgtTokenSizeList)}'");
+            Logger.WriteLine($" {message} Retrying with batch split factor '{batchSplitFactor}'. Max batch size '{maxBatchSize}', Max token size '{maxTokenSize}'");
 
             if (batchSplitFactor >= maxBatchSize)
             {
@@ -418,6 +418,35 @@ namespace Seq2SeqSharp.Tools
                                 processedLine += batchSegSize;
                             }
                         }
+                    }
+
+                    int remainBatchSegSize = sntPairBatch_i.BatchSize % batchSplitFactor;
+                    if (remainBatchSegSize > 0)
+                    {
+                        ISntPairBatch sntPairBatch = sntPairBatch_i.GetRange(sntPairBatch_i.BatchSize - remainBatchSegSize, remainBatchSegSize);
+
+                        List<NetworkResult> nrs;
+                        // Create a new computing graph instance
+                        using (IComputeGraph computeGraph_i = CreateComputGraph(i))
+                        {
+                            // Run forward part
+                            nrs = ForwardOnSingleDevice(computeGraph_i, sntPairBatch, i, true);
+                            // Run backward part and compute gradients
+                            computeGraph_i.Backward();
+                        }
+
+                        lock (locker)
+                        {
+                            foreach (var nr in nrs)
+                            {
+                                cost += nr.Cost;
+                            }
+
+                            srcWordCnts += sntPairBatch_i.SrcTokenCount;
+                            tgtWordCnts += sntPairBatch_i.TgtTokenCount;
+                            processedLine += batchSegSize;
+                        }
+
                     }
                 }
                 catch (OutOfMemoryException err)

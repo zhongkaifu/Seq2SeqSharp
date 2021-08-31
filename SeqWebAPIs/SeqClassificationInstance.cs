@@ -22,22 +22,16 @@ namespace SeqClassificationWebAPI
             m_seqClassification = new SeqClassification(opts);
         }
 
-        static public string Call(string input1, string input2)
+        static public string Call(List<string> inputFeatureGroups)
         {
             List<List<List<string>>> groupBatchTokens = new List<List<List<string>>>();
-
-            // Build features in group 1
-            List<string> tokens = input1.Split(' ').ToList();
-            List<List<String>> batchTokens = new List<List<string>>();
-            batchTokens.Add(tokens);
-            groupBatchTokens.Add(batchTokens);
-
-            // Build features in group 2
-            tokens = input2.Split(' ').ToList();
-            batchTokens = new List<List<string>>();
-            batchTokens.Add(tokens);
-            groupBatchTokens.Add(batchTokens);
-
+            foreach (var inputFeatureGroup in inputFeatureGroups)
+            {
+                List<string> tokens = inputFeatureGroup.Split(' ').ToList();
+                List<List<string>> batchTokens = new List<List<string>>();
+                batchTokens.Add(tokens);
+                groupBatchTokens.Add(batchTokens);
+            }
 
             lock (locker)
             {

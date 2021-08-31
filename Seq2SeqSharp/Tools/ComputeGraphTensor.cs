@@ -186,13 +186,9 @@ namespace Seq2SeqSharp.Tools
 
                     using (var tmp = Ops.Pow(null, res.TWeight, 3.0f))
                     {
-                        using (var tmp2 = Ops.Mul(null, tmp, res.TGradient))
-                        {
-                            using (var tmp3 = Ops.Mul(null, tmp2, -0.5f))
-                            {
-                                m.CopyOrAddGradient(tmp3);
-                            }
-                        }
+                        using var tmp2 = Ops.Mul(null, tmp, res.TGradient);
+                        using var tmp3 = Ops.Mul(null, tmp2, -0.5f);
+                        m.CopyOrAddGradient(tmp3);
 
                     }
 
