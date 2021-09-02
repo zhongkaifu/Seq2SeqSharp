@@ -38,6 +38,8 @@ namespace Seq2SeqSharp.Tools
         void CopyWeightsFrom(IWeightTensor src);
         void AddGradientFrom(IWeightTensor src);
 
+        WeightTensor CopyWeightsRef(string name);
+
         float[] ToWeightArray();
 
         void UnbindFromComputeGraph();
