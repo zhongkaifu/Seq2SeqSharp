@@ -32,6 +32,7 @@
   <ItemGroup>
     <PackageReference Include="ManagedCuda-11" Version="11.4.47" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="5.0.0" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
   </ItemGroup>
 </Project>
