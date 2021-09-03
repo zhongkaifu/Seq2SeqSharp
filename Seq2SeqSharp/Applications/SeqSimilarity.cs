@@ -1,4 +1,5 @@
 ﻿using AdvUtils;
+using Microsoft.Extensions.Caching.Memory;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Layers;
 using Seq2SeqSharp.Metrics;
@@ -30,11 +31,19 @@ namespace Seq2SeqSharp.Applications
         private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
         readonly SeqSimilarityOptions m_options = null;
 
+
+        private MemoryCache m_memoryCache;
+
         public SeqSimilarity(SeqSimilarityOptions options, Vocab srcVocab = null, Vocab clsVocab = null)
            : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions, options.ValidIntervalHours)
         {
             m_shuffleType = (ShuffleEnums)Enum.Parse(typeof(ShuffleEnums), options.ShuffleType);
             m_options = options;
+
+            m_memoryCache = new MemoryCache(new MemoryCacheOptions
+            {
+                SizeLimit = 1024
+            });
 
             if (File.Exists(m_options.ModelFilePath))
             {
@@ -159,6 +168,19 @@ namespace Seq2SeqSharp.Applications
                     m_posEmbedding?.GetNetworkOnDevice(deviceIdIdx), m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx));
         }
 
+
+        private string GenerateCacheKey(List<List<string>> strs)
+        {
+            List<string> r = new List<string>();
+
+            foreach (var str in strs)
+            {
+                r.Add(String.Join(" ", str));
+            }
+
+            return String.Join("\t", r);
+        }
+
         /// <summary>
         /// Run forward part on given single device
         /// </summary>
@@ -180,9 +202,35 @@ namespace Seq2SeqSharp.Applications
 
             (IEncoder encoder, IWeightTensor srcEmbedding, IFeedForwardLayer encoderFFLayer, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding) = GetNetworksOnDeviceAt(deviceIdIdx);
 
-            IWeightTensor encOutput1 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, 0); // output shape: [batch_size, dim]
-            IWeightTensor encOutput2 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, 1); // output_shape: [batch_size, dim]
+            IWeightTensor encOutput1 = null;
+            IWeightTensor encOutput2 = null;
+            if (isTraining == false && m_options.ProcessorType.Equals("CPU", StringComparison.InvariantCultureIgnoreCase))
+            {
+                //We only check cache at inference time
+                string cacheKey1 = GenerateCacheKey(sntPairBatch.GetSrcTokens(0));
+                if (!m_memoryCache.TryGetValue(cacheKey1, out encOutput1))
+                {
+                    encOutput1 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, 0); // output shape: [batch_size, dim]
 
+                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSize(1);
+                    m_memoryCache.Set(cacheKey1, encOutput1.CopyWeightsRef($"cache_{encOutput1.Name}"), cacheEntryOptions);
+                }
+
+                string cacheKey2 = GenerateCacheKey(sntPairBatch.GetSrcTokens(1));
+                if (!m_memoryCache.TryGetValue(cacheKey2, out encOutput2))
+                {
+                    encOutput2 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, 1); // output_shape: [batch_size, dim]
+
+                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSize(1);
+                    m_memoryCache.Set(cacheKey2, encOutput2.CopyWeightsRef($"cache_{encOutput2.Name}"), cacheEntryOptions);
+                }
+            }
+            else
+            {
+                //We always run encoder network during training time or using GPUs
+                encOutput1 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, 0); // output shape: [batch_size, dim]
+                encOutput2 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, 1); // output_shape: [batch_size, dim]
+            }
 
             if (m_modelMetaData.SimilarityType.Equals("Continuous", StringComparison.InvariantCultureIgnoreCase))
             {
