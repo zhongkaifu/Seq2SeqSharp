@@ -151,7 +151,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor Sigmoid(IWeightTensor w)
         {
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Sigmoid");
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Sigmoid", graphToBind: this);
             VisualizeNodes(w, res);
 
             Ops.Sigmoid(res.TWeight, m.TWeight);
@@ -174,7 +174,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor Rsqrt(IWeightTensor w)
         {
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Rsqrt");
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Rsqrt", graphToBind: this);
             VisualizeNodes(w, res);
 
             Ops.Rsqrt(res.TWeight, m.TWeight);
@@ -206,7 +206,7 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor m1 = w1 as WeightTensor;
             WeightTensor m2 = w2 as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.AddTanh");
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.AddTanh", graphToBind: this);
             VisualizeNodes(new IWeightTensor[] { w1, w2 }, res);
 
             Ops.AddTanh(res.TWeight, m1.TWeight, m2.TWeight);
@@ -230,7 +230,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor m1 = w1 as WeightTensor;
             WeightTensor m2 = w2 as WeightTensor;
             WeightTensor m3 = w3 as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name, w3.Name)}.AddTanh");
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name, w3.Name)}.AddTanh", graphToBind: this);
             VisualizeNodes(new IWeightTensor[] { w1, w2, w3 }, res);
 
             Ops.AddTanh3(res.TWeight, m1.TWeight, m2.TWeight, m3.TWeight);
@@ -552,7 +552,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor Tanh(IWeightTensor w)
         {
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Tanh");
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Tanh", graphToBind: this);
             VisualizeNodes(w, res);
 
             Ops.Tanh(res.TWeight, m.TWeight);
@@ -867,7 +867,7 @@ namespace Seq2SeqSharp.Tools
             }
             else
             {
-                res = m_weightTensorFactory.CreateWeightTensor(t.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Softmax");
+                res = m_weightTensorFactory.CreateWeightTensor(t.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Softmax", graphToBind: this);
             }
 
             VisualizeNodes(w, res);
@@ -1256,7 +1256,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor AsContiguous(IWeightTensor w, bool runGradient = true, bool shareTensor = true)
         {
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.AsContiguous");
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.AsContiguous", graphToBind: this);
             VisualizeNodes(w, res);
 
             res.TWeight = Ops.AsContiguous(m.TWeight);
@@ -1453,7 +1453,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor alphaT = alpha as WeightTensor;
             WeightTensor betaT = beta as WeightTensor;
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(srcT.Sizes, m_deviceId, name: $"{GetHashString(src.Name, alpha.Name, beta.Name)}.LayerNorm");
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(srcT.Sizes, m_deviceId, name: $"{GetHashString(src.Name, alpha.Name, beta.Name)}.LayerNorm", graphToBind: this);
             VisualizeNodes(new IWeightTensor[] { src, alpha, beta }, res);
 
             Ops.LayerNorm(res.TWeight, srcT.TWeight, alphaT.TWeight, betaT.TWeight, eps);
