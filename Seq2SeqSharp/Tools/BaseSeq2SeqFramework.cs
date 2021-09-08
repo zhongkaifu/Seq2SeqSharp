@@ -2,6 +2,7 @@
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Metrics;
 using Seq2SeqSharp.Optimizer;
+using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -84,6 +85,8 @@ namespace Seq2SeqSharp.Tools
         public event EventHandler EvaluationWatcher;
 
         private readonly int[] m_deviceIds;
+        internal IModel m_modelMetaData;
+
         public int[] DeviceIds => m_deviceIds;
         private readonly string m_modelFilePath;
         private readonly float m_regc = 1e-10f; // L2 regularization strength
@@ -192,7 +195,56 @@ namespace Seq2SeqSharp.Tools
             return modelMetaData;
         }
 
-        internal void TrainOneEpoch(int ep, IEnumerable<ISntPairBatch> trainCorpus, Dictionary<string, IEnumerable<ISntPairBatch>> validCorpusDict, string primaryValidCorpusId, ILearningRate learningRate, IOptimizer solver, Dictionary<int, List<IMetric>> taskId2metrics, IModel modelMetaData,
+        internal (MultiProcessorNetworkWrapper<IWeightTensor>, MultiProcessorNetworkWrapper<IWeightTensor>) CreateSrcTgtEmbeddings(IModel modelMetaData, RoundArray<int> raDeviceIds, bool isSrcEmbeddingTrainable, bool isTgtEmbeddingTrainable, float encoderStartLearningRateFactor, float decoderStartLearningRateFactor)
+        {
+            MultiProcessorNetworkWrapper<IWeightTensor> srcEmbeddings = null;
+            MultiProcessorNetworkWrapper<IWeightTensor> tgtEmbeddings = null;
+
+            if (modelMetaData.SharedEmbeddings)
+            {
+                Logger.WriteLine($"Creating shared embeddings for both source side and target side. Shape = '({modelMetaData.SrcVocab.Count} ,{modelMetaData.EncoderEmbeddingDim})'");
+                srcEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.SrcVocab.Count, modelMetaData.EncoderEmbeddingDim },
+                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SharedEmbeddings", isTrainable: isSrcEmbeddingTrainable, learningRateFactor: encoderStartLearningRateFactor), DeviceIds);
+
+                tgtEmbeddings = srcEmbeddings;
+            }
+            else
+            {
+                Logger.WriteLine($"Creating embeddings for source side. Shape = '({modelMetaData.SrcVocab.Count} ,{modelMetaData.EncoderEmbeddingDim})'");
+                srcEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.SrcVocab.Count, modelMetaData.EncoderEmbeddingDim },
+                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SrcEmbeddings", isTrainable: isSrcEmbeddingTrainable, learningRateFactor: encoderStartLearningRateFactor), DeviceIds);
+
+                Logger.WriteLine($"Creating embeddings for target side. Shape = '({modelMetaData.TgtVocab.Count} ,{modelMetaData.DecoderEmbeddingDim})'");
+                tgtEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.TgtVocab.Count, modelMetaData.DecoderEmbeddingDim },
+                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "TgtEmbeddings", isTrainable: isTgtEmbeddingTrainable, learningRateFactor: decoderStartLearningRateFactor), DeviceIds);
+            }
+
+            return (srcEmbeddings, tgtEmbeddings);
+        }
+
+        public void Train(int maxTrainingEpoch, IParallelCorpus<ISntPairBatch> trainCorpus, IParallelCorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, Dictionary<int, List<IMetric>> taskId2metrics, IOptimizer optimizer)
+        {
+            Logger.WriteLine("Start to train...");
+            for (int i = 0; i < maxTrainingEpoch; i++)
+            {
+                // Train one epoch over given devices. Forward part is implemented in RunForwardOnSingleDevice function in below, 
+                // backward, weights updates and other parts are implemented in the framework. You can see them in BaseSeq2SeqFramework.cs
+                TrainOneEpoch(i, trainCorpus, validCorpusList, learningRate, optimizer, taskId2metrics, m_modelMetaData, RunForwardOnSingleDevice);
+            }
+        }
+
+        public void Train(int maxTrainingEpoch, IParallelCorpus<ISntPairBatch> trainCorpus, IParallelCorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, List<IMetric> metrics, IOptimizer optimizer)
+        {
+            Logger.WriteLine("Start to train...");
+            Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>
+            {
+                { 0, metrics }
+            };
+
+            Train(maxTrainingEpoch, trainCorpus, validCorpusList, learningRate, taskId2metrics, optimizer);
+        }
+
+        internal void TrainOneEpoch(int ep, IParallelCorpus<ISntPairBatch> trainCorpus, IParallelCorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, IOptimizer solver, Dictionary<int, List<IMetric>> taskId2metrics, IModel modelMetaData,
             Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice)
         {
             int processedLineInTotal = 0;
@@ -328,7 +380,7 @@ namespace Seq2SeqSharp.Tools
                     TimeSpan ts = DateTime.Now - m_lastCheckPointDateTime;
                     if (ts.TotalHours > m_validIntervalHours)
                     {
-                        CreateCheckPoint(validCorpusDict, primaryValidCorpusId, taskId2metrics, modelMetaData, ForwardOnSingleDevice, avgCostPerWordInTotal);
+                        CreateCheckPoint(validCorpusList, taskId2metrics, modelMetaData, ForwardOnSingleDevice, avgCostPerWordInTotal);
                         m_lastCheckPointDateTime = DateTime.Now;
                     }
 
@@ -465,19 +517,19 @@ namespace Seq2SeqSharp.Tools
             return (cost, srcWordCnts, tgtWordCnts, processedLine);
         }
 
-        private void CreateCheckPoint(Dictionary<string, IEnumerable<ISntPairBatch>> validCorpusDict, string primaryValidCorpusId, Dictionary<int, List<IMetric>> taskId2metrics, IModel modelMetaData, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice, double avgCostPerWordInTotal)
+        private void CreateCheckPoint(IParallelCorpus<ISntPairBatch>[] validCorpusList, Dictionary<int, List<IMetric>> taskId2metrics, IModel modelMetaData, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice, double avgCostPerWordInTotal)
         {
-            if (validCorpusDict != null && validCorpusDict.Count > 0)
+            if (validCorpusList != null && validCorpusList.Length > 0)
             {
                 ReleaseGradientOnAllDevices();
 
                 // The valid corpus is provided, so evaluate the model.
-
-                foreach (var pair in validCorpusDict)
+                for (int i = 0;i < validCorpusList.Length;i++)               
                 {
-                    var betterResult = RunValid(pair.Value, ForwardOnSingleDevice, taskId2metrics, outputToFile: true, prefixName: pair.Key);
+                    var validCorpus = validCorpusList[i];
+                    var betterResult = RunValid(validCorpus, ForwardOnSingleDevice, taskId2metrics, outputToFile: true, prefixName: validCorpus.CorpusName);
 
-                    if ((pair.Key == primaryValidCorpusId && betterResult == true) || File.Exists(m_modelFilePath) == false)
+                    if ((i == 0 && betterResult == true) || File.Exists(m_modelFilePath) == false)
                     {
                         SaveModel(modelMetaData);
                     }
@@ -602,6 +654,24 @@ namespace Seq2SeqSharp.Tools
         }
 
 
+        public List<NetworkResult> Test<T>(List<List<List<string>>> inputTokensGroups) where T : ISntPairBatch, new()
+        {
+            T spb = new T();
+            spb.CreateBatch(inputTokensGroups);
+            var nrs = RunTest(spb, RunForwardOnSingleDevice);
+
+            return nrs;
+        }
+
+
+        public void Test<T>(string inputTestFile, string outputFile, int batchSize, int maxTestSrcSentLength) where T : ISntPairBatch, new()
+        {
+            SntPairBatchStreamReader<Seq2SeqCorpusBatch> reader = new SntPairBatchStreamReader<Seq2SeqCorpusBatch>(inputTestFile, batchSize, maxTestSrcSentLength);
+            SntPairBatchStreamWriter writer = new SntPairBatchStreamWriter(outputFile);
+            RunTest<Seq2SeqCorpusBatch>(reader, writer, RunForwardOnSingleDevice);
+        }
+
+
         internal void RunTest<T>(SntPairBatchStreamReader<T> reader, SntPairBatchStreamWriter writer, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice) where T : ISntPairBatch, new()
         {
             if (ForwardOnSingleDevice is null)
@@ -650,6 +720,19 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
+        public void Valid(IParallelCorpus<ISntPairBatch> validCorpus, List<IMetric> metrics)
+        {
+            Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>
+            {
+                { 0, metrics }
+            };
+            RunValid(validCorpus, RunForwardOnSingleDevice, taskId2metrics, true);
+        }
+
+        public void Valid(IParallelCorpus<ISntPairBatch> validCorpus, Dictionary<int, List<IMetric>> taskId2metrics)
+        {
+            RunValid(validCorpus, RunForwardOnSingleDevice, taskId2metrics, true);
+        }
 
         /// <summary>
         /// Evaluate the quality of model on valid corpus.
@@ -659,7 +742,7 @@ namespace Seq2SeqSharp.Tools
         /// <param name="metrics">A set of metrics. The first one is the primary metric</param>
         /// <param name="outputToFile">It indicates if valid corpus and results should be dumped to files</param>
         /// <returns>true if we get a better result on primary metric, otherwise, false</returns>
-        internal bool RunValid(IEnumerable<ISntPairBatch> validCorpus, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> RunNetwork, Dictionary<int, List<IMetric>> taskId2metrics,  bool outputToFile = false, string prefixName = "valid")
+        internal bool RunValid(IParallelCorpus<ISntPairBatch> validCorpus, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> RunNetwork, Dictionary<int, List<IMetric>> taskId2metrics,  bool outputToFile = false, string prefixName = "valid")
         {
             List<string> srcSents = new List<string>();
             List<string> refSents = new List<string>();

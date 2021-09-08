@@ -35,10 +35,10 @@ namespace Seq2SeqSharp.Tools
         void ZeroGradient();
         void CleanWeight();
 
+        WeightTensor CopyWeightsRef(string name);
+
         void CopyWeightsFrom(IWeightTensor src);
         void AddGradientFrom(IWeightTensor src);
-
-        WeightTensor CopyWeightsRef(string name);
 
         float[] ToWeightArray();
 

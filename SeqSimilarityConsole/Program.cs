@@ -140,7 +140,7 @@ namespace SeqSimilarityConsole
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;
 
                     // Kick off training
-                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList, learningRate: learningRate, optimizer: optimizer, metric: metric);
+                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: new List<IMetric>() { metric });
                 }
                 //else if (mode == ModeEnums.Valid)
                 //{
@@ -172,7 +172,7 @@ namespace SeqSimilarityConsole
                     ss = new SeqSimilarity(opts);
                     Stopwatch stopwatch = Stopwatch.StartNew();
 
-                    ss.Test();
+                    ss.Test<SeqClassificationMultiTasksCorpusBatch>(opts.InputTestFile, opts.OutputFile, opts.BatchSize, opts.MaxTestSentLength);
 
                     stopwatch.Stop();
 

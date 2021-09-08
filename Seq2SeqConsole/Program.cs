@@ -116,7 +116,7 @@ namespace Seq2SeqConsole
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;
 
                     // Kick off training
-                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList, learningRate: learningRate, optimizer: optimizer, metrics: metrics);
+                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: metrics);
                 }
                 else if (mode == ModeEnums.Valid)
                 {
@@ -143,7 +143,7 @@ namespace Seq2SeqConsole
                     //Test trained model
                     ss = new Seq2Seq(opts);
                     Stopwatch stopwatch = Stopwatch.StartNew();
-                    ss.Test();
+                    ss.Test<Seq2SeqCorpusBatch>(opts.InputTestFile, opts.OutputFile, opts.BatchSize, opts.MaxTestSrcSentLength);
 
                     stopwatch.Stop();
 

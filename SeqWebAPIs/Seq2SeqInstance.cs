@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Seq2SeqSharp;
 using Seq2SeqSharp.Tools;
 using AdvUtils;
+using Seq2SeqSharp.Corpus;
 
 namespace Seq2SeqWebAPI
 {
@@ -35,8 +36,8 @@ namespace Seq2SeqWebAPI
 
             lock (locker)
             {
-                NetworkResult nr = m_seq2seq.Test(groupBatchTokens);
-                string rst = String.Join(" ", nr.Output[0][0].ToArray(), 1, nr.Output[0][0].Count - 2);
+                var nrs = m_seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens);
+                string rst = String.Join(" ", nrs[0].Output[0][0].ToArray(), 1, nrs[0].Output[0][0].Count - 2);
 
                 return rst;
             }

@@ -24,7 +24,6 @@ namespace Seq2SeqSharp
         // Trainable parameters including networks and tensors
         private MultiProcessorNetworkWrapper<IWeightTensor> m_srcEmbedding; //The embeddings over devices for target
         private MultiProcessorNetworkWrapper<IWeightTensor> m_tgtEmbedding; //The embeddings over devices for source
-        private MultiProcessorNetworkWrapper<IWeightTensor> m_sharedEmbedding; //The embeddings over devices for both source and target
 
         private MultiProcessorNetworkWrapper<IEncoder> m_encoder; //The encoders over devices.
         private MultiProcessorNetworkWrapper<IDecoder> m_decoder; //The decoders over devices
@@ -41,6 +40,12 @@ namespace Seq2SeqSharp
         {
             m_shuffleType = (ShuffleEnums)Enum.Parse(typeof(ShuffleEnums), options.ShuffleType);
             m_options = options;
+
+            // Model must exist if current task is not for training
+            if (m_options.Task.Equals("Train", StringComparison.InvariantCultureIgnoreCase) == false && File.Exists(m_options.ModelFilePath) == false)
+            {
+                throw new FileNotFoundException($"Model '{m_options.ModelFilePath}' doesn't exist.");
+            }
 
             if (File.Exists(m_options.ModelFilePath))
             {
@@ -102,85 +107,8 @@ namespace Seq2SeqSharp
                 m_segmentEmbedding = null;
             }
 
-            if (modelMetaData.SharedEmbeddings)
-            {
-                Logger.WriteLine($"Creating shared embeddings for both source side and target side. Shape = '({modelMetaData.SrcVocab.Count} ,{modelMetaData.EncoderEmbeddingDim})'");
-                m_sharedEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.SrcVocab.Count, modelMetaData.EncoderEmbeddingDim },
-                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SharedEmbeddings", isTrainable: m_options.IsSrcEmbeddingTrainable, learningRateFactor: m_options.EncoderStartLearningRateFactor), DeviceIds);
-
-                m_srcEmbedding = null;
-                m_tgtEmbedding = null;
-            }
-            else
-            {
-                Logger.WriteLine($"Creating embeddings for source side. Shape = '({modelMetaData.SrcVocab.Count} ,{modelMetaData.EncoderEmbeddingDim})'");
-                m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.SrcVocab.Count, modelMetaData.EncoderEmbeddingDim },
-                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SrcEmbeddings", isTrainable: m_options.IsSrcEmbeddingTrainable, learningRateFactor: m_options.EncoderStartLearningRateFactor), DeviceIds);
-
-                Logger.WriteLine($"Creating embeddings for target side. Shape = '({modelMetaData.TgtVocab.Count} ,{modelMetaData.DecoderEmbeddingDim})'");
-                m_tgtEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.TgtVocab.Count, modelMetaData.DecoderEmbeddingDim },
-                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "TgtEmbeddings", isTrainable: m_options.IsTgtEmbeddingTrainable, learningRateFactor: m_options.DecoderStartLearningRateFactor), DeviceIds);
-
-                m_sharedEmbedding = null;
-            }
-
+            (m_srcEmbedding, m_tgtEmbedding) = CreateSrcTgtEmbeddings(modelMetaData, raDeviceIds, m_options.IsSrcEmbeddingTrainable, m_options.IsTgtEmbeddingTrainable, m_options.EncoderStartLearningRateFactor, m_options.DecoderStartLearningRateFactor);
             return true;
-        }
-
-
-
-        public void Train(int maxTrainingEpoch, Seq2SeqCorpus trainCorpus, List<Seq2SeqCorpus> validCorpusList, ILearningRate learningRate, List<IMetric> metrics, IOptimizer optimizer)
-        {
-            Logger.WriteLine("Start to train...");
-            Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>
-            {
-                { 0, metrics }
-            };
-
-            Dictionary<string, IEnumerable<ISntPairBatch>> validCorpusDict = new Dictionary<string, IEnumerable<ISntPairBatch>>();
-            string primaryValidCorpusName = "";
-            if (validCorpusList != null && validCorpusList.Count > 0)
-            {
-                primaryValidCorpusName = validCorpusList[0].CorpusName;
-                foreach (var item in validCorpusList)
-                {
-                    validCorpusDict.Add(item.CorpusName, item);
-                }
-            }
-
-            for (int i = 0; i < maxTrainingEpoch; i++)
-            {
-                // Train one epoch over given devices. Forward part is implemented in RunForwardOnSingleDevice function in below, 
-                // backward, weights updates and other parts are implemented in the framework. You can see them in BaseSeq2SeqFramework.cs
-                TrainOneEpoch(i, trainCorpus, validCorpusDict, primaryValidCorpusName, learningRate, optimizer, taskId2metrics, m_modelMetaData, RunForwardOnSingleDevice);
-            }
-        }
-
-        public void Valid(Seq2SeqCorpus validCorpus, List<IMetric> metrics)
-        {
-            Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>
-            {
-                { 0, metrics }
-            };
-            RunValid(validCorpus, RunForwardOnSingleDevice, taskId2metrics, true);
-        }
-
-        public NetworkResult Test(List<List<List<string>>> inputTokensGroups)
-        {
-            Seq2SeqCorpusBatch spb = new Seq2SeqCorpusBatch();
-            spb.CreateBatch(inputTokensGroups);
-
-            var nrs = RunTest(spb, RunForwardOnSingleDevice);
-
-            return nrs[0];
-        }
-
-
-        public void Test()
-        {
-            SntPairBatchStreamReader<Seq2SeqCorpusBatch> reader = new SntPairBatchStreamReader<Seq2SeqCorpusBatch>(m_options.InputTestFile, m_options.BatchSize, m_options.MaxTestSrcSentLength);
-            SntPairBatchStreamWriter writer = new SntPairBatchStreamWriter(m_options.OutputFile);
-            RunTest<Seq2SeqCorpusBatch>(reader, writer, RunForwardOnSingleDevice);
         }
 
         /// <summary>
@@ -193,8 +121,8 @@ namespace Seq2SeqSharp
             return (m_encoder.GetNetworkOnDevice(deviceIdIdx), 
                     m_decoder.GetNetworkOnDevice(deviceIdIdx),
                     m_decoderFFLayer.GetNetworkOnDevice(deviceIdIdx),
-                    m_modelMetaData.SharedEmbeddings ? m_sharedEmbedding.GetNetworkOnDevice(deviceIdIdx) : m_srcEmbedding.GetNetworkOnDevice(deviceIdIdx),
-                    m_modelMetaData.SharedEmbeddings ? m_sharedEmbedding.GetNetworkOnDevice(deviceIdIdx) : m_tgtEmbedding.GetNetworkOnDevice(deviceIdIdx), 
+                    m_srcEmbedding.GetNetworkOnDevice(deviceIdIdx),
+                    m_tgtEmbedding.GetNetworkOnDevice(deviceIdIdx), 
                     m_posEmbedding?.GetNetworkOnDevice(deviceIdIdx), m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx));
         }
 

@@ -80,58 +80,6 @@ namespace Seq2SeqSharp
             return true;
         }
 
-        public void Train(int maxTrainingEpoch, SeqLabelingCorpus trainCorpus, List<SeqLabelingCorpus> validCorpusList, ILearningRate learningRate, List<IMetric> metrics, IOptimizer optimizer)
-        {
-            Logger.WriteLine("Start to train...");
-            Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>
-            {
-                { 0, metrics }
-            };
-
-            Dictionary<string, IEnumerable<ISntPairBatch>> validCorpusDict = new Dictionary<string, IEnumerable<ISntPairBatch>>();
-            string primaryValidCorpusName = "";
-            if (validCorpusList != null && validCorpusList.Count > 0)
-            {
-                primaryValidCorpusName = validCorpusList[0].CorpusName;
-                foreach (var item in validCorpusList)
-                {
-                    validCorpusDict.Add(item.CorpusName, item);
-                }
-            }
-
-            for (int i = 0; i < maxTrainingEpoch; i++)
-            {
-                // Train one epoch over given devices. Forward part is implemented in RunForwardOnSingleDevice function in below, 
-                // backward, weights updates and other parts are implemented in the framework. You can see them in BaseSeq2SeqFramework.cs
-                TrainOneEpoch(i, trainCorpus, validCorpusDict, primaryValidCorpusName, learningRate, optimizer, taskId2metrics, m_modelMetaData, RunForwardOnSingleDevice);
-            }
-        }
-
-        public void Valid(SeqLabelingCorpus validCorpus, List<IMetric> metrics)
-        {
-            Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>
-            {
-                { 0, metrics }
-            };
-
-            RunValid(validCorpus, RunForwardOnSingleDevice, taskId2metrics, true);
-        }
-
-        public NetworkResult Test(List<List<string>> inputTokens)
-        {
-            List<List<List<string>>> inputTokensGroups = new List<List<List<string>>>
-            {
-                inputTokens
-            };
-
-            Seq2SeqCorpusBatch spb = new Seq2SeqCorpusBatch();
-            spb.CreateBatch(inputTokensGroups);
-
-            List<NetworkResult> rst = RunTest(spb, RunForwardOnSingleDevice);
-
-            return rst[0];
-        }
-
         /// <summary>
         /// Get networks on specific devices
         /// </summary>

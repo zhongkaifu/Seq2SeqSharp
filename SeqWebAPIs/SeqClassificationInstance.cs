@@ -1,4 +1,5 @@
 ﻿using Seq2SeqSharp.Applications;
+using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
@@ -35,7 +36,7 @@ namespace SeqClassificationWebAPI
 
             lock (locker)
             {
-                List<NetworkResult> nrs = m_seqClassification.Test(groupBatchTokens);
+                List<NetworkResult> nrs = m_seqClassification.Test<SeqClassificationMultiTasksCorpusBatch>(groupBatchTokens);
 
                 List<string> tags = new List<string>();
                 foreach (var nr in nrs)

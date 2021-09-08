@@ -216,28 +216,7 @@
   <ItemGroup>
     <ClCompile Include="ConvolutionUnfold.cpp" />
     <ClCompile Include="DimensionwiseOps.cpp" />
-    <ClCompile Include="dllmain.cpp">
-      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-      </PrecompiledHeader>
-      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</CompileAsManaged>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </PrecompiledHeader>
-      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsManaged>
-      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='ReleaseCpuOnly|Win32'">false</CompileAsManaged>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-      </PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseCpuOnly|Win32'">
-      </PrecompiledHeader>
-      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</CompileAsManaged>
-      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='ReleaseCpuOnly|x64'">false</CompileAsManaged>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseCpuOnly|x64'">
-      </PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="ElementwiseOps.cpp" />
-    <ClCompile Include="GatherScatterOps.cpp" />
     <ClCompile Include="General.cpp" />
     <ClCompile Include="MaxPoolingFrame.cpp" />
     <ClCompile Include="OptimizerOps.cpp" />
@@ -248,7 +227,6 @@
   <ItemGroup>
     <ClInclude Include="ConvolutionUnfold.h" />
     <ClInclude Include="DimensionwiseOps.h" />
-    <ClInclude Include="GatherScatterOps.h" />
     <ClInclude Include="General.h" />
     <ClInclude Include="LayerNormOps.h" />
     <ClInclude Include="MaxPoolingFrame.h" />

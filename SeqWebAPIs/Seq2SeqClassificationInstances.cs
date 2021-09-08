@@ -1,5 +1,6 @@
 ﻿using AdvUtils;
 using Seq2SeqSharp.Applications;
+using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
@@ -48,7 +49,7 @@ namespace SeqWebAPIs
 
             lock (locker)
             {
-                List<NetworkResult> nrs = m_key2Instance[key].Test(groupBatchTokens);
+                List<NetworkResult> nrs = m_key2Instance[key].Test<Seq2SeqClassificationCorpusBatch>(groupBatchTokens);
                 var nrCLS = nrs[0];
                 var nrSeq2Seq = nrs[1];
 

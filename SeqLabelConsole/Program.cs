@@ -104,7 +104,7 @@ namespace SeqLabelConsole
                 sl.StatusUpdateWatcher += Misc.Ss_StatusUpdateWatcher;
 
                 // Kick off training
-                sl.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList, learningRate: learningRate, optimizer: optimizer, metrics: metrics);
+                sl.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: metrics);
 
 
             }
@@ -140,8 +140,8 @@ namespace SeqLabelConsole
                 string[] data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
                 foreach (string line in data_sents_raw1)
                 {
-                    var nr = sl.Test(ConstructInputTokens(line.Trim().Split(' ').ToList()));
-                    outputLines.AddRange(nr.Output[0].Select(x => string.Join(" ", x)));
+                    var nrs = sl.Test<SeqLabelingCorpusBatch>(ConstructInputTokens(line.Trim().Split(' ').ToList()));
+                    outputLines.AddRange(nrs[0].Output[0].Select(x => string.Join(" ", x)));
                 }
 
                 File.WriteAllLines(opts.OutputTestFile, outputLines);
@@ -152,7 +152,7 @@ namespace SeqLabelConsole
             }
         }
 
-        public static List<List<string>> ConstructInputTokens(List<string> input)
+        public static List<List<List<string>>> ConstructInputTokens(List<string> input)
         {
             List<string> inputSeq = new List<string>();
 
@@ -163,7 +163,9 @@ namespace SeqLabelConsole
 
             List<List<string>> inputSeqs = new List<List<string>>() { inputSeq };
 
-            return inputSeqs;
+            List<List<List<string>>> inputSeqsGroups = new List<List<List<string>>>() { inputSeqs };
+
+            return inputSeqsGroups;
         }
         private static void ShowOptions(string[] args)
         {

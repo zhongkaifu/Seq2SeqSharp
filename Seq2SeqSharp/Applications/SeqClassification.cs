@@ -36,6 +36,12 @@ namespace Seq2SeqSharp.Applications
             m_shuffleType = (ShuffleEnums)Enum.Parse(typeof(ShuffleEnums), options.ShuffleType);
             m_options = options;
 
+            // Model must exist if current task is not for training
+            if (m_options.Task.Equals("Train", StringComparison.InvariantCultureIgnoreCase) == false && File.Exists(m_options.ModelFilePath) == false)
+            {
+                throw new FileNotFoundException($"Model '{m_options.ModelFilePath}' doesn't exist.");
+            }
+
             if (File.Exists(m_options.ModelFilePath))
             {
                 if (srcVocab != null || clsVocabs != null)
@@ -58,53 +64,6 @@ namespace Seq2SeqSharp.Applications
 
             m_modelMetaData.ShowModelInfo();
         }
-
-
-        public void Train(int maxTrainingEpoch, SeqClassificationMultiTasksCorpus trainCorpus, List<SeqClassificationMultiTasksCorpus> validCorpusList, ILearningRate learningRate, Dictionary<int, List<IMetric>> taskId2metrics, IOptimizer optimizer)
-        {
-            Logger.WriteLine("Start to train...");
-
-            Dictionary<string, IEnumerable<ISntPairBatch>> validCorpusDict = new Dictionary<string, IEnumerable<ISntPairBatch>>();
-            string primaryValidCorpusName = "";
-            if (validCorpusList != null && validCorpusList.Count > 0)
-            {
-                primaryValidCorpusName = validCorpusList[0].CorpusName;
-                foreach (var item in validCorpusList)
-                {
-                    validCorpusDict.Add(item.CorpusName, item);
-                }
-            }
-
-            for (int i = 0; i < maxTrainingEpoch; i++)
-            {
-                // Train one epoch over given devices. Forward part is implemented in RunForwardOnSingleDevice function in below, 
-                // backward, weights updates and other parts are implemented in the framework. You can see them in BaseSeq2SeqFramework.cs
-                TrainOneEpoch(i, trainCorpus, validCorpusDict, primaryValidCorpusName, learningRate, optimizer, taskId2metrics, m_modelMetaData, RunForwardOnSingleDevice);
-            }
-        }
-
-        public void Valid(SeqClassificationMultiTasksCorpus validCorpus, Dictionary<int, List<IMetric>> taskId2metrics)
-        {
-            RunValid(validCorpus, RunForwardOnSingleDevice, taskId2metrics, true);
-        }
-
-        public List<NetworkResult> Test(List<List<List<string>>> inputTokens)
-        {
-            SeqClassificationMultiTasksCorpusBatch spb = new SeqClassificationMultiTasksCorpusBatch();
-            spb.CreateBatch(inputTokens);
-
-            return RunTest(spb, RunForwardOnSingleDevice);
-        }
-
-
-        public void Test()
-        {
-            SntPairBatchStreamReader<SeqClassificationMultiTasksCorpusBatch> reader = new SntPairBatchStreamReader<SeqClassificationMultiTasksCorpusBatch>(m_options.InputTestFile, m_options.BatchSize, m_options.MaxTestSentLength);
-            SntPairBatchStreamWriter writer = new SntPairBatchStreamWriter(m_options.OutputFile);
-            RunTest<SeqClassificationMultiTasksCorpusBatch>(reader, writer, RunForwardOnSingleDevice);
-        }
-
-
 
         private bool CreateTrainableParameters(IModel modelMetaData)
         {

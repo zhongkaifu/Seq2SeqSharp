@@ -17,7 +17,12 @@ namespace Seq2SeqSharp.Tools
         Truncation
     }
 
-    public class ParallelCorpus<T> : IEnumerable<T> where T : ISntPairBatch, new()
+    public interface IParallelCorpus<out T> : IEnumerable<T>
+    {
+        string CorpusName { get; set; }
+    }
+
+    public class ParallelCorpus<T> : IParallelCorpus<T> where T : ISntPairBatch, new()
     {
         internal int m_maxSrcSentLength = 32;
         internal int m_maxTgtSentLength = 32;
@@ -32,7 +37,7 @@ namespace Seq2SeqSharp.Tools
 
         private readonly Random rnd = new Random(DateTime.Now.Millisecond);
 
-        public string CorpusName;
+        public string CorpusName { get; set; }
 
         private TooLongSequence m_tooLongSequence = TooLongSequence.Ignore;
 

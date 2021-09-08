@@ -40,7 +40,7 @@ Seq2SeqSharp is built by (.NET core)[https://docs.microsoft.com/en-us/dotnet/cor
 # Usage  
 Seq2SeqSharp provides some command line tools that you can run for different types of tasks.  
 Name                          |   Comments  
-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  
 Seq2SeqConsole                | Used for sequence-to-sequence tasks, such as machine translation, automatic summarization and so on    
 SeqClassificationConsole      | Used for sequence classification tasks, such as intention detection. It supports multi-tasks, which means a single model can be trained or tested by multi-classification tasks  
 Seq2SeqClassificationConsole  | It's a multi-task based tool. The first task is for sequence-to-sequence, and the second task is for sequence classification. The model is jointly trained by these two tasks. Its model can be also test on Seq2SeqConsole and SeqClassificationConsole  
@@ -48,11 +48,11 @@ SeqLabelConsole               | Used for sequence labeling tasks, such as named 
 SeqSimilarityConsole          | Used for similarity calculation between two sequences. It supports to both discrete similarity (binary-classifier) and continuous similarity (consine distance)  
 
 It also provides web service APIs for above tasks.  
-ame                      |   Comments  
--------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-Seq2SeqWebAPI            | Web Service RESTful API for sequence-to-sequence tasks. It hosts models trained by Seq2SeqConsole and infer online.    
-SeqClassificationWebAPI  | Web Service RESTful API for sequence classification tasks. It hosts models trained by SeqClassificationConsole and infer online.  
-SeqSimilarityWebAPI      | Web Service RESTful API for sequences similarity tasks. It hosts models trained by SeqSimilarityConsole and infer online.  
+Name                      |   Comments  
+--------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  
+Seq2SeqWebAPI             | Web Service RESTful API for sequence-to-sequence tasks. It hosts models trained by Seq2SeqConsole and infer online.    
+SeqClassificationWebAPI   | Web Service RESTful API for sequence classification tasks. It hosts models trained by SeqClassificationConsole and infer online.  
+SeqSimilarityWebAPI       | Web Service RESTful API for sequences similarity tasks. It hosts models trained by SeqSimilarityConsole and infer online.  
 
 
 ## Seq2SeqConsole for sequence-to-sequence task  
@@ -177,7 +177,7 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
         "ProcessorType":"GPU",   
         "SharedEmbeddings":false,     
         "ShuffleBlockSize":-1,
-        "ShuffleType": "NoPaddingInSrc",
+        "ShuffleType": "NoPadding",
         "SrcEmbeddingDim":512,
         "SrcLang":"ENU",
         "SrcVocab":null,
@@ -270,7 +270,7 @@ The model supports multi-classifiers, so tags in the target file are split by ta
 
 Here is an example:  
 Tag                 |  Tokens in Sequence
---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  
 Otorhinolaryngology | What should I do if I have a sore throat and a runny nose? [SEP] I feel sore in my throat after getting up in the morning, and I still have clear water in my nose. I measure my body temperature and I don’t have a fever. Have you caught a cold? What medicine should be taken.  
 Orthopedics         | How can I recuperate if my ankle is twisted? [SEP] I twisted my ankle when I went down the stairs, and now it is red and swollen. X-rays were taken and there were no fractures. May I ask how to recuperate to get better as soon as possible.  
 
@@ -290,7 +290,7 @@ Token and tags are split by tab character. It looks like [Token] \t [Tag] And ea
 Here is an example:  
 In train_001.txt, assume we have two sentences. For sentence "Microsoft is located in Redmond .", "Microsoft" is organization name, "Redmond" is location name. For sentence "Zhongkai Fu is the author of Seq2SeqSharp .", "Zhongkai Fu" is person name and "Seq2SeqSharp" is software name. So, the training corpus should look likes:  
 Token        |   Tag
--------------|------------
+-------------|------------  
 Microsoft    | S_ORG  
 is           | S_NOR  
 located      | S_NOR  
@@ -322,11 +322,11 @@ Here are steps on how to play it.  
 
 0. Preparation  
 
-   0.1 Install Nvidia driver and Cuda 11  
+   0.1 Install Nvidia driver and Cuda 11.4  
 
-      Windows: Download (Nvidia driver)[https://www.nvidia.com/Download/index.aspx] and (Cuda 11)[https://developer.nvidia.com/cuda-11.1.0-download-archive], and then install them.  
+      Windows: Download (Nvidia driver)[https://www.nvidia.com/Download/index.aspx] and (Cuda 11.4)[https://developer.nvidia.com/cuda-11.1.0-download-archive], and then install them.  
 
-      Linux: You can use apt to update drivers and cuda, for example: sudo apt install nvidia-driver-440  
+      Linux: You can use apt to update drivers and cuda, for example: sudo apt install nvidia-driver-470  
 
    0.2 Install dotNet core  
 
