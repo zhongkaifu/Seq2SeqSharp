@@ -12,6 +12,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.Tools
@@ -98,8 +99,9 @@ namespace Seq2SeqSharp.Tools
         private SortedList<string, IMultiProcessorNetworkWrapper> m_name2network;
         DateTime m_lastCheckPointDateTime = DateTime.Now;
         readonly float m_validIntervalHours = 1.0f;
+        private int m_updateFreq = 1;
 
-        public BaseSeq2SeqFramework(string deviceIds, string strProcessorType, string modelFilePath, float memoryUsageRatio = 0.9f, string compilerOptions = null, float validIntervalHours = 1.0f, int primaryTaskId = 0)
+        public BaseSeq2SeqFramework(string deviceIds, string strProcessorType, string modelFilePath, float memoryUsageRatio = 0.9f, string compilerOptions = null, float validIntervalHours = 1.0f, int primaryTaskId = 0, int updateFreq = 1)
         {
             m_deviceIds = deviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
             ProcessorTypeEnums processorType = (ProcessorTypeEnums)Enum.Parse(typeof(ProcessorTypeEnums), strProcessorType);
@@ -110,14 +112,16 @@ namespace Seq2SeqSharp.Tools
 
             m_validIntervalHours = validIntervalHours;
             m_primaryTaskId = primaryTaskId;
+            m_updateFreq = updateFreq;
         }
 
-        public BaseSeq2SeqFramework(int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, float validIntervalHours = 1.0f, int primaryTaskId = 0)
+        public BaseSeq2SeqFramework(int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, float validIntervalHours = 1.0f, int primaryTaskId = 0, int updateFreq  = 1)
         {
             m_deviceIds = deviceIds;
             m_modelFilePath = modelFilePath;
             m_validIntervalHours = validIntervalHours;
             m_primaryTaskId = primaryTaskId;
+            m_updateFreq = updateFreq;
             TensorAllocator.InitDevices(processorType, m_deviceIds, memoryUsageRatio, compilerOptions);
         }
 
@@ -137,7 +141,7 @@ namespace Seq2SeqSharp.Tools
             return new ComputeGraphTensor(new WeightTensorFactory(), DeviceIds[deviceIdIdx], needBack);
         }
 
-        public bool SaveModel(IModel modelMetaData)
+        public bool SaveModel()
         {
             try
             {
@@ -151,9 +155,9 @@ namespace Seq2SeqSharp.Tools
                 BinaryFormatter bf = new BinaryFormatter();
                 using (FileStream fs = new FileStream(m_modelFilePath, FileMode.Create, FileAccess.Write))
                 {
-                    SaveParameters(modelMetaData);
+                    SaveParameters();
                     // Save model meta data to the stream
-                    bf.Serialize(fs, modelMetaData);
+                    bf.Serialize(fs, m_modelMetaData);
                     // All networks and tensors which are MultiProcessorNetworkWrapper<T> will be saved to given stream
                     
                 }
@@ -162,7 +166,7 @@ namespace Seq2SeqSharp.Tools
             }
             catch (Exception err)
             {
-                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Failed to save model to file. Exception = '{err.Message}'");
+                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Failed to save model to file. Exception = '{err.Message}', Callstack = '{err.StackTrace}'");
                 return false;
             }
         }
@@ -172,50 +176,47 @@ namespace Seq2SeqSharp.Tools
         /// </summary>
         /// <param name="InitializeParameters"></param>
         /// <returns></returns>
-        public IModel LoadModel(Func<IModel, bool> InitializeParameters)
+        public void LoadModel(Func<bool> InitializeParameters)
         {
             Logger.WriteLine($"Loading model from '{m_modelFilePath}'...");
-            IModel modelMetaData = null;
             BinaryFormatter bf = new BinaryFormatter();
             using (FileStream fs = new FileStream(m_modelFilePath, FileMode.Open, FileAccess.Read))
             {
-                modelMetaData = bf.Deserialize(fs) as IModel;
+                m_modelMetaData = bf.Deserialize(fs) as IModel;
 
                 //Initialize parameters on devices
-                InitializeParameters(modelMetaData);
+                InitializeParameters();
 
                 // Load embedding and weights from given model
                 // All networks and tensors which are MultiProcessorNetworkWrapper<T> will be loaded from given stream
-                LoadParameters(modelMetaData);
+                LoadParameters();
             }
 
             //For multi-GPUs, copying weights from default device to other all devices
             CopyWeightsFromDefaultDeviceToAllOtherDevices();
-
-            return modelMetaData;
         }
 
-        internal (MultiProcessorNetworkWrapper<IWeightTensor>, MultiProcessorNetworkWrapper<IWeightTensor>) CreateSrcTgtEmbeddings(IModel modelMetaData, RoundArray<int> raDeviceIds, bool isSrcEmbeddingTrainable, bool isTgtEmbeddingTrainable, float encoderStartLearningRateFactor, float decoderStartLearningRateFactor)
+        internal (MultiProcessorNetworkWrapper<IWeightTensor>, MultiProcessorNetworkWrapper<IWeightTensor>) CreateSrcTgtEmbeddings(RoundArray<int> raDeviceIds, bool isSrcEmbeddingTrainable, bool isTgtEmbeddingTrainable, float encoderStartLearningRateFactor, float decoderStartLearningRateFactor)
         {
             MultiProcessorNetworkWrapper<IWeightTensor> srcEmbeddings = null;
             MultiProcessorNetworkWrapper<IWeightTensor> tgtEmbeddings = null;
 
-            if (modelMetaData.SharedEmbeddings)
+            if (m_modelMetaData.SharedEmbeddings)
             {
-                Logger.WriteLine($"Creating shared embeddings for both source side and target side. Shape = '({modelMetaData.SrcVocab.Count} ,{modelMetaData.EncoderEmbeddingDim})'");
-                srcEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.SrcVocab.Count, modelMetaData.EncoderEmbeddingDim },
+                Logger.WriteLine($"Creating shared embeddings for both source side and target side. Shape = '({m_modelMetaData.SrcVocab.Count} ,{m_modelMetaData.EncoderEmbeddingDim})'");
+                srcEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { m_modelMetaData.SrcVocab.Count, m_modelMetaData.EncoderEmbeddingDim },
                     raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SharedEmbeddings", isTrainable: isSrcEmbeddingTrainable, learningRateFactor: encoderStartLearningRateFactor), DeviceIds);
 
                 tgtEmbeddings = srcEmbeddings;
             }
             else
             {
-                Logger.WriteLine($"Creating embeddings for source side. Shape = '({modelMetaData.SrcVocab.Count} ,{modelMetaData.EncoderEmbeddingDim})'");
-                srcEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.SrcVocab.Count, modelMetaData.EncoderEmbeddingDim },
+                Logger.WriteLine($"Creating embeddings for source side. Shape = '({m_modelMetaData.SrcVocab.Count} ,{m_modelMetaData.EncoderEmbeddingDim})'");
+                srcEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { m_modelMetaData.SrcVocab.Count, m_modelMetaData.EncoderEmbeddingDim },
                     raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SrcEmbeddings", isTrainable: isSrcEmbeddingTrainable, learningRateFactor: encoderStartLearningRateFactor), DeviceIds);
 
-                Logger.WriteLine($"Creating embeddings for target side. Shape = '({modelMetaData.TgtVocab.Count} ,{modelMetaData.DecoderEmbeddingDim})'");
-                tgtEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.TgtVocab.Count, modelMetaData.DecoderEmbeddingDim },
+                Logger.WriteLine($"Creating embeddings for target side. Shape = '({m_modelMetaData.TgtVocab.Count} ,{m_modelMetaData.DecoderEmbeddingDim})'");
+                tgtEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { m_modelMetaData.TgtVocab.Count, m_modelMetaData.DecoderEmbeddingDim },
                     raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "TgtEmbeddings", isTrainable: isTgtEmbeddingTrainable, learningRateFactor: decoderStartLearningRateFactor), DeviceIds);
             }
 
@@ -229,7 +230,7 @@ namespace Seq2SeqSharp.Tools
             {
                 // Train one epoch over given devices. Forward part is implemented in RunForwardOnSingleDevice function in below, 
                 // backward, weights updates and other parts are implemented in the framework. You can see them in BaseSeq2SeqFramework.cs
-                TrainOneEpoch(i, trainCorpus, validCorpusList, learningRate, optimizer, taskId2metrics, m_modelMetaData, RunForwardOnSingleDevice);
+                TrainOneEpoch(i, trainCorpus, validCorpusList, learningRate, optimizer, taskId2metrics, RunForwardOnSingleDevice);
             }
         }
 
@@ -244,7 +245,7 @@ namespace Seq2SeqSharp.Tools
             Train(maxTrainingEpoch, trainCorpus, validCorpusList, learningRate, taskId2metrics, optimizer);
         }
 
-        internal void TrainOneEpoch(int ep, IParallelCorpus<ISntPairBatch> trainCorpus, IParallelCorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, IOptimizer solver, Dictionary<int, List<IMetric>> taskId2metrics, IModel modelMetaData,
+        internal void TrainOneEpoch(int ep, IParallelCorpus<ISntPairBatch> trainCorpus, IParallelCorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, IOptimizer solver, Dictionary<int, List<IMetric>> taskId2metrics, 
             Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice)
         {
             int processedLineInTotal = 0;
@@ -261,7 +262,7 @@ namespace Seq2SeqSharp.Tools
             foreach (ISntPairBatch sntPairBatch in trainCorpus)
             {
                 sntPairBatchs.Add(sntPairBatch);
-                if (sntPairBatchs.Count == m_deviceIds.Length)
+                if (sntPairBatchs.Count == m_deviceIds.Length * m_updateFreq)
                 {
                     // Copy weights from weights kept in default device to all other devices
                     CopyWeightsFromDefaultDeviceToAllOtherDevices();
@@ -380,7 +381,7 @@ namespace Seq2SeqSharp.Tools
                     TimeSpan ts = DateTime.Now - m_lastCheckPointDateTime;
                     if (ts.TotalHours > m_validIntervalHours)
                     {
-                        CreateCheckPoint(validCorpusList, taskId2metrics, modelMetaData, ForwardOnSingleDevice, avgCostPerWordInTotal);
+                        CreateCheckPoint(validCorpusList, taskId2metrics, ForwardOnSingleDevice, avgCostPerWordInTotal);
                         m_lastCheckPointDateTime = DateTime.Now;
                     }
 
@@ -435,18 +436,53 @@ namespace Seq2SeqSharp.Tools
             //Clear gradient over all devices
             ZeroGradientOnAllDevices();
 
+            int currBatchIdx = -1;
+
             // Run forward and backward on all available processors
             Parallel.For(0, m_deviceIds.Length, i =>
             {
-                try
+                int loclCurrBatchIdx = Interlocked.Increment(ref currBatchIdx);
+                while (loclCurrBatchIdx < sntPairBatchs.Count)
                 {
-                    ISntPairBatch sntPairBatch_i = sntPairBatchs[i];
-                    int batchSegSize = sntPairBatch_i.BatchSize / batchSplitFactor;
-                    if (batchSegSize > 0)
+                    try
                     {
-                        for (int k = 0; k < batchSplitFactor; k++)
+
+                        ISntPairBatch sntPairBatch_i = sntPairBatchs[loclCurrBatchIdx];
+                        int batchSegSize = sntPairBatch_i.BatchSize / batchSplitFactor;
+                        if (batchSegSize > 0)
                         {
-                            ISntPairBatch sntPairBatch = sntPairBatch_i.GetRange(k * batchSegSize, batchSegSize);
+                            for (int k = 0; k < batchSplitFactor; k++)
+                            {
+                                ISntPairBatch sntPairBatch = sntPairBatch_i.GetRange(k * batchSegSize, batchSegSize);
+
+                                List<NetworkResult> nrs;
+                                // Create a new computing graph instance
+                                using (IComputeGraph computeGraph_i = CreateComputGraph(i))
+                                {
+                                    // Run forward part
+                                    nrs = ForwardOnSingleDevice(computeGraph_i, sntPairBatch, i, true);
+                                    // Run backward part and compute gradients
+                                    computeGraph_i.Backward();
+                                }
+
+                                lock (locker)
+                                {
+                                    foreach (var nr in nrs)
+                                    {
+                                        cost += nr.Cost;
+                                    }
+
+                                    srcWordCnts += sntPairBatch_i.SrcTokenCount;
+                                    tgtWordCnts += sntPairBatch_i.TgtTokenCount;
+                                    processedLine += batchSegSize;
+                                }
+                            }
+                        }
+
+                        int remainBatchSegSize = sntPairBatch_i.BatchSize % batchSplitFactor;
+                        if (remainBatchSegSize > 0)
+                        {
+                            ISntPairBatch sntPairBatch = sntPairBatch_i.GetRange(sntPairBatch_i.BatchSize - remainBatchSegSize, remainBatchSegSize);
 
                             List<NetworkResult> nrs;
                             // Create a new computing graph instance
@@ -469,55 +505,29 @@ namespace Seq2SeqSharp.Tools
                                 tgtWordCnts += sntPairBatch_i.TgtTokenCount;
                                 processedLine += batchSegSize;
                             }
+
                         }
                     }
-
-                    int remainBatchSegSize = sntPairBatch_i.BatchSize % batchSplitFactor;
-                    if (remainBatchSegSize > 0)
+                    catch (OutOfMemoryException err)
                     {
-                        ISntPairBatch sntPairBatch = sntPairBatch_i.GetRange(sntPairBatch_i.BatchSize - remainBatchSegSize, remainBatchSegSize);
-
-                        List<NetworkResult> nrs;
-                        // Create a new computing graph instance
-                        using (IComputeGraph computeGraph_i = CreateComputGraph(i))
-                        {
-                            // Run forward part
-                            nrs = ForwardOnSingleDevice(computeGraph_i, sntPairBatch, i, true);
-                            // Run backward part and compute gradients
-                            computeGraph_i.Backward();
-                        }
-
-                        lock (locker)
-                        {
-                            foreach (var nr in nrs)
-                            {
-                                cost += nr.Cost;
-                            }
-
-                            srcWordCnts += sntPairBatch_i.SrcTokenCount;
-                            tgtWordCnts += sntPairBatch_i.TgtTokenCount;
-                            processedLine += batchSegSize;
-                        }
-
+                        throw err;
                     }
-                }
-                catch (OutOfMemoryException err)
-                {                    
-                    throw err;
-                }
-                catch (Exception err)
-                {
-                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: '{err.Message}'");
-                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Call stack: '{err.StackTrace}'");
+                    catch (Exception err)
+                    {
+                        Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: '{err.Message}'");
+                        Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Call stack: '{err.StackTrace}'");
 
-                    throw err;
+                        throw err;
+                    }
+
+                    loclCurrBatchIdx = Interlocked.Increment(ref currBatchIdx);
                 }
             });
 
-            return (cost, srcWordCnts, tgtWordCnts, processedLine);
+            return (cost / processedLine, srcWordCnts, tgtWordCnts, processedLine);
         }
 
-        private void CreateCheckPoint(IParallelCorpus<ISntPairBatch>[] validCorpusList, Dictionary<int, List<IMetric>> taskId2metrics, IModel modelMetaData, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice, double avgCostPerWordInTotal)
+        private void CreateCheckPoint(IParallelCorpus<ISntPairBatch>[] validCorpusList, Dictionary<int, List<IMetric>> taskId2metrics, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice, double avgCostPerWordInTotal)
         {
             if (validCorpusList != null && validCorpusList.Length > 0)
             {
@@ -531,14 +541,14 @@ namespace Seq2SeqSharp.Tools
 
                     if ((i == 0 && betterResult == true) || File.Exists(m_modelFilePath) == false)
                     {
-                        SaveModel(modelMetaData);
+                        SaveModel();
                     }
                 }
             }
             else if (m_avgCostPerWordInTotalInLastEpoch > avgCostPerWordInTotal || File.Exists(m_modelFilePath) == false)
             {
                 // We don't have valid corpus, so if we could have lower cost, save the model
-                SaveModel(modelMetaData);
+                SaveModel();
             }
         }
 
@@ -931,24 +941,24 @@ namespace Seq2SeqSharp.Tools
             });
         }
 
-        internal virtual void SaveParameters(IModel model)
+        internal virtual void SaveParameters()
         {
-            model.ClearWeights();
+            m_modelMetaData.ClearWeights();
 
             RegisterTrainableParameters(this);
             foreach (KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network)
             {
-                pair.Value.Save(model);
+                pair.Value.Save(m_modelMetaData);
             }
         }
 
-        internal virtual void LoadParameters(IModel model)
+        internal virtual void LoadParameters()
         {
             RegisterTrainableParameters(this);
             foreach (KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network)
             {
                 Logger.WriteLine($"Loading parameter '{pair.Key}'");
-                pair.Value.Load(model);
+                pair.Value.Load(m_modelMetaData);
             }
         }
 

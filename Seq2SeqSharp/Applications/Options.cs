@@ -111,6 +111,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("Training corpus folder path", "TrainCorpusPath")]
         public string TrainCorpusPath = null;
 
+        [Arg("Update parameters every N batches. Default is 1", "UpdateFreq")]
+        public int UpdateFreq = 1;
+
         [Arg("The batch size during validation", nameof(ValBatchSize))]
         public int ValBatchSize = 1;
 
