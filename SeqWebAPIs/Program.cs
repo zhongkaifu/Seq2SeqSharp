@@ -15,22 +15,25 @@ namespace SeqWebAPIs
 {
     public class Program
     {
+        private static string serverURL = "http://localhost:8401";
         public static void Main(string[] args)
         {
             Logger.LogFile = $"{nameof(SeqWebAPIs)}_{Utils.GetTimeStamp(DateTime.Now)}.log";
 
-            if (args.Length != 6)
+            if (args.Length != 7)
             {
-                Logger.WriteLine(Logger.Level.err, $"SeqWebAPIs.exe [tsc model file path] [sentSim model file path] [hpi model file path] [exam model file path] [assessment model file path] [results model file path]");
+                Logger.WriteLine(Logger.Level.err, $"SeqWebAPIs.exe [url] [tsc model file path] [sentSim model file path] [hpi model file path] [exam model file path] [assessment model file path] [results model file path]");
                 return;
             }
 
-            string tscModelFilePath = args[0];
-            string sentSimModelFilePath = args[1];
-            string hpiModelFilePath = args[2];
-            string examModelFilePath = args[3];
-            string assessmentModelFilePath = args[4];
-            string resModelFilePath = args[5];
+            serverURL = args[0];
+
+            string tscModelFilePath = args[1];
+            string sentSimModelFilePath = args[2];
+            string hpiModelFilePath = args[3];
+            string examModelFilePath = args[4];
+            string assessmentModelFilePath = args[5];
+            string resModelFilePath = args[6];
 
 
             SeqClassificationInstance.Initialization(tscModelFilePath, 512, "CPU", "0");
@@ -53,6 +56,7 @@ namespace SeqWebAPIs
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
+                    webBuilder.UseUrls(serverURL);
                 });
     }
 }
