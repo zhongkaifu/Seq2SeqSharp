@@ -39,20 +39,20 @@ Seq2SeqSharp is built by (.NET core)[https://docs.microsoft.com/en-us/dotnet/cor
 
 # Usage  
 Seq2SeqSharp provides some command line tools that you can run for different types of tasks.  
-Name                          |   Comments  
-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  
-Seq2SeqConsole                | Used for sequence-to-sequence tasks, such as machine translation, automatic summarization and so on    
-SeqClassificationConsole      | Used for sequence classification tasks, such as intention detection. It supports multi-tasks, which means a single model can be trained or tested by multi-classification tasks  
-Seq2SeqClassificationConsole  | It's a multi-task based tool. The first task is for sequence-to-sequence, and the second task is for sequence classification. The model is jointly trained by these two tasks. Its model can be also test on Seq2SeqConsole and SeqClassificationConsole  
-SeqLabelConsole               | Used for sequence labeling tasks, such as named entity recongizer, postag and other  
-SeqSimilarityConsole          | Used for similarity calculation between two sequences. It supports to both discrete similarity (binary-classifier) and continuous similarity (consine distance)  
+| Name                           |   Comments                                                                                                                                                                                                                                                |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |   
+| Seq2SeqConsole                 | Used for sequence-to-sequence tasks, such as machine translation, automatic summarization and so on                                                                                                                                                       |
+| SeqClassificationConsole       | Used for sequence classification tasks, such as intention detection. It supports multi-tasks, which means a single model can be trained or tested by multi-classification tasks                                                                           |
+| Seq2SeqClassificationConsole   | It's a multi-task based tool. The first task is for sequence-to-sequence, and the second task is for sequence classification. The model is jointly trained by these two tasks. Its model can be also test on Seq2SeqConsole and SeqClassificationConsole  |
+| SeqLabelConsole                | Used for sequence labeling tasks, such as named entity recongizer, postag and other                                                                                                                                                                       |
+| SeqSimilarityConsole           | Used for similarity calculation between two sequences. It supports to both discrete similarity (binary-classifier) and continuous similarity (consine distance)                                                                                           |
 
 It also provides web service APIs for above tasks.  
-Name                      |   Comments  
---------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  
-Seq2SeqWebAPI             | Web Service RESTful API for sequence-to-sequence tasks. It hosts models trained by Seq2SeqConsole and infer online.    
-SeqClassificationWebAPI   | Web Service RESTful API for sequence classification tasks. It hosts models trained by SeqClassificationConsole and infer online.  
-SeqSimilarityWebAPI       | Web Service RESTful API for sequences similarity tasks. It hosts models trained by SeqSimilarityConsole and infer online.  
+| Name                       |   Comments                                                                                                                       |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |  
+| Seq2SeqWebAPI              | Web Service RESTful API for sequence-to-sequence tasks. It hosts models trained by Seq2SeqConsole and infer online.              |
+| SeqClassificationWebAPI    | Web Service RESTful API for sequence classification tasks. It hosts models trained by SeqClassificationConsole and infer online. |
+| SeqSimilarityWebAPI        | Web Service RESTful API for sequences similarity tasks. It hosts models trained by SeqSimilarityConsole and infer online.        |
 
 
 ## Seq2SeqConsole for sequence-to-sequence task  
@@ -194,6 +194,7 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
         "ValidIntervalHours":0.1,
         "SrcVocabSize":45000,
         "TgtVocabSize":45000,
+        "UpdateFreq":2,
         "VisualizeNNFilePath":null            
 }
 ```
@@ -269,10 +270,10 @@ It also uses two files for each pair of data and follows the same naming convent
 The model supports multi-classifiers, so tags in the target file are split by tab character, such as [Tag1] \t [Tag2] \t ... \t [TagN]. Each classifiers predicts one tag.  
 
 Here is an example:  
-Tag                 |  Tokens in Sequence
---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  
-Otorhinolaryngology | What should I do if I have a sore throat and a runny nose? [SEP] I feel sore in my throat after getting up in the morning, and I still have clear water in my nose. I measure my body temperature and I don’t have a fever. Have you caught a cold? What medicine should be taken.  
-Orthopedics         | How can I recuperate if my ankle is twisted? [SEP] I twisted my ankle when I went down the stairs, and now it is red and swollen. X-rays were taken and there were no fractures. May I ask how to recuperate to get better as soon as possible.  
+| Tag                  |  Tokens in Sequence                                                                                                                                                                                                                                                                                                                                            |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |   
+| Otorhinolaryngology  | What should I do if I have a sore throat and a runny nose? [SEP] I feel sore in my throat after getting up in the morning, and I still have clear water in my nose. I measure my body temperature and I don’t have a fever. Have you caught a cold? What medicine should be taken.                                                                             |
+| Orthopedics          | How can I recuperate if my ankle is twisted? [SEP] I twisted my ankle when I went down the stairs, and now it is red and swollen. X-rays were taken and there were no fractures. May I ask how to recuperate to get better as soon as possible.                                                                                                                |
 
 "Otorhinolaryngology" and "Orthopedics" are tags for classification and the rest of the tokens in each line are tokens for input sequence. This is an example that given title and description in medical domain, asking model to predict which specialty it should be classified. [SEP] is used to split title and description in the sequence, but it's not required in other tasks.  
 
@@ -289,23 +290,23 @@ The data format is one token along with the corresponding tag per line. Tokens a
 Token and tags are split by tab character. It looks like [Token] \t [Tag] And each sentence is split by a blank line. This format is compatible with the data for CRFSharp and CRF++.  
 Here is an example:  
 In train_001.txt, assume we have two sentences. For sentence "Microsoft is located in Redmond .", "Microsoft" is organization name, "Redmond" is location name. For sentence "Zhongkai Fu is the author of Seq2SeqSharp .", "Zhongkai Fu" is person name and "Seq2SeqSharp" is software name. So, the training corpus should look likes:  
-Token        |   Tag
--------------|------------  
-Microsoft    | S_ORG  
-is           | S_NOR  
-located      | S_NOR  
-in           | S_NOR  
-Redmond      | S_LOC  
-.            | S_NOR  
-[BLANK]      | [BLANK]
-Zhongkai     | B_PER  
-Fu           | E_PER  
-is           | S_NOR  
-the          | S_NOR  
-author       | S_NOR  
-of           | S_NOR  
-Seq2SeqSharp | S_SFT  
-.            | S_NOR  
+| Token        |   Tag   |
+| ------------ | ------- |  
+| Microsoft    | S_ORG   |
+| is           | S_NOR   |
+| located      | S_NOR   |
+| in           | S_NOR   |
+| Redmond      | S_LOC   |
+| .            | S_NOR   |
+| [BLANK]      | [BLANK] |
+| Zhongkai     | B_PER   |
+| Fu           | E_PER   |
+| is           | S_NOR   |
+| the          | S_NOR   |
+| author       | S_NOR   |
+| of           | S_NOR   |
+| Seq2SeqSharp | S_SFT   |
+| .            | S_NOR   |
 
 ## SeqSimilarityConsole for sequences similarity calculation  
 Each line in data set contains two sequences and the tool can calculate their similairy. These two sequences are split by tab character.  
@@ -373,13 +374,14 @@ Here are steps on how to play it.  
 # Models in the release package  
 The following models were trained by Seq2SeqSharp and included in the release package.  
 
-Model Name                    |   Comments                                           |    Trained By    |  Test Script              |  Input Test File  
-------------------------------|------------------------------------------------------|------------------|---------------------------|------------------------------  
-seq2seq_mt_enu_chs.model      | Sentence translation model from English to Chinese   |  Seq2SeqConsole  |  test_enu_chs.bat         |  test_enu_raw.txt  
-seq2seq_mt_chs_enu.model      | Sentence translation model from Chinese to English   |  Seq2SeqConsole  |  test_chs_enu.bat         |  test_chs_raw.txt  
-seq2seq_mt_enu_jpn.model      | Sentence translation model from English to Japanese  |  Seq2SeqConsole  |  test_enu_jpn.bat         |  test_enu_raw.txt  
-seq2seq_mt_jpn_enu.model      | Sentence translation model from Japanese to English  |  Seq2SeqConsole  |  test_jpn_enu.bat         |  test_jpn_raw.txt  
-seq2seq_medical_qa_chs.model  | Question-Answer model in Chinese medical domain      |  Seq2SeqConsole  |  test_medical_qa_chs.bat  |  test_medicalQA_chs_raw.txt  
+| Model Name                    |   Comments                                                                                          |    Trained By  |  Test Script            |  Input Test File            |
+| ----------------------------- | --------------------------------------------------------------------------------------------------- | -------------- | ----------------------- | --------------------------- |
+| seq2seq_mt_enu_chs.model      | Sentence translation model from English to Chinese                                                  | Seq2SeqConsole | test_enu_chs.bat        | test_enu_raw.txt            |
+| seq2seq_mt_chs_enu.model      | Sentence translation model from Chinese to English                                                  | Seq2SeqConsole | test_chs_enu.bat        | test_chs_raw.txt            |
+| seq2seq_mt_enu_jpn.model      | Sentence translation model from English to Japanese                                                 | Seq2SeqConsole | test_enu_jpn.bat        | test_enu_raw.txt            |
+| seq2seq_mt_jpn_enu.model      | Sentence translation model from Japanese to English                                                 | Seq2SeqConsole | test_jpn_enu.bat        | test_jpn_raw.txt            |
+| seq2seq_mt_enu_cjk.model      | Translation from English to Chinese, Japanese and Korean. It's a multi-languages translation model. | Seq2SeqConsole | test_enu_cjk.bat        | test_enu_spm.txt            |
+| seq2seq_medical_qa_chs.model  | Question-Answer model in Chinese medical domain                                                     | Seq2SeqConsole | test_medical_qa_chs.bat |  test_medicalQA_chs_raw.txt |
 
 
 # Build From Source Code  
@@ -413,13 +415,13 @@ For different .NET versions, you need to modify target framework in *.csproj fil
 
 # Built-in Tags  
 Seq2SeqSharp has several built-in tokens and they are used for certain purposes.  
-Token   | Comments
---------|------------------------------------------------------------
-\</s\>  | The end of the sequence
-\<s\>   | The beginning of the sequence
-\<unk\> | OOV token
-[SEP]   | The token used to split input sequence into many segments
-[CLS]   | The token used to predict classification
+| Token   | Comments                                                  |
+| ------- | --------------------------------------------------------- |
+| \</s\>  | The end of the sequence                                   |
+| \<s\>   | The beginning of the sequence                             |
+| \<unk\> | OOV token                                                 |
+| [SEP]   | The token used to split input sequence into many segments |
+| [CLS]   | The token used to predict classification                  |
 
 
 # Build Your Layers  
@@ -461,7 +463,7 @@ Here is an example about **attentioned based LSTM cells**.
 ```
 Another example about **scaled multi-heads attention** component which is the core part in **Transformer** model.  
 ```c#
-       /// <summary>
+        /// <summary>
         /// Scaled multi-heads attention component with skip connectioned feed forward layers
         /// </summary>
         /// <param name="inputQ">The input Q tensor</param>
@@ -471,68 +473,59 @@ Another example about **scaled multi-heads attention** component which is the co
         /// <param name="batchSize">Batch size of input data set</param>
         /// <param name="graph">The instance of computing graph</param>
         /// <returns>Transformered output tensor</returns>
-        public IWeightTensor Perform(IWeightTensor inputQ, IWeightTensor inputK, IWeightTensor inputV, IWeightTensor keyMask, int batchSize, IComputeGraph graph)
+        public (IWeightTensor, IWeightTensor) Perform(IWeightTensor inputQ, IWeightTensor inputK, IWeightTensor inputV, IWeightTensor keyMask, int batchSize, IComputeGraph graph, bool outputAttenWeights = false)
         {
-            using (IComputeGraph g = graph.CreateSubGraph($"{m_name}_MultiHeadAttention"))
+            using IComputeGraph g = graph.CreateSubGraph($"{m_name}_MultiHeadAttention");
+            int seqLenQ = inputQ.Rows / batchSize;
+
+            // SeqLenK must be euqal to SeqLenV
+            int seqLenK = inputK.Rows / batchSize;
+            int seqLenV = inputV.Rows / batchSize;
+
+            IWeightTensor inputQNorm = layerNormQ.Norm(inputQ, g);
+
+            //Input projections
+            IWeightTensor allQ = g.View(g.Affine(inputQNorm, Q, Qb), dims: new long[] { batchSize, seqLenQ, m_multiHeadNum, m_d });
+            IWeightTensor allK = g.View(g.Affine(inputK, K, Kb), dims: new long[] { batchSize, seqLenK, m_multiHeadNum, m_d });
+            IWeightTensor allV = g.View(g.Affine(inputV, V, Vb), dims: new long[] { batchSize, seqLenV, m_multiHeadNum, m_d });
+
+            //Multi-head attentions
+            IWeightTensor Qs = g.View(g.AsContiguous(g.Transpose(allQ, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, m_d });
+            IWeightTensor Ks = g.View(g.AsContiguous(g.Transpose(g.Transpose(allK, 1, 2), 2, 3)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenK });
+            IWeightTensor Vs = g.View(g.AsContiguous(g.Transpose(allV, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenV, m_d });
+
+            // Scaled softmax
+            float scale = 1.0f / (float)(Math.Sqrt(m_d));
+            var attn = g.MulBatch(Qs, Ks, scale);
+            attn = g.View(attn, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK });
+
+            if (keyMask != null)
             {
-                int seqLenQ = inputQ.Rows / batchSize;
-
-                // SeqLenK must be euqal to SeqLenV
-                int seqLenK = inputK.Rows / batchSize;
-                int seqLenV = inputV.Rows / batchSize;
-
-                IWeightTensor inputQNorm = layerNormQ.Norm(inputQ, g);
-                if (inputK == inputQ)
-                {
-                    inputK = inputQNorm;
-                }
-                if (inputV == inputQ)
-                {
-                    inputV = inputQNorm;
-                }
-
-                //Input projections
-                float scale = 1.0f;
-                IWeightTensor allQ = g.View(g.Affine(inputQNorm, Q, Qb, scale), dims: new long[] { batchSize, seqLenQ, m_multiHeadNum, m_d });
-                IWeightTensor allK = g.View(g.Affine(inputK, K, Kb, scale), dims: new long[] { batchSize, seqLenK, m_multiHeadNum, m_d });
-                IWeightTensor allV = g.View(g.Affine(inputV, V, Vb, scale), dims: new long[] { batchSize, seqLenV, m_multiHeadNum, m_d });
-
-                //Multi-head attentions
-                IWeightTensor Qs = g.View(g.AsContiguous(g.Transpose(allQ, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, m_d });
-                IWeightTensor Ks = g.View(g.AsContiguous(g.Transpose(g.Transpose(allK, 1, 2), 2, 3)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenK });
-                IWeightTensor Vs = g.View(g.AsContiguous(g.Transpose(allV, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenV, m_d });
-
-                // Scaled softmax
-                scale = 1.0f / (float)(Math.Sqrt(m_d));
-                IWeightTensor attn = g.MulBatch(Qs, Ks, batchSize * m_multiHeadNum, scale);
-
-                if (keyMask != null)
-                {
-                    using (var keyMaskView = g.View(keyMask, runGradient: false, dims: new long[] { batchSize, 1, seqLenQ, seqLenK }))
-                    {
-                        using (var keyMaskViewExp = g.Expand(keyMaskView, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK }))
-                        {
-                            using (var keyMaskViewExpConti = g.AsContiguous(keyMaskViewExp, runGradient: false))
-                            {
-                                using (var keyMaskViewExpContiView = g.View(keyMaskViewExpConti, runGradient: false, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenK }))
-                                {
-                                    attn = g.Add(attn, keyMaskViewExpContiView, runGradient1: true, runGradient2: false);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                IWeightTensor softmax = g.Softmax(attn, inPlace: true);
-
-                IWeightTensor o = g.View(g.MulBatch(softmax, Vs, batchSize * m_multiHeadNum), dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, m_d });
-                IWeightTensor W = g.View(g.AsContiguous(g.Transpose(o, 1, 2)), dims: new long[] { batchSize * seqLenQ, m_multiHeadNum * m_d });
-
-                // Output projection
-                IWeightTensor finalAttResults = g.Dropout(g.Affine(W, W0, b0), batchSize, m_dropoutRatio, inPlace: true);
-
-                return graph.Add(finalAttResults, inputQ);
+                attn = g.Add(attn, keyMask, runGradient1: true, runGradient2: false, inPlace: true);
             }
+
+            var attnProbs = g.Softmax(attn, inPlace: true);
+
+            IWeightTensor sumAttnWeights = null;
+            if (outputAttenWeights)
+            {
+                //Merge all attention probs over multi-heads
+                sumAttnWeights = g.Sum(attnProbs, 1, runGradient: false);
+                sumAttnWeights = graph.Mul(sumAttnWeights, 1.0f / (float)m_multiHeadNum, runGradient: false);
+                sumAttnWeights = graph.View(sumAttnWeights, false, new long[] { batchSize * seqLenQ, seqLenK });
+            }
+
+            attnProbs = g.View(attnProbs, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenK });
+
+            IWeightTensor o = g.View(g.MulBatch(attnProbs, Vs), dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, m_d });
+            IWeightTensor W = g.View(g.AsContiguous(g.Transpose(o, 1, 2)), dims: new long[] { batchSize * seqLenQ, m_multiHeadNum * m_d });
+
+            // Output projection
+            IWeightTensor finalAttResults = g.Dropout(g.Affine(W, W0, b0), batchSize, m_dropoutRatio, inPlace: true);
+            IWeightTensor result = graph.Add(finalAttResults, inputQ, inPlace: true);
+
+
+            return (result, sumAttnWeights);
         }
 ```
 # Build Your Operations  
