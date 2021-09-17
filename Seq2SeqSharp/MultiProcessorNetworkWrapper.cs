@@ -8,7 +8,6 @@ namespace Seq2SeqSharp
     {
         private readonly T[] m_networks;
         private readonly int m_defaultDeviceId;
-        private readonly int[] m_deviceIds;
         private readonly T m_networkOnDefaultDevice;
         private readonly bool m_isStaticWeights;
         private bool m_weightsSynced;
@@ -17,7 +16,6 @@ namespace Seq2SeqSharp
         {
             m_networks = new T[deviceIds.Length];
             m_defaultDeviceId = networkOnDefaultDevice.GetDeviceId();
-            m_deviceIds = deviceIds;
             m_networkOnDefaultDevice = networkOnDefaultDevice;
             m_isStaticWeights = isStaticWeights;
             m_weightsSynced = false;

@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("Seq2SeqConsole")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("It's a command line tool for sequence-to-sequence tasks, such as machine translation, automatic summarization and so on.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Seq2SeqConsole")]

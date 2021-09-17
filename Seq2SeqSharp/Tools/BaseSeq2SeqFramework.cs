@@ -946,9 +946,16 @@ namespace Seq2SeqSharp.Tools
             m_modelMetaData.ClearWeights();
 
             RegisterTrainableParameters(this);
+
+            HashSet<IMultiProcessorNetworkWrapper> setNetworkWrapper = new HashSet<IMultiProcessorNetworkWrapper>();
             foreach (KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network)
             {
-                pair.Value.Save(m_modelMetaData);
+                // One network wrapper may have multi-names, so we only save one copy of it
+                if (setNetworkWrapper.Contains(pair.Value) == false)
+                {
+                    setNetworkWrapper.Add(pair.Value);
+                    pair.Value.Save(m_modelMetaData);
+                }
             }
         }
 

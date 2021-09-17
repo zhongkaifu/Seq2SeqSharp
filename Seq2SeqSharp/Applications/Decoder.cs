@@ -195,7 +195,7 @@ namespace Seq2SeqSharp.Applications
                 var rnd = new TensorSharp.RandomGenerator();
                 int idx = rnd.NextSeed() % (batchSize * tgtSeqLen);
                 float score = gatherTensor.GetWeightAt(new long[] { idx, 0 });
-                cost += (float)-Math.Log(score);
+                cost += (float)-Math.Log(score + 1e-10f);
 
                 var lossTensor = g.Add(gatherTensor, -1.0f, false);
                 TensorUtils.Scatter(probs, lossTensor, scatterIdxTensor, 1);

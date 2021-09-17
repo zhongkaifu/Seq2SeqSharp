@@ -44,5 +44,8 @@
   </ItemGroup>
   <PropertyGroup>
     <Authors>Zhongkai Fu</Authors>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageProjectUrl>https://github.com/zhongkaifu/Seq2SeqSharp</PackageProjectUrl>
   </PropertyGroup>
 </Project>

@@ -30,7 +30,7 @@ namespace Seq2SeqSharp.Optimizer
         public void UpdateWeights(List<IWeightTensor> model, int batchSize, float step_size, float regc, int iter)
         {
             Dictionary<int, List<IWeightTensor>> id2Models = new Dictionary<int, List<IWeightTensor>>();
-            HashSet<string> setWeightsName = new HashSet<string>();
+            Dictionary<string, IWeightTensor> name2tensor = new Dictionary<string, IWeightTensor>();
 
             foreach (IWeightTensor item in model)
             {
@@ -39,11 +39,15 @@ namespace Seq2SeqSharp.Optimizer
                     continue;
                 }
 
-                if (setWeightsName.Contains(item.Name))
+                if (name2tensor.ContainsKey(item.Name))
                 {
-                    throw new ArgumentException($"Found duplicated weights name '{item.Name}'");
+                    if (item != name2tensor[item.Name])
+                    {
+                        throw new ArgumentException($"Found duplicated weights '{item.Name}'.");
+                    }
+                    continue;
                 }
-                setWeightsName.Add(item.Name);
+                name2tensor.Add(item.Name, item);
 
                 if (id2Models.ContainsKey(item.DeviceId) == false)
                 {
