@@ -176,6 +176,7 @@ namespace Seq2SeqSharp.Applications
 
             if (isTraining == false)
             {
+                // For inference, we only process last token of each sequence in order to speed up
                 float[] decOutputIdx = new float[batchSize];
                 for (int i = 0; i < batchSize; i++)
                 {
@@ -215,7 +216,7 @@ namespace Seq2SeqSharp.Applications
                 while (beamSearchSize > 0)
                 {
                     // Output "i"th target word
-                    using var targetIdxTensor = g.Argmax(probs, 1);
+                    using var targetIdxTensor = g.SampleIndice(probs);// g.Argmax(probs, 1);
                     IWeightTensor gatherTensor = null;
                     if (outputSentScore)
                     {

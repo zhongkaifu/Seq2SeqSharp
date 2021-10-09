@@ -839,6 +839,42 @@ namespace Seq2SeqSharp.Tools
         }
 
 
+
+        public IWeightTensor SampleIndice(IWeightTensor w)
+        {
+            WeightTensor m = w as WeightTensor;
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { m.Rows, 1}, m_deviceId, name: $"{GetHashString(m.Name)}.Sample", graphToBind: this);
+
+            Random rnd = new Random(DateTime.Now.Millisecond);
+
+            float[] weights = m.ToWeightArray();
+            float[] indices = new float[m.Rows];
+
+            for (int i = 0; i < m.Rows; i++)
+            {
+                int offset = i * m.Columns;
+                float seed = (float) rnd.NextDouble();
+                float sum = 0.0f;
+                for (int j = 0; j < m.Columns; j++)
+                {
+                    if (seed >= sum && seed <= sum + weights[offset + j])
+                    {
+                        indices[i] = j;
+                        break;
+                    }
+
+                    sum += weights[offset + j];
+                }
+            }
+
+            res.SetWeightArray(indices);
+
+            return res;
+
+        }
+
+
         public IWeightTensor Max(IWeightTensor w, int dim)
         {
             WeightTensor m = w as WeightTensor;

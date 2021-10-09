@@ -693,8 +693,8 @@ namespace Seq2SeqSharp.Tools
             {
                 Parallel.For(0, m_deviceIds.Length, gpuIdx =>
                 {
-                    try
-                    {
+                //    try
+                //    {
                         while (true)
                         {
                             (int idx, ISntPairBatch spb) = reader.GetNextBatch();
@@ -713,12 +713,12 @@ namespace Seq2SeqSharp.Tools
 
                             writer.WriteResults(idx, nrs);
                         }
-                    }
-                    catch (Exception err)
-                    {
-                        Logger.WriteLine(Logger.Level.err, $"Test error at processor '{gpuIdx}'. Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
-                        throw err;
-                    }
+                    //}
+                    //catch (Exception err)
+                    //{
+                    //    Logger.WriteLine(Logger.Level.err, $"Test error at processor '{gpuIdx}'. Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                    //    throw err;
+                    //}
                 });
 
                 writer.Close();
