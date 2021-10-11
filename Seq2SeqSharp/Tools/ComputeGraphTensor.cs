@@ -853,14 +853,32 @@ namespace Seq2SeqSharp.Tools
             for (int i = 0; i < m.Rows; i++)
             {
                 int offset = i * m.Columns;
-                List<int> seq = seqs[i].Count <= 5 ? seqs[i] : seqs[i].GetRange(seqs[i].Count - 5, 5);
+                List<int> seq = seqs[i];
+
+                Dictionary<int, int> tokenId2OffsetInSeq = new Dictionary<int, int>(); // <tokenId, offsetInSeq>
+                for (int j = 0; j < seq.Count; j++)
+                {
+                    if (tokenId2OffsetInSeq.ContainsKey(seq[j]) == false)
+                    {
+                        tokenId2OffsetInSeq.Add(seq[j], j);
+                    }
+                    else
+                    {
+                        tokenId2OffsetInSeq[seq[j]] = j;
+                    }
+                }
+
+
 
                 SortedDictionary<float, List<int>> q = new SortedDictionary<float, List<int>>();
                 for (int j = 0; j < m.Columns; j++)
                 {
-                    if (seq.Contains(j))
+                    if (tokenId2OffsetInSeq.ContainsKey(j))
                     {
-                        continue;
+                        int offsetInSeq = tokenId2OffsetInSeq[j];
+
+                        weights[offset + j] = (float)(weights[offset + j] * (1.0 - Math.Exp((offsetInSeq + 1) - seq.Count)));
+
                     }
 
                     var key = weights[offset + j];
