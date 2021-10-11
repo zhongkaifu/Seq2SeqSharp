@@ -223,7 +223,7 @@ namespace Seq2SeqSharp.Applications
                 while (beamSearchSize > 0)
                 {
                     // Output "i"th target word
-                    using var targetIdxTensor = g.SampleIndice(probs);// g.Argmax(probs, 1);
+                    using var targetIdxTensor = g.SampleIndice(probs, tgtSeqs);// g.Argmax(probs, 1);
                     IWeightTensor gatherTensor = null;
                     if (outputSentScore)
                     {

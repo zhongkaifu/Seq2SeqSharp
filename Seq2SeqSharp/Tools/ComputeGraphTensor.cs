@@ -841,7 +841,7 @@ namespace Seq2SeqSharp.Tools
 
 
 
-        public IWeightTensor SampleIndice(IWeightTensor w)
+        public IWeightTensor SampleIndice(IWeightTensor w, List<List<int>> seqs)
         {
             WeightTensor m = w as WeightTensor;
             float[] weights = m.ToWeightArray();
@@ -853,10 +853,16 @@ namespace Seq2SeqSharp.Tools
             for (int i = 0; i < m.Rows; i++)
             {
                 int offset = i * m.Columns;
+                List<int> seq = seqs[i].Count <= 5 ? seqs[i] : seqs[i].GetRange(seqs[i].Count - 5, 5);
 
                 SortedDictionary<float, List<int>> q = new SortedDictionary<float, List<int>>();
                 for (int j = 0; j < m.Columns; j++)
                 {
+                    if (seq.Contains(j))
+                    {
+                        continue;
+                    }
+
                     var key = weights[offset + j];
                     if (q.ContainsKey(key) == false)
                     {
