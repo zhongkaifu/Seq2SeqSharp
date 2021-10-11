@@ -4,6 +4,7 @@
 using AdvUtils;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using TensorSharp;
@@ -843,28 +844,62 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor SampleIndice(IWeightTensor w)
         {
             WeightTensor m = w as WeightTensor;
-
+            float[] weights = m.ToWeightArray();
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { m.Rows, 1}, m_deviceId, name: $"{GetHashString(m.Name)}.Sample", graphToBind: this);
 
             Random rnd = new Random(DateTime.Now.Millisecond);
-
-            float[] weights = m.ToWeightArray();
             float[] indices = new float[m.Rows];
 
             for (int i = 0; i < m.Rows; i++)
             {
                 int offset = i * m.Columns;
-                float seed = (float) rnd.NextDouble();
-                float sum = 0.0f;
+
+                SortedDictionary<float, List<int>> q = new SortedDictionary<float, List<int>>();
                 for (int j = 0; j < m.Columns; j++)
                 {
-                    if (seed >= sum && seed <= sum + weights[offset + j])
+                    var key = weights[offset + j];
+                    if (q.ContainsKey(key) == false)
                     {
-                        indices[i] = j;
+                        q.Add(key, new List<int>());
+                    }
+                    q[key].Add(j);
+                }
+
+                float acc = 0.0f;
+                List<KeyValuePair<float, int>> topKItems = new List<KeyValuePair<float, int>>();
+                foreach (var pair in q.Reverse())
+                {
+                    foreach (var item in pair.Value)
+                    {
+                        KeyValuePair<float, int> kv = new KeyValuePair<float, int>(pair.Key, item);
+                        topKItems.Add(kv);
+
+                        acc += kv.Key;
+
+                        if (acc >= 0.9f)
+                        {
+                            break;
+                        }
+                    }
+
+                    if (acc >= 0.9f)
+                    {
+                        break;
+                    }
+                }
+
+
+                float seed = (float)rnd.NextDouble() * acc;
+                float sum = 0.0f;
+                for (int j = 0; j < topKItems.Count; j++)
+                {
+                    if (seed >= sum && seed <= sum + topKItems[j].Key)
+                    {
+                        indices[i] = topKItems[j].Value;
                         break;
                     }
 
-                    sum += weights[offset + j];
+                    sum += topKItems[j].Key;
                 }
             }
 
