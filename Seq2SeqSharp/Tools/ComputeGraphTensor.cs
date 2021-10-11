@@ -856,16 +856,20 @@ namespace Seq2SeqSharp.Tools
                 List<int> seq = seqs[i];
 
                 Dictionary<int, int> tokenId2OffsetInSeq = new Dictionary<int, int>(); // <tokenId, offsetInSeq>
+                Dictionary<int, int> tokenId2Cnt = new Dictionary<int, int>(); // <tokenId, count>
                 for (int j = 0; j < seq.Count; j++)
                 {
                     if (tokenId2OffsetInSeq.ContainsKey(seq[j]) == false)
                     {
                         tokenId2OffsetInSeq.Add(seq[j], j);
+                        tokenId2Cnt.Add(seq[j], 0);
                     }
                     else
                     {
                         tokenId2OffsetInSeq[seq[j]] = j;
                     }
+
+                    tokenId2Cnt[seq[j]]++;
                 }
 
 
@@ -877,7 +881,7 @@ namespace Seq2SeqSharp.Tools
                     {
                         int offsetInSeq = tokenId2OffsetInSeq[j];
 
-                        weights[offset + j] = (float)(weights[offset + j] * (1.0 - Math.Exp((offsetInSeq + 1) - seq.Count)));
+                        weights[offset + j] = (float)((weights[offset + j] * (1.0 - Math.Exp((offsetInSeq + 1) - seq.Count))) / Math.Exp(tokenId2Cnt[j]));
 
                     }
 
