@@ -99,6 +99,12 @@ namespace Seq2SeqSharp.Applications
         [Arg("Task to execute. It could be Train, Valid, Test, DumpVocab or Help", "Task")]
         public string Task = "Help";
 
+        [Arg("Token generation types. It supports ArgMax and Sampling. Default is ArgMax", "TokenGenerationType")]
+        public string TokenGenerationType = "ArgMax";
+
+        [Arg("The top-P value for token generation sampling. Default is 0.9", "TopP")]
+        public float TopP = 0.9f;
+
         [Arg("How to deal with too long sequence. It can be Ignore or Truncation", "TooLongSequence")]
         public string TooLongSequence = "Ignore";
 

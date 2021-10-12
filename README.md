@@ -48,11 +48,10 @@ Seq2SeqSharp provides some command line tools that you can run for different typ
 | SeqSimilarityConsole           | Used for similarity calculation between two sequences. It supports to both discrete similarity (binary-classifier) and continuous similarity (consine distance)                                                                                           |
 
 It also provides web service APIs for above tasks.  
-| Name                       |   Comments                                                                                                                       |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |  
-| Seq2SeqWebAPI              | Web Service RESTful API for sequence-to-sequence tasks. It hosts models trained by Seq2SeqConsole and infer online.              |
-| SeqClassificationWebAPI    | Web Service RESTful API for sequence classification tasks. It hosts models trained by SeqClassificationConsole and infer online. |
-| SeqSimilarityWebAPI        | Web Service RESTful API for sequences similarity tasks. It hosts models trained by SeqSimilarityConsole and infer online.        |
+| Name       |   Comments                                                                                                           |
+| ---------- | -------------------------------------------------------------------------------------------------------------------- |  
+| SeqWebAPIs | Web Service RESTful APIs for many kinds of sequence tasks. It hosts models trained by Seq2SeqSharp and infer online. |
+
 
 
 ## Seq2SeqConsole for sequence-to-sequence task  

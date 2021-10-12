@@ -840,8 +840,14 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-
-        public IWeightTensor SampleIndice(IWeightTensor w, List<List<int>> seqs)
+        /// <summary>
+        /// Top-P sampling for each row in given tensor
+        /// </summary>
+        /// <param name="w"></param>
+        /// <param name="seqs"></param>
+        /// <param name="topP"></param>
+        /// <returns>The sampled index</returns>
+        public IWeightTensor TopPSampleIndice(IWeightTensor w, List<List<int>> seqs, float topP = 0.9f)
         {
             WeightTensor m = w as WeightTensor;
             float[] weights = m.ToWeightArray();
@@ -904,13 +910,13 @@ namespace Seq2SeqSharp.Tools
 
                         acc += kv.Key;
 
-                        if (acc >= 0.9f)
+                        if (acc >= topP)
                         {
                             break;
                         }
                     }
 
-                    if (acc >= 0.9f)
+                    if (acc >= topP)
                     {
                         break;
                     }

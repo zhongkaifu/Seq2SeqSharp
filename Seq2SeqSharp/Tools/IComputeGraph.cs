@@ -45,7 +45,7 @@ namespace Seq2SeqSharp
         IWeightTensor Max(IWeightTensor w, int dim);
         IWeightTensor Argmax(IWeightTensor w, int dim);
 
-        IWeightTensor SampleIndice(IWeightTensor w, List<List<int>> seqs);
+        IWeightTensor TopPSampleIndice(IWeightTensor w, List<List<int>> seqs, float topP = 0.9f);
 
 
         IWeightTensor IndexSelect(IWeightTensor s, float[] idxs);
