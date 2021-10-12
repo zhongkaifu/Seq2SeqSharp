@@ -20,12 +20,12 @@ Support multi-GPUs for training, validation and test
 Optimized CUDA memory management for higher performance  
 Mini-batch  
 Dropout  
+Different Text Generation Strategy: ArgMax, Beam Search, Top-P Sampling  
 RMSProp and Adam optmization  
 Embedding & Pre-trained model 
 Built-in metrics and extendable, such as BLEU score, Length ratio, F1 score and so on  
 Auto data shuffling  
 Auto vocabulary building  
-Beam search decoder  
 Attention alignment generation between source side and target side  
 Visualize neural network  
 
