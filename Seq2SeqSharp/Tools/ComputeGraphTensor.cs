@@ -857,6 +857,7 @@ namespace Seq2SeqSharp.Tools
             object locker = new object();
             Random rnd = new Random(DateTime.Now.Millisecond);
             float[] indices = new float[m.Rows];
+            float thresholdValue = 1.0f / (float)m.Columns;
 
             Parallel.For(0, m.Rows, i =>
             {
@@ -884,6 +885,11 @@ namespace Seq2SeqSharp.Tools
                 float adjustedSum = 0.0f;
                 for (int j = 0; j < m.Columns; j++)
                 {
+                    if (weights[offset + j] < thresholdValue)
+                    {
+                        continue;
+                    }
+
                     //Decay weights if tokens has already been generated before
                     if (tokenId2OffsetInSeq.ContainsKey(j))
                     {
