@@ -4,6 +4,7 @@
 using AdvUtils;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using TensorSharp;
@@ -836,6 +837,112 @@ namespace Seq2SeqSharp.Tools
             }
 
             return res;
+        }
+
+
+        /// <summary>
+        /// Top-P sampling for each row in given tensor
+        /// </summary>
+        /// <param name="w"></param>
+        /// <param name="seqs"></param>
+        /// <param name="topP"></param>
+        /// <returns>The sampled index</returns>
+        public IWeightTensor TopPSampleIndice(IWeightTensor w, List<List<int>> seqs, float topP = 0.9f)
+        {
+            WeightTensor m = w as WeightTensor;
+            float[] weights = m.ToWeightArray();
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { m.Rows, 1}, m_deviceId, name: $"{GetHashString(m.Name)}.Sample", graphToBind: this);
+
+            Random rnd = new Random(DateTime.Now.Millisecond);
+            float[] indices = new float[m.Rows];
+
+            for (int i = 0; i < m.Rows; i++)
+            {
+                int offset = i * m.Columns;
+                List<int> seq = seqs[i];
+
+                Dictionary<int, int> tokenId2OffsetInSeq = new Dictionary<int, int>(); // <tokenId, offsetInSeq>. The last offset of the token in the given sequence
+                Dictionary<int, int> tokenId2Cnt = new Dictionary<int, int>(); // <tokenId, count> The number of token in the given sequences
+                for (int j = 0; j < seq.Count; j++)
+                {
+                    if (tokenId2OffsetInSeq.ContainsKey(seq[j]) == false)
+                    {
+                        tokenId2OffsetInSeq.Add(seq[j], j);
+                        tokenId2Cnt.Add(seq[j], 0);
+                    }
+                    else
+                    {
+                        tokenId2OffsetInSeq[seq[j]] = j;
+                    }
+
+                    tokenId2Cnt[seq[j]]++;
+                }
+
+
+
+                SortedDictionary<float, List<int>> weight2tokenIds = new SortedDictionary<float, List<int>>();
+                float adjustedSum = 0.0f;
+                for (int j = 0; j < m.Columns; j++)
+                {
+                    //Decay weights if tokens has already been generated before
+                    if (tokenId2OffsetInSeq.ContainsKey(j))
+                    {
+                        int offsetInSeq = tokenId2OffsetInSeq[j];
+                        weights[offset + j] = (float)((weights[offset + j] * (1.0 - Math.Exp((offsetInSeq + 1) - seq.Count))) / Math.Pow(10.0, tokenId2Cnt[j]));
+                    }
+
+                    var key = weights[offset + j];
+                    adjustedSum += key;
+                    if (weight2tokenIds.ContainsKey(key) == false)
+                    {
+                        weight2tokenIds.Add(key, new List<int>());
+                    }
+                    weight2tokenIds[key].Add(j);
+                }
+
+                float acc = 0.0f;
+                topP = topP * adjustedSum;
+                List<KeyValuePair<float, int>> topKItems = new List<KeyValuePair<float, int>>();
+                foreach (var pair in weight2tokenIds.Reverse())
+                {
+                    foreach (var item in pair.Value)
+                    {
+                        KeyValuePair<float, int> kv = new KeyValuePair<float, int>(pair.Key, item);
+                        topKItems.Add(kv);
+
+                        acc += kv.Key;
+
+                        if (acc >= topP)
+                        {
+                            break;
+                        }
+                    }
+
+                    if (acc >= topP)
+                    {
+                        break;
+                    }
+                }
+
+
+                float seed = (float)rnd.NextDouble() * acc;
+                float sum = 0.0f;
+                for (int j = 0; j < topKItems.Count; j++)
+                {
+                    if (seed >= sum && seed <= sum + topKItems[j].Key)
+                    {
+                        indices[i] = topKItems[j].Value;
+                        break;
+                    }
+
+                    sum += topKItems[j].Key;
+                }
+            }
+
+            res.SetWeightArray(indices);
+
+            return res;
+
         }
 
 

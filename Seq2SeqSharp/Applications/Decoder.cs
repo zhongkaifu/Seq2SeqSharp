@@ -139,7 +139,7 @@ namespace Seq2SeqSharp.Applications
 
         public static (float, List<List<BeamSearchStatus>>) DecodeTransformer(List<List<int>> tgtSeqs, IComputeGraph g, IWeightTensor encOutputs, TransformerDecoder decoder, IFeedForwardLayer decoderFFLayer,
             IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, float[] srcOriginalLenghts, Vocab tgtVocab, ShuffleEnums shuffleType, float dropoutRatio, bool isTraining = true, int beamSearchSize = 1, 
-            bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null)
+            bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, TokenGenerationEnums tokenGenerationEnum = TokenGenerationEnums.ArgMax, float topPValue = 0.9f)
         {
             int eosTokenId = tgtVocab.GetWordIndex(BuildInTokens.EOS, logUnk: true);
             float cost = 0.0f;
@@ -176,6 +176,7 @@ namespace Seq2SeqSharp.Applications
 
             if (isTraining == false)
             {
+                // For inference, we only process last token of each sequence in order to speed up
                 float[] decOutputIdx = new float[batchSize];
                 for (int i = 0; i < batchSize; i++)
                 {
@@ -188,6 +189,13 @@ namespace Seq2SeqSharp.Applications
 
 
             IWeightTensor ffLayer = decoderFFLayer.Process(decOutput, batchSize, g);
+
+
+            if (isTraining == false)
+            {
+                ffLayer = g.Mul(ffLayer, 5.0f);
+            }
+
             IWeightTensor probs = g.Softmax(ffLayer, runGradients: false, inPlace: true);
 
             if (isTraining)
@@ -215,7 +223,7 @@ namespace Seq2SeqSharp.Applications
                 while (beamSearchSize > 0)
                 {
                     // Output "i"th target word
-                    using var targetIdxTensor = g.Argmax(probs, 1);
+                    using var targetIdxTensor = (tokenGenerationEnum == TokenGenerationEnums.ArgMax) ? g.Argmax(probs, 1) : g.TopPSampleIndice(probs, tgtSeqs, topPValue);
                     IWeightTensor gatherTensor = null;
                     if (outputSentScore)
                     {

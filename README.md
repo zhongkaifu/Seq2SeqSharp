@@ -20,12 +20,12 @@ Support multi-GPUs for training, validation and test
 Optimized CUDA memory management for higher performance  
 Mini-batch  
 Dropout  
+Different Text Generation Strategy: ArgMax, Beam Search, Top-P Sampling  
 RMSProp and Adam optmization  
 Embedding & Pre-trained model 
 Built-in metrics and extendable, such as BLEU score, Length ratio, F1 score and so on  
 Auto data shuffling  
 Auto vocabulary building  
-Beam search decoder  
 Attention alignment generation between source side and target side  
 Visualize neural network  
 
@@ -48,11 +48,10 @@ Seq2SeqSharp provides some command line tools that you can run for different typ
 | SeqSimilarityConsole           | Used for similarity calculation between two sequences. It supports to both discrete similarity (binary-classifier) and continuous similarity (consine distance)                                                                                           |
 
 It also provides web service APIs for above tasks.  
-| Name                       |   Comments                                                                                                                       |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |  
-| Seq2SeqWebAPI              | Web Service RESTful API for sequence-to-sequence tasks. It hosts models trained by Seq2SeqConsole and infer online.              |
-| SeqClassificationWebAPI    | Web Service RESTful API for sequence classification tasks. It hosts models trained by SeqClassificationConsole and infer online. |
-| SeqSimilarityWebAPI        | Web Service RESTful API for sequences similarity tasks. It hosts models trained by SeqSimilarityConsole and infer online.        |
+| Name       |   Comments                                                                                                           |
+| ---------- | -------------------------------------------------------------------------------------------------------------------- |  
+| SeqWebAPIs | Web Service RESTful APIs for many kinds of sequence tasks. It hosts models trained by Seq2SeqSharp and infer online. |
+
 
 
 ## Seq2SeqConsole for sequence-to-sequence task  
