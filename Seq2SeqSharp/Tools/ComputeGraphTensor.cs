@@ -857,7 +857,7 @@ namespace Seq2SeqSharp.Tools
             object locker = new object();
             Random rnd = new Random(DateTime.Now.Millisecond);
             float[] indices = new float[m.Rows];
-            float thresholdValue = 1.0f / (float)(m.Columns * 10000.0);
+            float thresholdValue = 1.0f / (float)(m.Columns * 100000.0);
 
             Parallel.For(0, m.Rows, i =>
             {
