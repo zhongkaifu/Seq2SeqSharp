@@ -857,7 +857,7 @@ namespace Seq2SeqSharp.Tools
             object locker = new object();
             Random rnd = new Random(DateTime.Now.Millisecond);
             float[] indices = new float[m.Rows];
-            float thresholdValue = 1.0f / (float)m.Columns;
+            float thresholdValue = 1.0f / (float)(m.Columns * 10000.0);
 
             Parallel.For(0, m.Rows, i =>
             {
@@ -881,11 +881,12 @@ namespace Seq2SeqSharp.Tools
                     tokenId2Cnt[seq[j]]++;
                 }
 
-                SortedDictionary<float, List<int>> weight2tokenIds = new SortedDictionary<float, List<int>>();
+                SortedDictionary<float, int> weight2tokenId = new SortedDictionary<float, int>();
                 float adjustedSum = 0.0f;
                 for (int j = 0; j < m.Columns; j++)
                 {
-                    if (weights[offset + j] < thresholdValue)
+                    float weight = weights[offset + j];
+                    if (weight < thresholdValue || weight2tokenId.ContainsKey(weight))
                     {
                         continue;
                     }
@@ -894,16 +895,17 @@ namespace Seq2SeqSharp.Tools
                     if (tokenId2OffsetInSeq.ContainsKey(j))
                     {
                         int offsetInSeq = tokenId2OffsetInSeq[j];
-                        weights[offset + j] = (float)((weights[offset + j] * (1.0 - Math.Exp((offsetInSeq + 1) - seq.Count))) / Math.Pow(10.0, tokenId2Cnt[j]));
+                        weight = (float)((weight * (1.0 - Math.Exp((offsetInSeq + 1) - seq.Count))) / Math.Pow(10.0, tokenId2Cnt[j]));
                     }
 
-                    var key = weights[offset + j];
-                    adjustedSum += key;
-                    if (weight2tokenIds.ContainsKey(key) == false)
+                    if (weight < thresholdValue || weight2tokenId.ContainsKey(weight))
                     {
-                        weight2tokenIds.Add(key, new List<int>());
+                        continue;
                     }
-                    weight2tokenIds[key].Add(j);
+
+                    adjustedSum += weight;
+                    weight2tokenId.Add(weight, j);
+
                 }
 
                 float acc = 0.0f;
@@ -912,22 +914,14 @@ namespace Seq2SeqSharp.Tools
                 {
                     seed = (float)rnd.NextDouble() * topP * adjustedSum;
                 }
-                
-                foreach (var pair in weight2tokenIds.Reverse())
-                {
-                    foreach (var item in pair.Value)
-                    {
-                        acc += pair.Key;
 
-                        if (acc >= seed)
-                        {
-                            indices[i] = item;
-                            break;
-                        }
-                    }
+                foreach (var pair in weight2tokenId.Reverse())
+                {
+                    acc += pair.Key;
 
                     if (acc >= seed)
                     {
+                        indices[i] = pair.Value;
                         break;
                     }
                 }
