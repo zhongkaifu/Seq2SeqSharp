@@ -75,3 +75,12 @@
 /SeqWebAPIs/obj
 /SeqWebAPIs/SeqWebAPIs.csproj.user
 /SeqWebAPIs/bin/Release/net5.0
+/Seq2SeqConsole/Seq2SeqConsole.csproj.user
+/Seq2SeqSharp/Seq2SeqSharp.csproj.user
+/TensorSharp.CUDA/bin/Debug/TensorSharp.CUDA.1.0.0.nupkg
+/TensorSharp.CUDA/Properties/PublishProfiles/FolderProfile.pubxml.user
+/TensorSharp.CUDA/TensorSharp.CUDA.csproj.user
+/TensorSharp/TensorSharp.csproj.user
+/Seq2SeqConsole/Properties/PublishProfiles/FolderProfile.pubxml.user
+/Seq2SeqSharp/Properties/PublishProfiles/FolderProfile.pubxml.user
+/TensorSharp/Properties/PublishProfiles/FolderProfile.pubxml.user
