@@ -859,7 +859,7 @@ namespace Seq2SeqSharp.Tools
             float[] indices = new float[m.Rows];
             float thresholdValue = 1.0f / (float)(m.Columns * 100000.0);
 
-            Parallel.For(0, m.Rows, i =>
+            for (int i = 0; i < m.Rows; i++)
             {
                 int offset = i * m.Columns;
                 List<int> seq = seqs[i];
@@ -925,7 +925,7 @@ namespace Seq2SeqSharp.Tools
                         break;
                     }
                 }
-            });
+            }
 
             res.SetWeightArray(indices);
 
