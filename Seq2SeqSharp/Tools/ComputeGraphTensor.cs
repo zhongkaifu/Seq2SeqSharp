@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using TensorSharp;
 
 /// <summary>
@@ -853,8 +854,10 @@ namespace Seq2SeqSharp.Tools
             float[] weights = m.ToWeightArray();
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { m.Rows, 1}, m_deviceId, name: $"{GetHashString(m.Name)}.Sample", graphToBind: this);
 
+            object locker = new object();
             Random rnd = new Random(DateTime.Now.Millisecond);
             float[] indices = new float[m.Rows];
+            float thresholdValue = 1.0f / (float)(m.Columns * 100000.0);
 
             for (int i = 0; i < m.Rows; i++)
             {
@@ -878,68 +881,60 @@ namespace Seq2SeqSharp.Tools
                     tokenId2Cnt[seq[j]]++;
                 }
 
-
-
-                SortedDictionary<float, List<int>> weight2tokenIds = new SortedDictionary<float, List<int>>();
+                SortedDictionary<float, int> weight2tokenId = new SortedDictionary<float, int>();
                 float adjustedSum = 0.0f;
                 for (int j = 0; j < m.Columns; j++)
                 {
+                    float weight = weights[offset + j];
+                    if (weight < thresholdValue || weight2tokenId.ContainsKey(weight))
+                    {
+                        continue;
+                    }
+
                     //Decay weights if tokens has already been generated before
                     if (tokenId2OffsetInSeq.ContainsKey(j))
                     {
                         int offsetInSeq = tokenId2OffsetInSeq[j];
-                        weights[offset + j] = (float)((weights[offset + j] * (1.0 - Math.Exp((offsetInSeq + 1) - seq.Count))) / Math.Pow(10.0, tokenId2Cnt[j]));
+                        weight = (float)((weight * (1.0 - Math.Exp((offsetInSeq + 1) - seq.Count))) / Math.Pow(10.0, tokenId2Cnt[j]));
                     }
 
-                    var key = weights[offset + j];
-                    adjustedSum += key;
-                    if (weight2tokenIds.ContainsKey(key) == false)
+                    if (weight < thresholdValue || weight2tokenId.ContainsKey(weight))
                     {
-                        weight2tokenIds.Add(key, new List<int>());
+                        continue;
                     }
-                    weight2tokenIds[key].Add(j);
+
+                    adjustedSum += weight;
+                    weight2tokenId.Add(weight, j);
+
                 }
 
                 float acc = 0.0f;
-                topP = topP * adjustedSum;
-                List<KeyValuePair<float, int>> topKItems = new List<KeyValuePair<float, int>>();
-                foreach (var pair in weight2tokenIds.Reverse())
+                float seed = 0.0f;
+                lock (locker)
                 {
-                    foreach (var item in pair.Value)
-                    {
-                        KeyValuePair<float, int> kv = new KeyValuePair<float, int>(pair.Key, item);
-                        topKItems.Add(kv);
-
-                        acc += kv.Key;
-
-                        if (acc >= topP)
-                        {
-                            break;
-                        }
-                    }
-
-                    if (acc >= topP)
-                    {
-                        break;
-                    }
+                    seed = (float)rnd.NextDouble() * topP * adjustedSum;
                 }
 
-
-                float seed = (float)rnd.NextDouble() * acc;
-                float sum = 0.0f;
-                for (int j = 0; j < topKItems.Count; j++)
+                foreach (var pair in weight2tokenId.Reverse())
                 {
-                    if (seed >= sum && seed <= sum + topKItems[j].Key)
+                    acc += pair.Key;
+
+                    if (acc >= seed)
                     {
-                        indices[i] = topKItems[j].Value;
+                        indices[i] = pair.Value;
                         break;
                     }
-
-                    sum += topKItems[j].Key;
                 }
             }
 
             res.SetWeightArray(indices);
+
+
+            if (m_needsBackprop)
+            {
+                throw new NotSupportedException($"TopPSampleIndice operation doesn't support back propagation.");
+            }
+
 
             return res;
 
