@@ -895,7 +895,7 @@ namespace Seq2SeqSharp.Tools
                     if (tokenId2OffsetInSeq.ContainsKey(j))
                     {
                         int offsetInSeq = tokenId2OffsetInSeq[j];
-                        weight = (float)((weight * (1.0 - Math.Exp((offsetInSeq + 1) - seq.Count))) / Math.Pow(10.0, tokenId2Cnt[j]));
+                        weight = (float)((weight * (1.0 - Math.Exp((offsetInSeq + 1 - seq.Count) / 10.0))) / Math.Pow(10.0, tokenId2Cnt[j]));
                     }
 
                     if (weight < thresholdValue || weight2tokenId.ContainsKey(weight))

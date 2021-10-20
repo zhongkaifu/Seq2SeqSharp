@@ -1,4 +1,5 @@
-﻿using Seq2SeqSharp.Tools;
+﻿using AdvUtils;
+using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -33,6 +34,8 @@ namespace Seq2SeqSharp.Utils
 
         public static WeightTensor BuildPositionWeightTensor(int row, int column, int deviceId, string name = "", bool isTrainable = false)
         {
+            Logger.WriteLine($"Building position weights tensor. Row = '{row}', Column = '{column}', DeviceId = '{deviceId}', Name = '{name}', Trainable = '{isTrainable}'");
+
             WeightTensor t = new WeightTensor(new long[2] { row, column }, deviceId, name: name, isTrainable: isTrainable);
             float[] posWeights = new float[row * column];
 
