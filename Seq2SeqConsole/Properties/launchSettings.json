@@ -2,7 +2,7 @@
   "profiles": {
     "Seq2SeqConsole": {
       "commandName": "Project",
-      "commandLineArgs": "-Task Test -ModelFilePath .\\model\\seq2seq_mt_enu_chs.model -InputTestFile .\\data\\test\\test_enu_spm.txt -OutputFile out_chs_spm.txt -MaxTestSrcSentLength 110 -MaxTestTgtSentLength 110 -ProcessorType CPU -BeamSearchSize 3 -BatchSize 1 -DeviceIds 0,1,2,3 -ShuffleType Random",
+      "commandLineArgs": "-Task Test -ModelFilePath .\\model\\seq2seq_mt_enu_chs.model -InputTestFile .\\data\\test\\test_enu_spm.txt -OutputFile out_chs_spm.txt -MaxTestSrcSentLength 110 -MaxTestTgtSentLength 110 -ProcessorType CPU -BeamSearchSize 3 -BatchSize 1 -DeviceIds 0 -ShuffleType Random -TokenGenerationType Sampling",
       "workingDirectory": "C:\\ReleasePackage"
     }
   }

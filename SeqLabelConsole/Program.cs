@@ -1,6 +1,7 @@
 ﻿using AdvUtils;
 using Newtonsoft.Json;
 using Seq2SeqSharp;
+using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Metrics;
 using Seq2SeqSharp.Optimizer;
@@ -22,27 +23,27 @@ namespace SeqLabelConsole
             Logger.LogFile = $"{nameof(SeqLabelConsole)}_{Utils.GetTimeStamp(DateTime.Now)}.log";
 
             //Parse command line
-            Options opts = new Options();
+            SeqLabelOptions opts = new SeqLabelOptions();
             ArgParser argParser = new ArgParser(args, opts);
 
             if (string.IsNullOrEmpty(opts.ConfigFilePath) == false)
             {
                 Logger.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
-                opts = JsonConvert.DeserializeObject<Options>(File.ReadAllText(opts.ConfigFilePath));
+                opts = JsonConvert.DeserializeObject<SeqLabelOptions>(File.ReadAllText(opts.ConfigFilePath));
             }
 
 
-            SequenceLabel sl = null;
+            SeqLabel sl = null;
             ProcessorTypeEnums processorType = (ProcessorTypeEnums)Enum.Parse(typeof(ProcessorTypeEnums), opts.ProcessorType);
             EncoderTypeEnums encoderType = (EncoderTypeEnums)Enum.Parse(typeof(EncoderTypeEnums), opts.EncoderType);
-            ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.TaskName);
+            ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.Task);
 
             //Parse device ids from options          
             int[] deviceIds = opts.DeviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
             if (mode == ModeEnums.Train)
             {
                 // Load train corpus
-                SeqLabelingCorpus trainCorpus = new SeqLabelingCorpus(opts.TrainCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxSentLength);
+                SeqLabelingCorpus trainCorpus = new SeqLabelingCorpus(opts.TrainCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxTrainSentLength);
 
                 // Load valid corpus
                 List<SeqLabelingCorpus> validCorpusList = new List<SeqLabelingCorpus>();
@@ -51,7 +52,7 @@ namespace SeqLabelConsole
                     string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
                     foreach (var validCorpusPath in validCorpusPathList)
                     {
-                        validCorpusList.Add(new SeqLabelingCorpus(opts.ValidCorpusPaths, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxSentLength));
+                        validCorpusList.Add(new SeqLabelingCorpus(opts.ValidCorpusPaths, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxTestSentLength));
                     }
                 }
 
@@ -67,7 +68,7 @@ namespace SeqLabelConsole
                 else
                 {
                     // We don't specify vocabulary, so we build it from train corpus
-                    (srcVocab, tgtVocab) = trainCorpus.BuildVocabs();
+                    (srcVocab, tgtVocab) = trainCorpus.BuildVocabs(opts.SrcVocabSize);
                 }
 
                 // Create learning rate
@@ -89,15 +90,13 @@ namespace SeqLabelConsole
                 if (File.Exists(opts.ModelFilePath) == false)
                 {
                     //New training
-                    sl = new SequenceLabel(hiddenDim: opts.HiddenSize, embeddingDim: opts.WordVectorSize, encoderLayerDepth: opts.EncoderLayerDepth, multiHeadNum: opts.MultiHeadNum,
-                        encoderType: encoderType,
-                        dropoutRatio: opts.DropoutRatio, deviceIds: deviceIds, processorType: processorType, modelFilePath: opts.ModelFilePath, srcVocab: srcVocab, clsVocab: tgtVocab, maxSntSize: opts.MaxSentLength);
+                    sl = new SeqLabel(opts, srcVocab: srcVocab, clsVocab: tgtVocab);
                 }
                 else
                 {
                     //Incremental training
                     Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
-                    sl = new SequenceLabel(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds, dropoutRatio: opts.DropoutRatio, maxSntSize: opts.MaxSentLength);
+                    sl = new SeqLabel(opts);
                 }
 
                 // Add event handler for monitoring
@@ -113,7 +112,7 @@ namespace SeqLabelConsole
                 Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPaths}'");
 
                 // Load valid corpus
-                SeqLabelingCorpus validCorpus = new SeqLabelingCorpus(opts.ValidCorpusPaths, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
+                SeqLabelingCorpus validCorpus = new SeqLabelingCorpus(opts.ValidCorpusPaths, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxTestSentLength);
                 (Vocab srcVocab, Vocab tgtVocab) = validCorpus.BuildVocabs();
 
                 // Create metrics
@@ -126,7 +125,7 @@ namespace SeqLabelConsole
                     }
                 }
 
-                sl = new SequenceLabel(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds, maxSntSize: opts.MaxSentLength);
+                sl = new SeqLabel(opts);
                 sl.Valid(validCorpus: validCorpus, metrics: metrics);
             }
             else if (mode == ModeEnums.Test)
@@ -134,7 +133,7 @@ namespace SeqLabelConsole
                 Logger.WriteLine($"Test model '{opts.ModelFilePath}' by input corpus '{opts.InputTestFile}'");
 
                 //Test trained model
-                sl = new SequenceLabel(modelFilePath: opts.ModelFilePath, processorType: processorType, deviceIds: deviceIds, maxSntSize: opts.MaxSentLength);
+                sl = new SeqLabel(opts);
 
                 List<string> outputLines = new List<string>();
                 string[] data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
@@ -144,7 +143,7 @@ namespace SeqLabelConsole
                     outputLines.AddRange(nrs[0].Output[0].Select(x => string.Join(" ", x)));
                 }
 
-                File.WriteAllLines(opts.OutputTestFile, outputLines);
+                File.WriteAllLines(opts.OutputFile, outputLines);
             }
             else
             {
@@ -154,15 +153,7 @@ namespace SeqLabelConsole
 
         public static List<List<List<string>>> ConstructInputTokens(List<string> input)
         {
-            List<string> inputSeq = new List<string>();
-
-            if (input != null)
-            {
-                inputSeq.AddRange(input);
-            }
-
-            List<List<string>> inputSeqs = new List<List<string>>() { inputSeq };
-
+            List<List<string>> inputSeqs = new List<List<string>>() { input };
             List<List<List<string>>> inputSeqsGroups = new List<List<List<string>>>() { inputSeqs };
 
             return inputSeqsGroups;
