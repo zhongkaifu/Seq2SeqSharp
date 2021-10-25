@@ -307,6 +307,53 @@ In train_001.txt, assume we have two sentences. For sentence "Microsoft is locat
 | Seq2SeqSharp | S_SFT   |
 | .            | S_NOR   |
 
+Here is the configuration file for model training.  
+```json
+{
+    "Task":"Train",
+    "EmbeddingDim":512,
+    "HiddenSize":512,
+    "StartLearningRate":0.0006,
+    "WeightsUpdateCount":0,
+    "EncoderLayerDepth":6,
+    "DecoderLayerDepth":6,
+    "ModelFilePath":"seq_ner_enu.model",
+    "SrcVocab":null,
+    "TgtVocab":null,
+    "SrcVocabSize":300000,
+    "TgtVocabSize":300000,
+    "SharedEmbeddings":false,
+    "SrcEmbeddingModelFilePath":null,
+    "TgtEmbeddingModelFilePath":null,
+    "TrainCorpusPath":".\\data\\train\\ner\\train_enu.ner.snt",
+    "ValidCorpusPaths":null,
+    "InputTestFile":null,
+    "OutputTestFile":null,
+    "ShuffleType":"NoPadding",
+    "ShuffleBlockSize":-1,
+    "GradClip":5.0,
+    "BatchSize":256,
+    "ValBatchSize":128,
+    "DropoutRatio":0,
+    "ProcessorType":"CPU",
+    "EncoderType":"Transformer",
+    "MultiHeadNum":8,
+    "DeviceIds":"0",
+    "BeamSearchSize":1,
+    "MaxEpochNum":100,
+    "MaxTrainSentLength":110,
+    "MaxTestSentLength":110,
+    "WarmUpSteps":8000,
+    "VisualizeNNFilePath":null,
+    "Beta1":0.9,
+    "Beta2":0.98,
+    "ValidIntervalHours":1.0,
+    "EnableCoverageModel":false,
+    "CompilerOptions":"--use_fast_math --gpu-architecture=compute_70",
+    "Optimizer":"Adam"
+}
+```
+
 ## SeqSimilarityConsole for sequences similarity calculation  
 Each line in data set contains two sequences and the tool can calculate their similairy. These two sequences are split by tab character.  
 
@@ -373,15 +420,18 @@ Here are steps on how to play it.  
 # Models in the release package  
 The following models were trained by Seq2SeqSharp and included in the release package.  
 
-| Model Name                    |   Comments                                                                                          |    Trained By  |  Test Script            |  Input Test File            |
-| ----------------------------- | --------------------------------------------------------------------------------------------------- | -------------- | ----------------------- | --------------------------- |
-| seq2seq_mt_enu_chs.model      | Sentence translation model from English to Chinese                                                  | Seq2SeqConsole | test_enu_chs.bat        | test_enu_raw.txt            |
-| seq2seq_mt_chs_enu.model      | Sentence translation model from Chinese to English                                                  | Seq2SeqConsole | test_chs_enu.bat        | test_chs_raw.txt            |
-| seq2seq_mt_enu_jpn.model      | Sentence translation model from English to Japanese                                                 | Seq2SeqConsole | test_enu_jpn.bat        | test_enu_raw.txt            |
-| seq2seq_mt_jpn_enu.model      | Sentence translation model from Japanese to English                                                 | Seq2SeqConsole | test_jpn_enu.bat        | test_jpn_raw.txt            |
-| seq2seq_mt_enu_cjk.model      | Translation from English to Chinese, Japanese and Korean. It's a multi-languages translation model. | Seq2SeqConsole | test_enu_cjk.bat        | test_enu_spm.txt            |
-| seq2seq_medical_qa_chs.model  | Question-Answer model in Chinese medical domain                                                     | Seq2SeqConsole | test_medical_qa_chs.bat |  test_medicalQA_chs_raw.txt |
-
+| Model Name                    |   Comments                                                                                          |    Trained By   |  Test Script              |  Input Test File            |
+| ----------------------------- | --------------------------------------------------------------------------------------------------- | --------------- | ------------------------- | --------------------------- |
+| seq2seq_mt_enu_chs.model      | Sentence translation model from English to Chinese (Greedy Search)                                  | Seq2SeqConsole  | test_enu_chs.bat          | test_enu_raw.txt            |
+| seq2seq_mt_enu_chs.model      | Sentence translation model from English to Chinese (Top-P sampling with decay weights               | Seq2SeqConsole  | test_enu_chs_sampling.bat | test_enu_raw.txt            |
+| seq2seq_mt_chs_enu.model      | Sentence translation model from Chinese to English                                                  | Seq2SeqConsole  | test_chs_enu.bat          | test_chs_raw.txt            |
+| seq2seq_mt_enu_jpn.model      | Sentence translation model from English to Japanese                                                 | Seq2SeqConsole  | test_enu_jpn.bat          | test_enu_raw.txt            |
+| seq2seq_mt_jpn_enu.model      | Sentence translation model from Japanese to English                                                 | Seq2SeqConsole  | test_jpn_enu.bat          | test_jpn_raw.txt            |
+| seq2seq_mt_enu_cjk.model      | Translation from English to Chinese, Japanese and Korean. It's a multi-languages translation model. | Seq2SeqConsole  | test_enu_cjk.bat          | test_enu_raw.txt            |
+| seq2seq_mt_rus_enu.model      | Sentence translation model from Russian to English                                                  | Seq2SeqConsole  | test_rus_enu.bat          | test_rus_raw.txt            |
+| seq2seq_mt_enu_rus.model      | Sentence translation model from English to Russian                                                  | Seq2SeqConsole  | test_enu_rus.bat          | test_enu_raw.txt            |
+| seq2seq_medical_qa_chs.model  | Question-Answer model in Chinese medical domain                                                     | Seq2SeqConsole  | test_medical_qa_chs.bat   |  test_medicalQA_chs_raw.txt |
+| seq_ner_enu.model             | Named entity recognizer for person, originazation and location in English                           | SeqLabelConsole | test_ner_enu.bat          | test_ner_enu.txt            |
 
 # Build From Source Code  
 Besides using the release package, you could also build Seq2SeqSharp from source code. It has just two steps:  
