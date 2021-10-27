@@ -55,7 +55,7 @@ namespace Seq2SeqSharp.Applications
                 EncoderTypeEnums encoderType = (EncoderTypeEnums)Enum.Parse(typeof(EncoderTypeEnums), options.EncoderType);
 
                 m_modelMetaData = new SeqClassificationModel(options.HiddenSize, options.EmbeddingDim, options.EncoderLayerDepth, options.MultiHeadNum,
-                    encoderType, srcVocab, clsVocabs, options.EnableSegmentEmbeddings, options.ApplyContextEmbeddingsToEntireSequence);
+                    encoderType, srcVocab, clsVocabs, options.EnableSegmentEmbeddings, options.ApplyContextEmbeddingsToEntireSequence, options.MaxSegmentNum);
 
                 //Initializng weights in encoders and decoders
                 CreateTrainableParameters();
@@ -78,26 +78,7 @@ namespace Seq2SeqSharp.Applications
                 m_encoderFFLayer[i] = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer($"FeedForward_Encoder_{i}", contextDim, m_modelMetaData.ClsVocabs[i].Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
             }
 
-            if (m_modelMetaData.EncoderType == EncoderTypeEnums.Transformer)
-            {
-                m_posEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(PositionEmbedding.BuildPositionWeightTensor(
-                    Math.Max(m_options.MaxTrainSentLength, m_options.MaxTestSentLength) + 2,
-                    contextDim, DeviceIds[0], "PosEmbedding", false), DeviceIds, true);
-
-                if (m_modelMetaData.EnableSegmentEmbeddings)
-                {
-                    m_segmentEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { m_options.MaxSegmentSize, m_modelMetaData.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, name: "SegmentEmbedding", isTrainable: true), DeviceIds);
-                }
-                else
-                {
-                    m_segmentEmbedding = null;
-                }
-            }
-            else
-            {
-                m_posEmbedding = null;
-                m_segmentEmbedding = null;
-            }
+            (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, contextDim, Math.Max(m_options.MaxTrainSentLength, m_options.MaxTestSentLength), m_modelMetaData);
 
             Logger.WriteLine($"Creating embeddings. Shape = '({m_modelMetaData.SrcVocab.Count} ,{m_modelMetaData.EncoderEmbeddingDim})'");
             m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { m_modelMetaData.SrcVocab.Count, m_modelMetaData.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SrcEmbeddings", isTrainable: m_options.IsEmbeddingTrainable), DeviceIds);

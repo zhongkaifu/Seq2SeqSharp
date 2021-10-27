@@ -61,7 +61,7 @@ namespace Seq2SeqSharp.Applications
                 DecoderTypeEnums decoderType = (DecoderTypeEnums)Enum.Parse(typeof(DecoderTypeEnums), options.DecoderType);
 
                 m_modelMetaData = new Seq2SeqClassificationModel(options.HiddenSize, options.SrcEmbeddingDim, options.TgtEmbeddingDim, options.EncoderLayerDepth, options.DecoderLayerDepth, options.MultiHeadNum,
-                    encoderType, decoderType, srcVocab, tgtVocab, clsVocab, options.EnableCoverageModel, options.SharedEmbeddings, options.EnableSegmentEmbeddings, options.ApplyContextEmbeddingsToEntireSequence);
+                    encoderType, decoderType, srcVocab, tgtVocab, clsVocab, options.EnableCoverageModel, options.SharedEmbeddings, options.EnableSegmentEmbeddings, options.ApplyContextEmbeddingsToEntireSequence, options.MaxSegmentNum);
 
                 //Initializng weights in encoders and decoders
                 CreateTrainableParameters();
@@ -85,28 +85,7 @@ namespace Seq2SeqSharp.Applications
             m_decoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("FeedForward_Decoder_0", m_modelMetaData.HiddenDim, m_modelMetaData.TgtVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),
                 isTrainable: true), DeviceIds);
 
-
-            if (m_modelMetaData.EncoderType == EncoderTypeEnums.Transformer || m_modelMetaData.DecoderType == DecoderTypeEnums.Transformer)
-            {
-                m_posEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(PositionEmbedding.BuildPositionWeightTensor(
-                    Math.Max(Math.Max(m_options.MaxTrainSrcSentLength, m_options.MaxTestSrcSentLength), Math.Max(m_options.MaxTrainTgtSentLength, m_options.MaxTestTgtSentLength)) + 2,
-                    contextDim, DeviceIds[0], "PosEmbedding", false), DeviceIds, true);
-
-                if (m_modelMetaData.EnableSegmentEmbeddings)
-                {
-                    m_segmentEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { m_options.MaxSegmentSize, m_modelMetaData.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, name: "SegmentEmbedding", isTrainable: true), DeviceIds);
-                }
-                else
-                {
-                    m_segmentEmbedding = null;
-                }
-            }
-            else
-            {
-                m_posEmbedding = null;
-                m_segmentEmbedding = null;
-            }
-
+            (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, contextDim, Math.Max(Math.Max(m_options.MaxTrainSrcSentLength, m_options.MaxTestSrcSentLength), Math.Max(m_options.MaxTrainTgtSentLength, m_options.MaxTestTgtSentLength)), m_modelMetaData);
             (m_srcEmbedding, m_tgtEmbedding) = CreateSrcTgtEmbeddings(raDeviceIds, m_options.IsSrcEmbeddingTrainable, m_options.IsTgtEmbeddingTrainable, m_options.EncoderStartLearningRateFactor, m_options.DecoderStartLearningRateFactor);
             return true;
         }

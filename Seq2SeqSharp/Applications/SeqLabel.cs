@@ -48,7 +48,7 @@ namespace Seq2SeqSharp
             {
                 // Model doesn't exist, we create it and initlaize parameters
                 EncoderTypeEnums encoderType = (EncoderTypeEnums)Enum.Parse(typeof(EncoderTypeEnums), options.EncoderType);
-                m_modelMetaData = new SeqLabelModel(options.HiddenSize, options.EmbeddingDim, options.EncoderLayerDepth, options.MultiHeadNum, encoderType, srcVocab, clsVocab);
+                m_modelMetaData = new SeqLabelModel(options.HiddenSize, options.EmbeddingDim, options.EncoderLayerDepth, options.MultiHeadNum, encoderType, srcVocab, clsVocab, options.MaxSegmentNum);
 
                 //Initializng weights in encoders and decoders
                 CreateTrainableParameters();

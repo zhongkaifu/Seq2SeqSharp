@@ -36,8 +36,8 @@ namespace Seq2SeqSharp.Applications
         [Arg("Enable segment embeddings", "EnableSegmentEmbeddings")]
         public bool EnableSegmentEmbeddings = false;
 
-        [Arg("Maximum Segment Size", "MaxSegmentSize")]
-        public int MaxSegmentSize = 16;
+        [Arg("Maximum Segment Capacity. Default value is 16", "MaxSegmentNum")]
+        public int MaxSegmentNum = 16;
 
         [Arg("The network depth in encoder.", "EncoderLayerDepth")]
         public int EncoderLayerDepth = 1;

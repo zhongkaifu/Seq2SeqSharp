@@ -30,6 +30,8 @@ namespace Seq2SeqSharp.Models
 
         public bool ApplyContextEmbeddingsToEntireSequence { get; set; }
 
+        public int MaxSegmentNum { get; set; }
+
 
         public Vocab ClsVocab
         {
@@ -69,7 +71,7 @@ namespace Seq2SeqSharp.Models
         }
 
         public Model(int hiddenDim, int encoderLayerDepth, EncoderTypeEnums encoderType, int encoderEmbeddingDim, int multiHeadNum, Vocab srcVocab, 
-            bool enableSegmentEmbeddings, bool applyContextEmbeddingsToEntireSequence)
+            bool enableSegmentEmbeddings, bool applyContextEmbeddingsToEntireSequence, int maxSegmentNum)
         {
             HiddenDim = hiddenDim;
             EncoderLayerDepth = encoderLayerDepth;
@@ -79,6 +81,7 @@ namespace Seq2SeqSharp.Models
             EncoderEmbeddingDim = encoderEmbeddingDim;
             EnableSegmentEmbeddings = enableSegmentEmbeddings;
             ApplyContextEmbeddingsToEntireSequence = applyContextEmbeddingsToEntireSequence;
+            MaxSegmentNum = maxSegmentNum;
 
             Name2Weights = new Dictionary<string, float[]>();
         }
