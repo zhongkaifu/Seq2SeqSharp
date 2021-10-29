@@ -20,7 +20,7 @@ namespace Seq2SeqSharp.Corpus
         public int TgtLength = 0;
 
         private long maxSeqLength = 0;
-        public RawSntPair(string s, string t, long maxSrcSeqLength, long maxTgtSeqLength, bool truncateTooLongSeq)
+        public RawSntPair(string s, string t, int maxSrcSeqLength, int maxTgtSeqLength, bool truncateTooLongSeq)
         {
             this.maxSeqLength = Math.Max(maxSrcSeqLength, maxTgtSeqLength);
 
@@ -41,7 +41,7 @@ namespace Seq2SeqSharp.Corpus
             TgtSnt = t;
         }
 
-        public string TruncateSeq(string str, long maxSeqLength)
+        public string TruncateSeq(string str, int maxSeqLength)
         {
             string[] items = str.Split('\t');
             List<string> results = new List<string>();
@@ -56,7 +56,7 @@ namespace Seq2SeqSharp.Corpus
                 }
                 else
                 {
-                    results.Add(String.Join(" ", tokens, 0, maxSeqLength));
+                    results.Add(String.Join(' ', tokens, 0, maxSeqLength));
                 }
             }
 
