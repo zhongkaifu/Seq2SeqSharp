@@ -89,14 +89,14 @@ REDUCE_INDEX_KERNELS(argmax, if (a.first > b.first) return a; else return b;)
 
             using (Tensor resultValueBuffer = new Tensor(src.Allocator, src.ElementType, requiredOutputSize))
             {
-                if (dimension == src.DimensionCount - 1)
-                {
-                    ReduceIndexInnermostDim(context, resultValueBuffer, writeTarget, src, init, baseKernelName);
-                }
-                else
-                {
+                //if (dimension == src.DimensionCount - 1)
+                //{
+                //    ReduceIndexInnermostDim(context, resultValueBuffer, writeTarget, src, init, baseKernelName);
+                //}
+                //else
+                //{
                     ReduceIndexOuterDim(context, resultValueBuffer, writeTarget, src, dimension, init, baseKernelName);
-                }
+             //   }
 
             }
 
