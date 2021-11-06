@@ -207,6 +207,8 @@ namespace Seq2SeqSharp.Applications
                 }
                 else
                 {
+                    DecodingStrategyEnums decodingStrategyEnum = (DecodingStrategyEnums)Enum.Parse(typeof(DecodingStrategyEnums), m_options.DecodingStrategy);
+
                     List<List<BeamSearchStatus>> beam2batchStatus = Decoder.InitBeamSearchStatusListList(batchSize, tgtTokensList);
                     for (int i = 0; i < m_options.MaxTestTgtSentLength; i++)
                     {
@@ -219,7 +221,8 @@ namespace Seq2SeqSharp.Applications
                                 using var g = computeGraph.CreateSubGraph($"TransformerDecoder_Step_{i}");
                                 (var cost2, var bssSeqList) = Decoder.DecodeTransformer(batch2tgtTokens, g, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding,
                                                                                 originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, isTraining, beamSearchSize: m_options.BeamSearchSize,
-                                                                                outputSentScore: m_options.BeamSearchSize > 1, previousBeamSearchResults: batchStatus);
+                                                                                outputSentScore: m_options.BeamSearchSize > 1, previousBeamSearchResults: batchStatus, 
+                                                                                decodingStrategyEnum: decodingStrategyEnum, topPValue: m_options.DecodingTopPValue, repeatPenalty: m_options.DecodingRepeatPenalty, distancePenalty: m_options.DecodingDistancePenalty);
 
                                 bssSeqList = Decoder.SwapBeamAndBatch(bssSeqList);
                                 batch2beam2seq = Decoder.MergeTwoBeamSearchStatus(batch2beam2seq, bssSeqList);

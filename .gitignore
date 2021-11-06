@@ -84,3 +84,5 @@
 /Seq2SeqConsole/Properties/PublishProfiles/FolderProfile.pubxml.user
 /Seq2SeqSharp/Properties/PublishProfiles/FolderProfile.pubxml.user
 /TensorSharp/Properties/PublishProfiles/FolderProfile.pubxml.user
+/SeqWebApps/bin
+/SeqWebApps/obj

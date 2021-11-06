@@ -848,7 +848,7 @@ namespace Seq2SeqSharp.Tools
         /// <param name="seqs"></param>
         /// <param name="topP"></param>
         /// <returns>The sampled index</returns>
-        public IWeightTensor TopPSampleIndice(IWeightTensor w, List<List<int>> seqs, float topP = 0.9f)
+        public IWeightTensor TopPSampleIndice(IWeightTensor w, List<List<int>> seqs, float topP = 0.95f, float repeatPenalty = 2.0f, float distancePenalty = 10.0f)
         {
             WeightTensor m = w as WeightTensor;
             float[] weights = m.ToWeightArray();
@@ -895,7 +895,7 @@ namespace Seq2SeqSharp.Tools
                     if (tokenId2OffsetInSeq.ContainsKey(j))
                     {
                         int offsetInSeq = tokenId2OffsetInSeq[j];
-                        weight = (float)((weight * (1.0 - Math.Exp((offsetInSeq + 1 - seq.Count) / 10.0))) / Math.Pow(10.0, tokenId2Cnt[j]));
+                        weight = (float)((weight * (1.0 - Math.Exp((offsetInSeq + 1 - seq.Count) / distancePenalty))) / Math.Pow(repeatPenalty, tokenId2Cnt[j]));
                     }
 
                     if (weight < thresholdValue || weight2tokenId.ContainsKey(weight))
