@@ -9,8 +9,4 @@
     <ProjectReference Include="..\Seq2SeqSharp\Seq2SeqSharp.csproj" />
   </ItemGroup>
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy $(ProjectDir)run.bat $(OutDir)" />
-  </Target>
-
 </Project>
