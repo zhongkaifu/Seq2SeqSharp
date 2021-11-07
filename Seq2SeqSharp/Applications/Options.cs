@@ -100,8 +100,8 @@ namespace Seq2SeqSharp.Applications
         [Arg("Token generation types. It supports GreedySearch and Sampling. Default is GreedySearch", nameof(DecodingStrategy))]
         public string DecodingStrategy = "GreedySearch";
 
-        [Arg("The top-P value for sampling decoding strategy. Default is 0.95", nameof(DecodingTopPValue))]
-        public float DecodingTopPValue = 0.95f;
+        [Arg("The top-P value for sampling decoding strategy. The value above 0.0 will cause non-deterministic results. Default is 0.0", nameof(DecodingTopPValue))]
+        public float DecodingTopPValue = 0.0f;
 
 
         [Arg("The penalty for decoded repeat tokens. Default is 2.0", nameof(DecodingRepeatPenalty))]
