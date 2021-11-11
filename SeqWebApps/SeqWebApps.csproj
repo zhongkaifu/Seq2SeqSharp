@@ -6,7 +6,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNet.Mvc" Version="5.2.7" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Seq2SeqSharp\Seq2SeqSharp.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="AdvUtils">
+      <HintPath>..\dll\AdvUtils.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

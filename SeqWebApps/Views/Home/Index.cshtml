@@ -1,0 +1,59 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<style>
+    .loading {
+        display: none;
+    }
+</style>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Index</title>
+</head>
+<body>
+
+
+    <label id="promptInput">Input Text:</label>
+    <br />
+    <textarea type="text" id="txtName" cols="100" rows="20"></textarea>
+    <input type="button" id="btnGet" value="Generate Text" />
+    <br />
+    <div class="loading"><img src="~/loading.gif">Generating...</div>
+    <label id="promptOutput">Output Text:</label>
+    <br />
+    <label id="outputText"></label>
+
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script type="text/javascript">
+        $(function () {
+            $("#btnGet").click(function () {
+                var data = {};
+                data.Name = "Mudassar";
+                $.ajax({
+                    type: "POST",
+                    url: "/Home/GenerateText",
+                    data: { "input": $("#txtName").val() },
+                    beforeSend: function () {
+                        $(".loading").show();
+                    },
+                    success: function (response) {
+                        $(".loading").hide();
+
+                        $("#outputText").html(response.Output);
+                    },
+                    failure: function (response) {
+                        alert(response.responseText);
+                    },
+                    error: function (response) {
+                        alert(response.responseText);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

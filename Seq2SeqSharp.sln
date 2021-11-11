@@ -36,7 +36,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{C2DFE174
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SeqWebAPIs", "SeqWebAPIs\SeqWebAPIs.csproj", "{26272325-E3CD-4B9B-9A6D-043607E7DA6C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeqWebApps", "SeqWebApps\SeqWebApps.csproj", "{3A4921E9-10DD-40A8-B6CA-50D2B025153E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SeqWebApps", "SeqWebApps\SeqWebApps.csproj", "{3A4921E9-10DD-40A8-B6CA-50D2B025153E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

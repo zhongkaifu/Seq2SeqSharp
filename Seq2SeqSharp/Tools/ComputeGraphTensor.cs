@@ -908,21 +908,33 @@ namespace Seq2SeqSharp.Tools
 
                 }
 
-                float acc = 0.0f;
-                float seed = 0.0f;
-                lock (locker)
-                {
-                    seed = (float)rnd.NextDouble() * topP * adjustedSum;
-                }
 
-                foreach (var pair in weight2tokenId.Reverse())
+                if (topP == 0.0f)
                 {
-                    acc += pair.Key;
-
-                    if (acc >= seed)
+                    if (weight2tokenId.Count > 0)
                     {
-                        indices[i] = pair.Value;
-                        break;
+                        indices[i] = weight2tokenId.Last().Value;
+                    }
+                }
+                else
+                {
+
+                    float acc = 0.0f;
+                    float seed = 0.0f;
+                    lock (locker)
+                    {
+                        seed = (float)rnd.NextDouble() * topP * adjustedSum;
+                    }
+
+                    foreach (var pair in weight2tokenId.Reverse())
+                    {
+                        acc += pair.Key;
+
+                        if (acc >= seed)
+                        {
+                            indices[i] = pair.Value;
+                            break;
+                        }
                     }
                 }
             }
