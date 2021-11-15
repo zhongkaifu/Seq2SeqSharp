@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <OutputType>Library</OutputType>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -10,6 +10,8 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <RepositoryUrl>git@github.com:zhongkaifu/Seq2SeqSharp.git</RepositoryUrl>
     <PackageTags>tensor;gpu;cuda</PackageTags>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

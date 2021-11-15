@@ -93,7 +93,7 @@ namespace TensorSharp.CUDA
                 Logger.WriteLine($"Exception: {err.Message}");
                 Logger.WriteLine($"Call stack: {err.StackTrace}");
 
-                throw err;
+                throw;
             }
         }
 

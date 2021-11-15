@@ -218,7 +218,7 @@ namespace TensorSharp.CUDA
                 Logger.WriteLine($"Exception in Addmm: '{err.Message}'");
                 Logger.WriteLine($"Call stack: '{err.StackTrace}'");
 
-                throw err;
+                throw;
             }
         }
 

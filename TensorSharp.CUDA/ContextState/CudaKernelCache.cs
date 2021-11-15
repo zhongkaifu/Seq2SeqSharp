@@ -54,7 +54,7 @@ namespace TensorSharp.CUDA.ContextState
                     Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: '{err.Message}'");
                     Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Call stack: '{err.StackTrace}'");
 
-                    throw err;
+                    throw;
                 }
             }
         }

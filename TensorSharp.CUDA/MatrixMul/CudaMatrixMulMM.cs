@@ -290,7 +290,9 @@ namespace TensorSharp.CUDA.MatrixMul
                 int ldb = (int)b.Strides[1];
                 int ldc = (int)c.Strides[1];
 
-                CublasStatus status = CudaBlasNativeMethods.cublasSetMathMode(blas.Value.CublasHandle, ManagedCuda.CudaBlas.Math.TensorOpMath);
+
+                
+                CublasStatus status = CudaBlasNativeMethods.cublasSetMathMode(blas.Value.CublasHandle, ManagedCuda.CudaBlas.Math.TF32TensorOpMath);
                 if (status != CublasStatus.Success)
                 {
                     throw new CudaBlasException($"Failed to set math mode to tensor ops.");
@@ -374,7 +376,7 @@ namespace TensorSharp.CUDA.MatrixMul
                 //// Set the math mode to allow cuBLAS to use Tensor Cores:
                 //cublasStat = cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH);
 
-                CublasStatus status = CudaBlasNativeMethods.cublasSetMathMode(blas.Value.CublasHandle, ManagedCuda.CudaBlas.Math.TensorOpMath);
+                CublasStatus status = CudaBlasNativeMethods.cublasSetMathMode(blas.Value.CublasHandle, ManagedCuda.CudaBlas.Math.TF32TensorOpMath);
                 if (status != CublasStatus.Success)
                 {
                     throw new CudaBlasException($"Failed to set math mode to tensor ops.");

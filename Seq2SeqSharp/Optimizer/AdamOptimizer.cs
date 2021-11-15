@@ -102,7 +102,7 @@ namespace Seq2SeqSharp.Optimizer
                 Logger.WriteLine(Logger.Level.err, $"Exception: '{err.Message}'");
                 Logger.WriteLine(Logger.Level.err, $"Call stack: '{err.StackTrace}'");
 
-                throw err;
+                throw;
             }
         }
 

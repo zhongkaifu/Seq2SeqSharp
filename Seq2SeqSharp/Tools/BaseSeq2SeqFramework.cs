@@ -373,7 +373,7 @@ namespace Seq2SeqSharp.Tools
                         catch (Exception err)
                         {
                             Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}, Call stack: {err.StackTrace}");
-                            throw err;
+                            throw;
                         }
                     }
 
@@ -517,7 +517,7 @@ namespace Seq2SeqSharp.Tools
                         Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: '{err.Message}'");
                         Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Call stack: '{err.StackTrace}'");
 
-                        throw err;
+                        throw;
                     }
 
                     loclCurrBatchIdx = Interlocked.Increment(ref currBatchIdx);
@@ -628,7 +628,7 @@ namespace Seq2SeqSharp.Tools
                         catch (Exception err)
                         {
                             Logger.WriteLine(Logger.Level.err, $"Test error at processor '{gpuIdx}'. Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
-                            throw err;
+                            throw;
                         }
                     });
                 }
@@ -659,7 +659,7 @@ namespace Seq2SeqSharp.Tools
             catch (Exception err)
             {
                 Logger.WriteLine(Logger.Level.err, $"Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
-                throw err;
+                throw;
             }
         }
 
@@ -719,7 +719,7 @@ namespace Seq2SeqSharp.Tools
                     {
                         runningGoodSoFar = false;
                         Logger.WriteLine(Logger.Level.err, $"Test error at processor '{gpuIdx}'. Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
-                        throw err;
+                        throw;
                     }
                 });
 
@@ -728,7 +728,7 @@ namespace Seq2SeqSharp.Tools
             catch (Exception err)
             {
                 Logger.WriteLine(Logger.Level.err, $"Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
-                throw err;
+                throw;
             }
         }
 
@@ -906,7 +906,7 @@ namespace Seq2SeqSharp.Tools
                                     catch (Exception err)
                                     {
                                         Logger.WriteLine($"Exception = '{err.Message}', Ref = '{String.Join(" ", refTkns[j])}' Hyp = '{String.Join(" ", hypTkns[j])}', TaskId = '{k}'");
-                                        throw err;
+                                        throw;
                                     }
                                 }
                             }

@@ -119,9 +119,8 @@ namespace TensorSharp.CUDA.RuntimeCompiler
 
         private static string KeyFromSource(string fullSource)
         {
-            string fullKey = fullSource.Length.ToString() + fullSource;
-
-            using (SHA1Managed sha1 = new SHA1Managed())
+            string fullKey = fullSource.Length.ToString() + fullSource;            
+            using (var sha1 = SHA1.Create())
             {
                 return BitConverter.ToString(sha1.ComputeHash(Encoding.UTF8.GetBytes(fullKey)))
                     .Replace("-", "");

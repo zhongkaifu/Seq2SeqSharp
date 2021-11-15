@@ -27,7 +27,7 @@ namespace TensorSharp.Cpu
     {
         public static long[] OutputSize(long[] inputSizes, long[] weightSizes, ConvolutionDesc2d cd)
         {
-            int dimf = 1;
+            //int dimf = 1;
             int dimw = 3;
             int dimh = 2;
 

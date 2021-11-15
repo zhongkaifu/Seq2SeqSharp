@@ -107,7 +107,7 @@ namespace Seq2SeqSharp.Applications
         [Arg("Shuffle Type. It could be NoPaddingInSrc, NoPaddingInTgt and Random", nameof(ShuffleType))]
         public string ShuffleType = "Random";
 
-        [Arg("Task to execute. It could be Train, Valid, Test, DumpVocab or Help", nameof(Task), false)]
+        [Arg("Task to execute. It could be Train, Valid, Test, DumpVocab or Help", nameof(Task))]
         public string Task = "Help";
 
         [Arg("How to deal with too long sequence. It can be Ignore or Truncation", nameof(TooLongSequence))]

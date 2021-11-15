@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <OutputType>Library</OutputType>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -11,6 +11,7 @@
     <RepositoryUrl>git@github.com:zhongkaifu/Seq2SeqSharp.git</RepositoryUrl>
     <PackageTags>translation;deep-learning;neural-network;gpu;machine-translation;cuda;transformer;lstm;seq2seq;sequence-to-sequence;tensor;encoder-decoder;attention-model;transformer-encoder;transformer-architecture</PackageTags>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DefineConstants>TRACE;DEBUG;CUDA</DefineConstants>

@@ -71,6 +71,11 @@ namespace Seq2SeqSharp
             m_modelMetaData.ShowModelInfo();
         }
 
+        public void SetMaxOutputTokenNum(int num)
+        {
+            m_options.MaxTestTgtSentLength = num;
+        }
+
         private bool CreateTrainableParameters()
         {
             Logger.WriteLine($"Creating encoders and decoders...");
