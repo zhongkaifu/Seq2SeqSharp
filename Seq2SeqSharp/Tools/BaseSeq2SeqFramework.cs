@@ -208,7 +208,7 @@ namespace Seq2SeqSharp.Tools
         protected abstract T LoadModelImpl();
         protected bool SaveModelRoutine< ProtoBuf_T >( T model, Func< T, ProtoBuf_T > createModel4SerializeFunc, bool createBackupPrevious = false )
         {
-            var fn  = m_modelFilePath;
+            var fn  = Path.GetFullPath(m_modelFilePath);
             var dir = Path.GetDirectoryName( fn ); if ( !Directory.Exists( dir ) ) Directory.CreateDirectory( dir );
             try
             {
@@ -233,7 +233,7 @@ namespace Seq2SeqSharp.Tools
             }
             catch ( Exception ex )
             {
-                Logger.WriteLine( Logger.Level.warn, ConsoleColor.Yellow, $"Failed to save model to file. Exception = '{ex.Message}'" );
+                Logger.WriteLine( Logger.Level.warn, ConsoleColor.Yellow, $"Failed to save model to file. Exception = '{ex.Message}', Call stack = '{ex.StackTrace}'" );
                 return (false);
             }
         }
