@@ -1,10 +1,8 @@
-﻿using AdvUtils;
-using Seq2SeqSharp.Utils;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
+using AdvUtils;
+using Seq2SeqSharp.Utils;
 
 namespace Seq2SeqSharp.Models
 {
@@ -37,7 +35,7 @@ namespace Seq2SeqSharp.Models
         {
             get
             {
-                if (ClsVocabs == null)
+                if ( ClsVocabs == null )
                 {
                     ClsVocabs = new List<Vocab>
                     {
@@ -45,12 +43,12 @@ namespace Seq2SeqSharp.Models
                     };
                 }
 
-                return ClsVocabs[0];
+                return ClsVocabs[ 0 ];
             }
 
             set
             {
-                if (ClsVocabs == null)
+                if ( ClsVocabs == null )
                 {
                     ClsVocabs = new List<Vocab>
                     {
@@ -58,20 +56,16 @@ namespace Seq2SeqSharp.Models
                     };
                 }
 
-                ClsVocabs[0] = value;
+                ClsVocabs[ 0 ] = value;
             }
         }
 
 
         public Dictionary<string, float[]> Name2Weights { get; set; }
 
-        public Model()
-        {
-
-        }
-
-        public Model(int hiddenDim, int encoderLayerDepth, EncoderTypeEnums encoderType, int encoderEmbeddingDim, int multiHeadNum, Vocab srcVocab, 
-            bool enableSegmentEmbeddings, bool applyContextEmbeddingsToEntireSequence, int maxSegmentNum)
+        public Model() { }
+        public Model( int hiddenDim, int encoderLayerDepth, EncoderTypeEnums encoderType, int encoderEmbeddingDim, int multiHeadNum, Vocab srcVocab,
+            bool enableSegmentEmbeddings, bool applyContextEmbeddingsToEntireSequence, int maxSegmentNum )
         {
             HiddenDim = hiddenDim;
             EncoderLayerDepth = encoderLayerDepth;
@@ -86,20 +80,20 @@ namespace Seq2SeqSharp.Models
             Name2Weights = new Dictionary<string, float[]>();
         }
 
-        public void AddWeights(string name, float[] weights)
+        public void AddWeights( string name, float[] weights )
         {
-            Name2Weights.Add(name, weights);
+            Name2Weights.Add( name, weights );
         }
 
-        public float[] GetWeights(string name)
+        public float[] GetWeights( string name )
         {
-            if (Name2Weights.ContainsKey(name) == false)
+            if ( Name2Weights.ContainsKey( name ) == false )
             {
-                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Weight '{name}' doesn't exist in the model.");
+                Logger.WriteLine( Logger.Level.warn, ConsoleColor.Yellow, $"Weight '{name}' doesn't exist in the model." );
                 return null;
             }
 
-            return Name2Weights[name];
+            return Name2Weights[ name ];
         }
 
         public void ClearWeights()
@@ -109,40 +103,40 @@ namespace Seq2SeqSharp.Models
 
         public void ShowModelInfo()
         {
-            Logger.WriteLine($"Encoder embedding dim: '{EncoderEmbeddingDim}'");
-            Logger.WriteLine($"Decoder embedding dim: '{DecoderEmbeddingDim}'");
-            Logger.WriteLine($"Encoder layer depth: '{EncoderLayerDepth}'");
-            Logger.WriteLine($"Decoder layer depth: '{DecoderLayerDepth}'");
-            Logger.WriteLine($"Encoder type: '{EncoderType}'");
-            Logger.WriteLine($"Decoder type: '{DecoderType}'");
-            Logger.WriteLine($"Hidden layer dim: '{HiddenDim}'");
-            Logger.WriteLine($"Enable segment embeddings: '{EnableSegmentEmbeddings}'");
-            Logger.WriteLine($"Enable shared embeddings: '{SharedEmbeddings}'");
-            Logger.WriteLine($"Apply context embeddings to entire sequence: '{ApplyContextEmbeddingsToEntireSequence}'");
-            Logger.WriteLine($"Multi-head size: '{MultiHeadNum}'");
+            Logger.WriteLine( $"Encoder embedding dim: '{EncoderEmbeddingDim}'" );
+            Logger.WriteLine( $"Decoder embedding dim: '{DecoderEmbeddingDim}'" );
+            Logger.WriteLine( $"Encoder layer depth: '{EncoderLayerDepth}'" );
+            Logger.WriteLine( $"Decoder layer depth: '{DecoderLayerDepth}'" );
+            Logger.WriteLine( $"Encoder type: '{EncoderType}'" );
+            Logger.WriteLine( $"Decoder type: '{DecoderType}'" );
+            Logger.WriteLine( $"Hidden layer dim: '{HiddenDim}'" );
+            Logger.WriteLine( $"Enable segment embeddings: '{EnableSegmentEmbeddings}'" );
+            Logger.WriteLine( $"Enable shared embeddings: '{SharedEmbeddings}'" );
+            Logger.WriteLine( $"Apply context embeddings to entire sequence: '{ApplyContextEmbeddingsToEntireSequence}'" );
+            Logger.WriteLine( $"Multi-head size: '{MultiHeadNum}'" );
 
 
-            if (String.IsNullOrEmpty(SimilarityType) == false)
+            if ( String.IsNullOrEmpty( SimilarityType ) == false )
             {
-                Logger.WriteLine($"Similarity Type: '{SimilarityType}'");
+                Logger.WriteLine( $"Similarity Type: '{SimilarityType}'" );
             }
 
-            if (SrcVocab != null)
+            if ( SrcVocab != null )
             {
-                Logger.WriteLine($"Source vocabulary size: '{SrcVocab.Count}'");
+                Logger.WriteLine( $"Source vocabulary size: '{SrcVocab.Count}'" );
             }
 
-            if (TgtVocab != null)
+            if ( TgtVocab != null )
             {
-                Logger.WriteLine($"Target vocabulary size: '{TgtVocab.Count}'");
+                Logger.WriteLine( $"Target vocabulary size: '{TgtVocab.Count}'" );
             }
 
-            if (ClsVocabs != null)
+            if ( ClsVocabs != null )
             {
-                Logger.WriteLine($"The number of CLS vocabularies: '{ClsVocabs.Count}' ");
-                for (int i = 0; i < ClsVocabs.Count; i++)
+                Logger.WriteLine( $"The number of CLS vocabularies: '{ClsVocabs.Count}' " );
+                for ( int i = 0; i < ClsVocabs.Count; i++ )
                 {
-                    Logger.WriteLine($"CLS vocabulary {i} size: {ClsVocabs[i].Count}");
+                    Logger.WriteLine( $"CLS vocabulary {i} size: {ClsVocabs[ i ].Count}" );
                 }
             }
         }

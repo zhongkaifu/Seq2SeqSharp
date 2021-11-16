@@ -1,89 +1,51 @@
-﻿################################################################################
-# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
-################################################################################
+﻿# Windows image file caches
+Thumbs.db
+ehthumbs.db
 
-/.vs
-/DataProcess/FilterLowFreqTerm/bin
-/DataProcess/FilterLowFreqTerm/obj
-/packages/System.Numerics.Vectors.4.5.0
-/Seq2SeqConsole/bin
-/Seq2SeqConsole/obj
-/Seq2SeqSharp/bin
-/Seq2SeqSharp/obj
-/TensorSharp.CUDA/bin/Release/TensorSharp.pdb
-/TensorSharp.CUDA/bin/Release/TensorSharp.dll
-/TensorSharp.CUDA/bin/Release/TensorSharp.CUDA.pdb
-/TensorSharp.CUDA/bin/Release/TensorSharp.CUDA.dll.config
-/TensorSharp.CUDA/bin/Release/TensorSharp.CUDA.dll
-/TensorSharp.CUDA/bin/Release/NVRTC.xml
-/TensorSharp.CUDA/bin/Release/NVRTC.pdb
-/TensorSharp.CUDA/bin/Release/NVRTC.dll
-/TensorSharp.CUDA/bin/Release/ManagedCuda.xml
-/TensorSharp.CUDA/bin/Release/ManagedCuda.pdb
-/TensorSharp.CUDA/bin/Release/ManagedCuda.dll
-/TensorSharp.CUDA/bin/Release/CudaBlas.xml
-/TensorSharp.CUDA/bin/Release/CudaBlas.pdb
-/TensorSharp.CUDA/bin/Release/CudaBlas.dll
-/TensorSharp.CUDA/bin/Release
-/TensorSharp.CUDA/bin/Debug/TensorSharp.pdb
-/TensorSharp.CUDA/bin/Debug/TensorSharp.dll
-/TensorSharp.CUDA/bin/Debug/TensorSharp.CUDA.pdb
-/TensorSharp.CUDA/bin/Debug/TensorSharp.CUDA.dll.config
-/TensorSharp.CUDA/bin/Debug/TensorSharp.CUDA.dll
-/TensorSharp.CUDA/bin/Debug/NVRTC.xml
-/TensorSharp.CUDA/bin/Debug/NVRTC.pdb
-/TensorSharp.CUDA/bin/Debug/NVRTC.dll
-/TensorSharp.CUDA/bin/Debug/ManagedCuda.xml
-/TensorSharp.CUDA/bin/Debug/ManagedCuda.pdb
-/TensorSharp.CUDA/bin/Debug/ManagedCuda.dll
-/TensorSharp.CUDA/bin/Debug/CudaBlas.xml
-/TensorSharp.CUDA/bin/Debug/CudaBlas.pdb
-/TensorSharp.CUDA/bin/Debug/CudaBlas.dll
-/TensorSharp.CUDA/obj/Release
-/TensorSharp.CUDA/obj/Debug
-/TensorSharp.CUDA/obj
-/TensorSharp/obj
-/TensorSharp/bin
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
+# =========================
+# Operating System Files
+# =========================
+
+# OSX
+# =========================
+
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+*.suo
+/.vs/*
 /packages
-/CpuOps/x64/Release
-/CpuOps/Release
-/CpuOps/Debug
-/CpuOps/bin/x64/Release
-/CpuOps/x64/Debug
-/CpuOps/bin/x64/Debug
-/SeqLabelConsole/obj/Release
-/SeqLabelConsole/bin/Release
-/TensorSharp.CUDA/bin/x64/Release
-/TensorSharp.CUDA/bin/x64/Debug
-/SeqSimilarityConsole/bin
-/TensorSharp.CUDA/bin/Debug/net5.0
-/SeqSimilarityWebAPI/obj
-/SeqSimilarityWebAPI/bin
-/SeqLabelConsole/bin/Debug/net5.0
-/SeqClassificationWebAPI/obj
-/SeqLabelConsole/obj/Debug/net5.0
-/Debug
-/Seq2SeqClassificationConsole/bin
-/Seq2SeqWebAPI/bin
-/Seq2SeqWebAPI/obj
-/SeqClassificationConsole/bin
-/SeqSimilarityConsole/obj
-/SeqClassificationWebAPI/bin
-/SeqClassificationConsole/obj
-/Seq2SeqClassificationConsole/obj
-/SeqWebAPIs/bin/Debug/net5.0
-/SeqWebAPIs/obj
-/SeqWebAPIs/SeqWebAPIs.csproj.user
-/SeqWebAPIs/bin/Release/net5.0
-/Seq2SeqConsole/Seq2SeqConsole.csproj.user
-/Seq2SeqSharp/Seq2SeqSharp.csproj.user
-/TensorSharp.CUDA/bin/Debug/TensorSharp.CUDA.1.0.0.nupkg
-/TensorSharp.CUDA/Properties/PublishProfiles/FolderProfile.pubxml.user
-/TensorSharp.CUDA/TensorSharp.CUDA.csproj.user
-/TensorSharp/TensorSharp.csproj.user
-/Seq2SeqConsole/Properties/PublishProfiles/FolderProfile.pubxml.user
-/Seq2SeqSharp/Properties/PublishProfiles/FolderProfile.pubxml.user
-/TensorSharp/Properties/PublishProfiles/FolderProfile.pubxml.user
-/SeqWebApps/bin
-/SeqWebApps/obj
-/SeqWebAPIs/bin/Release/net6.0

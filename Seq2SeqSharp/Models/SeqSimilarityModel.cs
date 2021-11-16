@@ -1,25 +1,27 @@
-﻿using Seq2SeqSharp.Utils;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Seq2SeqSharp.Utils;
 
 namespace Seq2SeqSharp.Models
 {
     [Serializable]
     public class SeqSimilarityModel : Model
     {
-        public SeqSimilarityModel()
+        public SeqSimilarityModel() { }
+        public SeqSimilarityModel( int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, Vocab clsVocab, bool enableSegmentEmbeddings, string similarityType, int maxSegmentNum )
+            : base( hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, false, maxSegmentNum )
         {
-
-        }
-
-        public SeqSimilarityModel(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, Vocab clsVocab, bool enableSegmentEmbeddings, string similarityType, int maxSegmentNum)
-                        : base(hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, false, maxSegmentNum)
-        {
-            ClsVocab = clsVocab;
+            ClsVocab       = clsVocab;
             SimilarityType = similarityType;
         }
+        public SeqSimilarityModel( Model_4_ProtoBufSerializer m )
+            : base( m.HiddenDim, m.EncoderLayerDepth, m.EncoderType, m.EncoderEmbeddingDim, m.MultiHeadNum,
+                    m.SrcVocab?.ToVocab(),
+                    m.EnableSegmentEmbeddings, applyContextEmbeddingsToEntireSequence: false, m.MaxSegmentNum )
+        {
+            ClsVocabs    = m.ClsVocabs?.Select( v => v.ToVocab() ).ToList();
+            Name2Weights = m.Name2Weights;
+        }
+        public static SeqSimilarityModel Create( Model_4_ProtoBufSerializer m ) => new SeqSimilarityModel( m );
     }
 }

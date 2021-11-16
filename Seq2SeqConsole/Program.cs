@@ -1,17 +1,17 @@
-﻿using AdvUtils;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+
 using Newtonsoft.Json;
+
+using AdvUtils;
 using Seq2SeqSharp;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Metrics;
 using Seq2SeqSharp.Optimizer;
 using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
 
 namespace Seq2SeqConsole
 {

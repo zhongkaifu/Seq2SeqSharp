@@ -1,25 +1,28 @@
-﻿using Seq2SeqSharp.Utils;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Seq2SeqSharp.Utils;
 
 namespace Seq2SeqSharp.Models
 {
     [Serializable]
     public class Seq2SeqClassificationModel : Seq2SeqModel
     {
- 
-        public Seq2SeqClassificationModel()
-        {
-        }
 
-        public Seq2SeqClassificationModel(int hiddenDim, int srcEmbeddingDim, int tgtEmbeddingDim, int encoderLayerDepth, int decoderLayerDepth, int multiHeadNum,
-            EncoderTypeEnums encoderType, DecoderTypeEnums decoderType, Vocab srcVocab, Vocab tgtVocab, Vocab clsVocab, bool enableCoverageModel, bool sharedEmbeddings, bool enableSegmentEmbeddings, bool applyContextEmbeddingsToEntireSequence, int maxSegmentNum)
-            : base(hiddenDim, srcEmbeddingDim, tgtEmbeddingDim, encoderLayerDepth, decoderLayerDepth, multiHeadNum, encoderType, decoderType, srcVocab, tgtVocab, enableCoverageModel, sharedEmbeddings, enableSegmentEmbeddings, applyContextEmbeddingsToEntireSequence, maxSegmentNum)
+        public Seq2SeqClassificationModel() { }
+        public Seq2SeqClassificationModel( int hiddenDim, int srcEmbeddingDim, int tgtEmbeddingDim, int encoderLayerDepth, int decoderLayerDepth, int multiHeadNum,
+            EncoderTypeEnums encoderType, DecoderTypeEnums decoderType, Vocab srcVocab, Vocab tgtVocab, Vocab clsVocab, bool enableCoverageModel, bool sharedEmbeddings, bool enableSegmentEmbeddings, bool applyContextEmbeddingsToEntireSequence, int maxSegmentNum )
+            : base( hiddenDim, srcEmbeddingDim, tgtEmbeddingDim, encoderLayerDepth, decoderLayerDepth, multiHeadNum, encoderType, decoderType, srcVocab, tgtVocab, enableCoverageModel, sharedEmbeddings, enableSegmentEmbeddings, applyContextEmbeddingsToEntireSequence, maxSegmentNum )
         {
             ClsVocab = clsVocab;
         }
+        public Seq2SeqClassificationModel( Model_4_ProtoBufSerializer m )
+            : base( m.HiddenDim, m.EncoderEmbeddingDim, m.DecoderEmbeddingDim, m.EncoderLayerDepth, m.DecoderLayerDepth, m.MultiHeadNum, 
+                    m.EncoderType, m.DecoderType, m.SrcVocab?.ToVocab(), m.TgtVocab?.ToVocab(), m.EnableCoverageModel, m.SharedEmbeddings, 
+                    m.EnableSegmentEmbeddings, m.ApplyContextEmbeddingsToEntireSequence, m.MaxSegmentNum )
+        {
+            ClsVocabs    = m.ClsVocabs?.Select( v => v.ToVocab() ).ToList(); 
+            Name2Weights = m.Name2Weights;
+        }
+        public static new Seq2SeqClassificationModel Create( Model_4_ProtoBufSerializer m ) => new Seq2SeqClassificationModel( m );
     }
 }
