@@ -1,19 +1,19 @@
-﻿using AdvUtils;
-using Seq2SeqSharp.Corpus;
-using Seq2SeqSharp.Metrics;
-using Seq2SeqSharp.Optimizer;
-using Seq2SeqSharp.Utils;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
+using AdvUtils;
+using Seq2SeqSharp.Corpus;
+using Seq2SeqSharp.Metrics;
+using Seq2SeqSharp.Models;
+using Seq2SeqSharp.Optimizer;
+using Seq2SeqSharp.Utils;
 
 namespace Seq2SeqSharp.Tools
 {
@@ -30,66 +30,65 @@ namespace Seq2SeqSharp.Tools
 
         public void RemoveDuplicatedEOS()
         {
-            if (Output != null)
+            if ( Output != null )
             {
-                foreach (var item in Output)
+                foreach ( var item in Output )
                 {
-                    RemoveDuplicatedEOS(item);
+                    RemoveDuplicatedEOS( item );
                 }
             }
         }
 
-        private static void RemoveDuplicatedEOS(List<List<string>> snts)
+        private static void RemoveDuplicatedEOS( List<List<string>> snts )
         {
-            foreach (var snt in snts)
+            foreach ( var snt in snts )
             {
-                for (int i = 0; i < snt.Count; i++)
+                for ( int i = 0; i < snt.Count; i++ )
                 {
-                    if (snt[i] == BuildInTokens.EOS)
+                    if ( snt[ i ] == BuildInTokens.EOS )
                     {
-                        snt.RemoveRange(i, snt.Count - i);
-                        snt.Add(BuildInTokens.EOS);
+                        snt.RemoveRange( i, snt.Count - i );
+                        snt.Add( BuildInTokens.EOS );
                         break;
                     }
                 }
             }
         }
 
-        public void AppendResult(NetworkResult nr)
+        public void AppendResult( NetworkResult nr )
         {
-            while (Output.Count < nr.Output.Count)
+            while ( Output.Count < nr.Output.Count )
             {
-                Output.Add(new List<List<string>>());
+                Output.Add( new List<List<string>>() );
             }
 
-            for (int beamIdx = 0; beamIdx < nr.Output.Count; beamIdx++)
+            for ( int beamIdx = 0; beamIdx < nr.Output.Count; beamIdx++ )
             {
-          
-                for (int batchIdx = 0; batchIdx < nr.Output[beamIdx].Count; batchIdx++)
+
+                for ( int batchIdx = 0; batchIdx < nr.Output[ beamIdx ].Count; batchIdx++ )
                 {
-                    Output[beamIdx].Add(nr.Output[beamIdx][batchIdx]);
+                    Output[ beamIdx ].Add( nr.Output[ beamIdx ][ batchIdx ] );
                 }
 
             }
         }
     }
 
-
     /// <summary>
     /// This is a framework for neural network training. It includes many core parts, such as backward propagation, parameters updates, 
     /// memory management, computing graph managment, corpus shuffle & batching, I/O for model, logging & monitoring, checkpoints.
     /// You need to create your network inherited from this class, implmenet forward part only and pass it to TrainOneEpoch method for training
     /// </summary>
-    public abstract class BaseSeq2SeqFramework
+    public abstract class BaseSeq2SeqFramework< T > where T : Model
     {
         public event EventHandler StatusUpdateWatcher;
         public event EventHandler EvaluationWatcher;
 
         private readonly int[] m_deviceIds;
-        internal IModel m_modelMetaData;
+        internal T m_modelMetaData;
 
         public int[] DeviceIds => m_deviceIds;
-        private readonly string m_modelFilePath;
+        private string m_modelFilePath;
         private readonly float m_regc = 1e-10f; // L2 regularization strength
         private int m_weightsUpdateCount = 0;
         private double m_avgCostPerWordInTotalInLastEpoch = 10000.0;
@@ -97,95 +96,87 @@ namespace Seq2SeqSharp.Tools
         private readonly int m_primaryTaskId = 0;
         private readonly object locker = new object();
         private SortedList<string, IMultiProcessorNetworkWrapper> m_name2network;
-        DateTime m_lastCheckPointDateTime = DateTime.Now;
-        readonly float m_validIntervalHours = 1.0f;
+        private DateTime m_lastCheckPointDateTime = DateTime.Now;
+        private readonly float m_validIntervalHours = 1.0f;
         private int m_updateFreq = 1;
 
-        public BaseSeq2SeqFramework(string deviceIds, string strProcessorType, string modelFilePath, float memoryUsageRatio = 0.9f, string compilerOptions = null, float validIntervalHours = 1.0f, int primaryTaskId = 0, int updateFreq = 1)
+        public BaseSeq2SeqFramework( string deviceIds, string strProcessorType, string modelFilePath, float memoryUsageRatio = 0.9f, string compilerOptions = null, float validIntervalHours = 1.0f, int primaryTaskId = 0, int updateFreq = 1 )
         {
-            m_deviceIds = deviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
-            ProcessorTypeEnums processorType = (ProcessorTypeEnums)Enum.Parse(typeof(ProcessorTypeEnums), strProcessorType);
-            string[] cudaCompilerOptions = String.IsNullOrEmpty(compilerOptions) ? null : compilerOptions.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            m_deviceIds = deviceIds.Split( ',' ).Select( x => int.Parse( x ) ).ToArray();
+            ProcessorTypeEnums processorType = (ProcessorTypeEnums) Enum.Parse( typeof( ProcessorTypeEnums ), strProcessorType );
+            string[] cudaCompilerOptions = String.IsNullOrEmpty( compilerOptions ) ? null : compilerOptions.Split( ' ', StringSplitOptions.RemoveEmptyEntries );
 
             m_modelFilePath = modelFilePath;
-            TensorAllocator.InitDevices(processorType, m_deviceIds, memoryUsageRatio, cudaCompilerOptions);
+            TensorAllocator.InitDevices( processorType, m_deviceIds, memoryUsageRatio, cudaCompilerOptions );
 
             m_validIntervalHours = validIntervalHours;
             m_primaryTaskId = primaryTaskId;
             m_updateFreq = updateFreq;
         }
 
-        public BaseSeq2SeqFramework(int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, float validIntervalHours = 1.0f, int primaryTaskId = 0, int updateFreq  = 1)
+        public BaseSeq2SeqFramework( int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, float validIntervalHours = 1.0f, int primaryTaskId = 0, int updateFreq = 1 )
         {
             m_deviceIds = deviceIds;
             m_modelFilePath = modelFilePath;
             m_validIntervalHours = validIntervalHours;
             m_primaryTaskId = primaryTaskId;
             m_updateFreq = updateFreq;
-            TensorAllocator.InitDevices(processorType, m_deviceIds, memoryUsageRatio, compilerOptions);
+            TensorAllocator.InitDevices( processorType, m_deviceIds, memoryUsageRatio, compilerOptions );
         }
 
-        public virtual List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, int deviceIdIdx, bool isTraining)
-        {
-            throw new NotImplementedException("RunForwardOnSingleDevice is not implemented.");
-        }
+        public virtual List<NetworkResult> RunForwardOnSingleDevice( IComputeGraph computeGraph, ISntPairBatch sntPairBatch, int deviceIdIdx, bool isTraining )
+            => throw new NotImplementedException( "RunForwardOnSingleDevice is not implemented." );
 
-        public IComputeGraph CreateComputGraph(int deviceIdIdx, bool needBack = true)
+        public IComputeGraph CreateComputGraph( int deviceIdIdx, bool needBack = true )
         {
-            if (deviceIdIdx < 0 || deviceIdIdx >= DeviceIds.Length)
+            if ( deviceIdIdx < 0 || deviceIdIdx >= DeviceIds.Length )
             {
-                throw new ArgumentOutOfRangeException($"Index '{deviceIdIdx}' is out of deviceId range. DeviceId length is '{DeviceIds.Length}'");
+                throw new ArgumentOutOfRangeException( $"Index '{deviceIdIdx}' is out of deviceId range. DeviceId length is '{DeviceIds.Length}'" );
             }
 
             // Create computing graph instance and return it
-            return new ComputeGraphTensor(new WeightTensorFactory(), DeviceIds[deviceIdIdx], needBack);
+            return new ComputeGraphTensor( new WeightTensorFactory(), DeviceIds[ deviceIdIdx ], needBack );
         }
 
-        public bool SaveModel()
+        public bool SaveModel_As_BinaryFormatter()
         {
             try
             {
-                Logger.WriteLine($"Saving model to '{m_modelFilePath}'");
+                Logger.WriteLine( $"Saving model to '{m_modelFilePath}'" );
 
-                if (File.Exists(m_modelFilePath))
+                if ( File.Exists( m_modelFilePath ) )
                 {
-                    File.Copy(m_modelFilePath, $"{m_modelFilePath}.bak", true);
+                    File.Copy( m_modelFilePath, $"{m_modelFilePath}.bak", true );
                 }
 
                 BinaryFormatter bf = new BinaryFormatter();
-                using (FileStream fs = new FileStream(m_modelFilePath, FileMode.Create, FileAccess.Write))
+                using ( FileStream fs = new FileStream( m_modelFilePath, FileMode.Create, FileAccess.Write ) )
                 {
                     SaveParameters();
                     // Save model meta data to the stream
-                    bf.Serialize(fs, m_modelMetaData);
+                    bf.Serialize( fs, m_modelMetaData );
                     // All networks and tensors which are MultiProcessorNetworkWrapper<T> will be saved to given stream
-                    
+
                 }
-               
+
                 return true;
             }
-            catch (Exception err)
+            catch ( Exception err )
             {
-                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Failed to save model to file. Exception = '{err.Message}', Callstack = '{err.StackTrace}'");
+                Logger.WriteLine( Logger.Level.warn, ConsoleColor.Yellow, $"Failed to save model to file. Exception = '{err.Message}', Callstack = '{err.StackTrace}'" );
                 return false;
             }
         }
-
-        /// <summary>
-        /// Load model from given file
-        /// </summary>
-        /// <param name="InitializeParameters"></param>
-        /// <returns></returns>
-        public void LoadModel(Func<bool> InitializeParameters)
+        public void LoadModel_As_BinaryFormatter( Func< T, bool > InitializeParameters )
         {
-            Logger.WriteLine($"Loading model from '{m_modelFilePath}'...");
+            Logger.WriteLine( $"Loading model from '{m_modelFilePath}'..." );
             BinaryFormatter bf = new BinaryFormatter();
-            using (FileStream fs = new FileStream(m_modelFilePath, FileMode.Open, FileAccess.Read))
+            using ( FileStream fs = new FileStream( m_modelFilePath, FileMode.Open, FileAccess.Read ) )
             {
-                m_modelMetaData = bf.Deserialize(fs) as IModel;
+                m_modelMetaData = bf.Deserialize( fs ) as T;
 
                 //Initialize parameters on devices
-                InitializeParameters();
+                InitializeParameters( m_modelMetaData );
 
                 // Load embedding and weights from given model
                 // All networks and tensors which are MultiProcessorNetworkWrapper<T> will be loaded from given stream
@@ -196,57 +187,134 @@ namespace Seq2SeqSharp.Tools
             CopyWeightsFromDefaultDeviceToAllOtherDevices();
         }
 
-        internal (MultiProcessorNetworkWrapper<IWeightTensor>, MultiProcessorNetworkWrapper<IWeightTensor>) CreateSrcTgtEmbeddings(RoundArray<int> raDeviceIds, bool isSrcEmbeddingTrainable, bool isTgtEmbeddingTrainable, float encoderStartLearningRateFactor, float decoderStartLearningRateFactor)
+        protected T LoadModelImpl_WITH_CONVERT( Func< T, bool > initializeParametersFunc )
+        {
+            try
+            {
+                return (LoadModelImpl());
+            }
+            catch ( ProtoBuf.ProtoException ex )
+            {
+                System.Diagnostics.Debug.WriteLine( ex );
+
+                LoadModel_As_BinaryFormatter( initializeParametersFunc );
+                SaveModel( createBackupPrevious: true );
+                return (m_modelMetaData);
+            }
+        }
+
+        public bool SaveModel( bool createBackupPrevious = false ) => SaveModelImpl( m_modelMetaData, createBackupPrevious );
+        protected virtual bool SaveModelImpl( T model, bool createBackupPrevious = false ) => SaveModelRoutine( model, Model_4_ProtoBufSerializer.Create, createBackupPrevious );
+        protected abstract T LoadModelImpl();
+        protected bool SaveModelRoutine< ProtoBuf_T >( T model, Func< T, ProtoBuf_T > createModel4SerializeFunc, bool createBackupPrevious = false )
+        {
+            var fn  = m_modelFilePath;
+            var dir = Path.GetDirectoryName( fn ); if ( !Directory.Exists( dir ) ) Directory.CreateDirectory( dir );
+            try
+            {
+                Logger.WriteLine( $"Saving model to '{fn}'" );
+
+                if ( createBackupPrevious && File.Exists( fn ) )
+                {
+                    File.Copy( fn, $"{fn}.bak", true );
+                }
+
+                using ( var fs = new FileStream( m_modelFilePath, FileMode.Create, FileAccess.Write ) )
+                {
+                    SaveParameters( model );
+
+                    var model_4_serialize = createModel4SerializeFunc( model );
+                    ProtoBuf.Serializer.Serialize( fs, model_4_serialize );
+                }
+
+                model.ClearWeights();
+
+                return (true);
+            }
+            catch ( Exception ex )
+            {
+                Logger.WriteLine( Logger.Level.warn, ConsoleColor.Yellow, $"Failed to save model to file. Exception = '{ex.Message}'" );
+                return (false);
+            }
+        }
+        protected T LoadModelRoutine< ProtoBuf_T >( Func< T, bool > initializeParametersFunc, Func< ProtoBuf_T, T > createModelFunc )
+        {
+            Logger.WriteLine( $"Loading model from '{m_modelFilePath}'..." );
+            T model = default;
+
+            using ( var fs = new FileStream( m_modelFilePath, FileMode.Open, FileAccess.Read ) )
+            {
+                var model_4_serialize = ProtoBuf.Serializer.Deserialize< ProtoBuf_T >( fs );
+                model = createModelFunc( model_4_serialize );
+
+                //Initialize parameters on devices
+                initializeParametersFunc( model );
+
+                // Load embedding and weights from given model
+                // All networks and tensors which are MultiProcessorNetworkWrapper<T> will be loaded from given stream
+                LoadParameters( model );
+            }
+
+            //For multi-GPUs, copying weights from default device to other all devices
+            CopyWeightsFromDefaultDeviceToAllOtherDevices();
+
+            model.ClearWeights();
+
+            return (model);
+        }
+
+
+        internal (MultiProcessorNetworkWrapper<IWeightTensor>, MultiProcessorNetworkWrapper<IWeightTensor>) CreateSrcTgtEmbeddings( RoundArray<int> raDeviceIds, bool isSrcEmbeddingTrainable, bool isTgtEmbeddingTrainable, float encoderStartLearningRateFactor, float decoderStartLearningRateFactor )
         {
             MultiProcessorNetworkWrapper<IWeightTensor> srcEmbeddings = null;
             MultiProcessorNetworkWrapper<IWeightTensor> tgtEmbeddings = null;
 
-            if (m_modelMetaData.SharedEmbeddings)
+            if ( m_modelMetaData.SharedEmbeddings )
             {
-                Logger.WriteLine($"Creating shared embeddings for both source side and target side. Shape = '({m_modelMetaData.SrcVocab.Count} ,{m_modelMetaData.EncoderEmbeddingDim})'");
-                srcEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { m_modelMetaData.SrcVocab.Count, m_modelMetaData.EncoderEmbeddingDim },
-                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SharedEmbeddings", isTrainable: isSrcEmbeddingTrainable, learningRateFactor: encoderStartLearningRateFactor), DeviceIds);
+                Logger.WriteLine( $"Creating shared embeddings for both source side and target side. Shape = '({m_modelMetaData.SrcVocab.Count} ,{m_modelMetaData.EncoderEmbeddingDim})'" );
+                srcEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>( new WeightTensor( new long[ 2 ] { m_modelMetaData.SrcVocab.Count, m_modelMetaData.EncoderEmbeddingDim },
+                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SharedEmbeddings", isTrainable: isSrcEmbeddingTrainable, learningRateFactor: encoderStartLearningRateFactor ), DeviceIds );
 
                 tgtEmbeddings = srcEmbeddings;
             }
             else
             {
-                Logger.WriteLine($"Creating embeddings for source side. Shape = '({m_modelMetaData.SrcVocab.Count} ,{m_modelMetaData.EncoderEmbeddingDim})'");
-                srcEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { m_modelMetaData.SrcVocab.Count, m_modelMetaData.EncoderEmbeddingDim },
-                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SrcEmbeddings", isTrainable: isSrcEmbeddingTrainable, learningRateFactor: encoderStartLearningRateFactor), DeviceIds);
+                Logger.WriteLine( $"Creating embeddings for source side. Shape = '({m_modelMetaData.SrcVocab.Count} ,{m_modelMetaData.EncoderEmbeddingDim})'" );
+                srcEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>( new WeightTensor( new long[ 2 ] { m_modelMetaData.SrcVocab.Count, m_modelMetaData.EncoderEmbeddingDim },
+                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SrcEmbeddings", isTrainable: isSrcEmbeddingTrainable, learningRateFactor: encoderStartLearningRateFactor ), DeviceIds );
 
-                Logger.WriteLine($"Creating embeddings for target side. Shape = '({m_modelMetaData.TgtVocab.Count} ,{m_modelMetaData.DecoderEmbeddingDim})'");
-                tgtEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { m_modelMetaData.TgtVocab.Count, m_modelMetaData.DecoderEmbeddingDim },
-                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "TgtEmbeddings", isTrainable: isTgtEmbeddingTrainable, learningRateFactor: decoderStartLearningRateFactor), DeviceIds);
+                Logger.WriteLine( $"Creating embeddings for target side. Shape = '({m_modelMetaData.TgtVocab.Count} ,{m_modelMetaData.DecoderEmbeddingDim})'" );
+                tgtEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>( new WeightTensor( new long[ 2 ] { m_modelMetaData.TgtVocab.Count, m_modelMetaData.DecoderEmbeddingDim },
+                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "TgtEmbeddings", isTrainable: isTgtEmbeddingTrainable, learningRateFactor: decoderStartLearningRateFactor ), DeviceIds );
             }
 
             return (srcEmbeddings, tgtEmbeddings);
         }
 
-        public void Train(int maxTrainingEpoch, IParallelCorpus<ISntPairBatch> trainCorpus, IParallelCorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, Dictionary<int, List<IMetric>> taskId2metrics, IOptimizer optimizer)
+        public void Train( int maxTrainingEpoch, IParallelCorpus<ISntPairBatch> trainCorpus, IParallelCorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, Dictionary<int, List<IMetric>> taskId2metrics, IOptimizer optimizer )
         {
-            Logger.WriteLine("Start to train...");
-            for (int i = 0; i < maxTrainingEpoch; i++)
+            Logger.WriteLine( "Start to train..." );
+            for ( int i = 0; i < maxTrainingEpoch; i++ )
             {
                 // Train one epoch over given devices. Forward part is implemented in RunForwardOnSingleDevice function in below, 
                 // backward, weights updates and other parts are implemented in the framework. You can see them in BaseSeq2SeqFramework.cs
-                TrainOneEpoch(i, trainCorpus, validCorpusList, learningRate, optimizer, taskId2metrics, RunForwardOnSingleDevice);
+                TrainOneEpoch( i, trainCorpus, validCorpusList, learningRate, optimizer, taskId2metrics, RunForwardOnSingleDevice );
             }
         }
 
-        public void Train(int maxTrainingEpoch, IParallelCorpus<ISntPairBatch> trainCorpus, IParallelCorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, List<IMetric> metrics, IOptimizer optimizer)
+        public void Train( int maxTrainingEpoch, IParallelCorpus<ISntPairBatch> trainCorpus, IParallelCorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, List<IMetric> metrics, IOptimizer optimizer )
         {
-            Logger.WriteLine("Start to train...");
+            Logger.WriteLine( "Start to train..." );
             Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>
             {
                 { 0, metrics }
             };
 
-            Train(maxTrainingEpoch, trainCorpus, validCorpusList, learningRate, taskId2metrics, optimizer);
+            Train( maxTrainingEpoch, trainCorpus, validCorpusList, learningRate, taskId2metrics, optimizer );
         }
 
-        internal void TrainOneEpoch(int ep, IParallelCorpus<ISntPairBatch> trainCorpus, IParallelCorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, IOptimizer solver, Dictionary<int, List<IMetric>> taskId2metrics, 
-            Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice)
+        internal void TrainOneEpoch( int ep, IParallelCorpus<ISntPairBatch> trainCorpus, IParallelCorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, IOptimizer solver, Dictionary<int, List<IMetric>> taskId2metrics,
+            Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice )
         {
             int processedLineInTotal = 0;
             DateTime startDateTime = DateTime.Now;
@@ -256,13 +324,13 @@ namespace Seq2SeqSharp.Tools
             double avgCostPerWordInTotal = 0.0;
             int updatesInOneEpoch = 0;
 
-            Logger.WriteLine($"Start to process training corpus.");
+            Logger.WriteLine( $"Start to process training corpus." );
             List<ISntPairBatch> sntPairBatchs = new List<ISntPairBatch>();
 
-            foreach (ISntPairBatch sntPairBatch in trainCorpus)
+            foreach ( ISntPairBatch sntPairBatch in trainCorpus )
             {
-                sntPairBatchs.Add(sntPairBatch);
-                if (sntPairBatchs.Count == m_deviceIds.Length * m_updateFreq)
+                sntPairBatchs.Add( sntPairBatch );
+                if ( sntPairBatchs.Count == m_deviceIds.Length * m_updateFreq )
                 {
                     // Copy weights from weights kept in default device to all other devices
                     CopyWeightsFromDefaultDeviceToAllOtherDevices();
@@ -270,11 +338,11 @@ namespace Seq2SeqSharp.Tools
                     int batchSplitFactor = 1;
                     bool runNetwordSuccssed = false;
 
-                    while (runNetwordSuccssed == false)
+                    while ( runNetwordSuccssed == false )
                     {
                         try
                         {
-                            (float cost, int sWordCnt, int tWordCnt, int processedLine) = RunNetwork(ForwardOnSingleDevice, sntPairBatchs, batchSplitFactor);
+                            (float cost, int sWordCnt, int tWordCnt, int processedLine) = RunNetwork( ForwardOnSingleDevice, sntPairBatchs, batchSplitFactor );
                             processedLineInTotal += processedLine;
                             srcWordCntsInTotal += sWordCnt;
                             tgtWordCntsInTotal += tWordCnt;
@@ -287,14 +355,14 @@ namespace Seq2SeqSharp.Tools
                             List<IWeightTensor> models = GetParametersFromDefaultDevice();
 
                             m_weightsUpdateCount++;
-                            solver.UpdateWeights(models, processedLine, lr, m_regc, m_weightsUpdateCount);
+                            solver.UpdateWeights( models, processedLine, lr, m_regc, m_weightsUpdateCount );
 
                             costInTotal += cost;
                             updatesInOneEpoch++;
                             avgCostPerWordInTotal = costInTotal / updatesInOneEpoch;
-                            if (StatusUpdateWatcher != null && m_weightsUpdateCount % 100 == 0)
+                            if ( StatusUpdateWatcher != null && m_weightsUpdateCount % 100 == 0 )
                             {
-                                StatusUpdateWatcher(this, new CostEventArg()
+                                StatusUpdateWatcher( this, new CostEventArg()
                                 {
                                     LearningRate = lr,
                                     AvgCostInTotal = avgCostPerWordInTotal,
@@ -303,27 +371,27 @@ namespace Seq2SeqSharp.Tools
                                     ProcessedSentencesInTotal = processedLineInTotal,
                                     ProcessedWordsInTotal = srcWordCntsInTotal + tgtWordCntsInTotal,
                                     StartDateTime = startDateTime
-                                });
+                                } );
                             }
 
                             runNetwordSuccssed = true;
                         }
-                        catch (AggregateException err)
+                        catch ( AggregateException err )
                         {
-                            if (err.InnerExceptions != null)
+                            if ( err.InnerExceptions != null )
                             {
                                 string oomMessage = String.Empty;
                                 bool isOutOfMemException = false;
                                 bool isArithmeticException = false;
-                                foreach (var excep in err.InnerExceptions)
+                                foreach ( var excep in err.InnerExceptions )
                                 {
-                                    if (excep is OutOfMemoryException)
+                                    if ( excep is OutOfMemoryException )
                                     {
                                         isOutOfMemException = true;
                                         oomMessage = excep.Message;
                                         break;
                                     }
-                                    else if (excep is ArithmeticException)
+                                    else if ( excep is ArithmeticException )
                                     {
                                         isArithmeticException = true;
                                         oomMessage = excep.Message;
@@ -331,57 +399,57 @@ namespace Seq2SeqSharp.Tools
                                     }
                                 }
 
-                                if (isOutOfMemException)
+                                if ( isOutOfMemException )
                                 {
-                                    batchSplitFactor = TryToSplitBatchFactor(sntPairBatchs, batchSplitFactor, oomMessage);
-                                    if (batchSplitFactor < 0)
+                                    batchSplitFactor = TryToSplitBatchFactor( sntPairBatchs, batchSplitFactor, oomMessage );
+                                    if ( batchSplitFactor < 0 )
                                     {
                                         break;
                                     }
                                 }
-                                else if (isArithmeticException)
+                                else if ( isArithmeticException )
                                 {
-                                    Logger.WriteLine($"Arithmetic exception: '{err.Message}'");
+                                    Logger.WriteLine( $"Arithmetic exception: '{err.Message}'" );
                                     break;
                                 }
                                 else
                                 {
-                                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}, Call stack: {err.StackTrace}");
+                                    Logger.WriteLine( Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}, Call stack: {err.StackTrace}" );
                                     throw err;
                                 }
                             }
                             else
                             {
-                                Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}, Call stack: {err.StackTrace}");
+                                Logger.WriteLine( Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}, Call stack: {err.StackTrace}" );
                                 throw err;
                             }
 
                         }
-                        catch (OutOfMemoryException err)
+                        catch ( OutOfMemoryException err )
                         {
-                            batchSplitFactor = TryToSplitBatchFactor(sntPairBatchs, batchSplitFactor, err.Message);
-                            if (batchSplitFactor < 0)
+                            batchSplitFactor = TryToSplitBatchFactor( sntPairBatchs, batchSplitFactor, err.Message );
+                            if ( batchSplitFactor < 0 )
                             {
                                 break;
                             }
                         }
-                        catch (ArithmeticException err)
+                        catch ( ArithmeticException err )
                         {
-                            Logger.WriteLine($"Arithmetic exception: '{err.Message}'");
+                            Logger.WriteLine( $"Arithmetic exception: '{err.Message}'" );
                             break;
                         }
-                        catch (Exception err)
+                        catch ( Exception err )
                         {
-                            Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}, Call stack: {err.StackTrace}");
+                            Logger.WriteLine( Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}, Call stack: {err.StackTrace}" );
                             throw;
                         }
                     }
 
                     // Evaluate model every hour and save it if we could get a better one.
                     TimeSpan ts = DateTime.Now - m_lastCheckPointDateTime;
-                    if (ts.TotalHours > m_validIntervalHours)
+                    if ( ts.TotalHours > m_validIntervalHours )
                     {
-                        CreateCheckPoint(validCorpusList, taskId2metrics, ForwardOnSingleDevice, avgCostPerWordInTotal);
+                        CreateCheckPoint( validCorpusList, taskId2metrics, ForwardOnSingleDevice, avgCostPerWordInTotal );
                         m_lastCheckPointDateTime = DateTime.Now;
                     }
 
@@ -389,44 +457,41 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
-            Logger.WriteLine(Logger.Level.info, ConsoleColor.Green, $"Epoch '{ep}' took '{DateTime.Now - startDateTime}' time to finish. AvgCost = {avgCostPerWordInTotal:F6}, AvgCostInLastEpoch = {m_avgCostPerWordInTotalInLastEpoch:F6}");
+            Logger.WriteLine( Logger.Level.info, ConsoleColor.Green, $"Epoch '{ep}' took '{DateTime.Now - startDateTime}' time to finish. AvgCost = {avgCostPerWordInTotal:F6}, AvgCostInLastEpoch = {m_avgCostPerWordInTotalInLastEpoch:F6}" );
             m_avgCostPerWordInTotalInLastEpoch = avgCostPerWordInTotal;
         }
 
-
-
-        private int TryToSplitBatchFactor(List<ISntPairBatch> sntPairBatchs, int batchSplitFactor, string message)
+        private int TryToSplitBatchFactor( List<ISntPairBatch> sntPairBatchs, int batchSplitFactor, string message )
         {
             int maxBatchSize = 0;
             int maxTokenSize = 0;
 
-
-            foreach (var batch in sntPairBatchs)
+            foreach ( var batch in sntPairBatchs )
             {
-                if (maxTokenSize < batch.SrcTokenCount + batch.TgtTokenCount)
+                if ( maxTokenSize < batch.SrcTokenCount + batch.TgtTokenCount )
                 {
                     maxTokenSize = batch.SrcTokenCount + batch.TgtTokenCount;
                 }
 
-                if (maxBatchSize < batch.BatchSize)
+                if ( maxBatchSize < batch.BatchSize )
                 {
                     maxBatchSize = batch.BatchSize;
                 }
             }
 
             batchSplitFactor *= 2;
-            Logger.WriteLine($" {message} Retrying with batch split factor '{batchSplitFactor}'. Max batch size '{maxBatchSize}', Max token size '{maxTokenSize}'");
+            Logger.WriteLine( $" {message} Retrying with batch split factor '{batchSplitFactor}'. Max batch size '{maxBatchSize}', Max token size '{maxTokenSize}'" );
 
-            if (batchSplitFactor >= maxBatchSize)
+            if ( batchSplitFactor >= maxBatchSize )
             {
-                Logger.WriteLine($"Batch split factor is larger than batch size, so ignore current mini-batch.");
+                Logger.WriteLine( $"Batch split factor is larger than batch size, so ignore current mini-batch." );
                 batchSplitFactor = -1;
             }
 
             return batchSplitFactor;
         }
 
-        private (float, int, int, int) RunNetwork(Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice, List<ISntPairBatch> sntPairBatchs, int batchSplitFactor)
+        private (float, int, int, int) RunNetwork( Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice, List<ISntPairBatch> sntPairBatchs, int batchSplitFactor )
         {
             float cost = 0.0f;
             int processedLine = 0;
@@ -439,144 +504,146 @@ namespace Seq2SeqSharp.Tools
             int currBatchIdx = -1;
 
             // Run forward and backward on all available processors
-            Parallel.For(0, m_deviceIds.Length, i =>
-            {
-                int loclCurrBatchIdx = Interlocked.Increment(ref currBatchIdx);
-                while (loclCurrBatchIdx < sntPairBatchs.Count)
-                {
-                    try
-                    {
+            Parallel.For( 0, m_deviceIds.Length, i =>
+             {
+                 int loclCurrBatchIdx = Interlocked.Increment( ref currBatchIdx );
+                 while ( loclCurrBatchIdx < sntPairBatchs.Count )
+                 {
+                     try
+                     {
 
-                        ISntPairBatch sntPairBatch_i = sntPairBatchs[loclCurrBatchIdx];
-                        int batchSegSize = sntPairBatch_i.BatchSize / batchSplitFactor;
-                        if (batchSegSize > 0)
-                        {
-                            for (int k = 0; k < batchSplitFactor; k++)
-                            {
-                                ISntPairBatch sntPairBatch = sntPairBatch_i.GetRange(k * batchSegSize, batchSegSize);
+                         ISntPairBatch sntPairBatch_i = sntPairBatchs[ loclCurrBatchIdx ];
+                         int batchSegSize = sntPairBatch_i.BatchSize / batchSplitFactor;
+                         if ( batchSegSize > 0 )
+                         {
+                             for ( int k = 0; k < batchSplitFactor; k++ )
+                             {
+                                 ISntPairBatch sntPairBatch = sntPairBatch_i.GetRange( k * batchSegSize, batchSegSize );
 
-                                List<NetworkResult> nrs;
+                                 List<NetworkResult> nrs;
                                 // Create a new computing graph instance
-                                using (IComputeGraph computeGraph_i = CreateComputGraph(i))
-                                {
+                                using ( IComputeGraph computeGraph_i = CreateComputGraph( i ) )
+                                 {
                                     // Run forward part
-                                    nrs = ForwardOnSingleDevice(computeGraph_i, sntPairBatch, i, true);
+                                    nrs = ForwardOnSingleDevice( computeGraph_i, sntPairBatch, i, true );
                                     // Run backward part and compute gradients
                                     computeGraph_i.Backward();
-                                }
+                                 }
 
-                                lock (locker)
-                                {
-                                    foreach (var nr in nrs)
-                                    {
-                                        cost += nr.Cost;
-                                    }
+                                 lock ( locker )
+                                 {
+                                     foreach ( var nr in nrs )
+                                     {
+                                         cost += nr.Cost;
+                                     }
 
-                                    srcWordCnts += sntPairBatch_i.SrcTokenCount;
-                                    tgtWordCnts += sntPairBatch_i.TgtTokenCount;
-                                    processedLine += batchSegSize;
-                                }
-                            }
-                        }
+                                     srcWordCnts += sntPairBatch_i.SrcTokenCount;
+                                     tgtWordCnts += sntPairBatch_i.TgtTokenCount;
+                                     processedLine += batchSegSize;
+                                 }
+                             }
+                         }
 
-                        int remainBatchSegSize = sntPairBatch_i.BatchSize % batchSplitFactor;
-                        if (remainBatchSegSize > 0)
-                        {
-                            ISntPairBatch sntPairBatch = sntPairBatch_i.GetRange(sntPairBatch_i.BatchSize - remainBatchSegSize, remainBatchSegSize);
+                         int remainBatchSegSize = sntPairBatch_i.BatchSize % batchSplitFactor;
+                         if ( remainBatchSegSize > 0 )
+                         {
+                             ISntPairBatch sntPairBatch = sntPairBatch_i.GetRange( sntPairBatch_i.BatchSize - remainBatchSegSize, remainBatchSegSize );
 
-                            List<NetworkResult> nrs;
+                             List<NetworkResult> nrs;
                             // Create a new computing graph instance
-                            using (IComputeGraph computeGraph_i = CreateComputGraph(i))
-                            {
+                            using ( IComputeGraph computeGraph_i = CreateComputGraph( i ) )
+                             {
                                 // Run forward part
-                                nrs = ForwardOnSingleDevice(computeGraph_i, sntPairBatch, i, true);
+                                nrs = ForwardOnSingleDevice( computeGraph_i, sntPairBatch, i, true );
                                 // Run backward part and compute gradients
                                 computeGraph_i.Backward();
-                            }
+                             }
 
-                            lock (locker)
-                            {
-                                foreach (var nr in nrs)
-                                {
-                                    cost += nr.Cost;
-                                }
+                             lock ( locker )
+                             {
+                                 foreach ( var nr in nrs )
+                                 {
+                                     cost += nr.Cost;
+                                 }
 
-                                srcWordCnts += sntPairBatch_i.SrcTokenCount;
-                                tgtWordCnts += sntPairBatch_i.TgtTokenCount;
-                                processedLine += batchSegSize;
-                            }
+                                 srcWordCnts += sntPairBatch_i.SrcTokenCount;
+                                 tgtWordCnts += sntPairBatch_i.TgtTokenCount;
+                                 processedLine += batchSegSize;
+                             }
 
-                        }
-                    }
-                    catch (OutOfMemoryException err)
-                    {
-                        throw err;
-                    }
-                    catch (Exception err)
-                    {
-                        Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: '{err.Message}'");
-                        Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Call stack: '{err.StackTrace}'");
+                         }
+                     }
+                     catch ( OutOfMemoryException err )
+                     {
+                         throw err;
+                     }
+                     catch ( Exception err )
+                     {
+                         Logger.WriteLine( Logger.Level.err, ConsoleColor.Red, $"Exception: '{err.Message}'" );
+                         Logger.WriteLine( Logger.Level.err, ConsoleColor.Red, $"Call stack: '{err.StackTrace}'" );
 
-                        throw;
-                    }
+                         throw;
+                     }
 
-                    loclCurrBatchIdx = Interlocked.Increment(ref currBatchIdx);
-                }
-            });
+                     loclCurrBatchIdx = Interlocked.Increment( ref currBatchIdx );
+                 }
+             } );
 
             return (cost / processedLine, srcWordCnts, tgtWordCnts, processedLine);
         }
 
-        private void CreateCheckPoint(IParallelCorpus<ISntPairBatch>[] validCorpusList, Dictionary<int, List<IMetric>> taskId2metrics, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice, double avgCostPerWordInTotal)
+        private void CreateCheckPoint( IParallelCorpus<ISntPairBatch>[] validCorpusList, Dictionary<int, List<IMetric>> taskId2metrics, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice, double avgCostPerWordInTotal )
         {
-            if (validCorpusList != null && validCorpusList.Length > 0)
+            if ( validCorpusList != null && validCorpusList.Length > 0 )
             {
                 ReleaseGradientOnAllDevices();
 
                 // The valid corpus is provided, so evaluate the model.
-                for (int i = 0;i < validCorpusList.Length;i++)               
+                for ( int i = 0; i < validCorpusList.Length; i++ )
                 {
-                    var validCorpus = validCorpusList[i];
-                    var betterResult = RunValid(validCorpus, ForwardOnSingleDevice, taskId2metrics, outputToFile: true, prefixName: validCorpus.CorpusName);
+                    var validCorpus = validCorpusList[ i ];
+                    var betterResult = RunValid( validCorpus, ForwardOnSingleDevice, taskId2metrics, outputToFile: true, prefixName: validCorpus.CorpusName );
 
-                    if ((i == 0 && betterResult == true) || File.Exists(m_modelFilePath) == false)
+                    if ( (i == 0 && betterResult == true) || File.Exists( m_modelFilePath ) == false )
                     {
-                        SaveModel();
+                        //---SaveModel_As_BinaryFormatter();
+                        SaveModel( createBackupPrevious: true );
                     }
                 }
             }
-            else if (m_avgCostPerWordInTotalInLastEpoch > avgCostPerWordInTotal || File.Exists(m_modelFilePath) == false)
+            else if ( m_avgCostPerWordInTotalInLastEpoch > avgCostPerWordInTotal || File.Exists( m_modelFilePath ) == false )
             {
                 // We don't have valid corpus, so if we could have lower cost, save the model
-                SaveModel();
+                //---SaveModel_As_BinaryFormatter();
+                SaveModel( createBackupPrevious: true );
             }
         }
 
 
-        private static List<NetworkResult> MergeResults(SortedDictionary<int, List<NetworkResult>> batchId2Results)
+        private static List<NetworkResult> MergeResults( SortedDictionary<int, List<NetworkResult>> batchId2Results )
         {
             List<NetworkResult> rs = new List<NetworkResult>();
 
 
-            foreach (var pair in batchId2Results)
+            foreach ( var pair in batchId2Results )
             {
                 var tasks = pair.Value;
-                if (rs.Count == 0)
+                if ( rs.Count == 0 )
                 {
-                    for (int i = 0; i < tasks.Count; i++)
+                    for ( int i = 0; i < tasks.Count; i++ )
                     {
                         NetworkResult nr = new NetworkResult
                         {
                             Output = new List<List<List<string>>>()
                         };
-                        rs.Add(nr);
+                        rs.Add( nr );
                     }
                 }
 
 
-                for (int i = 0; i < tasks.Count; i++)
+                for ( int i = 0; i < tasks.Count; i++ )
                 {
-                    rs[i].AppendResult(tasks[i]);
+                    rs[ i ].AppendResult( tasks[ i ] );
                 }
             }
 
@@ -584,16 +651,16 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        internal List<NetworkResult> RunTest(ISntPairBatch sntPairBatch, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice)
+        internal List<NetworkResult> RunTest( ISntPairBatch sntPairBatch, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice )
         {
-            if (sntPairBatch is null)
+            if ( sntPairBatch is null )
             {
-                throw new ArgumentNullException(nameof(sntPairBatch));
+                throw new ArgumentNullException( nameof( sntPairBatch ) );
             }
 
-            if (ForwardOnSingleDevice is null)
+            if ( ForwardOnSingleDevice is null )
             {
-                throw new ArgumentNullException(nameof(ForwardOnSingleDevice));
+                throw new ArgumentNullException( nameof( ForwardOnSingleDevice ) );
             }
 
             try
@@ -603,148 +670,144 @@ namespace Seq2SeqSharp.Tools
                 int dataSizePerGPU = sntPairBatch.BatchSize / m_deviceIds.Length;
                 int dataSizePerGPUMod = sntPairBatch.BatchSize % m_deviceIds.Length;
 
-                if (dataSizePerGPU > 0)
+                if ( dataSizePerGPU > 0 )
                 {
-                    Parallel.For(0, m_deviceIds.Length, gpuIdx =>
-                    {
-                        try
-                        {
-                            ISntPairBatch spb = sntPairBatch.GetRange(gpuIdx * dataSizePerGPU, dataSizePerGPU);
+                    Parallel.For( 0, m_deviceIds.Length, gpuIdx =>
+                     {
+                         try
+                         {
+                             ISntPairBatch spb = sntPairBatch.GetRange( gpuIdx * dataSizePerGPU, dataSizePerGPU );
 
-                            List<NetworkResult> nrs = null;
+                             List<NetworkResult> nrs = null;
                             // Create a new computing graph instance
-                            using (IComputeGraph computeGraph = CreateComputGraph(gpuIdx, needBack: false))
-                            {
+                            using ( IComputeGraph computeGraph = CreateComputGraph( gpuIdx, needBack: false ) )
+                             {
                                 // Run forward part
-                                nrs = ForwardOnSingleDevice(computeGraph, spb, gpuIdx, false);
-                            }
+                                nrs = ForwardOnSingleDevice( computeGraph, spb, gpuIdx, false );
+                             }
 
-                            lock (locker)
-                            {
-                                batchId2Result.Add(gpuIdx, nrs);
-                            }
+                             lock ( locker )
+                             {
+                                 batchId2Result.Add( gpuIdx, nrs );
+                             }
 
-                        }
-                        catch (Exception err)
-                        {
-                            Logger.WriteLine(Logger.Level.err, $"Test error at processor '{gpuIdx}'. Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
-                            throw;
-                        }
-                    });
+                         }
+                         catch ( Exception err )
+                         {
+                             Logger.WriteLine( Logger.Level.err, $"Test error at processor '{gpuIdx}'. Exception = '{err.Message}', Call Stack = '{err.StackTrace}'" );
+                             throw;
+                         }
+                     } );
                 }
 
-                if (dataSizePerGPUMod > 0)
+                if ( dataSizePerGPUMod > 0 )
                 {
-                    ISntPairBatch spb = sntPairBatch.GetRange(m_deviceIds.Length * dataSizePerGPU, dataSizePerGPUMod);
+                    ISntPairBatch spb = sntPairBatch.GetRange( m_deviceIds.Length * dataSizePerGPU, dataSizePerGPUMod );
 
                     List<NetworkResult> nrs2 = null;
                     // Create a new computing graph instance
-                    using (IComputeGraph computeGraph = CreateComputGraph(0, needBack: false))
+                    using ( IComputeGraph computeGraph = CreateComputGraph( 0, needBack: false ) )
                     {
                         // Run forward part
-                        nrs2 = ForwardOnSingleDevice(computeGraph, spb, 0, false);
+                        nrs2 = ForwardOnSingleDevice( computeGraph, spb, 0, false );
                     }
 
-                    lock (locker)
+                    lock ( locker )
                     {
-                        batchId2Result.Add(m_deviceIds.Length, nrs2);
+                        batchId2Result.Add( m_deviceIds.Length, nrs2 );
                     }
 
                 }
 
-                List<NetworkResult> nrs = MergeResults(batchId2Result);
+                List<NetworkResult> nrs = MergeResults( batchId2Result );
 
                 return nrs;
             }
-            catch (Exception err)
+            catch ( Exception err )
             {
-                Logger.WriteLine(Logger.Level.err, $"Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                Logger.WriteLine( Logger.Level.err, $"Exception = '{err.Message}', Call Stack = '{err.StackTrace}'" );
                 throw;
             }
         }
 
 
-        public List<NetworkResult> Test<T>(List<List<List<string>>> inputTokensGroups) where T : ISntPairBatch, new()
+        public List<NetworkResult> Test< X >( List<List<List<string>>> inputTokensGroups ) where X : ISntPairBatch, new()
         {
-            T spb = new T();
-            spb.CreateBatch(inputTokensGroups);
-            var nrs = RunTest(spb, RunForwardOnSingleDevice);
+            X spb = new X();
+            spb.CreateBatch( inputTokensGroups );
+            var nrs = RunTest( spb, RunForwardOnSingleDevice );
 
             return nrs;
         }
 
-
-        public void Test<T>(string inputTestFile, string outputFile, int batchSize, int maxTestSrcSentLength) where T : ISntPairBatch, new()
+        public void Test< X >( string inputTestFile, string outputFile, int batchSize, int maxTestSrcSentLength ) where X : ISntPairBatch, new()
         {
-            SntPairBatchStreamReader<Seq2SeqCorpusBatch> reader = new SntPairBatchStreamReader<Seq2SeqCorpusBatch>(inputTestFile, batchSize, maxTestSrcSentLength);
-            SntPairBatchStreamWriter writer = new SntPairBatchStreamWriter(outputFile);
-            RunTest<Seq2SeqCorpusBatch>(reader, writer, RunForwardOnSingleDevice);
+            SntPairBatchStreamReader<Seq2SeqCorpusBatch> reader = new SntPairBatchStreamReader<Seq2SeqCorpusBatch>( inputTestFile, batchSize, maxTestSrcSentLength );
+            SntPairBatchStreamWriter writer = new SntPairBatchStreamWriter( outputFile );
+            RunTest<Seq2SeqCorpusBatch>( reader, writer, RunForwardOnSingleDevice );
         }
 
-
-        internal void RunTest<T>(SntPairBatchStreamReader<T> reader, SntPairBatchStreamWriter writer, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice) where T : ISntPairBatch, new()
+        internal void RunTest< X >( SntPairBatchStreamReader<X> reader, SntPairBatchStreamWriter writer, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> ForwardOnSingleDevice ) where X : ISntPairBatch, new()
         {
-            if (ForwardOnSingleDevice is null)
+            if ( ForwardOnSingleDevice is null )
             {
-                throw new ArgumentNullException(nameof(ForwardOnSingleDevice));
+                throw new ArgumentNullException( nameof( ForwardOnSingleDevice ) );
             }
 
             bool runningGoodSoFar = true;
             try
             {
-                Parallel.For(0, m_deviceIds.Length, gpuIdx =>
-                {
-                    try
-                    {
-                        while (runningGoodSoFar)
-                        {
-                            (int idx, ISntPairBatch spb) = reader.GetNextBatch();
-                            if (idx < 0)
-                            {
-                                break;
-                            }
+                Parallel.For( 0, m_deviceIds.Length, gpuIdx =>
+                 {
+                     try
+                     {
+                         while ( runningGoodSoFar )
+                         {
+                             (int idx, ISntPairBatch spb) = reader.GetNextBatch();
+                             if ( idx < 0 )
+                             {
+                                 break;
+                             }
 
-                            List<NetworkResult> nrs = null;
-                                // Create a new computing graph instance
-                                using (IComputeGraph computeGraph = CreateComputGraph(gpuIdx, needBack: false))
-                            {
-                                    // Run forward part
-                                    nrs = ForwardOnSingleDevice(computeGraph, spb, gpuIdx, false);
-                            }
+                             List<NetworkResult> nrs = null;
+                            // Create a new computing graph instance
+                            using ( IComputeGraph computeGraph = CreateComputGraph( gpuIdx, needBack: false ) )
+                             {
+                                // Run forward part
+                                nrs = ForwardOnSingleDevice( computeGraph, spb, gpuIdx, false );
+                             }
 
-                            writer.WriteResults(idx, nrs);
-                        }
-                    }
-                    catch (Exception err)
-                    {
-                        runningGoodSoFar = false;
-                        Logger.WriteLine(Logger.Level.err, $"Test error at processor '{gpuIdx}'. Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
-                        throw;
-                    }
-                });
+                             writer.WriteResults( idx, nrs );
+                         }
+                     }
+                     catch ( Exception err )
+                     {
+                         runningGoodSoFar = false;
+                         Logger.WriteLine( Logger.Level.err, $"Test error at processor '{gpuIdx}'. Exception = '{err.Message}', Call Stack = '{err.StackTrace}'" );
+                         throw;
+                     }
+                 } );
 
                 writer.Close();
             }
-            catch (Exception err)
+            catch ( Exception err )
             {
-                Logger.WriteLine(Logger.Level.err, $"Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                Logger.WriteLine( Logger.Level.err, $"Exception = '{err.Message}', Call Stack = '{err.StackTrace}'" );
                 throw;
             }
         }
 
-        public void Valid(IParallelCorpus<ISntPairBatch> validCorpus, List<IMetric> metrics)
+        
+        public void Valid( IParallelCorpus<ISntPairBatch> validCorpus, List<IMetric> metrics )
         {
             Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>
             {
                 { 0, metrics }
             };
-            RunValid(validCorpus, RunForwardOnSingleDevice, taskId2metrics, true);
+            RunValid( validCorpus, RunForwardOnSingleDevice, taskId2metrics, true );
         }
 
-        public void Valid(IParallelCorpus<ISntPairBatch> validCorpus, Dictionary<int, List<IMetric>> taskId2metrics)
-        {
-            RunValid(validCorpus, RunForwardOnSingleDevice, taskId2metrics, true);
-        }
+        public void Valid( IParallelCorpus<ISntPairBatch> validCorpus, Dictionary<int, List<IMetric>> taskId2metrics ) => RunValid( validCorpus, RunForwardOnSingleDevice, taskId2metrics, true );
 
         /// <summary>
         /// Evaluate the quality of model on valid corpus.
@@ -754,27 +817,26 @@ namespace Seq2SeqSharp.Tools
         /// <param name="metrics">A set of metrics. The first one is the primary metric</param>
         /// <param name="outputToFile">It indicates if valid corpus and results should be dumped to files</param>
         /// <returns>true if we get a better result on primary metric, otherwise, false</returns>
-        internal bool RunValid(IParallelCorpus<ISntPairBatch> validCorpus, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> RunNetwork, Dictionary<int, List<IMetric>> taskId2metrics,  bool outputToFile = false, string prefixName = "valid")
+        internal bool RunValid( IParallelCorpus<ISntPairBatch> validCorpus, Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> RunNetwork, Dictionary<int, List<IMetric>> taskId2metrics, bool outputToFile = false, string prefixName = "valid" )
         {
             List<string> srcSents = new List<string>();
             List<string> refSents = new List<string>();
             List<string> hypSents = new List<string>();
 
-
             double bestPrimaryScore = 0.0;
-            if (m_bestPrimaryScoreDict.ContainsKey(prefixName) == false)
+            if ( m_bestPrimaryScoreDict.ContainsKey( prefixName ) == false )
             {
-                m_bestPrimaryScoreDict.Add(prefixName, 0.0);
+                m_bestPrimaryScoreDict.Add( prefixName, 0.0 );
             }
             else
             {
-                bestPrimaryScore = m_bestPrimaryScoreDict[prefixName];
+                bestPrimaryScore = m_bestPrimaryScoreDict[ prefixName ];
             }
 
             // Clear inner status of each metrics
-            foreach (var pair in taskId2metrics)
+            foreach ( var pair in taskId2metrics )
             {
-                foreach (IMetric metric in pair.Value)
+                foreach ( IMetric metric in pair.Value )
                 {
                     metric.ClearStatus();
                 }
@@ -783,191 +845,219 @@ namespace Seq2SeqSharp.Tools
             CopyWeightsFromDefaultDeviceToAllOtherDevices();
 
             List<ISntPairBatch> sntPairBatchs = new List<ISntPairBatch>();
-            foreach (ISntPairBatch item in validCorpus)
+            foreach ( ISntPairBatch item in validCorpus )
             {
-                sntPairBatchs.Add(item);
-                if (sntPairBatchs.Count == DeviceIds.Length)
+                sntPairBatchs.Add( item );
+                if ( sntPairBatchs.Count == DeviceIds.Length )
                 {
-                    RunValidParallel(RunNetwork, taskId2metrics, outputToFile, srcSents, refSents, hypSents, sntPairBatchs);
+                    RunValidParallel( RunNetwork, taskId2metrics, outputToFile, srcSents, refSents, hypSents, sntPairBatchs );
                     sntPairBatchs.Clear();
                 }
             }
 
-            if (sntPairBatchs.Count > 0)
+            if ( sntPairBatchs.Count > 0 )
             {
-                RunValidParallel(RunNetwork, taskId2metrics, outputToFile, srcSents, refSents, hypSents, sntPairBatchs);
+                RunValidParallel( RunNetwork, taskId2metrics, outputToFile, srcSents, refSents, hypSents, sntPairBatchs );
             }
 
             bool betterModel = false;
-            if (taskId2metrics.Count > 0)
+            if ( taskId2metrics.Count > 0 )
             {
                 StringBuilder sb = new StringBuilder();
 
-                foreach (var pair in taskId2metrics) // Run metrics for each task
+                foreach ( var pair in taskId2metrics ) // Run metrics for each task
                 {
                     int taskId = pair.Key;
                     List<IMetric> metrics = pair.Value;
 
-                    sb.AppendLine($"Metrics result on task '{taskId}' on data set '{prefixName}':");
-                    foreach (IMetric metric in metrics)
+                    sb.AppendLine( $"Metrics result on task '{taskId}' on data set '{prefixName}':" );
+                    foreach ( IMetric metric in metrics )
                     {
-                        sb.AppendLine($"{metric.Name} = {metric.GetScoreStr()}");
+                        sb.AppendLine( $"{metric.Name} = {metric.GetScoreStr()}" );
                     }
-                
-                    if (metrics[0].GetPrimaryScore() > bestPrimaryScore && taskId == m_primaryTaskId) // The first metric in the primary task is the primary metric
+
+                    if ( metrics[ 0 ].GetPrimaryScore() > bestPrimaryScore && taskId == m_primaryTaskId ) // The first metric in the primary task is the primary metric
                     {
-                        if (bestPrimaryScore > 0.0f)
+                        if ( bestPrimaryScore > 0.0f )
                         {
-                            sb.AppendLine($"We got a better primary metric '{metrics[0].Name}' score '{metrics[0].GetPrimaryScore():F}' on the primary task '{taskId}' and data set '{prefixName}'. The previous score is '{bestPrimaryScore:F}'");
+                            sb.AppendLine( $"We got a better primary metric '{metrics[ 0 ].Name}' score '{metrics[ 0 ].GetPrimaryScore():F}' on the primary task '{taskId}' and data set '{prefixName}'. The previous score is '{bestPrimaryScore:F}'" );
                         }
 
                         //We have a better primary score on valid set
-                        bestPrimaryScore = metrics[0].GetPrimaryScore();
-                        m_bestPrimaryScoreDict[prefixName] = bestPrimaryScore;
+                        bestPrimaryScore = metrics[ 0 ].GetPrimaryScore();
+                        m_bestPrimaryScoreDict[ prefixName ] = bestPrimaryScore;
                         betterModel = true;
                     }
                 }
 
-                if (EvaluationWatcher != null)
+                if ( EvaluationWatcher != null )
                 {
-                    EvaluationWatcher(this, new EvaluationEventArg()
+                    EvaluationWatcher( this, new EvaluationEventArg()
                     {
                         Title = $"Evaluation result for model '{m_modelFilePath}' on test set '{prefixName}'",
                         Message = sb.ToString(),
                         Color = ConsoleColor.Green
-                    }); ;
+                    } ); ;
                 }
             }
 
-            if (outputToFile)
+            if ( outputToFile )
             {
-                File.WriteAllLines($"{prefixName}_src.txt", srcSents);
-                File.WriteAllLines($"{prefixName}_ref.txt", refSents);
-                File.WriteAllLines($"{prefixName}_hyp.txt", hypSents);
+                File.WriteAllLines( $"{prefixName}_src.txt", srcSents );
+                File.WriteAllLines( $"{prefixName}_ref.txt", refSents );
+                File.WriteAllLines( $"{prefixName}_hyp.txt", hypSents );
             }
 
             return betterModel;
         }
 
-        private void RunValidParallel(Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> RunNetwork, Dictionary<int, List<IMetric>> metrics, bool outputToFile, List<string> srcSents, List<string> refSents, List<string> hypSents, List<ISntPairBatch> sntPairBatchs)
+        private void RunValidParallel( Func<IComputeGraph, ISntPairBatch, int, bool, List<NetworkResult>> RunNetwork, Dictionary<int, List<IMetric>> metrics, bool outputToFile, List<string> srcSents, List<string> refSents, List<string> hypSents, List<ISntPairBatch> sntPairBatchs )
         {
             // Run forward on all available processors
-            Parallel.For(0, m_deviceIds.Length, i =>
-            {
-                try
-                {
-                    if (i >= sntPairBatchs.Count)
-                    {
-                        return;
-                    }
+            Parallel.For( 0, m_deviceIds.Length, i =>
+             {
+                 try
+                 {
+                     if ( i >= sntPairBatchs.Count )
+                     {
+                         return;
+                     }
 
-                    ISntPairBatch sntPairBatch = sntPairBatchs[i];                  
-                    ISntPairBatch sntPairBatchForValid = sntPairBatch.CloneSrcTokens();
+                     ISntPairBatch sntPairBatch = sntPairBatchs[ i ];
+                     ISntPairBatch sntPairBatchForValid = sntPairBatch.CloneSrcTokens();
 
                     // Create a new computing graph instance
                     List<NetworkResult> nrs;
-                    using (IComputeGraph computeGraph = CreateComputGraph(i, needBack: false))
-                    {
+                     using ( IComputeGraph computeGraph = CreateComputGraph( i, needBack: false ) )
+                     {
                         // Run forward part
-                        nrs = RunNetwork(computeGraph, sntPairBatchForValid, i, false);
-                    }
+                        nrs = RunNetwork( computeGraph, sntPairBatchForValid, i, false );
+                     }
 
-                    lock (locker)
-                    {
-                        string[] newSrcSnts = new string[sntPairBatch.BatchSize];
-                        string[] newRefSnts = new string[sntPairBatch.BatchSize];
-                        string[] newHypSnts = new string[sntPairBatch.BatchSize];
+                     lock ( locker )
+                     {
+                         string[] newSrcSnts = new string[ sntPairBatch.BatchSize ];
+                         string[] newRefSnts = new string[ sntPairBatch.BatchSize ];
+                         string[] newHypSnts = new string[ sntPairBatch.BatchSize ];
 
 
-                        for (int k = 0; k < nrs.Count; k++)
-                        {
-                            var hypTkns = nrs[k].Output[0];
-                            var refTkns = sntPairBatch.GetTgtTokens(k);
-                            var srcTkns = sntPairBatch.GetSrcTokens(0);
+                         for ( int k = 0; k < nrs.Count; k++ )
+                         {
+                             var hypTkns = nrs[ k ].Output[ 0 ];
+                             var refTkns = sntPairBatch.GetTgtTokens( k );
+                             var srcTkns = sntPairBatch.GetSrcTokens( 0 );
 
-                            for (int j = 0; j < hypTkns.Count; j++)
-                            {
-                                foreach (IMetric metric in metrics[k])
-                                {
-                                    if (j < 0 || j >= refTkns.Count)
-                                    {
-                                        throw new InvalidDataException($"Ref token only has '{refTkns.Count}' batch, however, it try to access batch '{j}'. Hyp token has '{hypTkns.Count}' tokens, Batch Size = '{sntPairBatch.BatchSize}'");
-                                    }
+                             for ( int j = 0; j < hypTkns.Count; j++ )
+                             {
+                                 foreach ( IMetric metric in metrics[ k ] )
+                                 {
+                                     if ( j < 0 || j >= refTkns.Count )
+                                     {
+                                         throw new InvalidDataException( $"Ref token only has '{refTkns.Count}' batch, however, it try to access batch '{j}'. Hyp token has '{hypTkns.Count}' tokens, Batch Size = '{sntPairBatch.BatchSize}'" );
+                                     }
 
-                                    if (j < 0 || j >= hypTkns.Count)
-                                    {
-                                        throw new InvalidDataException($"Hyp token only has '{hypTkns.Count}' batch, however, it try to access batch '{j}'. Ref token has '{refTkns.Count}' tokens, Batch Size = '{sntPairBatch.BatchSize}'");
-                                    }
+                                     if ( j < 0 || j >= hypTkns.Count )
+                                     {
+                                         throw new InvalidDataException( $"Hyp token only has '{hypTkns.Count}' batch, however, it try to access batch '{j}'. Ref token has '{refTkns.Count}' tokens, Batch Size = '{sntPairBatch.BatchSize}'" );
+                                     }
 
-                                    try
-                                    {
-                                        metric.Evaluate(new List<List<string>>() { refTkns[j] }, hypTkns[j]);
-                                    }
-                                    catch (Exception err)
-                                    {
-                                        Logger.WriteLine($"Exception = '{err.Message}', Ref = '{String.Join(" ", refTkns[j])}' Hyp = '{String.Join(" ", hypTkns[j])}', TaskId = '{k}'");
-                                        throw;
-                                    }
-                                }
-                            }
+                                     try
+                                     {
+                                         metric.Evaluate( new List<List<string>>() { refTkns[ j ] }, hypTkns[ j ] );
+                                     }
+                                     catch ( Exception err )
+                                     {
+                                         Logger.WriteLine( $"Exception = '{err.Message}', Ref = '{String.Join( " ", refTkns[ j ] )}' Hyp = '{String.Join( " ", hypTkns[ j ] )}', TaskId = '{k}'" );
+                                         throw;
+                                     }
+                                 }
+                             }
 
-                            if (outputToFile)
-                            {
-                                for (int j = 0; j < srcTkns.Count; j++)
-                                {
-                                    if (k == 0)
-                                    {
-                                        newSrcSnts[j] = string.Join(" ", srcTkns[j]);
-                                    }
+                             if ( outputToFile )
+                             {
+                                 for ( int j = 0; j < srcTkns.Count; j++ )
+                                 {
+                                     if ( k == 0 )
+                                     {
+                                         newSrcSnts[ j ] = string.Join( " ", srcTkns[ j ] );
+                                     }
 
-                                    newRefSnts[j] += string.Join(" ", refTkns[j]) + "\t";
-                                    newHypSnts[j] += string.Join(" ", hypTkns[j]) + "\t";
-                                }
-                            }
-                        }
+                                     newRefSnts[ j ] += string.Join( " ", refTkns[ j ] ) + "\t";
+                                     newHypSnts[ j ] += string.Join( " ", hypTkns[ j ] ) + "\t";
+                                 }
+                             }
+                         }
 
-                        if (outputToFile)
-                        {
-                            srcSents.AddRange(newSrcSnts);
-                            refSents.AddRange(newRefSnts);
-                            hypSents.AddRange(newHypSnts);
-                        }
+                         if ( outputToFile )
+                         {
+                             srcSents.AddRange( newSrcSnts );
+                             refSents.AddRange( newRefSnts );
+                             hypSents.AddRange( newHypSnts );
+                         }
 
-                    }
-                }
-                catch (Exception err)
-                {
-                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: '{err.Message}'");
-                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Call stack: '{err.StackTrace}'");
-                }
-            });
+                     }
+                 }
+                 catch ( Exception err )
+                 {
+                     Logger.WriteLine( Logger.Level.err, ConsoleColor.Red, $"Exception: '{err.Message}'" );
+                     Logger.WriteLine( Logger.Level.err, ConsoleColor.Red, $"Call stack: '{err.StackTrace}'" );
+                 }
+             } );
         }
 
         internal virtual void SaveParameters()
         {
             m_modelMetaData.ClearWeights();
 
-            RegisterTrainableParameters(this);
+            RegisterTrainableParameters( this );
 
             HashSet<IMultiProcessorNetworkWrapper> setNetworkWrapper = new HashSet<IMultiProcessorNetworkWrapper>();
-            foreach (KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network)
+            foreach ( KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network )
             {
                 // One network wrapper may have multi-names, so we only save one copy of it
-                if (setNetworkWrapper.Contains(pair.Value) == false)
+                if ( setNetworkWrapper.Contains( pair.Value ) == false )
                 {
-                    setNetworkWrapper.Add(pair.Value);
-                    pair.Value.Save(m_modelMetaData);
+                    setNetworkWrapper.Add( pair.Value );
+                    pair.Value.Save( m_modelMetaData );
                 }
             }
         }
-
         internal virtual void LoadParameters()
         {
-            RegisterTrainableParameters(this);
-            foreach (KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network)
+            RegisterTrainableParameters( this );
+            foreach ( KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network )
             {
-                Logger.WriteLine($"Loading parameter '{pair.Key}'");
-                pair.Value.Load(m_modelMetaData);
+                Logger.WriteLine( $"Loading parameter '{pair.Key}'" );
+                pair.Value.Load( m_modelMetaData );
+            }
+        }
+
+        protected virtual void SaveParameters( IModel model )
+        {
+            model.ClearWeights();
+
+            RegisterTrainableParameters( this );
+
+            var setNetworkWrapper = new HashSet<IMultiProcessorNetworkWrapper>( m_name2network.Count );
+            foreach ( IMultiProcessorNetworkWrapper mpnw in m_name2network.Values )
+            {
+                // One network wrapper may have multi-names, so we only save one copy of it
+                if ( setNetworkWrapper.Add( mpnw ) )
+                {
+                    mpnw.Save( model );
+                }
+            }
+        }
+        protected virtual void LoadParameters( IModel model )
+        {
+            RegisterTrainableParameters( this );
+            foreach ( KeyValuePair<string, IMultiProcessorNetworkWrapper> p in m_name2network )
+            {
+                var name = p.Key;
+                var mpnw = p.Value;
+
+                Logger.WriteLine( $"Loading parameter '{name}'" );
+                mpnw.Load( model );
             }
         }
 
@@ -976,21 +1066,20 @@ namespace Seq2SeqSharp.Tools
         /// </summary>
         internal void CopyWeightsFromDefaultDeviceToAllOtherDevices()
         {
-            RegisterTrainableParameters(this);
-            foreach (KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network)
+            RegisterTrainableParameters( this );
+            foreach ( KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network )
             {
                 pair.Value.SyncWeights();
             }
         }
-
 
         /// <summary>
         /// Sum up gradients in all devices and keep them in the default device
         /// </summary>
         internal void SumGradientsToTensorsInDefaultDevice()
         {
-            RegisterTrainableParameters(this);
-            foreach (KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network)
+            RegisterTrainableParameters( this );
+            foreach ( KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network )
             {
                 pair.Value.SumGradientsToNetworkOnDefaultDevice();
             }
@@ -998,11 +1087,11 @@ namespace Seq2SeqSharp.Tools
 
         internal List<IWeightTensor> GetParametersFromDefaultDevice()
         {
-            RegisterTrainableParameters(this);
+            RegisterTrainableParameters( this );
             List<IWeightTensor> result = new List<IWeightTensor>();
-            foreach (KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network)
+            foreach ( KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network )
             {
-                result.AddRange(pair.Value.GetNeuralUnitOnDefaultDevice().GetParams());
+                result.AddRange( pair.Value.GetNeuralUnitOnDefaultDevice().GetParams() );
             }
 
             return result;
@@ -1010,8 +1099,8 @@ namespace Seq2SeqSharp.Tools
 
         internal void ZeroGradientOnAllDevices()
         {
-            RegisterTrainableParameters(this);
-            foreach (KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network)
+            RegisterTrainableParameters( this );
+            foreach ( KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network )
             {
                 pair.Value.ZeroGradientsOnAllDevices();
             }
@@ -1019,52 +1108,52 @@ namespace Seq2SeqSharp.Tools
 
         internal void ReleaseGradientOnAllDevices()
         {
-            RegisterTrainableParameters(this);
-            foreach (KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network)
+            RegisterTrainableParameters( this );
+            foreach ( KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network )
             {
                 pair.Value.ReleaseGradientsOnAllDevices();
             }
         }
 
-        internal void RegisterTrainableParameters(object obj)
+        internal void RegisterTrainableParameters( object obj )
         {
-            if (m_name2network != null)
+            if ( m_name2network != null )
             {
                 return;
             }
-            Logger.WriteLine($"Registering trainable parameters.");
+            Logger.WriteLine( $"Registering trainable parameters." );
             m_name2network = new SortedList<string, IMultiProcessorNetworkWrapper>();
 
-            foreach (FieldInfo childFieldInfo in obj.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Instance))
+            foreach ( FieldInfo childFieldInfo in obj.GetType().GetFields( BindingFlags.NonPublic | BindingFlags.Instance ) )
             {
-                object childValue = childFieldInfo.GetValue(obj);
+                object childValue = childFieldInfo.GetValue( obj );
                 string name = childFieldInfo.Name;
-                Register(childValue, name);
+                Register( childValue, name );
             }
-            foreach (PropertyInfo childPropertyInfo in obj.GetType().GetProperties(BindingFlags.NonPublic | BindingFlags.Instance))
+            foreach ( PropertyInfo childPropertyInfo in obj.GetType().GetProperties( BindingFlags.NonPublic | BindingFlags.Instance ) )
             {
-                object childValue = childPropertyInfo.GetValue(obj);
+                object childValue = childPropertyInfo.GetValue( obj );
                 string name = childPropertyInfo.Name;
-                Register(childValue, name);
+                Register( childValue, name );
             }
         }
 
-        private void Register(object childValue, string name)
+        private void Register( object childValue, string name )
         {
-            if (childValue is IMultiProcessorNetworkWrapper networks)
+            if ( childValue is IMultiProcessorNetworkWrapper networks )
             {
-                m_name2network.Add(name, networks);
-                Logger.WriteLine($"Register network '{name}'");
+                m_name2network.Add( name, networks );
+                Logger.WriteLine( $"Register network '{name}'" );
             }
 
-            if (childValue is IMultiProcessorNetworkWrapper[] networksArray)
+            if ( childValue is IMultiProcessorNetworkWrapper[] networksArray )
             {
                 int idx = 0;
-                foreach (var network in networksArray)
+                foreach ( var network in networksArray )
                 {
                     string name2 = $"{name}_{idx}";
-                    m_name2network.Add(name2, network);
-                    Logger.WriteLine($"Register network '{name2}'");
+                    m_name2network.Add( name2, network );
+                    Logger.WriteLine( $"Register network '{name2}'" );
 
                     idx++;
                 }

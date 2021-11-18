@@ -1,14 +1,16 @@
-﻿using AdvUtils;
-using Seq2SeqSharp.Corpus;
-using Seq2SeqSharp.Tools;
-using System;
-using System.Collections.Concurrent;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+
+using AdvUtils;
+using Seq2SeqSharp.Corpus;
+using Seq2SeqSharp.Models;
 
 namespace Seq2SeqSharp.Utils
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public enum SENTTAGS
     {
         END = 0,
@@ -16,19 +18,36 @@ namespace Seq2SeqSharp.Utils
         UNK
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
     [Serializable]
     public class Vocab
     {
-        public Dictionary<string, int> WordToIndex;
-        public Dictionary<int, string> IndexToWord;
-        public List<string> Items = new List<string>();
-        public int Count => IndexToWord.Count;
-
         private readonly object locker = new object();
 
-        public Vocab()
+        public Dictionary<string, int> WordToIndex;
+        public Dictionary<int, string> IndexToWord;
+        private bool _IgnoreCase;
+        public List<string> Items = new List<string>();
+
+        public int Count => IndexToWord.Count;
+        public bool IgnoreCase => _IgnoreCase;
+        public Dictionary<string, int> _GetWordToIndex_() => WordToIndex;
+        public Dictionary<int, string> _GetIndexToWord_() => IndexToWord;
+
+        public Vocab() => CreateIndex();
+        public Vocab( Vocab_4_ProtoBufSerializer v )
         {
-            CreateIndex();
+            var wordToIndex = v.IgnoreCase ? new Dictionary<string, int>( v._GetWordToIndex_().Count, StringComparer.InvariantCultureIgnoreCase )
+                                           : new Dictionary<string, int>( v._GetWordToIndex_().Count );
+            foreach ( var p in v._GetWordToIndex_() )
+            {
+                wordToIndex[ p.Key ] = p.Value;
+            }
+            WordToIndex = wordToIndex;
+            IndexToWord = v._GetIndexToWord_();
+            _IgnoreCase = v.IgnoreCase;
         }
 
 
@@ -76,7 +95,6 @@ namespace Seq2SeqSharp.Utils
         /// <summary>
         /// Load vocabulary from given files
         /// </summary>
-        /// <param name="vocabFilePath"></param>
         public Vocab(string vocabFilePath)
         {
             Logger.WriteLine("Loading vocabulary files...");
