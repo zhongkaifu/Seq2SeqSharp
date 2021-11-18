@@ -248,7 +248,7 @@ namespace Seq2SeqSharp.Models
             EnableCoverageModel     = m.EnableCoverageModel;
             SharedEmbeddings        = m.SharedEmbeddings;
             //SimilarityType_         = m.SimilarityType;
-            SimilarityType          = m.SimilarityType.ToString();
+            SimilarityType          = m.SimilarityType;
             ApplyContextEmbeddingsToEntireSequence
                                     = m.ApplyContextEmbeddingsToEntireSequence;
             MaxSegmentNum           = m.MaxSegmentNum;

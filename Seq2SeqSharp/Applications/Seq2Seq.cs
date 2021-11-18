@@ -83,7 +83,7 @@ namespace Seq2SeqSharp
             m_decoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>( new FeedForwardLayer( "FeedForward_Decoder_0", model.HiddenDim, model.TgtVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),
                 isTrainable: true, learningRateFactor: m_options.DecoderStartLearningRateFactor ), DeviceIds );
             (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings( raDeviceIds, contextDim, Math.Max( Math.Max( m_options.MaxTrainSrcSentLength, m_options.MaxTestSrcSentLength ), Math.Max( m_options.MaxTrainTgtSentLength, m_options.MaxTestTgtSentLength ) ), model );
-            (m_srcEmbedding, m_tgtEmbedding)     = CreateSrcTgtEmbeddings( raDeviceIds, m_options.IsSrcEmbeddingTrainable, m_options.IsTgtEmbeddingTrainable, m_options.EncoderStartLearningRateFactor, m_options.DecoderStartLearningRateFactor );
+            (m_srcEmbedding, m_tgtEmbedding)     = CreateSrcTgtEmbeddings( model, raDeviceIds, m_options.IsSrcEmbeddingTrainable, m_options.IsTgtEmbeddingTrainable, m_options.EncoderStartLearningRateFactor, m_options.DecoderStartLearningRateFactor );
 
             return (true);
         }
