@@ -1,3 +1,4 @@
 ﻿/bin/*
 /obj/*
 *.csproj.user
+s2s_settings_for_test.json
