@@ -1080,7 +1080,7 @@ namespace Seq2SeqSharp.Tools
             //// Create edges for each source node and target node
             //foreach (IWeightTensor sourceNode in sourceNodes)
             //{
-            //    if (!string.IsNullOrEmpty(sourceNode.Name) && !string.IsNullOrEmpty(targetNode.Name))
+            //    if (!sourceNode.Name.IsNullOrEmpty() && !targetNode.Name.IsNullOrEmpty())
             //    {
             //        string key = $"{sourceNode.Name}->{targetNode.Name}";
             //        if (m_setEdges.Contains(key))

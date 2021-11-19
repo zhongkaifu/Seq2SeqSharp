@@ -36,7 +36,7 @@ namespace Seq2SeqSharp.Metrics
             }
             catch (Exception err)
             {
-                Logger.WriteLine($"Exception: {err.Message}, Ref = '{String.Join(" ", refTokens)}', Hyp = '{String.Join(" ", hypTokens)}'");
+                Logger.WriteLine($"Exception: {err.Message}, Ref = '{string.Join(" ", refTokens)}', Hyp = '{string.Join(" ", hypTokens)}'");
                 throw;
 
             }

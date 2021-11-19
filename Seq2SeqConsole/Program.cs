@@ -4,13 +4,13 @@ using System.Diagnostics;
 using System.IO;
 
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 using AdvUtils;
 using Seq2SeqSharp;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Metrics;
 using Seq2SeqSharp.Optimizer;
-using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
 
 namespace Seq2SeqConsole
@@ -23,7 +23,7 @@ namespace Seq2SeqConsole
             EvaluationEventArg ep = e as EvaluationEventArg;
             Logger.WriteLine(Logger.Level.info, ep.Color, ep.Message);
 
-            if (String.IsNullOrEmpty(opts.NotifyEmail) == false)
+            if (!opts.NotifyEmail.IsNullOrEmpty() )
             {
                 Email.Send(ep.Title, ep.Message, opts.NotifyEmail, new string[] { opts.NotifyEmail });
             }
@@ -35,7 +35,7 @@ namespace Seq2SeqConsole
             {
                 //Parse command line
                 ArgParser argParser = new ArgParser(args, opts);
-                if (string.IsNullOrEmpty(opts.ConfigFilePath) == false)
+                if (!opts.ConfigFilePath.IsNullOrEmpty())
                 {
                     Console.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
                     opts = JsonConvert.DeserializeObject<Seq2SeqOptions>(File.ReadAllText(opts.ConfigFilePath));                
@@ -45,24 +45,20 @@ namespace Seq2SeqConsole
                 ShowOptions(args, opts);
 
                 Seq2Seq ss = null;
-                ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.Task);
-                ShuffleEnums shuffleType = (ShuffleEnums)Enum.Parse(typeof(ShuffleEnums), opts.ShuffleType);
-                TooLongSequence tooLongSequence = (TooLongSequence)Enum.Parse(typeof(TooLongSequence), opts.TooLongSequence);
-
-                if (mode == ModeEnums.Train)
+                if ( opts.Task == ModeEnums.Train )
                 {
                     // Load train corpus
-                    Seq2SeqCorpus trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
-                        maxSrcSentLength: opts.MaxTrainSrcSentLength, maxTgtSentLength: opts.MaxTrainTgtSentLength, shuffleEnums: shuffleType, tooLongSequence: tooLongSequence);
+                    var trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
+                        maxSrcSentLength: opts.MaxTrainSrcSentLength, maxTgtSentLength: opts.MaxTrainTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence );
 
                     // Load valid corpus
-                    List<Seq2SeqCorpus> validCorpusList = new List<Seq2SeqCorpus>();
-                    if (String.IsNullOrEmpty(opts.ValidCorpusPaths) == false)
+                    var validCorpusList = new List<Seq2SeqCorpus>();
+                    if (!opts.ValidCorpusPaths.IsNullOrEmpty() )
                     {
                         string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
                         foreach (var validCorpusPath in validCorpusPathList)
                         {
-                            validCorpusList.Add(new Seq2SeqCorpus(validCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSrcSentLength, opts.MaxTestTgtSentLength, shuffleEnums: shuffleType, tooLongSequence: tooLongSequence));
+                            validCorpusList.Add(new Seq2SeqCorpus(validCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSrcSentLength, opts.MaxTestTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence ));
                         }
 
                     }
@@ -76,7 +72,7 @@ namespace Seq2SeqConsole
                     // Create metrics
                     List<IMetric> metrics = CreateMetrics();
 
-                    if (!String.IsNullOrEmpty(opts.ModelFilePath) && File.Exists(opts.ModelFilePath))
+                    if (!opts.ModelFilePath.IsNullOrEmpty() && File.Exists(opts.ModelFilePath))
                     {
                         //Incremental training
                         Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
@@ -87,7 +83,7 @@ namespace Seq2SeqConsole
                         // Load or build vocabulary
                         Vocab srcVocab = null;
                         Vocab tgtVocab = null;
-                        if (!string.IsNullOrEmpty(opts.SrcVocab) && !string.IsNullOrEmpty(opts.TgtVocab))
+                        if (!opts.SrcVocab.IsNullOrEmpty() && !opts.TgtVocab.IsNullOrEmpty() )
                         {
                             Logger.WriteLine($"Loading source vocabulary from '{opts.SrcVocab}' and target vocabulary from '{opts.TgtVocab}'. Shared vocabulary is '{opts.SharedEmbeddings}'");
                             if (opts.SharedEmbeddings == true && (opts.SrcVocab != opts.TgtVocab))
@@ -118,7 +114,7 @@ namespace Seq2SeqConsole
                     // Kick off training
                     ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: metrics);
                 }
-                else if (mode == ModeEnums.Valid)
+                else if ( opts.Task == ModeEnums.Valid )
                 {
                     Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPaths}'");
 
@@ -126,13 +122,13 @@ namespace Seq2SeqConsole
                     List<IMetric> metrics = CreateMetrics();
 
                     // Load valid corpus
-                    Seq2SeqCorpus validCorpus = new Seq2SeqCorpus(opts.ValidCorpusPaths, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSrcSentLength, opts.MaxTestTgtSentLength, shuffleEnums: shuffleType, tooLongSequence: tooLongSequence);
+                    Seq2SeqCorpus validCorpus = new Seq2SeqCorpus(opts.ValidCorpusPaths, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSrcSentLength, opts.MaxTestTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence );
 
                     ss = new Seq2Seq(opts);
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;
                     ss.Valid(validCorpus: validCorpus, metrics: metrics);
                 }
-                else if (mode == ModeEnums.Test)
+                else if ( opts.Task == ModeEnums.Test )
                 {
                     if (File.Exists(opts.OutputFile))
                     {
@@ -149,7 +145,7 @@ namespace Seq2SeqConsole
 
                     Logger.WriteLine($"Test mode execution time elapsed: '{stopwatch.Elapsed}'");
                 }
-                else if (mode == ModeEnums.DumpVocab)
+                else if ( opts.Task == ModeEnums.DumpVocab )
                 {
                     ss = new Seq2Seq(opts);
                     ss.DumpVocabToFiles(opts.SrcVocab, opts.TgtVocab);
@@ -188,8 +184,8 @@ namespace Seq2SeqConsole
 
         private static void ShowOptions(string[] args, Seq2SeqOptions opts)
         {
-            string commandLine = string.Join(" ", args);
-            string strOpts = JsonConvert.SerializeObject(opts);
+            var commandLine = string.Join(" ", args);
+            var strOpts = JsonConvert.SerializeObject( opts, Formatting.Indented, new JsonSerializerSettings() { NullValueHandling = NullValueHandling.Ignore, Converters = new[] { new StringEnumConverter() }, } );
 
             Logger.WriteLine($"Seq2SeqSharp v2.3.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
             Logger.WriteLine($"Command Line = '{commandLine}'");

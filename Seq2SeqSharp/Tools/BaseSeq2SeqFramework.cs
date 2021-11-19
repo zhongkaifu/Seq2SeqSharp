@@ -100,11 +100,10 @@ namespace Seq2SeqSharp.Tools
         private readonly float m_validIntervalHours = 1.0f;
         private int m_updateFreq = 1;
 
-        public BaseSeq2SeqFramework( string deviceIds, string strProcessorType, string modelFilePath, float memoryUsageRatio = 0.9f, string compilerOptions = null, float validIntervalHours = 1.0f, int primaryTaskId = 0, int updateFreq = 1 )
+        public BaseSeq2SeqFramework( string deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, string compilerOptions = null, float validIntervalHours = 1.0f, int primaryTaskId = 0, int updateFreq = 1 )
         {
             m_deviceIds = deviceIds.Split( ',' ).Select( x => int.Parse( x ) ).ToArray();
-            ProcessorTypeEnums processorType = (ProcessorTypeEnums) Enum.Parse( typeof( ProcessorTypeEnums ), strProcessorType );
-            string[] cudaCompilerOptions = String.IsNullOrEmpty( compilerOptions ) ? null : compilerOptions.Split( ' ', StringSplitOptions.RemoveEmptyEntries );
+            string[] cudaCompilerOptions =  compilerOptions.IsNullOrEmpty() ? null : compilerOptions.Split( ' ', StringSplitOptions.RemoveEmptyEntries );
 
             m_modelFilePath = modelFilePath;
             TensorAllocator.InitDevices( processorType, m_deviceIds, memoryUsageRatio, cudaCompilerOptions );
@@ -380,7 +379,7 @@ namespace Seq2SeqSharp.Tools
                         {
                             if ( err.InnerExceptions != null )
                             {
-                                string oomMessage = String.Empty;
+                                string oomMessage = string.Empty;
                                 bool isOutOfMemException = false;
                                 bool isArithmeticException = false;
                                 foreach ( var excep in err.InnerExceptions )
@@ -967,7 +966,7 @@ namespace Seq2SeqSharp.Tools
                                      }
                                      catch ( Exception err )
                                      {
-                                         Logger.WriteLine( $"Exception = '{err.Message}', Ref = '{String.Join( " ", refTkns[ j ] )}' Hyp = '{String.Join( " ", hypTkns[ j ] )}', TaskId = '{k}'" );
+                                         Logger.WriteLine( $"Exception = '{err.Message}', Ref = '{string.Join( " ", refTkns[ j ] )}' Hyp = '{string.Join( " ", hypTkns[ j ] )}', TaskId = '{k}'" );
                                          throw;
                                      }
                                  }

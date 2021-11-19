@@ -1,11 +1,9 @@
-﻿using AdvUtils;
-using Seq2SeqSharp.Tools;
-using Seq2SeqSharp.Utils;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
+using AdvUtils;
+using Seq2SeqSharp.Utils;
 
 namespace Seq2SeqSharp.Corpus
 {
@@ -166,7 +164,7 @@ namespace Seq2SeqSharp.Corpus
             List<List<string>> hypTkns = new List<List<string>>();
             for (int i = 0; i < BatchSize; i++)
             {
-                if (String.IsNullOrEmpty(prefix) == false)
+                if (!prefix.IsNullOrEmpty() )
                 {
                     hypTkns.Add(new List<string>() { prefix });
                 }

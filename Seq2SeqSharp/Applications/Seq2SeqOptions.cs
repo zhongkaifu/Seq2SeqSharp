@@ -17,15 +17,13 @@ namespace Seq2SeqSharp
         public float DecoderStartLearningRateFactor = 1.0f;
 
         [Arg("Decoder type: AttentionLSTM, Transformer", "DecoderType")]
-        public string DecoderType = "Transformer";
+        public DecoderTypeEnums DecoderType = DecoderTypeEnums.Transformer;
 
         [Arg("Apply coverage model in decoder", "EnableCoverageModel")]
         public bool EnableCoverageModel = true;
 
         [Arg("It indicates if the decoder is trainable", "IsDecoderTrainable")]
         public bool IsDecoderTrainable = true;
-
-
 
         [Arg("It indicates if the src embedding is trainable", "IsSrcEmbeddingTrainable")]
         public bool IsSrcEmbeddingTrainable = true;

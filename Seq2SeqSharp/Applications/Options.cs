@@ -1,4 +1,6 @@
 ﻿using AdvUtils;
+using Seq2SeqSharp.Tools;
+using Seq2SeqSharp.Utils;
 
 namespace Seq2SeqSharp.Applications
 {
@@ -23,11 +25,10 @@ namespace Seq2SeqSharp.Applications
         public string ConfigFilePath = string.Empty;
 
         [Arg("Token generation types. It supports GreedySearch and Sampling. Default is GreedySearch", nameof(DecodingStrategy))]
-        public string DecodingStrategy = "GreedySearch";
+        public DecodingStrategyEnums DecodingStrategy = DecodingStrategyEnums.GreedySearch;
 
         [Arg("The top-P value for sampling decoding strategy. The value above 0.0 will cause non-deterministic results. Default is 0.0", nameof(DecodingTopPValue))]
         public float DecodingTopPValue = 0.0f;
-
 
         [Arg("The penalty for decoded repeat tokens. Default is 2.0", nameof(DecodingRepeatPenalty))]
         public float DecodingRepeatPenalty = 2.0f;
@@ -54,7 +55,7 @@ namespace Seq2SeqSharp.Applications
         public float EncoderStartLearningRateFactor = 1.0f;
 
         [Arg("Encoder type: LSTM, BiLSTM, Transformer", nameof(EncoderType))]
-        public string EncoderType = "Transformer";
+        public EncoderTypeEnums EncoderType = EncoderTypeEnums.Transformer;
 
         [Arg("Clip gradients", nameof(GradClip))]
         public float GradClip = 3.0f;
@@ -90,7 +91,7 @@ namespace Seq2SeqSharp.Applications
         public string OutputFile = null;
 
         [Arg("Processor type: GPU, CPU", nameof(ProcessorType))]
-        public string ProcessorType = "GPU";
+        public ProcessorTypeEnums ProcessorType = ProcessorTypeEnums.GPU;
 
         [Arg("Source language name.", nameof(SrcLang))]
         public string SrcLang;
@@ -105,13 +106,13 @@ namespace Seq2SeqSharp.Applications
         public int ShuffleBlockSize = -1;
 
         [Arg("Shuffle Type. It could be NoPaddingInSrc, NoPaddingInTgt and Random", nameof(ShuffleType))]
-        public string ShuffleType = "Random";
+        public ShuffleEnums ShuffleType = ShuffleEnums.Random;
 
         [Arg("Task to execute. It could be Train, Valid, Test, DumpVocab or Help", nameof(Task))]
-        public string Task = "Help";
+        public ModeEnums Task = ModeEnums.Help;
 
         [Arg("How to deal with too long sequence. It can be Ignore or Truncation", nameof(TooLongSequence))]
-        public string TooLongSequence = "Ignore";
+        public TooLongSequence TooLongSequence = TooLongSequence.Ignore;
 
         [Arg("Target language name.", nameof(TgtLang))]
         public string TgtLang;

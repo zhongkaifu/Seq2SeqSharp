@@ -66,7 +66,7 @@ namespace Seq2SeqSharp
                 }
             }
 
-            string strIds = String.Empty;
+            string strIds = string.Empty;
             foreach (var item in m_deviceIds)
             {
                 strIds = strIds + " " + item.ToString();

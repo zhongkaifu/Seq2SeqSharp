@@ -22,12 +22,12 @@ namespace Seq2SeqSharp.Tools
             List<string> currTgtLine = new List<string>();
             foreach (var line in File.ReadAllLines(filePath))
             {
-                if (String.IsNullOrEmpty(line) == true)
+                if (line.IsNullOrEmpty() )
                 {
                     //This is a new record
 
-                    srcLines.Add(String.Join(" ", currSrcLine));
-                    tgtLines.Add(String.Join(" ", currTgtLine));
+                    srcLines.Add(string.Join(" ", currSrcLine));
+                    tgtLines.Add(string.Join(" ", currTgtLine));
 
                     currSrcLine = new List<string>();
                     currTgtLine = new List<string>();
@@ -43,8 +43,8 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
-            srcLines.Add(String.Join(" ", currSrcLine));
-            tgtLines.Add(String.Join(" ", currTgtLine));
+            srcLines.Add(string.Join(" ", currSrcLine));
+            tgtLines.Add(string.Join(" ", currTgtLine));
 
             string srcFilePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName() + "_src.tmp");
             string tgtFilePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName() + "_tgt.tmp");
