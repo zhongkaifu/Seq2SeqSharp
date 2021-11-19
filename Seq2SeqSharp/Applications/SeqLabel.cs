@@ -25,11 +25,11 @@ namespace Seq2SeqSharp
         public SeqLabel( SeqLabelOptions options, Vocab srcVocab = null, Vocab clsVocab = null )
             : base( options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions, options.ValidIntervalHours, updateFreq: options.UpdateFreq )
         {
-            m_shuffleType = (ShuffleEnums) Enum.Parse( typeof( ShuffleEnums ), options.ShuffleType );
+            m_shuffleType = options.ShuffleType;
             m_options = options;
 
             // Model must exist if current task is not for training
-            if ( m_options.Task.Equals( "Train", StringComparison.InvariantCultureIgnoreCase ) == false && File.Exists( m_options.ModelFilePath ) == false )
+            if ( (m_options.Task != ModeEnums.Train) && !File.Exists( m_options.ModelFilePath ) )
             {
                 throw new FileNotFoundException( $"Model '{m_options.ModelFilePath}' doesn't exist." );
             }
@@ -49,8 +49,7 @@ namespace Seq2SeqSharp
             else
             {
                 // Model doesn't exist, we create it and initlaize parameters
-                EncoderTypeEnums encoderType = (EncoderTypeEnums) Enum.Parse( typeof( EncoderTypeEnums ), options.EncoderType );
-                m_modelMetaData = new SeqLabelModel( options.HiddenSize, options.EmbeddingDim, options.EncoderLayerDepth, options.MultiHeadNum, encoderType, srcVocab, clsVocab, options.MaxSegmentNum );
+                m_modelMetaData = new SeqLabelModel( options.HiddenSize, options.EmbeddingDim, options.EncoderLayerDepth, options.MultiHeadNum, options.EncoderType, srcVocab, clsVocab, options.MaxSegmentNum );
 
                 //Initializng weights in encoders and decoders
                 CreateTrainableParameters( m_modelMetaData );
@@ -139,7 +138,7 @@ namespace Seq2SeqSharp
 
                             if ( j >= tgtSnts[ k ].Count )
                             {
-                                throw new IndexOutOfRangeException( $"Token offset '{j}' is out of range in current target sequence (size = '{tgtSnts[ k ].Count}' text = '{String.Join( ' ', tgtSnts[ k ] )}'). Source sequence size is '{srcSnts[ k ].Count}' text is {String.Join( ' ', srcSnts[ k ] )}" );
+                                throw new IndexOutOfRangeException( $"Token offset '{j}' is out of range in current target sequence (size = '{tgtSnts[ k ].Count}' text = '{string.Join( ' ', tgtSnts[ k ] )}'). Source sequence size is '{srcSnts[ k ].Count}' text is {string.Join( ' ', srcSnts[ k ] )}" );
                             }
 
 

@@ -29,11 +29,11 @@ namespace Seq2SeqSharp.Applications
         public SeqClassification( SeqClassificationOptions options, Vocab srcVocab = null, List<Vocab> clsVocabs = null )
            : base( options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions, options.ValidIntervalHours, updateFreq: options.UpdateFreq )
         {
-            m_shuffleType = (ShuffleEnums) Enum.Parse( typeof( ShuffleEnums ), options.ShuffleType );
+            m_shuffleType = options.ShuffleType;
             m_options = options;
 
             // Model must exist if current task is not for training
-            if ( m_options.Task.Equals( "Train", StringComparison.InvariantCultureIgnoreCase ) == false && File.Exists( m_options.ModelFilePath ) == false )
+            if ( (m_options.Task != ModeEnums.Train) && !File.Exists( m_options.ModelFilePath ) )
             {
                 throw new FileNotFoundException( $"Model '{m_options.ModelFilePath}' doesn't exist." );
             }
@@ -51,10 +51,8 @@ namespace Seq2SeqSharp.Applications
             }
             else
             {
-                EncoderTypeEnums encoderType = (EncoderTypeEnums) Enum.Parse( typeof( EncoderTypeEnums ), options.EncoderType );
-
                 m_modelMetaData = new SeqClassificationModel( options.HiddenSize, options.EmbeddingDim, options.EncoderLayerDepth, options.MultiHeadNum,
-                    encoderType, srcVocab, clsVocabs, options.EnableSegmentEmbeddings, options.ApplyContextEmbeddingsToEntireSequence, options.MaxSegmentNum );
+                    options.EncoderType, srcVocab, clsVocabs, options.EnableSegmentEmbeddings, options.ApplyContextEmbeddingsToEntireSequence, options.MaxSegmentNum );
 
                 //Initializng weights in encoders and decoders
                 CreateTrainableParameters( m_modelMetaData );

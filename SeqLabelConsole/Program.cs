@@ -26,28 +26,24 @@ namespace SeqLabelConsole
             SeqLabelOptions opts = new SeqLabelOptions();
             ArgParser argParser = new ArgParser(args, opts);
 
-            if (string.IsNullOrEmpty(opts.ConfigFilePath) == false)
+            if (!opts.ConfigFilePath.IsNullOrEmpty())
             {
                 Logger.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
                 opts = JsonConvert.DeserializeObject<SeqLabelOptions>(File.ReadAllText(opts.ConfigFilePath));
             }
 
-
             SeqLabel sl = null;
-            ProcessorTypeEnums processorType = (ProcessorTypeEnums)Enum.Parse(typeof(ProcessorTypeEnums), opts.ProcessorType);
-            EncoderTypeEnums encoderType = (EncoderTypeEnums)Enum.Parse(typeof(EncoderTypeEnums), opts.EncoderType);
-            ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.Task);
 
             //Parse device ids from options          
             int[] deviceIds = opts.DeviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
-            if (mode == ModeEnums.Train)
+            if ( opts.Task == ModeEnums.Train )
             {
                 // Load train corpus
                 SeqLabelingCorpus trainCorpus = new SeqLabelingCorpus(opts.TrainCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxTrainSentLength);
 
                 // Load valid corpus
                 List<SeqLabelingCorpus> validCorpusList = new List<SeqLabelingCorpus>();
-                if (String.IsNullOrEmpty(opts.ValidCorpusPaths) == false)
+                if (!opts.ValidCorpusPaths.IsNullOrEmpty())
                 {
                     string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
                     foreach (var validCorpusPath in validCorpusPathList)
@@ -59,7 +55,7 @@ namespace SeqLabelConsole
                 // Load or build vocabulary
                 Vocab srcVocab = null;
                 Vocab tgtVocab = null;
-                if (!string.IsNullOrEmpty(opts.SrcVocab) && !string.IsNullOrEmpty(opts.TgtVocab))
+                if (!opts.SrcVocab.IsNullOrEmpty() && !opts.TgtVocab.IsNullOrEmpty() )
                 {
                     // Vocabulary files are specified, so we load them
                     srcVocab = new Vocab(opts.SrcVocab);
@@ -107,7 +103,7 @@ namespace SeqLabelConsole
 
 
             }
-            else if (mode == ModeEnums.Valid)
+            else if ( opts.Task == ModeEnums.Valid )
             {
                 Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPaths}'");
 
@@ -128,7 +124,7 @@ namespace SeqLabelConsole
                 sl = new SeqLabel(opts);
                 sl.Valid(validCorpus: validCorpus, metrics: metrics);
             }
-            else if (mode == ModeEnums.Test)
+            else if ( opts.Task == ModeEnums.Test )
             {
                 Logger.WriteLine($"Test model '{opts.ModelFilePath}' by input corpus '{opts.InputTestFile}'");
 

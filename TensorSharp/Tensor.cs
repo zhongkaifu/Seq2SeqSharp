@@ -407,7 +407,7 @@ namespace TensorSharp
         {
             if (newSizes.Length != DimensionCount)
             {
-                throw new InvalidOperationException($"number of elements of newSizes must match the dimension count of tensor. New dimension = '{newSizes.Length}', Current dimension = '{DimensionCount}', New tensor shape = '{String.Join(" ", newSizes)}', current tensor shape = '{String.Join(" ", Sizes)}'");
+                throw new InvalidOperationException($"number of elements of newSizes must match the dimension count of tensor. New dimension = '{newSizes.Length}', Current dimension = '{DimensionCount}', New tensor shape = '{string.Join(" ", newSizes)}', current tensor shape = '{string.Join(" ", Sizes)}'");
             }
 
             long[] newStrides = (long[])strides.Clone();

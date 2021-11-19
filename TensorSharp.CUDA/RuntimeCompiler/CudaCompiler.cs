@@ -49,7 +49,7 @@ namespace TensorSharp.CUDA.RuntimeCompiler
                 }
                 else
                 {
-                    Logger.WriteLine($"Compiler Options: {String.Join(" ", m_options)}");
+                    Logger.WriteLine($"Compiler Options: {string.Join(" ", m_options)}");
                     rtc.Compile(m_options);
                     //rtc.Compile(new string[] { "--use_fast_math", "--gpu-architecture=compute_60" });
                 }

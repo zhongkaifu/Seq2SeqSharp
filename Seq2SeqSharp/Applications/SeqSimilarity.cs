@@ -31,7 +31,7 @@ namespace Seq2SeqSharp.Applications
         public SeqSimilarity( SeqSimilarityOptions options, Vocab srcVocab = null, Vocab clsVocab = null )
            : base( options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions, options.ValidIntervalHours, updateFreq: options.UpdateFreq )
         {
-            m_shuffleType = (ShuffleEnums) Enum.Parse( typeof( ShuffleEnums ), options.ShuffleType );
+            m_shuffleType = options.ShuffleType;
             m_options = options;
 
             m_memoryCache = new MemoryCache( new MemoryCacheOptions
@@ -40,7 +40,7 @@ namespace Seq2SeqSharp.Applications
             } );
 
             // Model must exist if current task is not for training
-            if ( m_options.Task.Equals( "Train", StringComparison.InvariantCultureIgnoreCase ) == false && File.Exists( m_options.ModelFilePath ) == false )
+            if ( (m_options.Task != ModeEnums.Train) && !File.Exists( m_options.ModelFilePath ) )
             {
                 throw new FileNotFoundException( $"Model '{m_options.ModelFilePath}' doesn't exist." );
             }
@@ -58,10 +58,8 @@ namespace Seq2SeqSharp.Applications
             }
             else
             {
-                EncoderTypeEnums encoderType = (EncoderTypeEnums) Enum.Parse( typeof( EncoderTypeEnums ), options.EncoderType );
-
                 m_modelMetaData = new SeqSimilarityModel( options.HiddenSize, options.EmbeddingDim, options.EncoderLayerDepth, options.MultiHeadNum,
-                    encoderType, srcVocab, clsVocab, options.EnableSegmentEmbeddings, m_options.SimilarityType, options.MaxSegmentNum );
+                    options.EncoderType, srcVocab, clsVocab, options.EnableSegmentEmbeddings, m_options.SimilarityType, options.MaxSegmentNum );
 
                 //Initializng weights in encoders and decoders
                 CreateTrainableParameters( m_modelMetaData );
@@ -104,10 +102,10 @@ namespace Seq2SeqSharp.Applications
 
             foreach ( var str in strs )
             {
-                r.Add( String.Join( " ", str ) );
+                r.Add( string.Join( " ", str ) );
             }
 
-            return String.Join( "\t", r );
+            return string.Join( "\t", r );
         }
 
         /// <summary>
@@ -122,18 +120,15 @@ namespace Seq2SeqSharp.Applications
         {
             int batchSize = sntPairBatch.BatchSize;
 
-            List<NetworkResult> nrs = new List<NetworkResult>();
             float cost = 0.0f;
-            NetworkResult nr = new NetworkResult
-            {
-                Output = new List<List<List<string>>>()
-            };
+            var nrs = new List<NetworkResult>();            
+            var nr = new NetworkResult { Output = new List<List<List<string>>>() };
 
             (IEncoder encoder, IWeightTensor srcEmbedding, IFeedForwardLayer encoderFFLayer, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding) = GetNetworksOnDeviceAt( deviceIdIdx );
-
-            IWeightTensor encOutput1 = null;
-            IWeightTensor encOutput2 = null;
-            if ( isTraining == false && m_options.ProcessorType.Equals( "CPU", StringComparison.InvariantCultureIgnoreCase ) )
+            
+            IWeightTensor encOutput1;
+            IWeightTensor encOutput2;
+            if ( !isTraining && (m_options.ProcessorType == ProcessorTypeEnums.CPU) )
             {
                 //We only check cache at inference time
                 string cacheKey1 = GenerateCacheKey( sntPairBatch.GetSrcTokens( 0 ) );

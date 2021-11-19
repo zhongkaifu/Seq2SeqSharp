@@ -116,7 +116,7 @@ namespace Seq2SeqSharp.Models
             Logger.WriteLine( $"Multi-head size: '{MultiHeadNum}'" );
 
 
-            if ( String.IsNullOrEmpty( SimilarityType ) == false )
+            if ( ! SimilarityType.IsNullOrEmpty() )
             {
                 Logger.WriteLine( $"Similarity Type: '{SimilarityType}'" );
             }

@@ -39,11 +39,11 @@ namespace Seq2SeqSharp.Corpus
                         List<string> outputBeams = new List<string>();
                         for (int beamIdx = 0; beamIdx < result.Output.Count; beamIdx++)
                         {
-                            string output = String.Join(" ", result.Output[beamIdx][batchIdx]);
+                            string output = string.Join(" ", result.Output[beamIdx][batchIdx]);
                             outputBeams.Add(output);
                         }
 
-                        string outputAllBeams = String.Join("\t", outputBeams);
+                        string outputAllBeams = string.Join("\t", outputBeams);
                         outputEntireBatch.Add(outputAllBeams);
                     }
 
@@ -59,7 +59,7 @@ namespace Seq2SeqSharp.Corpus
                         output.Add(outputAllTasks[j][i]);
                     }
 
-                    finalOutputs.Add(String.Join("\t", output));
+                    finalOutputs.Add(string.Join("\t", output));
                 }
 
                 //Need to extend output buffer

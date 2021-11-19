@@ -18,7 +18,7 @@ namespace Seq2SeqSharp.Metrics
             m_groupName = groupName;
             ClearStatus();
 
-            Logger.WriteLine($"Added '{String.Join(" ", classLabels)}' labels to '{Name}'.");
+            Logger.WriteLine($"Added '{string.Join(" ", classLabels)}' labels to '{Name}'.");
         }
 
         public void ClearStatus()
@@ -57,7 +57,7 @@ namespace Seq2SeqSharp.Metrics
                     }
                     catch (Exception err)
                     {
-                        Logger.WriteLine($"Exception: {err.Message}, Ref = '{String.Join(" ", refTokens)}', Hyp = '{String.Join(" ", hypTokens)}'");
+                        Logger.WriteLine($"Exception: {err.Message}, Ref = '{string.Join(" ", refTokens)}', Hyp = '{string.Join(" ", hypTokens)}'");
                         throw;
 
                     }

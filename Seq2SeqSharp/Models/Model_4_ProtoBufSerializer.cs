@@ -64,7 +64,7 @@ namespace Seq2SeqSharp.Models
             {
                 var idx = line.IndexOf( '\t' );
                 var word = (idx == -1) ? line : line.Substring( 0, idx );
-                if ( string.IsNullOrEmpty( word ) ) continue;
+                if (  word.IsNullOrEmpty() ) continue;
 
                 if ( !BuildInTokens.IsPreDefinedToken( word ) )
                 {

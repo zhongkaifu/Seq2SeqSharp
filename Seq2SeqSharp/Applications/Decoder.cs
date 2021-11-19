@@ -304,7 +304,7 @@ namespace Seq2SeqSharp.Applications
                             var lcost = (float)-Math.Log(score_k);
                             if (float.IsNaN(lcost))
                             {
-                                throw new ArithmeticException($"Score = '{score_k}' Cost = Nan at index '{i}' word '{outputSnts[k][i]}', Output Sentence = '{String.Join(" ", outputSnts[k])}'");
+                                throw new ArithmeticException($"Score = '{score_k}' Cost = Nan at index '{i}' word '{outputSnts[k][i]}', Output Sentence = '{string.Join(" ", outputSnts[k])}'");
                             }
                             else
                             {

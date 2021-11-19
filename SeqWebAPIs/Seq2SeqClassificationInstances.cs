@@ -1,4 +1,5 @@
 ﻿using AdvUtils;
+using Seq2SeqSharp;
 using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Tools;
@@ -14,12 +15,12 @@ namespace SeqWebAPIs
         private static object locker = new object();
         private static Dictionary<string, Seq2SeqClassification> m_key2Instance = new Dictionary<string, Seq2SeqClassification>();
 
-        static public void Initialization(Dictionary<string, string> key2ModelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, string processorType, string deviceIds)
+        static public void Initialization(Dictionary<string, string> key2ModelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, ProcessorTypeEnums processorType, string deviceIds)
         {
             foreach (var pair in key2ModelFilePath)
             {
                 Logger.WriteLine($"Loading '{pair.Key}' model from '{pair.Value}'");
-                Seq2SeqClassificationOptions opts = new Seq2SeqClassificationOptions();
+                var opts = new Seq2SeqClassificationOptions();
                 opts.ModelFilePath = pair.Value;
                 opts.MaxTestSrcSentLength = maxTestSrcSentLength;
                 opts.MaxTestTgtSentLength = maxTestTgtSentLength;
@@ -54,7 +55,7 @@ namespace SeqWebAPIs
                 var nrSeq2Seq = nrs[1];
 
                 string tag = nrCLS.Output[0][0][0];
-                string text = String.Join(" ", nrSeq2Seq.Output[0][0].ToArray(), 1, nrSeq2Seq.Output[0][0].Count - 2);
+                string text = string.Join(" ", nrSeq2Seq.Output[0][0].ToArray(), 1, nrSeq2Seq.Output[0][0].Count - 2);
 
                 return (tag, text);
             }
