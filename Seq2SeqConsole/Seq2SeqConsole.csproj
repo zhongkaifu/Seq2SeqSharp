@@ -8,7 +8,16 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <RepositoryUrl>git@github.com:zhongkaifu/Seq2SeqSharp.git</RepositoryUrl>
     <PackageTags>translation;deep-learning;neural-network;gpu;machine-translation;cuda;transformer;lstm;seq2seq;sequence-to-sequence;tensor;encoder-decoder;attention-model;transformer-encoder;transformer-architecture</PackageTags>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>bin\</OutputPath>
   </PropertyGroup>
+  
+  <PropertyGroup>
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+    <!--<RetainVMGarbageCollection>true</RetainVMGarbageCollection>-->
+  </PropertyGroup>
+  
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>x64</PlatformTarget>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -16,6 +25,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
+  
   <ItemGroup>
     <Reference Include="AdvUtils">
       <HintPath>..\dll\AdvUtils.dll</HintPath>
@@ -38,4 +48,11 @@
       <PackagePath></PackagePath>
     </None>
   </ItemGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy &quot;..\dll\win_x64\sentencepiece.dll&quot; &quot;$(ProjectDir)\bin&quot;" />
+    <Exec Command="copy &quot;..\dll\win_x64\libgcc_s_seh-1.dll&quot; &quot;$(ProjectDir)\bin&quot;" />
+    <Exec Command="copy &quot;..\dll\win_x64\libgfortran-3.dll&quot; &quot;$(ProjectDir)\bin&quot;" />
+    <Exec Command="copy &quot;..\dll\win_x64\libopenblas.dll&quot; &quot;$(ProjectDir)\bin&quot;" />
+    <Exec Command="copy &quot;..\dll\win_x64\libquadmath-0.dll&quot; &quot;$(ProjectDir)\bin&quot;" />
+  </Target>
 </Project>

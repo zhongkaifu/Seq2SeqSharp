@@ -1,0 +1,4 @@
+'sentencepiece project file location for changes':
+
+/sentencepiece/src/sentencepiece_processor.h
+/sentencepiece/src/sentencepiece_processor.cc

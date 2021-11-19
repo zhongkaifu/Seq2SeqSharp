@@ -12,6 +12,8 @@
     <PackageTags>translation;deep-learning;neural-network;gpu;machine-translation;cuda;transformer;lstm;seq2seq;sequence-to-sequence;tensor;encoder-decoder;attention-model;transformer-encoder;transformer-architecture</PackageTags>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>bin\</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DefineConstants>TRACE;DEBUG;CUDA</DefineConstants>

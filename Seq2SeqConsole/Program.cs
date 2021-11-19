@@ -12,11 +12,22 @@ using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Metrics;
 using Seq2SeqSharp.Optimizer;
 using Seq2SeqSharp.Utils;
+using Seq2SeqSharp._SentencePiece;
 
 namespace Seq2SeqConsole
 {
-    internal class Program
+    internal static class Program
     {
+        private static void Test_SentencePiece( string modelFilename, string origin_txt )
+        {
+            using var sp = new SentencePiece( modelFilename );
+
+            var enc_txt = sp.Encode( origin_txt );
+            var dec_txt = sp.Decode( enc_txt );
+
+            Debug.Assert( origin_txt == dec_txt );
+        }
+
         private static Seq2SeqOptions opts = new Seq2SeqOptions();
         private static void Ss_EvaluationWatcher(object sender, EventArgs e)
         {
@@ -33,6 +44,11 @@ namespace Seq2SeqConsole
         {
             try
             {
+                #region [.Test_SentencePiece.]
+                Test_SentencePiece( @"/Seq2SeqSharp_v2_4_1/Seq2SeqSharp-ReleasePackage-RELEASE_2_4_1/spm/rusSpm.model", origin_txt: "бабушка козлика очень любила" );
+                Test_SentencePiece( @"/Seq2SeqSharp_v2_4_1/Seq2SeqSharp-ReleasePackage-RELEASE_2_4_1/spm/enuSpm.model", origin_txt: "grandmother loved the goat very much" );
+                #endregion
+
                 //Parse command line
                 ArgParser argParser = new ArgParser(args, opts);
                 if (!opts.ConfigFilePath.IsNullOrEmpty())
