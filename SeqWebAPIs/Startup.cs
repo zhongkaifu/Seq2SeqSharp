@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using Seq2SeqSharp;
+using Seq2SeqSharp._SentencePiece;
 using Seq2SeqSharp.Utils;
 using Seq2SeqWebAPI;
 using SeqClassificationWebAPI;
@@ -40,7 +41,11 @@ namespace SeqWebAPIs
                 processorType = Configuration[ "Seq2Seq:ProcessorType" ].ToEnum< ProcessorTypeEnums >();
                 deviceIds = Configuration[ "Seq2Seq:DeviceIds" ];
 
-                Seq2SeqInstance.Initialization( modelFilePath, maxTestSrcSentLength, maxTestTgtSentLength, processorType, deviceIds );
+                var srcSentPiece = new SentencePiece( Configuration[ "Seq2Seq:SrcSentencePieceModelPath" ] );
+                var tgtSentPiece = new SentencePiece( Configuration[ "Seq2Seq:TgtSentencePieceModelPath" ] );
+
+                Seq2SeqInstance.Initialization( modelFilePath, maxTestSrcSentLength, maxTestTgtSentLength, 
+                                                processorType, deviceIds, (srcSentPiece, tgtSentPiece) );
             }
 
             if ( !Configuration[ "SeqClassification:ModelFilePath" ].IsNullOrEmpty() )

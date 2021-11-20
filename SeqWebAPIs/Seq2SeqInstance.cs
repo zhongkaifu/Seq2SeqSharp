@@ -1,8 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
 using Seq2SeqSharp;
+using Seq2SeqSharp._SentencePiece;
 using Seq2SeqSharp.Corpus;
 
 namespace Seq2SeqWebAPI
@@ -11,7 +11,11 @@ namespace Seq2SeqWebAPI
     {
         static private object locker = new object();
         static private Seq2Seq m_seq2seq;
-        static public void Initialization(string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, ProcessorTypeEnums processorType, string deviceIds)
+        private static SentencePiece _SrcSentPiece;
+        private static SentencePiece _TgtSentPiece;
+
+        static public void Initialization( string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength,
+            ProcessorTypeEnums processorType, string deviceIds, in (SentencePiece src, SentencePiece tgt) sentPieces )
         {
             var opts = new Seq2SeqOptions();
             opts.ModelFilePath = modelFilePath;
@@ -20,24 +24,32 @@ namespace Seq2SeqWebAPI
             opts.ProcessorType = processorType;
             opts.DeviceIds = deviceIds;
 
-            m_seq2seq = new Seq2Seq(opts);
+            _SrcSentPiece = sentPieces.src;
+            _TgtSentPiece = sentPieces.tgt;
+
+            m_seq2seq = new Seq2Seq( opts );
         }
 
-        static public string Call(string input)
+        static public string Call( string input )
         {
-            List<string> tokens = input.Split(' ').ToList();
+            if ( string.IsNullOrWhiteSpace( input ) ) return (input);
+
+            input = _SrcSentPiece.Encode( input );
+
+            List<string> tokens = input.Split( ' ' ).ToList();
             List<List<string>> batchTokens = new List<List<string>>();
-            batchTokens.Add(tokens);
+            batchTokens.Add( tokens );
 
             List<List<List<string>>> groupBatchTokens = new List<List<List<string>>>();
-            groupBatchTokens.Add(batchTokens);
+            groupBatchTokens.Add( batchTokens );
 
-            lock (locker)
+            lock ( locker )
             {
-                var nrs = m_seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens);
-                string rst = string.Join(" ", nrs[0].Output[0][0].ToArray(), 1, nrs[0].Output[0][0].Count - 2);
-
-                return rst;
+                var nrs = m_seq2seq.Test<Seq2SeqCorpusBatch>( groupBatchTokens );
+                var out_tokens = nrs[ 0 ].Output[ 0 ][ 0 ];
+                var rst = _SrcSentPiece.Decode( out_tokens, 1, out_tokens.Count - 2 );
+                //---var rst = string.Join( " ", out_tokens.ToArray(), 1, out_tokens.Count - 2 );
+                return (rst);
             }
         }
     }

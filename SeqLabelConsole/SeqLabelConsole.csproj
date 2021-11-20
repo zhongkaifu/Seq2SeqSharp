@@ -31,7 +31,7 @@
     </PackageReference>
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
   </ItemGroup>
-
+  <!--
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="copy &quot;..\dll\win_x64\sentencepiece.dll&quot; &quot;$(ProjectDir)\bin&quot;" />
     <Exec Command="copy &quot;..\dll\win_x64\libgcc_s_seh-1.dll&quot; &quot;$(ProjectDir)\bin&quot;" />
@@ -39,5 +39,5 @@
     <Exec Command="copy &quot;..\dll\win_x64\libopenblas.dll&quot; &quot;$(ProjectDir)\bin&quot;" />
     <Exec Command="copy &quot;..\dll\win_x64\libquadmath-0.dll&quot; &quot;$(ProjectDir)\bin&quot;" />
   </Target>
-  
+  -->
 </Project>
