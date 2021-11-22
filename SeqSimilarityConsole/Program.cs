@@ -1,18 +1,18 @@
-﻿using AdvUtils;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+
+using AdvUtils;
 using Seq2SeqSharp;
 using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Metrics;
 using Seq2SeqSharp.Optimizer;
-using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
 
 namespace SeqSimilarityConsole
 {
@@ -24,7 +24,7 @@ namespace SeqSimilarityConsole
             EvaluationEventArg ep = e as EvaluationEventArg;
             Logger.WriteLine(Logger.Level.info, ep.Color, ep.Message);
 
-            if (String.IsNullOrEmpty(opts.NotifyEmail) == false)
+            if (!opts.NotifyEmail.IsNullOrEmpty())
             {
                 Email.Send(ep.Title, ep.Message, opts.NotifyEmail, new string[] { opts.NotifyEmail });
             }
@@ -36,7 +36,7 @@ namespace SeqSimilarityConsole
             Logger.WriteLine($"SeqSimilarityConsole v2.3.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
             Logger.WriteLine($"Command Line = '{commandLine}'");
 
-            string strOpts = JsonConvert.SerializeObject(opts);
+            string strOpts = JsonConvert.SerializeObject( opts, Formatting.Indented, new JsonSerializerSettings() { NullValueHandling = NullValueHandling.Ignore, Converters = new[] { new StringEnumConverter() }, } );
             Logger.WriteLine($"Configs: {strOpts}");
         }
 
@@ -48,7 +48,7 @@ namespace SeqSimilarityConsole
                 //   Seq2SeqOptions opts = new Seq2SeqOptions();
                 ArgParser argParser = new ArgParser(args, opts);
 
-                if (string.IsNullOrEmpty(opts.ConfigFilePath) == false)
+                if (!opts.ConfigFilePath.IsNullOrEmpty())
                 {
                     Logger.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
                     opts = JsonConvert.DeserializeObject<SeqSimilarityOptions>(File.ReadAllText(opts.ConfigFilePath));
@@ -58,23 +58,20 @@ namespace SeqSimilarityConsole
                 ShowOptions(args, opts);
 
                 SeqSimilarity ss = null;
-                ModeEnums mode = (ModeEnums)Enum.Parse(typeof(ModeEnums), opts.Task);
-                ShuffleEnums shuffleType = (ShuffleEnums)Enum.Parse(typeof(ShuffleEnums), opts.ShuffleType);
-
-                if (mode == ModeEnums.Train)
+                if ( opts.Task == ModeEnums.Train )
                 {
                     // Load train corpus
                     SeqClassificationMultiTasksCorpus trainCorpus = new SeqClassificationMultiTasksCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
-                        maxSentLength: opts.MaxTrainSentLength, shuffleEnums: shuffleType);
+                        maxSentLength: opts.MaxTrainSentLength, shuffleEnums: opts.ShuffleType );
 
                     // Load valid corpus
                     List<SeqClassificationMultiTasksCorpus> validCorpusList = new List<SeqClassificationMultiTasksCorpus>();
-                    if (String.IsNullOrEmpty(opts.ValidCorpusPaths) == false)
+                    if (!opts.ValidCorpusPaths.IsNullOrEmpty())
                     {
                         string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
                         foreach (var validCorpusPath in validCorpusPathList)
                         {
-                            validCorpusList.Add(new SeqClassificationMultiTasksCorpus(opts.ValidCorpusPaths, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSentLength, shuffleEnums: shuffleType));
+                            validCorpusList.Add(new SeqClassificationMultiTasksCorpus(opts.ValidCorpusPaths, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSentLength, shuffleEnums: opts.ShuffleType ));
                         }
                     }
 
@@ -92,7 +89,7 @@ namespace SeqSimilarityConsole
                     // Create optimizer
                     IOptimizer optimizer = Misc.CreateOptimizer(opts);
 
-                    if (!String.IsNullOrEmpty(opts.ModelFilePath) && File.Exists(opts.ModelFilePath))
+                    if (!opts.ModelFilePath.IsNullOrEmpty() && File.Exists(opts.ModelFilePath))
                     {
                         //Incremental training
                         Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
@@ -108,7 +105,7 @@ namespace SeqSimilarityConsole
                         // Load or build vocabulary
                         Vocab srcVocab = null;
                         List<Vocab> tgtVocabs = null;
-                        if (!string.IsNullOrEmpty(opts.SrcVocab) && !string.IsNullOrEmpty(opts.TgtVocab))
+                        if (!opts.SrcVocab.IsNullOrEmpty() && !opts.TgtVocab.IsNullOrEmpty() )
                         {
                             Logger.WriteLine($"Loading source vocabulary from '{opts.SrcVocab}' and target vocabulary from '{opts.TgtVocab}'.");
                             // Vocabulary files are specified, so we load them
@@ -142,7 +139,7 @@ namespace SeqSimilarityConsole
                     // Kick off training
                     ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: new List<IMetric>() { metric });
                 }
-                //else if (mode == ModeEnums.Valid)
+                //else if (opts.Task == ModeEnums.Valid)
                 //{
                 //    Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPath}'");
 
@@ -160,7 +157,7 @@ namespace SeqSimilarityConsole
                 //    ss.EvaluationWatcher += ss_EvaluationWatcher;
                 //    ss.Valid(validCorpus: validCorpus, metrics: metrics);
                 //}
-                else if (mode == ModeEnums.Test)
+                else if ( opts.Task == ModeEnums.Test )
                 {
                     if (File.Exists(opts.OutputFile))
                     {
@@ -178,7 +175,7 @@ namespace SeqSimilarityConsole
 
                     Logger.WriteLine($"Test mode execution time elapsed: '{stopwatch.Elapsed}'");
                 }
-                //else if (mode == ModeEnums.DumpVocab)
+                //else if (opts.Task == ModeEnums.DumpVocab)
                 //{
                 //    ss = new Seq2Seq(opts);
                 //    ss.DumpVocabToFiles(opts.SrcVocab, opts.TgtVocab);

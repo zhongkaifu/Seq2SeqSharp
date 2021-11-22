@@ -1,4 +1,5 @@
 ﻿using Seq2SeqSharp.Tools;
+using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -56,11 +57,11 @@ namespace Seq2SeqSharp.Corpus
                 }
                 else
                 {
-                    results.Add(String.Join(' ', tokens, 0, maxSeqLength));
+                    results.Add(string.Join(' ', tokens, 0, maxSeqLength));
                 }
             }
 
-            return String.Join("\t", results);
+            return string.Join("\t", results);
         }
 
         private long GenerateGroupLenId(string s)
@@ -87,11 +88,7 @@ namespace Seq2SeqSharp.Corpus
 
 
         }
-
-        public bool IsEmptyPair()
-        {
-            return String.IsNullOrEmpty(SrcSnt) && String.IsNullOrEmpty(TgtSnt);
-        }
+        public bool IsEmptyPair() => SrcSnt.IsNullOrEmpty() && TgtSnt.IsNullOrEmpty();
     }
 
     public class SntPair
@@ -123,11 +120,11 @@ namespace Seq2SeqSharp.Corpus
             int gIdx = 0;
             foreach (var g in SrcTokenGroups)
             {
-                rst.Add($"GroupId '{gIdx}': " + String.Join(" ", g));
+                rst.Add($"GroupId '{gIdx}': " + string.Join(" ", g));
                 gIdx++;
             }
 
-            return String.Join("\n", rst);
+            return string.Join("\n", rst);
         }
 
         public string PrintTgtTokens()
@@ -136,11 +133,11 @@ namespace Seq2SeqSharp.Corpus
             int gIdx = 0;
             foreach (var g in TgtTokenGroups)
             {
-                rst.Add($"GroupId '{gIdx}': " + String.Join(" ", g));
+                rst.Add($"GroupId '{gIdx}': " + string.Join(" ", g));
                 gIdx++;
             }
 
-            return String.Join("\n", rst);
+            return string.Join("\n", rst);
         }
 
     }

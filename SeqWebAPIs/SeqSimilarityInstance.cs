@@ -1,10 +1,11 @@
-﻿using Seq2SeqSharp.Applications;
-using Seq2SeqSharp.Corpus;
-using Seq2SeqSharp.Tools;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
+
+using Seq2SeqSharp;
+using Seq2SeqSharp.Applications;
+using Seq2SeqSharp.Corpus;
+using Seq2SeqSharp.Tools;
 
 namespace SeqSimilarityWebAPI
 {
@@ -12,7 +13,7 @@ namespace SeqSimilarityWebAPI
     {
         static private object locker = new object();
         static private SeqSimilarity m_seqSimilarity;
-        static public void Initialization(string modelFilePath, int maxTestSentLength, string processorType, string deviceIds)
+        static public void Initialization(string modelFilePath, int maxTestSentLength, ProcessorTypeEnums processorType, string deviceIds)
         {
             SeqSimilarityOptions opts = new SeqSimilarityOptions();
             opts.ModelFilePath = modelFilePath;
@@ -29,7 +30,7 @@ namespace SeqSimilarityWebAPI
 
             // Build group 1 features for input string 1
             List<string> tokens = input1.Split(' ').ToList();
-            List<List<String>> batchTokens = new List<List<string>>();
+            List<List<string>> batchTokens = new List<List<string>>();
             batchTokens.Add(tokens);
             groupBatchTokens.Add(batchTokens);
 
@@ -50,7 +51,7 @@ namespace SeqSimilarityWebAPI
                     tags.Add(nr.Output[0][0][0]); // shape: (beam_size, batch_size, seq_size)
                 }
 
-                return String.Join("\t", tags);
+                return string.Join("\t", tags);
             }
         }
     }

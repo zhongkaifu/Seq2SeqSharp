@@ -1,12 +1,13 @@
-﻿using AdvUtils;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+
+using AdvUtils;
 using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Optimizer;
 using Seq2SeqSharp.Tools;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using M = System.Runtime.CompilerServices.MethodImplAttribute;
+using O = System.Runtime.CompilerServices.MethodImplOptions;
 
 namespace Seq2SeqSharp.Utils
 {
@@ -33,7 +34,7 @@ namespace Seq2SeqSharp.Utils
         }
     }
 
-    public class Utils
+    public static class Utils
     {
         public static string GetTimeStamp(DateTime timeStamp)
         {
@@ -41,7 +42,7 @@ namespace Seq2SeqSharp.Utils
         }
     }
 
-    public class Misc
+    public static class Misc
     {
         public static void AppendNewBatch(List<List<List<string>>> inputBatchs, string line, int maxTokenLength)
         {
@@ -92,7 +93,7 @@ namespace Seq2SeqSharp.Utils
         {
             // Create optimizer
             IOptimizer optimizer = null;
-            if (String.Equals(opts.Optimizer, "Adam", StringComparison.InvariantCultureIgnoreCase))
+            if (string.Equals(opts.Optimizer, "Adam", StringComparison.InvariantCultureIgnoreCase))
             {
                 optimizer = new AdamOptimizer(opts.GradClip, opts.Beta1, opts.Beta2);
             }
@@ -124,5 +125,8 @@ namespace Seq2SeqSharp.Utils
             return (posEmbeddings, segmentEmbeddings);
         }
 
+
+        [M(O.AggressiveInlining)] public static bool IsNullOrEmpty( this string s ) => string.IsNullOrEmpty( s );
+        [M(O.AggressiveInlining)] public static bool IsNullOrWhiteSpace( this string s ) => string.IsNullOrWhiteSpace( s );
     }
 }

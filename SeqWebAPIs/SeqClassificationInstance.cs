@@ -1,10 +1,11 @@
-﻿using Seq2SeqSharp.Applications;
-using Seq2SeqSharp.Corpus;
-using Seq2SeqSharp.Tools;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
+
+using Seq2SeqSharp;
+using Seq2SeqSharp.Applications;
+using Seq2SeqSharp.Corpus;
+using Seq2SeqSharp.Tools;
 
 namespace SeqClassificationWebAPI
 {
@@ -12,7 +13,7 @@ namespace SeqClassificationWebAPI
     {
         static private object locker = new object();
         static private SeqClassification m_seqClassification;
-        static public void Initialization(string modelFilePath, int maxTestSentLength, string processorType, string deviceIds)
+        static public void Initialization(string modelFilePath, int maxTestSentLength, ProcessorTypeEnums processorType, string deviceIds)
         {
             SeqClassificationOptions opts = new SeqClassificationOptions();
             opts.ModelFilePath = modelFilePath;
@@ -44,7 +45,7 @@ namespace SeqClassificationWebAPI
                     tags.Add(nr.Output[0][0][0]); // shape: (beam_size, batch_size, seq_size)
                 }
 
-                return String.Join("\t", tags);
+                return string.Join("\t", tags);
             }
         }
     }

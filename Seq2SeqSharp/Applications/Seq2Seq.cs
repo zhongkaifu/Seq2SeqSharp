@@ -31,11 +31,11 @@ namespace Seq2SeqSharp
         public Seq2Seq( Seq2SeqOptions options, Vocab srcVocab = null, Vocab tgtVocab = null )
             : base( options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions, options.ValidIntervalHours, updateFreq: options.UpdateFreq )
         {
-            m_shuffleType = (ShuffleEnums) Enum.Parse( typeof( ShuffleEnums ), options.ShuffleType );
+            m_shuffleType = options.ShuffleType;
             m_options = options;
 
             // Model must exist if current task is not for training
-            if ( m_options.Task.Equals( "Train", StringComparison.InvariantCultureIgnoreCase ) == false && File.Exists( m_options.ModelFilePath ) == false )
+            if ( (m_options.Task != ModeEnums.Train) && !File.Exists( m_options.ModelFilePath ) )
             {
                 throw new FileNotFoundException( $"Model '{m_options.ModelFilePath}' doesn't exist." );
             }
@@ -55,11 +55,8 @@ namespace Seq2SeqSharp
             else
             {
                 // Model doesn't exist, we create it and initlaize parameters
-                EncoderTypeEnums encoderType = (EncoderTypeEnums) Enum.Parse( typeof( EncoderTypeEnums ), options.EncoderType );
-                DecoderTypeEnums decoderType = (DecoderTypeEnums) Enum.Parse( typeof( DecoderTypeEnums ), options.DecoderType );
-
                 m_modelMetaData = new Seq2SeqModel( options.HiddenSize, options.SrcEmbeddingDim, options.TgtEmbeddingDim, options.EncoderLayerDepth, options.DecoderLayerDepth, options.MultiHeadNum,
-                    encoderType, decoderType, srcVocab, tgtVocab, options.EnableCoverageModel, options.SharedEmbeddings, options.EnableSegmentEmbeddings, options.ApplyContextEmbeddingsToEntireSequence, options.MaxSegmentNum );
+                   options.EncoderType, options.DecoderType, srcVocab, tgtVocab, options.EnableCoverageModel, options.SharedEmbeddings, options.EnableSegmentEmbeddings, options.ApplyContextEmbeddingsToEntireSequence, options.MaxSegmentNum );
 
                 //Initializng weights in encoders and decoders
                 CreateTrainableParameters( m_modelMetaData );
@@ -118,7 +115,7 @@ namespace Seq2SeqSharp
 
             if ( isTraining && srcSnts[ 0 ].Count > m_options.MaxTrainSrcSentLength + 2 )
             {
-                throw new InvalidDataException( $"The source sentence is too long. Its length = '{srcSnts[ 0 ].Count}', but MaxTrainSrcSentLength is '{m_options.MaxTrainSrcSentLength}'. The sentence is '{String.Join( " ", srcSnts[ 0 ] )}'" );
+                throw new InvalidDataException( $"The source sentence is too long. Its length = '{srcSnts[ 0 ].Count}', but MaxTrainSrcSentLength is '{m_options.MaxTrainSrcSentLength}'. The sentence is '{string.Join( " ", srcSnts[ 0 ] )}'" );
             }
 
             IWeightTensor encOutput = Encoder.Run( computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcSnts, originalSrcLengths );
@@ -151,9 +148,6 @@ namespace Seq2SeqSharp
                 }
                 else
                 {
-                    DecodingStrategyEnums decodingStrategyEnum = (DecodingStrategyEnums) Enum.Parse( typeof( DecodingStrategyEnums ), m_options.DecodingStrategy );
-
-
                     List<List<BeamSearchStatus>> beam2batchStatus = Decoder.InitBeamSearchStatusListList( batchSize, tgtTokensList );
                     for ( int i = 0; i < m_options.MaxTestTgtSentLength; i++ )
                     {
@@ -167,7 +161,7 @@ namespace Seq2SeqSharp
                                 (var cost2, var bssSeqList) = Decoder.DecodeTransformer( batch2tgtTokens, g, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding,
                                                                                 originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, isTraining, beamSearchSize: m_options.BeamSearchSize,
                                                                                 outputSentScore: m_options.BeamSearchSize > 1, previousBeamSearchResults: batchStatus,
-                                                                                decodingStrategyEnum: decodingStrategyEnum, topPValue: m_options.DecodingTopPValue, repeatPenalty: m_options.DecodingRepeatPenalty, distancePenalty: m_options.DecodingDistancePenalty );
+                                                                                decodingStrategyEnum: m_options.DecodingStrategy, topPValue: m_options.DecodingTopPValue, repeatPenalty: m_options.DecodingRepeatPenalty, distancePenalty: m_options.DecodingDistancePenalty );
 
                                 bssSeqList = Decoder.SwapBeamAndBatch( bssSeqList );
                                 batch2beam2seq = Decoder.MergeTwoBeamSearchStatus( batch2beam2seq, bssSeqList );
