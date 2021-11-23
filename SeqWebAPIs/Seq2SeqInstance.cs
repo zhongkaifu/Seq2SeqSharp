@@ -36,18 +36,15 @@ namespace Seq2SeqWebAPI
 
             input = _SrcSentPiece.Encode( input );
 
-            List<string> tokens = input.Split( ' ' ).ToList();
-            List<List<string>> batchTokens = new List<List<string>>();
-            batchTokens.Add( tokens );
-
-            List<List<List<string>>> groupBatchTokens = new List<List<List<string>>>();
-            groupBatchTokens.Add( batchTokens );
+            var tokens = input.Split( ' ' ).ToList();
+            var batchTokens = new List<List<string>> { tokens };
+            var groupBatchTokens = new List<List<List<string>>> { batchTokens };
 
             lock ( locker )
             {
                 var nrs = m_seq2seq.Test<Seq2SeqCorpusBatch>( groupBatchTokens );
                 var out_tokens = nrs[ 0 ].Output[ 0 ][ 0 ];
-                var rst = _SrcSentPiece.Decode( out_tokens, 1, out_tokens.Count - 2 );
+                var rst = _TgtSentPiece.Decode( out_tokens, 1, out_tokens.Count - 2 );
                 //---var rst = string.Join( " ", out_tokens.ToArray(), 1, out_tokens.Count - 2 );
                 return (rst);
             }
