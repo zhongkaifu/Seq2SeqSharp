@@ -52,7 +52,6 @@ OPS_API int TS_eqValue(TensorRef* result, TensorRef* lhs, float rhs);
 OPS_API int TS_neValue(TensorRef* result, TensorRef* lhs, float rhs);
 
 
-OPS_API int TS_CSub(TensorRef* result, TensorRef* lhs, TensorRef* rhs);
 OPS_API int TS_CDiv(TensorRef* result, TensorRef* lhs, TensorRef* rhs);
 OPS_API int TS_CMod(TensorRef* result, TensorRef* lhs, TensorRef* rhs);
 

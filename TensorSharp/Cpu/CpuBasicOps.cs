@@ -582,9 +582,16 @@ namespace TensorSharp.Cpu
         }
 
 
-        private readonly MethodInfo csub_func = NativeWrapper.GetMethod("TS_CSub");
         [RegisterOpStorageType("subt", typeof(CpuStorage))]
-        public Tensor Sub(Tensor result, Tensor lhs, Tensor rhs) { return NativeWrapper.InvokeNullableResultElementwise(csub_func, result, lhs, rhs); }
+        public Tensor Sub(Tensor result, Tensor lhs, Tensor rhs)
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, lhs.Sizes);
+            TensorApplyCPU.Sub(writeTarget, lhs, rhs);
+
+            return writeTarget;
+        }
+
+
 
         [RegisterOpStorageType("mult", typeof(CpuStorage))]
         public Tensor Mul(Tensor result, Tensor lhs, Tensor rhs)        

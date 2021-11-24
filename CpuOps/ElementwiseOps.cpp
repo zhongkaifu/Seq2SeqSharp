@@ -266,7 +266,6 @@ int EXPORTNAME(TensorRef* result, TensorRef* lhs, TensorRef* rhs)\
 	API_END()\
 }
 
-DECLARE_T_T_ALL_CPU_TYPES(TS_CSub, sub_op)
 DECLARE_T_T_ALL_CPU_TYPES(TS_CDiv, div_op)
 DECLARE_T_T_ALL_CPU_TYPES(TS_CMod, Mod_op)
 

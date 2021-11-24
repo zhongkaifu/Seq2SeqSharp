@@ -357,6 +357,39 @@ namespace TensorSharp
 			}
 		}
 
+
+		unsafe public static void Sub(Tensor result, Tensor lhs, Tensor rhs)
+		{
+			int vectorSize = Vector<float>.Count;
+			if (result.Strides[^1] == 1 && lhs.Strides[^1] == 1 && rhs.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
+			{
+				unsafe void funcVec(float* r, float* left, float* right)
+				{
+					Span<float> spanR = new Span<float>(r, vectorSize);
+					Span<float> spanLeft = new Span<float>(left, vectorSize);
+					Span<float> spanRight = new Span<float>(right, vectorSize);
+
+					Vector<float> vecLeft = new Vector<float>(spanLeft);
+					Vector<float> vecRight = new Vector<float>(spanRight);
+
+					Vector<float> vecR = vecLeft - vecRight;
+					vecR.CopyTo(spanR);
+
+				}
+
+				Apply3(result, lhs, rhs, funcVec, vectorSize);
+			}
+			else
+			{
+				unsafe void func(float* r, float* left, float* right)
+				{
+					*r = *left - *right;
+				}
+
+				Apply3(result, lhs, rhs, func);
+			}
+		}
+
 		unsafe public static void Add(Tensor result, Tensor src, float value)
 		{
 			int vectorSize = Vector<float>.Count;

@@ -541,7 +541,7 @@ namespace Seq2SeqSharp.Tools
 
                     if (runGradient)
                     {
-                        Ops.AddMulV(m1.TGradient, m1.TGradient, res.TGradient, -1.0f);
+                        Ops.Sub(m1.TGradient, m1.TGradient, res.TGradient);
                     }
 
                     res.Dispose();

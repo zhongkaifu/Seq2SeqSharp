@@ -425,12 +425,16 @@ namespace TensorSharp.CUDA
 
         [RegisterOpStorageType("addt", typeof(CudaStorage))]
         public Tensor Add(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseOpKernels, "cadd", result, rhs, lhs); }
+
         [RegisterOpStorageType("subt", typeof(CudaStorage))]
         public Tensor Sub(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseOpKernels, "csub", result, rhs, lhs); }
+        
         [RegisterOpStorageType("mult", typeof(CudaStorage))]
         public Tensor Mul(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseOpKernels, "cmul", result, rhs, lhs); }
+        
         [RegisterOpStorageType("divt", typeof(CudaStorage))]
         public Tensor Div(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseOpKernels, "cdiv", result, rhs, lhs); }
+        
         [RegisterOpStorageType("modt", typeof(CudaStorage))]
         public Tensor Mod(Tensor result, Tensor rhs, Tensor lhs) { return ElementwiseTTTOp.Invoke(elementwiseOpKernels, "cmod", result, rhs, lhs); }
 
