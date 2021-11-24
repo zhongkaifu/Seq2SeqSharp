@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using Seq2SeqSharp.Utils;
+using Seq2SeqSharp._SentencePiece;
+using AdvUtils;
 
 namespace Seq2SeqSharp.Corpus
 {
@@ -16,12 +18,20 @@ namespace Seq2SeqSharp.Corpus
         int maxSentLength;
         int batchSize;
         string[] lines;
-        public SntPairBatchStreamReader(string filePath, int batchSize, int maxSentLength)
+        SentencePiece sp = null;
+
+        public SntPairBatchStreamReader(string filePath, int batchSize, int maxSentLength, string sentencePieceModelPath = null)
         {
             currentIdx = 0;
             this.maxSentLength = maxSentLength;
             this.batchSize = batchSize;
             lines = File.ReadAllLines(filePath);
+
+            if (String.IsNullOrEmpty(sentencePieceModelPath) == false)
+            {
+                Logger.WriteLine($"Loading sentence piece model '{sentencePieceModelPath}' for encoding.");
+                sp = new SentencePiece(sentencePieceModelPath);
+            }
         }
 
 
@@ -35,7 +45,12 @@ namespace Seq2SeqSharp.Corpus
 
                 for (int i = 0; i < batchSize && currentIdx < lines.Length; i++, currentIdx++)
                 {
-                    Misc.AppendNewBatch(inputBatchs, lines[currentIdx], maxSentLength);
+                    string line = lines[currentIdx];
+                    if (sp != null)
+                    {
+                        line = sp.Encode(line);
+                    }
+                    Misc.AppendNewBatch(inputBatchs, line, maxSentLength);
                 }
 
                 if (inputBatchs.Count == 0)

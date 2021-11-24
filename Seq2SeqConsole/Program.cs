@@ -139,7 +139,7 @@ namespace Seq2SeqConsole
                     //Test trained model
                     ss = new Seq2Seq(opts);
                     Stopwatch stopwatch = Stopwatch.StartNew();
-                    ss.Test<Seq2SeqCorpusBatch>(opts.InputTestFile, opts.OutputFile, opts.BatchSize, opts.MaxTestSrcSentLength);
+                    ss.Test<Seq2SeqCorpusBatch>(opts.InputTestFile, opts.OutputFile, opts.BatchSize, opts.MaxTestSrcSentLength, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath);
 
                     stopwatch.Stop();
 

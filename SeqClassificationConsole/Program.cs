@@ -168,7 +168,7 @@ namespace SeqClassificationConsole
                     ss = new SeqClassification(opts);
                     Stopwatch stopwatch = Stopwatch.StartNew();
 
-                    ss.Test<SeqClassificationMultiTasksCorpusBatch>(opts.InputTestFile, opts.OutputFile, opts.BatchSize, opts.MaxTestSentLength);
+                    ss.Test<SeqClassificationMultiTasksCorpusBatch>(opts.InputTestFile, opts.OutputFile, opts.BatchSize, opts.MaxTestSentLength, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath);
 
                     stopwatch.Stop();
 

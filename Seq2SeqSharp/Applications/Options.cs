@@ -149,5 +149,11 @@ namespace Seq2SeqSharp.Applications
 
         [Arg("It indicates if contextual features' embeddings are applied to entire input sequence rather than the first segment", nameof(ApplyContextEmbeddingsToEntireSequence))]
         public bool ApplyContextEmbeddingsToEntireSequence = true;
+
+        [Arg("SentencePiece model for source side", nameof(SrcSentencePieceModelPath))]
+        public string SrcSentencePieceModelPath = null;
+
+        [Arg("SentencePiece model for target side", nameof(TgtSentencePieceModelPath))]
+        public string TgtSentencePieceModelPath = null;
     }
 }

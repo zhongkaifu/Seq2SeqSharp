@@ -1,4 +1,6 @@
-﻿using Seq2SeqSharp.Tools;
+﻿using AdvUtils;
+using Seq2SeqSharp._SentencePiece;
+using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -18,10 +20,19 @@ namespace Seq2SeqSharp.Corpus
         int endWriteIdx = 0;
         int numWrittenToFile = 0;
 
-        public SntPairBatchStreamWriter(string filePath)
+        SentencePiece sp;
+
+        public SntPairBatchStreamWriter(string filePath, string sentencePieceModelPath = null)
         {
             this.filePath = filePath;
             sw = new StreamWriter(filePath, false);
+
+            if (String.IsNullOrEmpty(sentencePieceModelPath) == false)
+            {
+                Logger.WriteLine($"Loading sentence piece model '{sentencePieceModelPath}' for decoding.");
+                sp = new SentencePiece(sentencePieceModelPath);
+            }
+
         }
 
         public void WriteResults(int idx, List<NetworkResult> results)
@@ -82,7 +93,13 @@ namespace Seq2SeqSharp.Corpus
                         break;
                     }
 
-                    sw.WriteLine(outputBuffer[endWriteIdx]);
+                    string line = outputBuffer[endWriteIdx];
+                    if (sp != null)
+                    {
+                        line = sp.Decode(line);
+                    }
+
+                    sw.WriteLine(line);
 
                     endWriteIdx++;
                 }

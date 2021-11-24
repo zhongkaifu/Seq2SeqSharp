@@ -205,7 +205,7 @@ namespace Seq2SeqClassificationConsole
                     //Test trained model
                     ss = new Seq2SeqClassification(opts);
                     Stopwatch stopwatch = Stopwatch.StartNew();
-                    ss.Test<Seq2SeqClassificationCorpusBatch>(opts.InputTestFile, opts.OutputFile, opts.BatchSize, opts.MaxTestSrcSentLength);
+                    ss.Test<Seq2SeqClassificationCorpusBatch>(opts.InputTestFile, opts.OutputFile, opts.BatchSize, opts.MaxTestSrcSentLength, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath);
                     
                     stopwatch.Stop();
 
