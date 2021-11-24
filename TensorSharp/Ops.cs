@@ -221,7 +221,10 @@ namespace TensorSharp
         }
 
         public static Tensor LayerNorm(Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-09f) { return (Tensor)OpRegistry.Invoke("layernorm", result, src, alpha, beta, eps); }
-        public static Tensor LayerNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps = 1e-09f) { return (Tensor)OpRegistry.Invoke("layernormgrad", outGrad, alphaGrad, betaGrad, inGrad, y, x, alpha, beta, eps); }
+        public static Tensor LayerNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps = 1e-09f) 
+        { 
+            return (Tensor)OpRegistry.Invoke("layernormgrad", outGrad, alphaGrad, betaGrad, inGrad, y, x, alpha, beta, eps);
+        }
 
 
         public static Tensor AddLayerNorm(Tensor result, Tensor src1, Tensor src2, Tensor alpha, Tensor beta, float eps = 1e-09f) { return (Tensor)OpRegistry.Invoke("addlayernorm", result, src1, src2, alpha, beta, eps); }

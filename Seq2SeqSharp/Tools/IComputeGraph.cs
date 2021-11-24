@@ -17,7 +17,7 @@ namespace Seq2SeqSharp
         IWeightTensor Sigmoid(IWeightTensor w);
         IWeightTensor Relu(IWeightTensor w, bool inPlace = false);
         IWeightTensor Affine(IWeightTensor m1, IWeightTensor m2, IWeightTensor mbias, float alpha = 1.0f);
-        IWeightTensor EltMulMulAdd(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3, IWeightTensor w4);
+        IWeightTensor EltMulMulAdd(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3, IWeightTensor w4, bool runGraident = true);
         IWeightTensor TransposeBatch(IWeightTensor m, int batchSize);
         IWeightTensor AsContiguous(IWeightTensor w, bool runGradient = true, bool shareTensor = true);
         IWeightTensor View(IWeightTensor w, bool runGradient = true, params long[] dims);
@@ -56,6 +56,7 @@ namespace Seq2SeqSharp
 
         IWeightTensor Gather(IWeightTensor src, IWeightTensor indices, int dim);
         IWeightTensor Scatter(IWeightTensor source, IWeightTensor indices, int dim, bool runGradient = true, params long[] shape);
+        IWeightTensor Scatter(IWeightTensor indices, float val, int dim, bool runGradient = true, params long[] shape);
         IWeightTensor Sub(float v, IWeightTensor w1, bool runGradient = true);
 
         #region Operations for masking
@@ -66,6 +67,7 @@ namespace Seq2SeqSharp
         #endregion
 
         IWeightTensor LeftShiftTokens(List<List<int>> input, int lastTokenToPad);
+        IWeightTensor CreateTokensTensor(List<List<int>> input);
 
         IWeightTensor BuildFeatureMask(int paddedLength, List<int> appliedLengths, int dim);
 

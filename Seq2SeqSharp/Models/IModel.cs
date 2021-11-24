@@ -31,6 +31,8 @@ namespace Seq2SeqSharp
 
         public float[] GetWeights(string name);
 
+        public bool PointerGenerator { get; set; }
+
         public void ClearWeights();
 
         public void ShowModelInfo();

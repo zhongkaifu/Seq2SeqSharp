@@ -5,28 +5,24 @@ Seq2SeqSharp is a tensor based fast & flexible encoder-decoder deep neural netwo
 
 # Features  
 Pure C# framework   
-Transformer encoder and decoder  
+Transformer encoder and decoder with pointer generator  
 Attention based LSTM decoder with coverage model  
 Bi-directional LSTM encoder  
-Support multi-platforms, such as Windows, Linux, Mac and others  
+Support multi-platforms, such as Windows, Linux, MacOS and others  
 Built-in several networks for sequence-to-sequence, sequence-classification, sequence-labeling and sequence similarity task  
+Built-in SentencePiece supported  
 Include console tools and web apis for built-in networks  
 Graph based neural network  
 Automatic differentiation  
 Tensor based operations  
-Running on both CPUs and GPUs (CUDA)  
-Support tensor cores  
-Support multi-GPUs for training, validation and test  
+Running on both CPUs and multi-GPUs (CUDA)  
 Optimized CUDA memory management for higher performance  
-Mini-batch  
-Dropout  
 Different Text Generation Strategy: ArgMax, Beam Search, Top-P Sampling  
 RMSProp and Adam optmization  
 Embedding & Pre-trained model 
 Built-in metrics and extendable, such as BLEU score, Length ratio, F1 score and so on  
-Auto data shuffling  
-Auto vocabulary building  
 Attention alignment generation between source side and target side  
+ProtoBuf serialized model  
 Visualize neural network  
 
 # Architecture  
@@ -387,7 +383,7 @@ Here are steps on how to play it.  
 
          sudo apt-get update  
 
-         sudo apt-get install -y aspnetcore-runtime-5.0  
+         sudo apt-get install -y aspnetcore-runtime-6.0  
 
 
    0.3 Install SentencePiece (optional)  
@@ -440,7 +436,7 @@ Besides using the release package, you could also build Seq2SeqSharp from source
 2. Build all projects: dotnet build Seq2SeqSharp.sln --configuration Release  
 
 # Using different CUDA versions and .NET versions  
-Seq2SeqSharp uses CUDA 11.x and .NET 5.0 by default, but you can still use different versions of them. It has already been tested on .NET core 3.1, CUDA 10.x and some other versions.  
+Seq2SeqSharp uses CUDA 11.x and .NET 6.0 by default, but you can still use different versions of them. It has already been tested on .NET core 3.1, CUDA 10.x and some other versions.  
 
 For different CUDA versions, you need to change the versions of ManagedCUDA to the corresponding versions. They are all in *.project files. For example: The following settings are in TensorSharp.CUDA.project for CUDA 10.2  
 ```xml

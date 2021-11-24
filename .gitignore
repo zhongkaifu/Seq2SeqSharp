@@ -49,3 +49,9 @@ Temporary Items
 *.suo
 /.vs/*
 /packages
+/CpuOps/Debug
+/CpuOps/Release
+/Debug
+/Seq2SeqConsole/Properties/PublishProfiles/FolderProfile.pubxml.user
+/Seq2SeqSharp/Properties/PublishProfiles/FolderProfile.pubxml.user
+*.user

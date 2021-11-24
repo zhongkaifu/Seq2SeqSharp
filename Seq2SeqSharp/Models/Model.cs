@@ -30,6 +30,7 @@ namespace Seq2SeqSharp.Models
 
         public int MaxSegmentNum { get; set; }
 
+        public bool PointerGenerator { get; set; }
 
         public Vocab ClsVocab
         {
@@ -65,7 +66,7 @@ namespace Seq2SeqSharp.Models
 
         public Model() { }
         public Model( int hiddenDim, int encoderLayerDepth, EncoderTypeEnums encoderType, int encoderEmbeddingDim, int multiHeadNum, Vocab srcVocab,
-            bool enableSegmentEmbeddings, bool applyContextEmbeddingsToEntireSequence, int maxSegmentNum )
+            bool enableSegmentEmbeddings, bool applyContextEmbeddingsToEntireSequence, int maxSegmentNum, bool pointerGenerator )
         {
             HiddenDim = hiddenDim;
             EncoderLayerDepth = encoderLayerDepth;
@@ -76,6 +77,7 @@ namespace Seq2SeqSharp.Models
             EnableSegmentEmbeddings = enableSegmentEmbeddings;
             ApplyContextEmbeddingsToEntireSequence = applyContextEmbeddingsToEntireSequence;
             MaxSegmentNum = maxSegmentNum;
+            PointerGenerator = pointerGenerator;
 
             Name2Weights = new Dictionary<string, float[]>();
         }
@@ -114,6 +116,7 @@ namespace Seq2SeqSharp.Models
             Logger.WriteLine( $"Enable shared embeddings: '{SharedEmbeddings}'" );
             Logger.WriteLine( $"Apply context embeddings to entire sequence: '{ApplyContextEmbeddingsToEntireSequence}'" );
             Logger.WriteLine( $"Multi-head size: '{MultiHeadNum}'" );
+            Logger.WriteLine($"Pointer Generator: '{PointerGenerator}'");
 
 
             if ( ! SimilarityType.IsNullOrEmpty() )

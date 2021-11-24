@@ -25,11 +25,6 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AdvUtils">
-      <HintPath>..\dll\AdvUtils.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\TensorSharp.CUDA\TensorSharp.CUDA.csproj" />
     <ProjectReference Include="..\TensorSharp\TensorSharp.csproj" />
   </ItemGroup>

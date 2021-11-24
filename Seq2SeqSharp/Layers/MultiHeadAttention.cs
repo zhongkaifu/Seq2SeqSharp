@@ -171,9 +171,9 @@ namespace Seq2SeqSharp
             if (outputAttenWeights)
             {
                 //Merge all attention probs over multi-heads
-                sumAttnWeights = g.Sum(attnProbs, 1, runGradient: false);
-                sumAttnWeights = graph.Mul(sumAttnWeights, 1.0f / (float)m_multiHeadNum, runGradient: false);
-                sumAttnWeights = graph.View(sumAttnWeights, false, new long[] { batchSize * seqLenQ, seqLenK });
+                sumAttnWeights = g.Sum(attnProbs, 1);
+                sumAttnWeights = graph.Mul(sumAttnWeights, 1.0f / (float)m_multiHeadNum);
+                sumAttnWeights = graph.View(sumAttnWeights, true, new long[] { batchSize * seqLenQ, seqLenK });
             }
 
             attnProbs = g.View(attnProbs, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenK });

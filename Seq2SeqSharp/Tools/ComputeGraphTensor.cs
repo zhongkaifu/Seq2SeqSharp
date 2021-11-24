@@ -314,7 +314,7 @@ namespace Seq2SeqSharp.Tools
         /// <param name="w3"></param>
         /// <param name="w4"></param>
         /// <returns></returns>
-        public IWeightTensor EltMulMulAdd(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3, IWeightTensor w4)
+        public IWeightTensor EltMulMulAdd(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3, IWeightTensor w4, bool runGraident = true)
         {
             WeightTensor m1 = w1 as WeightTensor;
             WeightTensor m2 = w2 as WeightTensor;
@@ -329,13 +329,16 @@ namespace Seq2SeqSharp.Tools
             {
                 void backward()
                 {
-                    res.ReleaseWeight();
+                    if (runGraident)
+                    {
+                        res.ReleaseWeight();
 
-                    m1.AddMulGradient(m2.TWeight, res.TGradient);
-                    m2.AddMulGradient(m1.TWeight, res.TGradient);
+                        m1.AddMulGradient(m2.TWeight, res.TGradient);
+                        m2.AddMulGradient(m1.TWeight, res.TGradient);
 
-                    m3.AddMulGradient(m4.TWeight, res.TGradient);
-                    m4.AddMulGradient(m3.TWeight, res.TGradient);
+                        m3.AddMulGradient(m4.TWeight, res.TGradient);
+                        m4.AddMulGradient(m3.TWeight, res.TGradient);
+                    }
 
                     res.Dispose();
                 }
@@ -1503,6 +1506,31 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+        public IWeightTensor Scatter(IWeightTensor indices, float val, int dim, bool runGradient = true, params long[] shape)
+        {
+            WeightTensor i = indices as WeightTensor;
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(shape, m_deviceId, name: $"{GetHashString(i.Name)}.Scatter", graphToBind: this);
+
+            Ops.Fill(res.TWeight, 0.0f);
+            Ops.ScatterFill(res.TWeight, val, dim, i.TWeight);
+
+            if (m_needsBackprop)
+            {
+                void backward()
+                {
+                    if (runGradient)
+                    {
+                        res.ReleaseWeight();
+                    }
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
         public IWeightTensor Expand(IWeightTensor w, bool runGradient = true, params long[] dims)
         {
 
@@ -1753,6 +1781,34 @@ namespace Seq2SeqSharp.Tools
 
             return res;
         }
+
+        public IWeightTensor CreateTokensTensor(List<List<int>> input)
+        {
+            float[] buf = new float[input.Count * input[0].Count];
+
+            for (int i = 0; i < input.Count; i++)
+            {
+                for (int j = 0; j < input[i].Count; j++)
+                {
+                    buf[i * input[i].Count + j] = input[i][j];
+                }
+            }
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(input.Count, input[0].Count, m_deviceId, name: $"TokensTensor_{m_deviceId}", graphToBind: this);
+            res.SetWeightArray(buf);
+
+            if (m_needsBackprop)
+            {
+                void backward()
+                {
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
 
         /// <summary>
         /// 

@@ -36,8 +36,6 @@ INLINE_FUNC __int32 Mod_op(__int32 x, __int32 y) { return x % y; }
 INLINE_FUNC float Mod_op(float x, float y) { return fmod(x, y); }
 INLINE_FUNC double Mod_op(double x, double y) { return fmod(x, y); }
 
-
-template<typename T> INLINE_FUNC T rsub_op(T x, T y) { return (T)(y - x); }
 template<typename T> INLINE_FUNC T rdiv_op(T x, T y) { return (T)(y / x); }
 
 #define INFIX_TO_FUNC(OPNAME, OPERATOR) template<typename T> INLINE_FUNC T OPNAME(T x, T y) { return (T)(x OPERATOR y); }
@@ -196,21 +194,6 @@ int TS_AddReluD(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* 
 }
 
 template<typename T>
-INLINE_FUNC void AddMulV_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY, float v)
-{
-	auto func = [v](T *r, T *x, T *y) { *r = AddMul(*x, *y, (T)v); };
-	Apply3<T, T, T>(result, srcX, srcY, func);
-}
-
-int TS_AddMulV(TensorRef* result, TensorRef* srcX, TensorRef* srcY, float v)
-{
-	API_BEGIN()
-		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, AddMulV_Apply, result, srcX, srcY, v)
-		API_END()
-}
-
-
-template<typename T>
 INLINE_FUNC void MaskFill_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY, float v)
 {
 	auto func = [v](T* r, T* x, T* y) { *r = MaskFill(*x, *y, (T)v); };
@@ -257,7 +240,6 @@ int EXPORTNAME(TensorRef* result, TensorRef* lhs, float rhs)\
 
 
 DECLARE_T_S_ALL_CPU_TYPES(TS_Sub, sub_op)
-DECLARE_T_S_ALL_CPU_TYPES(TS_Rsub, rsub_op)
 DECLARE_T_S_ALL_CPU_TYPES(TS_Div, div_op)
 DECLARE_T_S_ALL_CPU_TYPES(TS_Rdiv, rdiv_op)
 DECLARE_T_S_ALL_CPU_TYPES(TS_Mod, Mod_op)

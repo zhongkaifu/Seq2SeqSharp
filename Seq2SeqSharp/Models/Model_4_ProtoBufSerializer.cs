@@ -252,6 +252,7 @@ namespace Seq2SeqSharp.Models
             ApplyContextEmbeddingsToEntireSequence
                                     = m.ApplyContextEmbeddingsToEntireSequence;
             MaxSegmentNum           = m.MaxSegmentNum;
+            PointerGenerator        = m.PointerGenerator;
         }
         public static Model_4_ProtoBufSerializer Create( Model m ) => new Model_4_ProtoBufSerializer( m );
 
@@ -277,6 +278,8 @@ namespace Seq2SeqSharp.Models
         [ProtoMember(17)] public bool ApplyContextEmbeddingsToEntireSequence { get; set; }
         //[ProtoMember(18)] public SimilarityTypeEnums SimilarityType_ { get; set; }
         [ProtoMember(19)] public int MaxSegmentNum { get; set; }
+
+        [ProtoMember(20)] public bool PointerGenerator { get; set; }
 
         //Vocab IModel.SrcVocab { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
         //Vocab IModel.TgtVocab { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }

@@ -9,19 +9,19 @@ namespace Seq2SeqSharp.Models
     public class SeqClassificationModel : Model
     {
         public SeqClassificationModel() { }
-        public SeqClassificationModel( int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, List<Vocab> clsVocabs, bool enableSegmentEmbeddings, bool applyContextEmbeddingsToEntireSequence, int maxSegmentNum )
-            : base( hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, applyContextEmbeddingsToEntireSequence, maxSegmentNum )
+        public SeqClassificationModel(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, List<Vocab> clsVocabs, bool enableSegmentEmbeddings, bool applyContextEmbeddingsToEntireSequence, int maxSegmentNum)
+            : base(hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, applyContextEmbeddingsToEntireSequence, maxSegmentNum, false)
         {
             ClsVocabs = clsVocabs;
         }
-        public SeqClassificationModel( Model_4_ProtoBufSerializer m )
-            : base( m.HiddenDim, m.EncoderLayerDepth, m.EncoderType, m.EncoderEmbeddingDim, m.MultiHeadNum,
+        public SeqClassificationModel(Model_4_ProtoBufSerializer m)
+            : base(m.HiddenDim, m.EncoderLayerDepth, m.EncoderType, m.EncoderEmbeddingDim, m.MultiHeadNum,
                     m.SrcVocab?.ToVocab(),
-                    m.EnableSegmentEmbeddings, m.ApplyContextEmbeddingsToEntireSequence, m.MaxSegmentNum )
+                    m.EnableSegmentEmbeddings, m.ApplyContextEmbeddingsToEntireSequence, m.MaxSegmentNum, false)
         {
-            ClsVocabs    = m.ClsVocabs?.Select( v => v.ToVocab() ).ToList();
+            ClsVocabs = m.ClsVocabs?.Select(v => v.ToVocab()).ToList();
             Name2Weights = m.Name2Weights;
         }
-        public static SeqClassificationModel Create( Model_4_ProtoBufSerializer m ) => new SeqClassificationModel( m );
+        public static SeqClassificationModel Create(Model_4_ProtoBufSerializer m) => new SeqClassificationModel(m);
     }
 }

@@ -402,6 +402,18 @@ namespace TensorSharp
 		}
 
 
+		unsafe public static void RSub(Tensor result, float value, Tensor src)
+		{
+			unsafe void func(float* r, float* s)
+			{
+				*r = value - *s;
+			}
+
+			Apply2(result, src, func);
+		}
+
+
+
 		unsafe public static void Mul(Tensor result, Tensor src, float value)
 		{
 			int vectorSize = Vector<float>.Count;
@@ -614,6 +626,16 @@ namespace TensorSharp
 			}
 
 			Apply3(result, srcW, srcG, func);
+		}
+
+		unsafe static public void AddMulV(Tensor result, Tensor srcX, Tensor srcY, float val)
+		{
+			unsafe void func(float* r, float* x, float* y)
+			{
+				*r = *x + (*y * val);
+			}
+
+			Apply3(result, srcX, srcY, func);
 		}
 
 

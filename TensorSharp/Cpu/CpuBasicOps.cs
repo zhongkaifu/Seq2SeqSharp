@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AdvUtils;
+using System;
 using System.Reflection;
 using TensorSharp.Core;
 
@@ -406,10 +407,14 @@ namespace TensorSharp.Cpu
         }
 
 
-        private readonly MethodInfo addmulv_func = NativeWrapper.GetMethod("TS_AddMulV");
         [RegisterOpStorageType("addmulv", typeof(CpuStorage))]
-        public Tensor AddMulV(Tensor result, Tensor x, Tensor y, float z) { return NativeWrapper.InvokeNullableResultElementwise(addmulv_func, result, x, y, z); }
+        public Tensor AddMulV(Tensor result, Tensor x, Tensor y, float z)
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, x, false, x.Sizes);
+            TensorApplyCPU.AddMulV(writeTarget, x, y, z);
+            return writeTarget;
 
+        }
 
         private readonly MethodInfo maskfill_func = NativeWrapper.GetMethod("TS_MaskFill");
         [RegisterOpStorageType("maskfill", typeof(CpuStorage))]
@@ -505,9 +510,15 @@ namespace TensorSharp.Cpu
         [RegisterOpStorageType("subv", typeof(CpuStorage))]
         public Tensor Sub(Tensor result, Tensor lhs, float rhs) { return NativeWrapper.InvokeNullableResultElementwise(sub_func, result, lhs, rhs); }
 
-        private readonly MethodInfo rsub_func = NativeWrapper.GetMethod("TS_Rsub");
+
         [RegisterOpStorageType("rsubv", typeof(CpuStorage))]
-        public Tensor Sub(Tensor result, float lhs, Tensor rhs) { return NativeWrapper.InvokeNullableResultElementwise(rsub_func, result, rhs, lhs); }
+        public Tensor Sub(Tensor result, float lhs, Tensor rhs)
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, rhs, false, rhs.Sizes);
+            TensorApplyCPU.RSub(writeTarget, lhs, rhs);
+
+            return writeTarget;
+        }
 
 
         [RegisterOpStorageType("mulv", typeof(CpuStorage))]
@@ -761,10 +772,18 @@ namespace TensorSharp.Cpu
         [RegisterOpStorageType("layernormgrad", typeof(CpuStorage))]
         public Tensor LayerNormGrad(Tensor result, Tensor gradGamma_, Tensor gradBeta_, Tensor adj_, Tensor y_, Tensor x_, Tensor gamma_, Tensor beta_, float eps)
         {
-            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, adj_, true, adj_.Sizes);
-            TensorApplyCPU.LayerNormGrad(writeTarget, gradGamma_, gradBeta_, adj_, y_, x_, gamma_, beta_, (int)adj_.Sizes[0], (int)adj_.Sizes[1], eps);
+            try
+            {
+                Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, adj_, false, adj_.Sizes);
+                TensorApplyCPU.LayerNormGrad(writeTarget, gradGamma_, gradBeta_, adj_, y_, x_, gamma_, beta_, (int)adj_.Sizes[0], (int)adj_.Sizes[1], eps);
 
-            return writeTarget;
+                return writeTarget;
+            }
+            catch (Exception err)
+            {
+                Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"LayerNormGrad exception: '{err.Message}', CallStack:'{err.StackTrace}'");
+                throw;
+            }
         }
 
 

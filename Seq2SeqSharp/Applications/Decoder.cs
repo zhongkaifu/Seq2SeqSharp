@@ -93,7 +93,7 @@ namespace Seq2SeqSharp.Applications
                 }
             }
 
-                return output;
+            return output;
         }
 
         public static bool AreAllSentsCompleted(List<List<BeamSearchStatus>> input)
@@ -138,8 +138,9 @@ namespace Seq2SeqSharp.Applications
         }
 
         public static (float, List<List<BeamSearchStatus>>) DecodeTransformer(List<List<int>> tgtSeqs, IComputeGraph g, IWeightTensor encOutputs, TransformerDecoder decoder, IFeedForwardLayer decoderFFLayer,
-            IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, float[] srcOriginalLenghts, Vocab tgtVocab, ShuffleEnums shuffleType, float dropoutRatio, bool isTraining = true, int beamSearchSize = 1, 
-            bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, DecodingStrategyEnums decodingStrategyEnum = DecodingStrategyEnums.GreedySearch, float topPValue = 0.9f, float repeatPenalty = 2.0f, float distancePenalty = 10.0f)
+            IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, float[] srcOriginalLenghts, Vocab tgtVocab, ShuffleEnums shuffleType, float dropoutRatio, bool isTraining = true, int beamSearchSize = 1,
+            bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, DecodingStrategyEnums decodingStrategyEnum = DecodingStrategyEnums.GreedySearch, float topPValue = 0.9f, float repeatPenalty = 2.0f, float distancePenalty = 10.0f,
+            bool pointerGenerator = false, IWeightTensor pointerGeneratorWeights = null, List<List<int>> srcSeqs = null)
         {
             int eosTokenId = tgtVocab.GetWordIndex(BuildInTokens.EOS, logUnk: true);
             float cost = 0.0f;
@@ -151,7 +152,7 @@ namespace Seq2SeqSharp.Applications
             IWeightTensor srcTgtMask = (shuffleType == ShuffleEnums.NoPadding || batchSize == 1) ? null : g.BuildSrcTgtMask(srcSeqLen, tgtSeqLen, tgtOriginalLengths, srcOriginalLenghts);
             if (srcTgtMask != null)
             {
-                srcTgtMask = g.View(srcTgtMask, false, new long [] { srcTgtMask.Sizes[0], 1, srcTgtMask.Sizes[1], srcTgtMask.Sizes[2]});
+                srcTgtMask = g.View(srcTgtMask, false, new long[] { srcTgtMask.Sizes[0], 1, srcTgtMask.Sizes[1], srcTgtMask.Sizes[2] });
             }
 
             IWeightTensor tgtSelfTriMask;
@@ -171,8 +172,43 @@ namespace Seq2SeqSharp.Applications
 
             IWeightTensor decOutput;
             IWeightTensor decEncAttnProbs;
-            (decOutput, decEncAttnProbs) = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g, outputAttnWeights: false);
+            (decOutput, decEncAttnProbs) = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g, outputAttnWeights: pointerGenerator);
 
+
+
+            if (pointerGenerator)
+            {
+                IWeightTensor decEncAttnProbsBatch = g.View(decEncAttnProbs, dims: new long[] { batchSize, tgtSeqLen, srcSeqLen });
+                IWeightTensor encOutputsBatch = g.View(encOutputs, dims: new long[] { batchSize, srcSeqLen, -1 });
+
+                var pointer_context = g.MulBatch(decEncAttnProbsBatch, encOutputsBatch); //Output: [batchSize, tgtSeqLen, embedding_size]
+                pointer_context = g.View(pointer_context, dims: new long[] { batchSize * tgtSeqLen, -1 });
+
+                var all_context = g.ConcatColumns(pointer_context, decOutput, inputEmbs);
+                var p_gen = g.Mul(all_context, pointerGeneratorWeights); // Output: [batchSize * tgtSeqLen, 1]
+
+                p_gen = g.Sigmoid(p_gen);
+                var p_copy = g.Sub(1.0f, p_gen);
+
+                p_gen = g.Expand(p_gen, dims: new long[] { batchSize * tgtSeqLen, encOutputsBatch.Sizes[^1] });
+                p_copy = g.Expand(p_copy, dims: new long[] { batchSize * tgtSeqLen, encOutputsBatch.Sizes[^1] });
+
+
+                decOutput = g.EltMulMulAdd(p_gen, decOutput, p_copy, pointer_context);
+
+
+                //var seqSeqsTensor = g.CreateTokensTensor(srcSeqs);
+                //seqSeqsTensor = g.View(seqSeqsTensor, dims:new long[] { batchSize * srcSeqLen, 1 });
+                //var one_hot = g.Scatter(seqSeqsTensor, 1.0f, 1, true, new long[] { batchSize * srcSeqLen, ffLayer.Sizes[^1] });
+
+                //var one_hot_batch = g.View(one_hot, dims: new long[] { batchSize, srcSeqLen, -1 });
+
+
+                //var p_copy_vocab = g.MulBatch(decEncAttnProbsBatch, one_hot_batch); //Output: [batchSize, tgtSeqLen, embedding_size]
+                //p_copy_vocab = g.View(p_copy_vocab, dims: new long[] { batchSize * tgtSeqLen, -1 });
+
+                //probs = g.EltMulMulAdd(p_gen, probs, p_copy, p_copy_vocab);
+            }
 
             if (isTraining == false)
             {
@@ -186,9 +222,9 @@ namespace Seq2SeqSharp.Applications
                 decOutput = g.IndexSelect(decOutput, decOutputIdx);
             }
 
-
             IWeightTensor ffLayer = decoderFFLayer.Process(decOutput, batchSize, g);
-            IWeightTensor probs = g.Softmax(ffLayer, runGradients: false, inPlace: true);
+            IWeightTensor probs = g.Softmax(ffLayer);
+
 
             if (isTraining)
             {
@@ -196,10 +232,11 @@ namespace Seq2SeqSharp.Applications
                 var scatterIdxTensor = g.View(leftShiftTgtSeqs, false, new long[] { tgtSeqs.Count * tgtSeqs[0].Count, 1 });
                 var gatherTensor = g.Gather(probs, scatterIdxTensor, 1);
 
+
                 var rnd = new TensorSharp.RandomGenerator();
                 int idx = rnd.NextSeed() % (batchSize * tgtSeqLen);
                 float score = gatherTensor.GetWeightAt(new long[] { idx, 0 });
-                cost += (float)-Math.Log(score + 1e-10f);
+                cost += (float)-Math.Log(score + 1e-8f);
 
                 var lossTensor = g.Add(gatherTensor, -1.0f, false);
                 TensorUtils.Scatter(probs, lossTensor, scatterIdxTensor, 1);
@@ -233,7 +270,7 @@ namespace Seq2SeqSharp.Applications
 
                         if (outputSentScore)
                         {
-                            bss.Score = previousBeamSearchResults[i].Score  + -1.0f * gatherTensor.GetWeightAt(new long[] { i, 0});
+                            bss.Score = previousBeamSearchResults[i].Score + -1.0f * gatherTensor.GetWeightAt(new long[] { i, 0 });
                         }
                         outputTgtSeqs.Add(bss);
                     }

@@ -21,12 +21,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Seq2SeqSharp\Seq2SeqSharp.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="AdvUtils">
-      <HintPath>..\dll\AdvUtils.dll</HintPath>
-    </Reference>
-  </ItemGroup>
   <!--
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="copy &quot;..\dll\win_x64\sentencepiece.dll&quot; &quot;$(ProjectDir)\bin&quot;" />
