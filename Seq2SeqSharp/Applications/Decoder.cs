@@ -223,8 +223,7 @@ namespace Seq2SeqSharp.Applications
             }
 
             IWeightTensor ffLayer = decoderFFLayer.Process(decOutput, batchSize, g);
-            IWeightTensor probs = g.Softmax(ffLayer);
-
+            IWeightTensor probs = g.Softmax(ffLayer, runGradients: false, inPlace: true);
 
             if (isTraining)
             {
