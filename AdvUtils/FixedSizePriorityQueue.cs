@@ -274,7 +274,7 @@ namespace AdvUtils
 
         protected bool Better(T t1, T t2, bool fTop)
         {
-            int i = (comparer == null) ? ((IComparable<T>)t1).CompareTo(t2) : comparer.Compare(t1, t2);
+            int i = (comparer == null) ? (t1 as IComparable<T>).CompareTo(t2) : comparer.Compare(t1, t2);
             //int i = comparer.Compare(t1, t2);
 
             return (!fTop) ? i < 0 : i > 0;
@@ -309,7 +309,7 @@ namespace AdvUtils
         protected int m_iTopSize;
         #endregion
 
-        protected IComparer<T> comparer = null;
+        protected IComparer<T>? comparer = null;
 
         #region IEnumerable<T> Members
 

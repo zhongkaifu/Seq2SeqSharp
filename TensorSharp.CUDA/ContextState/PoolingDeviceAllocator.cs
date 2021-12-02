@@ -64,6 +64,7 @@ namespace TensorSharp.CUDA.ContextState
 
                     if (currMemAddrEnd > m_endMemAddr)
                     {
+                        GC.Collect(); // Collect unused tensor objects and free GPU memory
                         throw new OutOfMemoryException($"Out of GPU memory. Current memory usage = '{GetAllocatedMemoryRatio() * 100.0f:F}%'");
                     }
 
@@ -81,6 +82,7 @@ namespace TensorSharp.CUDA.ContextState
                 currMemAddrEnd = currMemAddr + size;
                 if (currMemAddrEnd > m_endMemAddr)
                 {
+                    GC.Collect(); // Collect unused tensor objects and free GPU memory
                     throw new OutOfMemoryException($"Out of GPU memory. Current memory usage = '{GetAllocatedMemoryRatio() * 100.0f:F}%'");
                 }
 

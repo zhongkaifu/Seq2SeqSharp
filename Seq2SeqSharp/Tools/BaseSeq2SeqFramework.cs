@@ -386,6 +386,7 @@ namespace Seq2SeqSharp.Tools
                                 {
                                     if (excep is OutOfMemoryException)
                                     {
+                                        GC.Collect();
                                         isOutOfMemException = true;
                                         oomMessage = excep.Message;
                                         break;
@@ -426,6 +427,7 @@ namespace Seq2SeqSharp.Tools
                         }
                         catch (OutOfMemoryException err)
                         {
+                            GC.Collect();
                             batchSplitFactor = TryToSplitBatchFactor(sntPairBatchs, batchSplitFactor, err.Message);
                             if (batchSplitFactor < 0)
                             {
@@ -574,6 +576,7 @@ namespace Seq2SeqSharp.Tools
                     }
                     catch (OutOfMemoryException err)
                     {
+                        GC.Collect();
                         throw err;
                     }
                     catch (Exception err)
@@ -925,12 +928,12 @@ namespace Seq2SeqSharp.Tools
                     ISntPairBatch sntPairBatch = sntPairBatchs[i];
                     ISntPairBatch sntPairBatchForValid = sntPairBatch.CloneSrcTokens();
 
-                     // Create a new computing graph instance
-                     List<NetworkResult> nrs;
+                    // Create a new computing graph instance
+                    List<NetworkResult> nrs;
                     using (IComputeGraph computeGraph = CreateComputGraph(i, needBack: false))
                     {
-                         // Run forward part
-                         nrs = RunNetwork(computeGraph, sntPairBatchForValid, i, false);
+                        // Run forward part
+                        nrs = RunNetwork(computeGraph, sntPairBatchForValid, i, false);
                     }
 
                     lock (locker)
@@ -995,6 +998,12 @@ namespace Seq2SeqSharp.Tools
                         }
 
                     }
+                }
+                catch (OutOfMemoryException err)
+                {
+                    GC.Collect(); // Collect unused tensor objects and free GPU memory
+
+                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Skip current batch for validation due to {err.Message}");
                 }
                 catch (Exception err)
                 {

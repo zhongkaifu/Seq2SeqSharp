@@ -33,7 +33,7 @@ namespace AdvUtils
                         string strArgName = args[i].Substring(1);
                         string strArgValue = args[i + 1];
 
-                        ArgField intarg = GetArgByName(strArgName);
+                        ArgField? intarg = GetArgByName(strArgName);
                         if (intarg == null)
                         {
                             throw new ArgumentException($"{strArgName} is not a valid parameter");
@@ -55,7 +55,7 @@ namespace AdvUtils
 			}
 		}
 
-        ArgField GetArgByName(string name)
+        ArgField? GetArgByName(string name)
 		{
 			foreach (ArgField a in m_arrayArgs)
 				if (a.Arg.Name.ToLower() == name.ToLower())

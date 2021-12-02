@@ -36,6 +36,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{C2DFE174
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SeqWebAPIs", "SeqWebAPIs\SeqWebAPIs.csproj", "{26272325-E3CD-4B9B-9A6D-043607E7DA6C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdvUtils", "AdvUtils\AdvUtils.csproj", "{B0B19B7E-FE8E-4CF9-B6A1-4EF9926DFFB3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -226,6 +228,24 @@ Global
 		{26272325-E3CD-4B9B-9A6D-043607E7DA6C}.ReleaseCpuOnly|x64.Build.0 = Release|Any CPU
 		{26272325-E3CD-4B9B-9A6D-043607E7DA6C}.ReleaseCpuOnly|x86.ActiveCfg = Release|Any CPU
 		{26272325-E3CD-4B9B-9A6D-043607E7DA6C}.ReleaseCpuOnly|x86.Build.0 = Release|Any CPU
+		{B0B19B7E-FE8E-4CF9-B6A1-4EF9926DFFB3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0B19B7E-FE8E-4CF9-B6A1-4EF9926DFFB3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0B19B7E-FE8E-4CF9-B6A1-4EF9926DFFB3}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B0B19B7E-FE8E-4CF9-B6A1-4EF9926DFFB3}.Debug|x64.Build.0 = Debug|Any CPU
+		{B0B19B7E-FE8E-4CF9-B6A1-4EF9926DFFB3}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B0B19B7E-FE8E-4CF9-B6A1-4EF9926DFFB3}.Debug|x86.Build.0 = Debug|Any CPU
+		{B0B19B7E-FE8E-4CF9-B6A1-4EF9926DFFB3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0B19B7E-FE8E-4CF9-B6A1-4EF9926DFFB3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0B19B7E-FE8E-4CF9-B6A1-4EF9926DFFB3}.Release|x64.ActiveCfg = Release|Any CPU
+		{B0B19B7E-FE8E-4CF9-B6A1-4EF9926DFFB3}.Release|x64.Build.0 = Release|Any CPU
+		{B0B19B7E-FE8E-4CF9-B6A1-4EF9926DFFB3}.Release|x86.ActiveCfg = Release|Any CPU
+		{B0B19B7E-FE8E-4CF9-B6A1-4EF9926DFFB3}.Release|x86.Build.0 = Release|Any CPU
+		{B0B19B7E-FE8E-4CF9-B6A1-4EF9926DFFB3}.ReleaseCpuOnly|Any CPU.ActiveCfg = Release|Any CPU
+		{B0B19B7E-FE8E-4CF9-B6A1-4EF9926DFFB3}.ReleaseCpuOnly|Any CPU.Build.0 = Release|Any CPU
+		{B0B19B7E-FE8E-4CF9-B6A1-4EF9926DFFB3}.ReleaseCpuOnly|x64.ActiveCfg = Release|Any CPU
+		{B0B19B7E-FE8E-4CF9-B6A1-4EF9926DFFB3}.ReleaseCpuOnly|x64.Build.0 = Release|Any CPU
+		{B0B19B7E-FE8E-4CF9-B6A1-4EF9926DFFB3}.ReleaseCpuOnly|x86.ActiveCfg = Release|Any CPU
+		{B0B19B7E-FE8E-4CF9-B6A1-4EF9926DFFB3}.ReleaseCpuOnly|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

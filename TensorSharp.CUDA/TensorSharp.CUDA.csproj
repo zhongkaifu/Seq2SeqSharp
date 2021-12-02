@@ -44,11 +44,6 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AdvUtils">
-      <HintPath>..\dll\AdvUtils.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="ManagedCuda-11" Version="11.4.47" />
     <PackageReference Include="ManagedCuda-CUBLAS" Version="11.4.47" />
     <PackageReference Include="ManagedCuda-CURAND" Version="11.4.47" />
@@ -57,6 +52,7 @@
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\AdvUtils\AdvUtils.csproj" />
     <ProjectReference Include="..\TensorSharp\TensorSharp.csproj" />
   </ItemGroup>
   <ItemGroup>

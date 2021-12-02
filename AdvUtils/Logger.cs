@@ -75,7 +75,7 @@ namespace AdvUtils
 
         public static string LogFile
         {
-            get { return s_strLogfile; }
+            get => s_strLogfile;
             set
             {
                 if (s_strLogfile == value)
@@ -96,7 +96,7 @@ namespace AdvUtils
             }
         }
 
-        private static string s_strLogfile = null;
-        private static StreamWriter s_sw = null;
+        private static string? s_strLogfile = null;
+        private static StreamWriter? s_sw = null;
     }
 }

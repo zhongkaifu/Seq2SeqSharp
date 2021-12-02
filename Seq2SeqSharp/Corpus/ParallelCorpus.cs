@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http.Headers;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.Tools
@@ -43,6 +44,8 @@ namespace Seq2SeqSharp.Tools
 
         private void Shuffle(List<RawSntPair> rawSntPairs)
         {
+            Logger.WriteLine($"Starting shuffle {rawSntPairs.Count} sentence pairs.");
+
             if (m_shuffleEnums == ShuffleEnums.Random)
             {
                 for (int i = 0; i < rawSntPairs.Count; i++)
@@ -154,23 +157,26 @@ namespace Seq2SeqSharp.Tools
 
         private (string, string) ShuffleAll()
         {
+            object locker = new object();
+            object lockerForShuffle = new object();
+
             SortedDictionary<int, int> dictSrcLenDist = new SortedDictionary<int, int>();
             SortedDictionary<int, int> dictTgtLenDist = new SortedDictionary<int, int>();
 
             string srcShuffledFilePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName() + ".tmp");
             string tgtShuffledFilePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName() + ".tmp");
 
-            Logger.WriteLine($"Shuffling corpus for '{m_srcFileList.Count}' files.");
+            Logger.WriteLine($"Loading and shuffling corpus from '{m_srcFileList.Count}' files.");
 
             StreamWriter swSrc = new StreamWriter(srcShuffledFilePath, false);
             StreamWriter swTgt = new StreamWriter(tgtShuffledFilePath, false);
-
-            List<RawSntPair> sntPairs = new List<RawSntPair>();
+            
             int corpusSize = 0;
             int tooLongSrcSntCnt = 0;
             int tooLongTgtSntCnt = 0;
 
-            for (int i = 0; i < m_srcFileList.Count; i++)
+            Parallel.For(0, m_srcFileList.Count, i =>
+            //            for (int i = 0; i < m_srcFileList.Count; i++)
             {
                 if (m_showTokenDist)
                 {
@@ -179,6 +185,7 @@ namespace Seq2SeqSharp.Tools
 
                 StreamReader srSrc = new StreamReader(m_srcFileList[i]);
                 StreamReader srTgt = new StreamReader(m_tgtFileList[i]);
+                List<RawSntPair> sntPairs = new List<RawSntPair>();
 
                 while (true)
                 {
@@ -193,29 +200,34 @@ namespace Seq2SeqSharp.Tools
                         break;
                     }
 
-                    if (dictSrcLenDist.ContainsKey(rawSntPair.SrcLength / 100) == false)
+                    if (m_showTokenDist)
                     {
-                        dictSrcLenDist.Add(rawSntPair.SrcLength / 100, 0);
-                    }
-                    dictSrcLenDist[rawSntPair.SrcLength / 100]++;
+                        lock (locker)
+                        {
+                            if (dictSrcLenDist.ContainsKey(rawSntPair.SrcLength / 100) == false)
+                            {
+                                dictSrcLenDist.Add(rawSntPair.SrcLength / 100, 0);
+                            }
+                            dictSrcLenDist[rawSntPair.SrcLength / 100]++;
 
-                    if (dictTgtLenDist.ContainsKey(rawSntPair.TgtLength / 100) == false)
-                    {
-                        dictTgtLenDist.Add(rawSntPair.TgtLength / 100, 0);
+                            if (dictTgtLenDist.ContainsKey(rawSntPair.TgtLength / 100) == false)
+                            {
+                                dictTgtLenDist.Add(rawSntPair.TgtLength / 100, 0);
+                            }
+                            dictTgtLenDist[rawSntPair.TgtLength / 100]++;
+                        }
                     }
-                    dictTgtLenDist[rawSntPair.TgtLength / 100]++;
-
 
                     bool hasTooLongSent = false;
                     if (rawSntPair.SrcLength > m_maxSrcSentLength)
                     {
-                        tooLongSrcSntCnt++;
+                        Interlocked.Increment(ref tooLongSrcSntCnt);
                         hasTooLongSent = true;
                     }
 
                     if (rawSntPair.TgtLength > m_maxTgtSentLength)
                     {
-                        tooLongTgtSntCnt++;
+                        Interlocked.Increment(ref tooLongTgtSntCnt);
                         hasTooLongSent = true;
                     }
 
@@ -225,35 +237,44 @@ namespace Seq2SeqSharp.Tools
                     }
 
                     sntPairs.Add(rawSntPair);
-                    corpusSize++;
+                    Interlocked.Increment(ref corpusSize);
+
                     if (m_blockSize > 0 && sntPairs.Count >= m_blockSize)
                     {
                         Shuffle(sntPairs);
-                        foreach (RawSntPair item in sntPairs)
+
+                        lock (lockerForShuffle)
                         {
-                            swSrc.WriteLine(item.SrcSnt);
-                            swTgt.WriteLine(item.TgtSnt);
+                            foreach (RawSntPair item in sntPairs)
+                            {
+                                swSrc.WriteLine(item.SrcSnt);
+                                swTgt.WriteLine(item.TgtSnt);
+                            }
                         }
+
                         sntPairs.Clear();
                     }
                 }
 
                 srSrc.Close();
                 srTgt.Close();
-            }
 
-            if (sntPairs.Count > 0)
-            {
-                Shuffle(sntPairs);
-                foreach (RawSntPair item in sntPairs)
+                if (sntPairs.Count > 0)
                 {
-                    swSrc.WriteLine(item.SrcSnt);
-                    swTgt.WriteLine(item.TgtSnt);
+                    Shuffle(sntPairs);
+                    lock (lockerForShuffle)
+                    {
+                        foreach (RawSntPair item in sntPairs)
+                        {
+                            swSrc.WriteLine(item.SrcSnt);
+                            swTgt.WriteLine(item.TgtSnt);
+                        }
+                    }
+
+                    sntPairs.Clear();
                 }
 
-                sntPairs.Clear();
-            }
-
+            });
 
             swSrc.Close();
             swTgt.Close();
@@ -361,7 +382,7 @@ namespace Seq2SeqSharp.Tools
                     SntPair sntPair = new SntPair(srcLine, tgtLine);
 
 
-                    if (lastSrcSntLen == null)
+                    if (lastSrcSntLen == null && m_shuffleEnums != ShuffleEnums.Random)
                     {
                         lastSrcSntLen = new int[sntPair.SrcTokenGroups.Count];
                         lastTgtSntLen = new int[sntPair.TgtTokenGroups.Count];
@@ -397,8 +418,11 @@ namespace Seq2SeqSharp.Tools
 
                     outputs.Add(sntPair);
 
-                    UpdateSntLen(sntPair.SrcTokenGroups, lastSrcSntLen);
-                    UpdateSntLen(sntPair.TgtTokenGroups, lastTgtSntLen);
+                    if (lastSrcSntLen != null)
+                    {
+                        UpdateSntLen(sntPair.SrcTokenGroups, lastSrcSntLen);
+                        UpdateSntLen(sntPair.TgtTokenGroups, lastTgtSntLen);
+                    }
                 }
 
                 // InnerShuffle(outputs);

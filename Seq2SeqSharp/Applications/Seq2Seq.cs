@@ -190,6 +190,7 @@ namespace Seq2SeqSharp
                         }
                         catch (OutOfMemoryException)
                         {
+                            GC.Collect();
                             Logger.WriteLine(Logger.Level.warn, $"We have out of memory while generating '{i}th' tokens, so terminate decoding for current sequences.");
                             break;
                         }

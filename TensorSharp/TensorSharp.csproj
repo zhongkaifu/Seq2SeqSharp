@@ -40,15 +40,13 @@
     <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="AdvUtils">
-      <HintPath>..\dll\AdvUtils.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="..\LICENSE">
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AdvUtils\AdvUtils.csproj" />
   </ItemGroup>
   <PropertyGroup>
     <Authors>Zhongkai Fu</Authors>
