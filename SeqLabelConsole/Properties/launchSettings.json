@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "SeqLabelConsole": {
+      "commandName": "Project",
+      "commandLineArgs": "-ConfigFilePath .\\config\\train_ner_opts.json",
+      "workingDirectory": "C:\\ReleasePackage"
+    }
+  }
+}

@@ -243,7 +243,7 @@ namespace Seq2SeqSharp.Models
             EnableSegmentEmbeddings = m.EnableSegmentEmbeddings;
             MultiHeadNum            = m.MultiHeadNum;
             SrcVocab                = new Vocab_4_ProtoBufSerializer( m.SrcVocab );
-            TgtVocab                = new Vocab_4_ProtoBufSerializer( m.TgtVocab );
+            TgtVocab                = m.TgtVocab != null ? new Vocab_4_ProtoBufSerializer( m.TgtVocab ) : null;
             ClsVocabs               = m.ClsVocabs?.Select( c => new Vocab_4_ProtoBufSerializer( c ) ).ToList();
             EnableCoverageModel     = m.EnableCoverageModel;
             SharedEmbeddings        = m.SharedEmbeddings;

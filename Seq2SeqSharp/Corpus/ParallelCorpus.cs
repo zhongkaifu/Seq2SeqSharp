@@ -382,7 +382,7 @@ namespace Seq2SeqSharp.Tools
                     SntPair sntPair = new SntPair(srcLine, tgtLine);
 
 
-                    if (lastSrcSntLen == null && m_shuffleEnums != ShuffleEnums.Random)
+                    if (lastSrcSntLen == null)
                     {
                         lastSrcSntLen = new int[sntPair.SrcTokenGroups.Count];
                         lastTgtSntLen = new int[sntPair.TgtTokenGroups.Count];

@@ -202,12 +202,13 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        public bool SaveModel(bool createBackupPrevious = false) => SaveModelImpl(m_modelMetaData, createBackupPrevious);
-        protected virtual bool SaveModelImpl(T model, bool createBackupPrevious = false) => SaveModelRoutine(model, Model_4_ProtoBufSerializer.Create, createBackupPrevious);
+        public bool SaveModel(bool createBackupPrevious = false, string suffix = "") => SaveModelImpl(m_modelMetaData, createBackupPrevious, suffix);
+        protected virtual bool SaveModelImpl(T model, bool createBackupPrevious = false, string suffix = "") => SaveModelRoutine(model, Model_4_ProtoBufSerializer.Create, createBackupPrevious, suffix);
         protected abstract T LoadModelImpl();
-        protected bool SaveModelRoutine<ProtoBuf_T>(T model, Func<T, ProtoBuf_T> createModel4SerializeFunc, bool createBackupPrevious = false)
+        protected bool SaveModelRoutine<ProtoBuf_T>(T model, Func<T, ProtoBuf_T> createModel4SerializeFunc, bool createBackupPrevious = false, string suffix = "")
         {
-            var fn = Path.GetFullPath(m_modelFilePath);
+            string modelFilePath = m_modelFilePath + suffix;
+            var fn = Path.GetFullPath(modelFilePath);
             var dir = Path.GetDirectoryName(fn); if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
             try
             {
@@ -218,7 +219,7 @@ namespace Seq2SeqSharp.Tools
                     File.Copy(fn, $"{fn}.bak", true);
                 }
 
-                using (var fs = new FileStream(m_modelFilePath, FileMode.Create, FileAccess.Write))
+                using (var fs = new FileStream(modelFilePath, FileMode.Create, FileAccess.Write))
                 {
                     SaveParameters(model);
 
@@ -619,6 +620,8 @@ namespace Seq2SeqSharp.Tools
                 //---SaveModel_As_BinaryFormatter();
                 SaveModel(createBackupPrevious: true);
             }
+
+            SaveModel(createBackupPrevious: false, suffix: ".latest");
         }
 
 
