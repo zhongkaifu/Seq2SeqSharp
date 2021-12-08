@@ -843,6 +843,18 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+        private static double PowerA(double a, double b)
+        {
+            int tmp = (int)(BitConverter.DoubleToInt64Bits(a) >> 32);
+            int tmp2 = (int)(b * (tmp - 1072632447) + 1072632447);
+            return BitConverter.Int64BitsToDouble(((long)tmp2) << 32);
+        }
+
+        private static double Exp(double x)
+        {
+            var tmp = (long)(1512775 * x + 1072632447);
+            return BitConverter.Int64BitsToDouble(tmp << 32);
+        }
 
         /// <summary>
         /// Top-P sampling for each row in given tensor
@@ -860,7 +872,7 @@ namespace Seq2SeqSharp.Tools
             object locker = new object();
             Random rnd = new Random(DateTime.Now.Millisecond);
             float[] indices = new float[m.Rows];
-            float thresholdValue = 1.0f / (float)(m.Columns * 100000.0);
+            float thresholdValue = 1.0f / (float)(m.Columns * 10000.0);
 
             for (int i = 0; i < m.Rows; i++)
             {
@@ -884,43 +896,70 @@ namespace Seq2SeqSharp.Tools
                     tokenId2Cnt[seq[j]]++;
                 }
 
-                SortedDictionary<float, int> weight2tokenId = new SortedDictionary<float, int>();
-                float adjustedSum = 0.0f;
-                for (int j = 0; j < m.Columns; j++)
-                {
-                    float weight = weights[offset + j];
-                    if (weight < thresholdValue || weight2tokenId.ContainsKey(weight))
-                    {
-                        continue;
-                    }
-
-                    //Decay weights if tokens has already been generated before
-                    if (tokenId2OffsetInSeq.ContainsKey(j))
-                    {
-                        int offsetInSeq = tokenId2OffsetInSeq[j];
-                        weight = (float)((weight * (1.0 - Math.Exp((offsetInSeq + 1 - seq.Count) / distancePenalty))) / Math.Pow(repeatPenalty, tokenId2Cnt[j]));
-                    }
-
-                    if (weight < thresholdValue || weight2tokenId.ContainsKey(weight))
-                    {
-                        continue;
-                    }
-
-                    adjustedSum += weight;
-                    weight2tokenId.Add(weight, j);
-
-                }
-
 
                 if (topP == 0.0f)
                 {
-                    if (weight2tokenId.Count > 0)
+                    float maxWeight = float.MinValue;
+                    int maxWeightIndice = -1;
+
+                    for (int j = 0; j < m.Columns; j++)
                     {
-                        indices[i] = weight2tokenId.Last().Value;
+                        float weight = weights[offset + j];
+                        if (Math.Abs(weight) < thresholdValue)
+                        {
+                            continue;
+                        }
+
+                        //Decay weights if tokens has already been generated before
+                        if (tokenId2OffsetInSeq.ContainsKey(j))
+                        {
+                            int offsetInSeq = tokenId2OffsetInSeq[j];
+                            weight = (float)((weight * (1.0 - Exp((offsetInSeq + 1 - seq.Count) / distancePenalty))) / PowerA(repeatPenalty, tokenId2Cnt[j]));
+                        }
+
+                        if (Math.Abs(weight) < thresholdValue)
+                        {
+                            continue;
+                        }
+
+                        if (weight > maxWeight)
+                        {
+                            maxWeight = weight;
+                            maxWeightIndice = j;
+                        }
                     }
+
+                    indices[i] = maxWeightIndice;
                 }
                 else
                 {
+                    SortedDictionary<float, int> weight2tokenId = new SortedDictionary<float, int>();
+                    float adjustedSum = 0.0f;
+                    for (int j = 0; j < m.Columns; j++)
+                    {
+                        float weight = weights[offset + j];
+                        if (Math.Abs(weight) < thresholdValue || weight2tokenId.ContainsKey(weight))
+                        {
+                            continue;
+                        }
+
+                        //Decay weights if tokens has already been generated before
+                        if (tokenId2OffsetInSeq.ContainsKey(j))
+                        {
+                            int offsetInSeq = tokenId2OffsetInSeq[j];
+                            weight = (float)((weight * (1.0 - Exp((offsetInSeq + 1 - seq.Count) / distancePenalty))) / PowerA(repeatPenalty, tokenId2Cnt[j]));
+                        }
+
+                        if (Math.Abs(weight) < thresholdValue || weight2tokenId.ContainsKey(weight))
+                        {
+                            continue;
+                        }
+
+                        adjustedSum += weight;
+                        weight2tokenId.Add(weight, j);
+
+                    }
+
 
                     float acc = 0.0f;
                     float seed = 0.0f;
