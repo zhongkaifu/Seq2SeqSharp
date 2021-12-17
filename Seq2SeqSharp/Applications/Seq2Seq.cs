@@ -182,8 +182,8 @@ namespace Seq2SeqSharp
                                                                                 decodingStrategyEnum: decodingOptions.DecodingStrategy, topPValue: decodingOptions.TopPValue, repeatPenalty: decodingOptions.RepeatPenalty, 
                                                                                 distancePenalty: decodingOptions.DistancePenalty, pointerGenerator: m_modelMetaData.PointerGenerator, pointerGeneratorWeights: pointerGeneratorWeights, srcSeqs: srcTokensList);
 
-                                bssSeqList = Decoder.SwapBeamAndBatch(bssSeqList);
-                                batch2beam2seq = Decoder.MergeTwoBeamSearchStatus(batch2beam2seq, bssSeqList);
+                                bssSeqList = Decoder.SwapBeamAndBatch(bssSeqList); // Swap shape: (beam_search_size, batch_size) -> (batch_size, beam_search_size)
+                                batch2beam2seq = Decoder.CombineBeamSearchResults(batch2beam2seq, bssSeqList);
                             }
                         }
                         catch (OutOfMemoryException)

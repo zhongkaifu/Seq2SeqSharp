@@ -32,13 +32,25 @@ namespace Seq2SeqSharp.Applications
         }
 
 
-
-        public static List<List<int>> ExtractBatchTokens(List<BeamSearchStatus> batchStatus)
+        /// <summary>
+        /// Extract tokens from given batch status
+        /// Input shape: (batch_size)
+        /// </summary>
+        /// <param name="batchStatus"></param>
+        /// <returns></returns>
+        public static List<List<int>> ExtractBatchTokens(List<BeamSearchStatus> batchStatus, int index = -1, int count = -1)
         {
             List<List<int>> batchTokens = new List<List<int>>();
             foreach (var item in batchStatus)
             {
-                batchTokens.Add(item.OutputIds);
+                if (index < 0 || count < 0)
+                {
+                    batchTokens.Add(item.OutputIds);
+                }
+                else
+                {
+                    batchTokens.Add(item.OutputIds.GetRange(index, count));
+                }
             }
 
             return batchTokens;
@@ -96,6 +108,37 @@ namespace Seq2SeqSharp.Applications
             return output;
         }
 
+        /// <summary>
+        /// Append tokens in beam search results to the source tokens
+        /// </summary>
+        /// <param name="srcTokens">(batch_size, seq_len)</param>
+        /// <param name="beamBatchResults">(beam_search_size, batch_size)</param>
+        /// <returns>output shape: (beam_search_size, batch_size)</returns>
+        public static List<List<BeamSearchStatus>> AppendOutputTokens(List<List<int>> srcTokens, List<List<BeamSearchStatus>> beamBatchResults)
+        {
+            int beamSize = beamBatchResults.Count;
+            int batchSize = beamBatchResults[0].Count;
+
+            List<List<BeamSearchStatus>> output = new List<List<BeamSearchStatus>>();
+            for (int i = 0; i < beamSize; i++)
+            {
+                List<BeamSearchStatus> batch = new List<BeamSearchStatus>();
+                output.Add(batch);
+
+                for (int j = 0; j < batchSize; j++)
+                {
+                    BeamSearchStatus item = new BeamSearchStatus();
+                    item.OutputIds.AddRange(srcTokens[j]);
+                    item.OutputIds.AddRange(beamBatchResults[i][j].OutputIds);
+                    item.Score = beamBatchResults[i][j].Score;
+
+                    batch.Add(item);
+                }
+            }
+
+            return output;
+        }
+
         public static bool AreAllSentsCompleted(List<List<BeamSearchStatus>> input)
         {
             foreach (var seqs in input)
@@ -113,8 +156,15 @@ namespace Seq2SeqSharp.Applications
         }
 
 
-
-        public static List<List<BeamSearchStatus>> MergeTwoBeamSearchStatus(List<List<BeamSearchStatus>> input1, List<List<BeamSearchStatus>> input2)
+        /// <summary>
+        /// Combine two beam search results to a single result
+        /// Input shape: (batch_size, beam_search_size_1) and (batch_size, beam_search_size_2)
+        /// Output shape: (batch_size, beam_search_size_1 + beam_search_size_2)
+        /// </summary>
+        /// <param name="input1"></param>
+        /// <param name="input2"></param>
+        /// <returns></returns>
+        public static List<List<BeamSearchStatus>> CombineBeamSearchResults(List<List<BeamSearchStatus>> input1, List<List<BeamSearchStatus>> input2)
         {
             if (input1 == null)
             {
@@ -247,7 +297,7 @@ namespace Seq2SeqSharp.Applications
             else
             {
                 // Transformer decoder with beam search at inference time
-                List<List<BeamSearchStatus>> bssSeqList = new List<List<BeamSearchStatus>>();
+                List<List<BeamSearchStatus>> bssSeqList = new List<List<BeamSearchStatus>>(); //shape: (beam_search_size, batch_size)
                 while (beamSearchSize > 0)
                 {
                     // Output "i"th target word

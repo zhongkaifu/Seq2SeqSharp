@@ -222,7 +222,7 @@ namespace Seq2SeqSharp.Applications
                                                                                 distancePenalty: decodingOptions.DistancePenalty);
 
                                 bssSeqList = Decoder.SwapBeamAndBatch(bssSeqList);
-                                batch2beam2seq = Decoder.MergeTwoBeamSearchStatus(batch2beam2seq, bssSeqList);
+                                batch2beam2seq = Decoder.CombineBeamSearchResults(batch2beam2seq, bssSeqList);
                             }
                         }
                         catch (OutOfMemoryException)
