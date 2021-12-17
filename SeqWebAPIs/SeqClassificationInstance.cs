@@ -13,9 +13,11 @@ namespace SeqClassificationWebAPI
     {
         static private object locker = new object();
         static private SeqClassification m_seqClassification;
+        static private SeqClassificationOptions opts;
+
         static public void Initialization(string modelFilePath, int maxTestSentLength, ProcessorTypeEnums processorType, string deviceIds)
         {
-            SeqClassificationOptions opts = new SeqClassificationOptions();
+            opts = new SeqClassificationOptions();
             opts.ModelFilePath = modelFilePath;
             opts.MaxTestSentLength = maxTestSentLength;
             opts.ProcessorType = processorType;
@@ -35,18 +37,16 @@ namespace SeqClassificationWebAPI
                 groupBatchTokens.Add(batchTokens);
             }
 
-            lock (locker)
+            DecodingOptions decodingOptions = opts.CreateDecodingOptions();
+            List<NetworkResult> nrs = m_seqClassification.Test<SeqClassificationMultiTasksCorpusBatch>(groupBatchTokens, decodingOptions);
+
+            List<string> tags = new List<string>();
+            foreach (var nr in nrs)
             {
-                List<NetworkResult> nrs = m_seqClassification.Test<SeqClassificationMultiTasksCorpusBatch>(groupBatchTokens);
-
-                List<string> tags = new List<string>();
-                foreach (var nr in nrs)
-                {
-                    tags.Add(nr.Output[0][0][0]); // shape: (beam_size, batch_size, seq_size)
-                }
-
-                return string.Join("\t", tags);
+                tags.Add(nr.Output[0][0][0]); // shape: (beam_size, batch_size, seq_size)
             }
+
+            return string.Join("\t", tags);
         }
     }
 }

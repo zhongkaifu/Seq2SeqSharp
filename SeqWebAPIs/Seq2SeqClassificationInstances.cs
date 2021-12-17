@@ -14,13 +14,15 @@ namespace SeqWebAPIs
     {
         private static object locker = new object();
         private static Dictionary<string, Seq2SeqClassification> m_key2Instance = new Dictionary<string, Seq2SeqClassification>();
+        private static Seq2SeqClassificationOptions opts;
 
         static public void Initialization(Dictionary<string, string> key2ModelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, ProcessorTypeEnums processorType, string deviceIds)
         {
             foreach (var pair in key2ModelFilePath)
             {
                 Logger.WriteLine($"Loading '{pair.Key}' model from '{pair.Value}'");
-                var opts = new Seq2SeqClassificationOptions();
+                
+                opts = new Seq2SeqClassificationOptions();
                 opts.ModelFilePath = pair.Value;
                 opts.MaxTestSrcSentLength = maxTestSrcSentLength;
                 opts.MaxTestTgtSentLength = maxTestTgtSentLength;
@@ -48,17 +50,21 @@ namespace SeqWebAPIs
                 groupBatchTokens.Add(batchTokens);
             }
 
+            Seq2SeqClassification inst = null;
             lock (locker)
             {
-                List<NetworkResult> nrs = m_key2Instance[key].Test<Seq2SeqClassificationCorpusBatch>(groupBatchTokens);
-                var nrCLS = nrs[0];
-                var nrSeq2Seq = nrs[1];
-
-                string tag = nrCLS.Output[0][0][0];
-                string text = string.Join(" ", nrSeq2Seq.Output[0][0].ToArray(), 1, nrSeq2Seq.Output[0][0].Count - 2);
-
-                return (tag, text);
+                inst = m_key2Instance[key];
             }
+
+            DecodingOptions decodingOptions = opts.CreateDecodingOptions();
+            List<NetworkResult> nrs = inst.Test<Seq2SeqClassificationCorpusBatch>(groupBatchTokens, decodingOptions);
+            var nrCLS = nrs[0];
+            var nrSeq2Seq = nrs[1];
+
+            string tag = nrCLS.Output[0][0][0];
+            string text = string.Join(" ", nrSeq2Seq.Output[0][0].ToArray(), 1, nrSeq2Seq.Output[0][0].Count - 2);
+
+            return (tag, text);
         }
     }
 }

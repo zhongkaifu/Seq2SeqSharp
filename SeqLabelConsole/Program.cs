@@ -32,6 +32,8 @@ namespace SeqLabelConsole
                 opts = JsonConvert.DeserializeObject<SeqLabelOptions>(File.ReadAllText(opts.ConfigFilePath));
             }
 
+            DecodingOptions decodingOptions = opts.CreateDecodingOptions();
+
             SeqLabel sl = null;
 
             //Parse device ids from options          
@@ -99,7 +101,7 @@ namespace SeqLabelConsole
                 sl.StatusUpdateWatcher += Misc.Ss_StatusUpdateWatcher;
 
                 // Kick off training
-                sl.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: metrics);
+                sl.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: metrics, decodingOptions: decodingOptions);
 
 
             }
@@ -122,7 +124,7 @@ namespace SeqLabelConsole
                 }
 
                 sl = new SeqLabel(opts);
-                sl.Valid(validCorpus: validCorpus, metrics: metrics);
+                sl.Valid(validCorpus: validCorpus, metrics: metrics, decodingOptions: decodingOptions);
             }
             else if ( opts.Task == ModeEnums.Test )
             {
@@ -135,7 +137,7 @@ namespace SeqLabelConsole
                 string[] data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
                 foreach (string line in data_sents_raw1)
                 {
-                    var nrs = sl.Test<SeqLabelingCorpusBatch>(ConstructInputTokens(line.Trim().Split(' ').ToList()));
+                    var nrs = sl.Test<SeqLabelingCorpusBatch>(ConstructInputTokens(line.Trim().Split(' ').ToList()), decodingOptions: decodingOptions);
                     outputLines.AddRange(nrs[0].Output[0].Select(x => string.Join(" ", x)));
                 }
 

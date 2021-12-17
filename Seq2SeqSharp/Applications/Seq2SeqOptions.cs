@@ -57,5 +57,20 @@ namespace Seq2SeqSharp
         [Arg("It indicates if pointer generator is enabled or not for seq2seq tasks. It requires shared vocabulary between source and target", nameof(PointerGenerator))]
         public bool PointerGenerator = false;
 
+        public DecodingOptions CreateDecodingOptions()
+        {
+            DecodingOptions decodingOptions = new DecodingOptions();
+            decodingOptions.DecodingStrategy = DecodingStrategy;
+            decodingOptions.DistancePenalty = DecodingDistancePenalty;
+            decodingOptions.TopPValue = DecodingTopPValue;
+            decodingOptions.RepeatPenalty = DecodingRepeatPenalty;
+
+            decodingOptions.BeamSearchSize = BeamSearchSize;
+
+            decodingOptions.MaxSrcSentLength = MaxTestSrcSentLength;
+            decodingOptions.MaxTgtSentLength = MaxTestTgtSentLength;
+
+            return decodingOptions;
+        }
     }
 }

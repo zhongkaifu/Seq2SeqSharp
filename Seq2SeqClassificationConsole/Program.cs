@@ -46,6 +46,7 @@ namespace Seq2SeqClassificationConsole
                 Logger.LogFile = $"{nameof(Seq2SeqClassificationConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log";
                 ShowOptions(args, opts);
 
+                DecodingOptions decodingOptions = opts.CreateDecodingOptions();
                 Seq2SeqClassification ss = null;
 
                 if ( opts.Task == ModeEnums.Train )
@@ -154,7 +155,7 @@ namespace Seq2SeqClassificationConsole
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;
 
                     // Kick off training
-                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, taskId2metrics: taskId2metrics);
+                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, taskId2metrics: taskId2metrics, decodingOptions: decodingOptions);
                 }
                 else if ( opts.Task == ModeEnums.Valid )
                 {
@@ -192,7 +193,7 @@ namespace Seq2SeqClassificationConsole
                     taskId2metrics.Add(0, task0Metrics);
 
 
-                    ss.Valid(validCorpus: validCorpus, taskId2metrics);
+                    ss.Valid(validCorpus: validCorpus, taskId2metrics, decodingOptions: decodingOptions);
                 }
                 else if ( opts.Task == ModeEnums.Test )
                 {
@@ -205,7 +206,7 @@ namespace Seq2SeqClassificationConsole
                     //Test trained model
                     ss = new Seq2SeqClassification(opts);
                     Stopwatch stopwatch = Stopwatch.StartNew();
-                    ss.Test<Seq2SeqClassificationCorpusBatch>(opts.InputTestFile, opts.OutputFile, opts.BatchSize, opts.MaxTestSrcSentLength, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath);
+                    ss.Test<Seq2SeqClassificationCorpusBatch>(opts.InputTestFile, opts.OutputFile, opts.BatchSize, decodingOptions, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath);
                     
                     stopwatch.Stop();
 

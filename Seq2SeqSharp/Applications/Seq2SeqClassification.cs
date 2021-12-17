@@ -111,7 +111,7 @@ namespace Seq2SeqSharp.Applications
         /// <param name="tgtSnts">A batch of output tokenized sentences in target side</param>
         /// <param name="deviceIdIdx">The index of current device</param>
         /// <returns>The cost of forward part</returns>
-        public override List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, int deviceIdIdx, bool isTraining)
+        public override List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, int deviceIdIdx, bool isTraining, DecodingOptions decodingOptions)
         {
             (IEncoder encoder, IDecoder decoder, IFeedForwardLayer encoderFFLayer, IFeedForwardLayer decoderFFLayer, IWeightTensor srcEmbedding, IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding) = GetNetworksOnDeviceAt(deviceIdIdx);
 
@@ -206,7 +206,7 @@ namespace Seq2SeqSharp.Applications
                 else
                 {
                     List<List<BeamSearchStatus>> beam2batchStatus = Decoder.InitBeamSearchStatusListList(batchSize, tgtTokensList);
-                    for (int i = 0; i < m_options.MaxTestTgtSentLength; i++)
+                    for (int i = 0; i < decodingOptions.MaxTgtSentLength; i++)
                     {
                         List<List<BeamSearchStatus>> batch2beam2seq = null; //(batch_size, beam_search_size)
                         try
@@ -216,9 +216,10 @@ namespace Seq2SeqSharp.Applications
                                 var batch2tgtTokens = Decoder.ExtractBatchTokens(batchStatus);
                                 using var g = computeGraph.CreateSubGraph($"TransformerDecoder_Step_{i}");
                                 (var cost2, var bssSeqList) = Decoder.DecodeTransformer(batch2tgtTokens, g, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding,
-                                                                                originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, isTraining, beamSearchSize: m_options.BeamSearchSize,
-                                                                                outputSentScore: m_options.BeamSearchSize > 1, previousBeamSearchResults: batchStatus,
-                                                                                decodingStrategyEnum: m_options.DecodingStrategy, topPValue: m_options.DecodingTopPValue, repeatPenalty: m_options.DecodingRepeatPenalty, distancePenalty: m_options.DecodingDistancePenalty);
+                                                                                originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, isTraining, beamSearchSize: decodingOptions.BeamSearchSize,
+                                                                                outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus,
+                                                                                decodingStrategyEnum: decodingOptions.DecodingStrategy, topPValue: decodingOptions.TopPValue, repeatPenalty: decodingOptions.RepeatPenalty, 
+                                                                                distancePenalty: decodingOptions.DistancePenalty);
 
                                 bssSeqList = Decoder.SwapBeamAndBatch(bssSeqList);
                                 batch2beam2seq = Decoder.MergeTwoBeamSearchStatus(batch2beam2seq, bssSeqList);
@@ -231,12 +232,12 @@ namespace Seq2SeqSharp.Applications
                             break;
                         }
 
-                        if (m_options.BeamSearchSize > 1)
+                        if (decodingOptions.BeamSearchSize > 1)
                         {
                             // Keep top N result and drop all others
                             for (int k = 0; k < batchSize; k++)
                             {
-                                batch2beam2seq[k] = BeamSearch.GetTopNBSS(batch2beam2seq[k], m_options.BeamSearchSize);
+                                batch2beam2seq[k] = BeamSearch.GetTopNBSS(batch2beam2seq[k], decodingOptions.BeamSearchSize);
                             }
                         }
 

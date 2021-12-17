@@ -25,5 +25,21 @@ namespace Seq2SeqSharp.Applications
 
         [Arg("The type of similarity. Value: Continuous, Discrete. Continuous is by default.", "SimilarityType")]
         public string SimilarityType = "Continuous";
+
+        public DecodingOptions CreateDecodingOptions()
+        {
+            DecodingOptions decodingOptions = new DecodingOptions();
+            decodingOptions.DecodingStrategy = DecodingStrategy;
+            decodingOptions.DistancePenalty = DecodingDistancePenalty;
+            decodingOptions.TopPValue = DecodingTopPValue;
+            decodingOptions.RepeatPenalty = DecodingRepeatPenalty;
+
+            decodingOptions.BeamSearchSize = BeamSearchSize;
+
+            decodingOptions.MaxSrcSentLength = MaxTestSentLength;
+            decodingOptions.MaxTgtSentLength = MaxTestSentLength;
+
+            return decodingOptions;
+        }
     }
 }

@@ -57,6 +57,7 @@ namespace SeqSimilarityConsole
                 Logger.LogFile = $"{nameof(SeqSimilarityConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log";
                 ShowOptions(args, opts);
 
+                DecodingOptions decodingOptions = opts.CreateDecodingOptions();
                 SeqSimilarity ss = null;
                 if ( opts.Task == ModeEnums.Train )
                 {
@@ -137,7 +138,7 @@ namespace SeqSimilarityConsole
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;
 
                     // Kick off training
-                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: new List<IMetric>() { metric });
+                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: new List<IMetric>() { metric }, decodingOptions: decodingOptions);
                 }
                 //else if (opts.Task == ModeEnums.Valid)
                 //{
@@ -169,7 +170,7 @@ namespace SeqSimilarityConsole
                     ss = new SeqSimilarity(opts);
                     Stopwatch stopwatch = Stopwatch.StartNew();
 
-                    ss.Test<SeqClassificationMultiTasksCorpusBatch>(opts.InputTestFile, opts.OutputFile, opts.BatchSize, opts.MaxTestSentLength, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath);
+                    ss.Test<SeqClassificationMultiTasksCorpusBatch>(opts.InputTestFile, opts.OutputFile, opts.BatchSize, decodingOptions, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath);
 
                     stopwatch.Stop();
 

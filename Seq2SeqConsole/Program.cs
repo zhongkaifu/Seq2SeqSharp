@@ -12,6 +12,7 @@ using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Metrics;
 using Seq2SeqSharp.Optimizer;
 using Seq2SeqSharp.Utils;
+using Seq2SeqSharp.Applications;
 
 namespace Seq2SeqConsole
 {
@@ -44,6 +45,7 @@ namespace Seq2SeqConsole
                 Logger.LogFile = $"{nameof(Seq2SeqConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log";
                 ShowOptions(args, opts);
 
+                DecodingOptions decodingOptions = opts.CreateDecodingOptions();
                 Seq2Seq ss = null;
                 if ( opts.Task == ModeEnums.Train )
                 {
@@ -112,7 +114,7 @@ namespace Seq2SeqConsole
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;
 
                     // Kick off training
-                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: metrics);
+                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: metrics, decodingOptions: decodingOptions);
                 }
                 else if ( opts.Task == ModeEnums.Valid )
                 {
@@ -126,7 +128,7 @@ namespace Seq2SeqConsole
 
                     ss = new Seq2Seq(opts);
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;
-                    ss.Valid(validCorpus: validCorpus, metrics: metrics);
+                    ss.Valid(validCorpus: validCorpus, metrics: metrics, decodingOptions: decodingOptions);
                 }
                 else if ( opts.Task == ModeEnums.Test )
                 {
@@ -139,7 +141,7 @@ namespace Seq2SeqConsole
                     //Test trained model
                     ss = new Seq2Seq(opts);
                     Stopwatch stopwatch = Stopwatch.StartNew();
-                    ss.Test<Seq2SeqCorpusBatch>(opts.InputTestFile, opts.OutputFile, opts.BatchSize, opts.MaxTestSrcSentLength, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath);
+                    ss.Test<Seq2SeqCorpusBatch>(opts.InputTestFile, opts.OutputFile, opts.BatchSize, decodingOptions, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath);
 
                     stopwatch.Stop();
 

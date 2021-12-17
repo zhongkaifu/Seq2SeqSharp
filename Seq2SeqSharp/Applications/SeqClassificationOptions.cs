@@ -22,5 +22,20 @@ namespace Seq2SeqSharp.Applications
         [Arg("Maxmium sentence length in training corpus", "MaxTrainSentLength")]
         public int MaxTrainSentLength = 110;
 
+        public DecodingOptions CreateDecodingOptions()
+        {
+            DecodingOptions decodingOptions = new DecodingOptions();
+            decodingOptions.DecodingStrategy = DecodingStrategy;
+            decodingOptions.DistancePenalty = DecodingDistancePenalty;
+            decodingOptions.TopPValue = DecodingTopPValue;
+            decodingOptions.RepeatPenalty = DecodingRepeatPenalty;
+
+            decodingOptions.BeamSearchSize = BeamSearchSize;
+
+            decodingOptions.MaxSrcSentLength = MaxTestSentLength;
+            decodingOptions.MaxTgtSentLength = MaxTestSentLength;
+
+            return decodingOptions;
+        }
     }
 }

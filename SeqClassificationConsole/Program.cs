@@ -57,6 +57,7 @@ namespace SeqClassificationConsole
                 Logger.LogFile = $"{nameof(SeqClassificationConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log";
                 ShowOptions(args, opts);
 
+                DecodingOptions decodingOptions = opts.CreateDecodingOptions();
                 SeqClassification ss = null;
 
                 if ( opts.Task == ModeEnums.Train )
@@ -136,7 +137,7 @@ namespace SeqClassificationConsole
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;
 
                     // Kick off training
-                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, taskId2metrics: taskId2metrics);
+                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, taskId2metrics: taskId2metrics, decodingOptions: decodingOptions);
                 }
                 //else if (opts.Task == ModeEnums.Valid)
                 //{
@@ -168,7 +169,7 @@ namespace SeqClassificationConsole
                     ss = new SeqClassification(opts);
                     Stopwatch stopwatch = Stopwatch.StartNew();
 
-                    ss.Test<SeqClassificationMultiTasksCorpusBatch>(opts.InputTestFile, opts.OutputFile, opts.BatchSize, opts.MaxTestSentLength, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath);
+                    ss.Test<SeqClassificationMultiTasksCorpusBatch>(opts.InputTestFile, opts.OutputFile, opts.BatchSize, decodingOptions, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath);
 
                     stopwatch.Stop();
 

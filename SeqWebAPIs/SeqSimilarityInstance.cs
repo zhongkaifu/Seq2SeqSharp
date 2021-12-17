@@ -13,9 +13,10 @@ namespace SeqSimilarityWebAPI
     {
         static private object locker = new object();
         static private SeqSimilarity m_seqSimilarity;
+        static private SeqSimilarityOptions opts;
         static public void Initialization(string modelFilePath, int maxTestSentLength, ProcessorTypeEnums processorType, string deviceIds)
         {
-            SeqSimilarityOptions opts = new SeqSimilarityOptions();
+            opts = new SeqSimilarityOptions();
             opts.ModelFilePath = modelFilePath;
             opts.MaxTestSentLength = maxTestSentLength;
             opts.ProcessorType = processorType;
@@ -40,19 +41,16 @@ namespace SeqSimilarityWebAPI
             batchTokens.Add(tokens);
             groupBatchTokens.Add(batchTokens);
 
+            DecodingOptions decodingOptions = opts.CreateDecodingOptions();
+            List<NetworkResult> nrs = m_seqSimilarity.Test<SeqClassificationMultiTasksCorpusBatch>(groupBatchTokens, decodingOptions);
 
-            lock (locker)
+            List<string> tags = new List<string>();
+            foreach (var nr in nrs)
             {
-                List<NetworkResult> nrs = m_seqSimilarity.Test<SeqClassificationMultiTasksCorpusBatch>(groupBatchTokens);
-
-                List<string> tags = new List<string>();
-                foreach (var nr in nrs)
-                {
-                    tags.Add(nr.Output[0][0][0]); // shape: (beam_size, batch_size, seq_size)
-                }
-
-                return string.Join("\t", tags);
+                tags.Add(nr.Output[0][0][0]); // shape: (beam_size, batch_size, seq_size)
             }
+
+            return string.Join("\t", tags);
         }
     }
 }
