@@ -33,15 +33,23 @@ namespace Seq2SeqSharp.Corpus
         }
 
 
-        public override void CreateBatch(List<List<List<string>>> srcTokensGroups)
+        public override void CreateBatch(List<List<List<string>>> srcTokensGroups, List<List<List<string>>> tgtTokensGroups)
         {
             SrcTknsGroups = srcTokensGroups;
 
-            TgtTknsGroups = new List<List<List<string>>>
+            if (tgtTokensGroups != null)
             {
-                new List<List<string>>(),
-                InitializeHypTokens(BuildInTokens.BOS)
-            };
+                TgtTknsGroups = tgtTokensGroups;
+                TryAddPrefix(TgtTknsGroups[0], BuildInTokens.BOS);
+            }
+            else
+            {
+                TgtTknsGroups = new List<List<List<string>>>
+                {
+                    new List<List<string>>(),
+                    InitializeHypTokens(BuildInTokens.BOS)
+                };
+            }
 
 
             TryAddPrefix(SrcTknsGroups[0], BuildInTokens.CLS);

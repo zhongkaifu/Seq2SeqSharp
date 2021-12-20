@@ -160,12 +160,13 @@ namespace Seq2SeqSharp
                 if (isTraining)
                 {
                     (var c, _) = Decoder.DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding, originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 
-                        m_options.DropoutRatio, isTraining, pointerGenerator: m_modelMetaData.PointerGenerator, pointerGeneratorWeights: pointerGeneratorWeights, srcSeqs: srcTokensList);
+                        m_options.DropoutRatio, null, isTraining, pointerGenerator: m_modelMetaData.PointerGenerator, pointerGeneratorWeights: pointerGeneratorWeights, srcSeqs: srcTokensList);
                     nr.Cost = c;
                     nr.Output = null;
                 }
                 else
                 {
+                    Dictionary<string, IWeightTensor> cachedTensors = new Dictionary<string, IWeightTensor>();
                     List<List<BeamSearchStatus>> beam2batchStatus = Decoder.InitBeamSearchStatusListList(batchSize, tgtTokensList);
                     for (int i = 0; i < decodingOptions.MaxTgtSentLength; i++)
                     {
@@ -177,10 +178,10 @@ namespace Seq2SeqSharp
                                 var batch2tgtTokens = Decoder.ExtractBatchTokens(batchStatus);
                                 using var g = computeGraph.CreateSubGraph($"TransformerDecoder_Step_{i}");
                                 (var cost2, var bssSeqList) = Decoder.DecodeTransformer(batch2tgtTokens, g, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding,
-                                                                                originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, isTraining, beamSearchSize: decodingOptions.BeamSearchSize,
+                                                                                originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, decodingOptions, isTraining,
                                                                                 outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus,
-                                                                                decodingStrategyEnum: decodingOptions.DecodingStrategy, topPValue: decodingOptions.TopPValue, repeatPenalty: decodingOptions.RepeatPenalty, 
-                                                                                distancePenalty: decodingOptions.DistancePenalty, pointerGenerator: m_modelMetaData.PointerGenerator, pointerGeneratorWeights: pointerGeneratorWeights, srcSeqs: srcTokensList);
+                                                                                pointerGenerator: m_modelMetaData.PointerGenerator, pointerGeneratorWeights: pointerGeneratorWeights, srcSeqs: srcTokensList, 
+                                                                                cachedTensors: cachedTensors);
 
                                 bssSeqList = Decoder.SwapBeamAndBatch(bssSeqList); // Swap shape: (beam_search_size, batch_size) -> (batch_size, beam_search_size)
                                 batch2beam2seq = Decoder.CombineBeamSearchResults(batch2beam2seq, bssSeqList);
@@ -212,6 +213,14 @@ namespace Seq2SeqSharp
 
                     nr.Cost = 0.0f;
                     nr.Output = m_modelMetaData.TgtVocab.ExtractTokens(beam2batchStatus);
+
+                    if (cachedTensors != null)
+                    {
+                        foreach (var pair in cachedTensors)
+                        {
+                            pair.Value.Dispose();
+                        }
+                    }
                 }
             }
 

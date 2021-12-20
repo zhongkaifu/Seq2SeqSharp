@@ -13,7 +13,7 @@ namespace Seq2SeqSharp.Corpus
         int TgtTokenCount { get; set; }
 
         void CreateBatch(List<SntPair> sntPairs);
-        void CreateBatch(List<List<List<string>>> srcTokensGroups);
+        void CreateBatch(List<List<List<string>>> srcTokensGroups, List<List<List<string>>> tgtTokensGroups);
 
 
         ISntPairBatch CloneSrcTokens();

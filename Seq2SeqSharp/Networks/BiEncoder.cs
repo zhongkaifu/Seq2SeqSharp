@@ -100,13 +100,13 @@ namespace Seq2SeqSharp
                 layerOutputs.Clear();
                 for (int j = 0; j < seqLen; j++)
                 {
-                    IWeightTensor concatW = g.ConcatColumns(forwardOutputs[j], backwardOutputs[j]);
+                    IWeightTensor concatW = g.Concate(1, forwardOutputs[j], backwardOutputs[j]);
                     layerOutputs.Add(concatW);
                 }
 
             }
 
-            var result = g.ConcatRows(layerOutputs);
+            var result = g.Concate(layerOutputs, 0);
 
             return g.TransposeBatch(result, batchSize);
         }

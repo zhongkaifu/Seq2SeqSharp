@@ -43,7 +43,7 @@ namespace Seq2SeqWebAPI
             var groupBatchTokens = new List<List<List<string>>> { batchTokens };
 
             DecodingOptions decodingOptions = opts.CreateDecodingOptions();
-            var nrs = m_seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, decodingOptions);
+            var nrs = m_seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, null, decodingOptions);
             var out_tokens = nrs[0].Output[0][0];
             var rst = _TgtSentPiece.Decode(out_tokens, 1, out_tokens.Count - 2);
             //---var rst = string.Join( " ", out_tokens.ToArray(), 1, out_tokens.Count - 2 );

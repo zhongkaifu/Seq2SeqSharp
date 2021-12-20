@@ -140,7 +140,7 @@ namespace Seq2SeqSharp
                     IWeightTensor state4 = g.View(state3, dims: new long[] { batchSize * srcSeqLen, -1 });
 
 
-                    IWeightTensor concate = g.ConcatColumns(aCoverage, attnPre.encOutput, state4);
+                    IWeightTensor concate = g.Concate(1, aCoverage, attnPre.encOutput, state4);
                     m_coverage.Step(concate, graph);
                 }
 

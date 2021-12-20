@@ -43,7 +43,7 @@ namespace Seq2SeqSharp
                 IWeightTensor hidden_prev = m_hidden;
                 IWeightTensor cell_prev = m_cell;
 
-                IWeightTensor inputs = innerGraph.ConcatColumns(input, hidden_prev);
+                IWeightTensor inputs = innerGraph.Concate(1, input, hidden_prev);
                 IWeightTensor hhSum = innerGraph.Affine(inputs, m_Wxh, m_b);
                 IWeightTensor hhSum2 = m_layerNorm1.Norm(hhSum, innerGraph);
 

@@ -137,7 +137,7 @@ namespace SeqLabelConsole
                 string[] data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
                 foreach (string line in data_sents_raw1)
                 {
-                    var nrs = sl.Test<SeqLabelingCorpusBatch>(ConstructInputTokens(line.Trim().Split(' ').ToList()), decodingOptions: decodingOptions);
+                    var nrs = sl.Test<SeqLabelingCorpusBatch>(ConstructInputTokens(line.Trim().Split(' ').ToList()), null, decodingOptions: decodingOptions);
                     outputLines.AddRange(nrs[0].Output[0].Select(x => string.Join(" ", x)));
                 }
 

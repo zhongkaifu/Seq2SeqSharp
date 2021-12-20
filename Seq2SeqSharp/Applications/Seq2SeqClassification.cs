@@ -199,7 +199,7 @@ namespace Seq2SeqSharp.Applications
             {
                 if (isTraining)
                 {
-                    (var c, _) = Decoder.DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding, originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, m_options.DropoutRatio, isTraining);
+                    (var c, _) = Decoder.DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding, originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, m_options.DropoutRatio, null, isTraining);
                     nr.Cost = c;
                     nr.Output = null;
                 }
@@ -216,10 +216,8 @@ namespace Seq2SeqSharp.Applications
                                 var batch2tgtTokens = Decoder.ExtractBatchTokens(batchStatus);
                                 using var g = computeGraph.CreateSubGraph($"TransformerDecoder_Step_{i}");
                                 (var cost2, var bssSeqList) = Decoder.DecodeTransformer(batch2tgtTokens, g, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding,
-                                                                                originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, isTraining, beamSearchSize: decodingOptions.BeamSearchSize,
-                                                                                outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus,
-                                                                                decodingStrategyEnum: decodingOptions.DecodingStrategy, topPValue: decodingOptions.TopPValue, repeatPenalty: decodingOptions.RepeatPenalty, 
-                                                                                distancePenalty: decodingOptions.DistancePenalty);
+                                                                                originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, decodingOptions, isTraining,
+                                                                                outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus);
 
                                 bssSeqList = Decoder.SwapBeamAndBatch(bssSeqList);
                                 batch2beam2seq = Decoder.CombineBeamSearchResults(batch2beam2seq, bssSeqList);

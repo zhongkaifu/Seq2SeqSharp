@@ -188,9 +188,8 @@ namespace Seq2SeqSharp.Applications
         }
 
         public static (float, List<List<BeamSearchStatus>>) DecodeTransformer(List<List<int>> tgtSeqs, IComputeGraph g, IWeightTensor encOutputs, TransformerDecoder decoder, IFeedForwardLayer decoderFFLayer,
-            IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, float[] srcOriginalLenghts, Vocab tgtVocab, ShuffleEnums shuffleType, float dropoutRatio, bool isTraining = true, int beamSearchSize = 1,
-            bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, DecodingStrategyEnums decodingStrategyEnum = DecodingStrategyEnums.GreedySearch, float topPValue = 0.9f, float repeatPenalty = 2.0f, float distancePenalty = 10.0f,
-            bool pointerGenerator = false, IWeightTensor pointerGeneratorWeights = null, List<List<int>> srcSeqs = null)
+            IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, float[] srcOriginalLenghts, Vocab tgtVocab, ShuffleEnums shuffleType, float dropoutRatio, DecodingOptions decodingOptions, bool isTraining = true,
+            bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, bool pointerGenerator = false, IWeightTensor pointerGeneratorWeights = null, List<List<int>> srcSeqs = null, Dictionary<string, IWeightTensor> cachedTensors = null)
         {
             int eosTokenId = tgtVocab.GetWordIndex(BuildInTokens.EOS, logUnk: true);
             float cost = 0.0f;
@@ -222,7 +221,7 @@ namespace Seq2SeqSharp.Applications
 
             IWeightTensor decOutput;
             IWeightTensor decEncAttnProbs;
-            (decOutput, decEncAttnProbs) = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g, outputAttnWeights: pointerGenerator);
+            (decOutput, decEncAttnProbs) = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g, outputAttnWeights: pointerGenerator, cachedTensors: cachedTensors);
 
 
 
@@ -234,7 +233,7 @@ namespace Seq2SeqSharp.Applications
                 var pointer_context = g.MulBatch(decEncAttnProbsBatch, encOutputsBatch); //Output: [batchSize, tgtSeqLen, embedding_size]
                 pointer_context = g.View(pointer_context, dims: new long[] { batchSize * tgtSeqLen, -1 });
 
-                var all_context = g.ConcatColumns(pointer_context, decOutput, inputEmbs);
+                var all_context = g.Concate(1, pointer_context, decOutput, inputEmbs);
                 var p_gen = g.Mul(all_context, pointerGeneratorWeights); // Output: [batchSize * tgtSeqLen, 1]
 
                 p_gen = g.Sigmoid(p_gen);
@@ -298,10 +297,12 @@ namespace Seq2SeqSharp.Applications
             {
                 // Transformer decoder with beam search at inference time
                 List<List<BeamSearchStatus>> bssSeqList = new List<List<BeamSearchStatus>>(); //shape: (beam_search_size, batch_size)
+                int beamSearchSize = decodingOptions.BeamSearchSize;
                 while (beamSearchSize > 0)
                 {
                     // Output "i"th target word
-                    using var targetIdxTensor = (decodingStrategyEnum == DecodingStrategyEnums.GreedySearch) ? g.Argmax(probs, 1) : g.TopPSampleIndice(probs, tgtSeqs, topPValue, repeatPenalty, distancePenalty);
+                    using var targetIdxTensor = (decodingOptions.DecodingStrategy == DecodingStrategyEnums.GreedySearch) ? g.Argmax(probs, 1) : 
+                                                g.TopPSampleIndice(probs, tgtSeqs, decodingOptions.TopPValue, decodingOptions.RepeatPenalty, decodingOptions.DistancePenalty);
                     IWeightTensor gatherTensor = null;
                     if (outputSentScore)
                     {
@@ -371,7 +372,7 @@ namespace Seq2SeqSharp.Applications
                 {
                     inputs.Add(g.Peek(tgtEmbedding, 0, (int)ix_inputs[j]));
                 }
-                IWeightTensor inputsM = g.ConcatRows(inputs);
+                IWeightTensor inputsM = g.Concate(inputs, 0);
 
                 //Decode output sentence at position i
                 IWeightTensor dOutput = decoder.Decode(inputsM, attPreProcessResult, batchSize, g);

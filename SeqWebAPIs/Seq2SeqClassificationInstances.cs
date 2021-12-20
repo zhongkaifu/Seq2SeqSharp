@@ -57,7 +57,7 @@ namespace SeqWebAPIs
             }
 
             DecodingOptions decodingOptions = opts.CreateDecodingOptions();
-            List<NetworkResult> nrs = inst.Test<Seq2SeqClassificationCorpusBatch>(groupBatchTokens, decodingOptions);
+            List<NetworkResult> nrs = inst.Test<Seq2SeqClassificationCorpusBatch>(groupBatchTokens, null, decodingOptions);
             var nrCLS = nrs[0];
             var nrSeq2Seq = nrs[1];
 

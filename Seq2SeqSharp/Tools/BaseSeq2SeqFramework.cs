@@ -737,10 +737,10 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public List<NetworkResult> Test<X>(List<List<List<string>>> inputTokensGroups, DecodingOptions decodingOptions) where X : ISntPairBatch, new()
+        public List<NetworkResult> Test<X>(List<List<List<string>>> inputTokensGroups, List<List<List<string>>> outputTokensGroups, DecodingOptions decodingOptions) where X : ISntPairBatch, new()
         {
             X spb = new X();
-            spb.CreateBatch(inputTokensGroups);
+            spb.CreateBatch(inputTokensGroups, outputTokensGroups);
             var nrs = RunTest(spb, decodingOptions, RunForwardOnSingleDevice);
 
             return nrs;

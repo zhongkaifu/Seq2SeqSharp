@@ -18,7 +18,7 @@ namespace Seq2SeqSharp.Corpus
         }
 
 
-        public override void CreateBatch(List<List<List<string>>> srcTokensGroups)
+        public override void CreateBatch(List<List<List<string>>> srcTokensGroups, List<List<List<string>>> tgtTokensGroups = null)
         {
             SrcTknsGroups = srcTokensGroups;
             TgtTknsGroups = null;

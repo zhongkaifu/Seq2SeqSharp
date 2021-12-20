@@ -134,9 +134,10 @@ namespace Seq2SeqSharp
         /// <param name="batchSize">Batch size of input data set</param>
         /// <param name="graph">The instance of computing graph</param>
         /// <returns>Transformered output tensor</returns>
-        public (IWeightTensor, IWeightTensor) Perform(IWeightTensor inputQ, IWeightTensor inputK, IWeightTensor inputV, IWeightTensor keyMask, int batchSize, IComputeGraph graph, bool outputAttenWeights = false)
+        public (IWeightTensor, IWeightTensor) Perform(IWeightTensor inputQ, IWeightTensor inputK, IWeightTensor inputV, IWeightTensor keyMask, int batchSize, IComputeGraph graph, bool outputAttenWeights = false, Dictionary<string, IWeightTensor> cachedTensors = null)
         {
-            using IComputeGraph g = graph.CreateSubGraph($"{m_name}_MultiHeadAttention");
+            string keyName = $"{m_name}_MultiHeadAttention";
+            using IComputeGraph g = graph.CreateSubGraph(keyName);
             int seqLenQ = inputQ.Rows / batchSize;
 
             // SeqLenK must be euqal to SeqLenV
@@ -152,8 +153,42 @@ namespace Seq2SeqSharp
 
             //Multi-head attentions
             IWeightTensor Qs = g.View(g.AsContiguous(g.Transpose(allQ, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, m_d });
-            IWeightTensor Ks = g.View(g.AsContiguous(g.Transpose(g.Transpose(allK, 1, 2), 2, 3)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenK });
-            IWeightTensor Vs = g.View(g.AsContiguous(g.Transpose(allV, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenV, m_d });
+
+
+            IWeightTensor Ks = null;
+            IWeightTensor Vs = null;
+
+            if (cachedTensors == null) // We don't use any cached tensors
+            {
+                Ks = g.View(g.AsContiguous(g.Transpose(g.Transpose(allK, 1, 2), 2, 3)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenK });
+                Vs = g.View(g.AsContiguous(g.Transpose(allV, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenV, m_d });
+            }
+            else
+            {
+                string KsCacheName = keyName + "_" + nameof(Ks);
+                string VsCacheName = keyName + "_" + nameof(Vs);
+
+                if (cachedTensors.ContainsKey(KsCacheName) == false)
+                {
+                    Ks = g.View(g.AsContiguous(g.Transpose(g.Transpose(allK, 1, 2), 2, 3)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenK });
+                    cachedTensors.Add(KsCacheName, Ks.CopyWeightsRef(KsCacheName));
+                }
+                else
+                {
+                    Ks = cachedTensors[KsCacheName];
+                }
+
+                if (cachedTensors.ContainsKey(VsCacheName) == false)
+                {
+                    Vs = g.View(g.AsContiguous(g.Transpose(allV, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenV, m_d });
+                    cachedTensors.Add(VsCacheName, Vs.CopyWeightsRef(VsCacheName));
+                }
+                else
+                {
+                    Vs = cachedTensors[VsCacheName];
+                }
+            }
+
 
             // Scaled softmax
             float scale = 1.0f / (float)(Math.Sqrt(m_d));

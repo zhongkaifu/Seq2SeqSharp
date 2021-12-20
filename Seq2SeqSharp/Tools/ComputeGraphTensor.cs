@@ -1209,7 +1209,12 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightTensor ConcatRows(List<IWeightTensor> wl)
+        public IWeightTensor Concate(int dim, params IWeightTensor[] wl)
+        {
+            return Concate(wl.ToList(), dim);
+        }
+
+        public IWeightTensor Concate(List<IWeightTensor> wl, int dim)
         {
             if (wl.Count == 1)
             {
@@ -1218,23 +1223,30 @@ namespace Seq2SeqSharp.Tools
 
             List<string> wlNameList = new List<string>();
             List<Tensor> twl = new List<Tensor>();
-            int sx = 0;
-            int sy = 0;
+            long sumDimSize = 0;
+
             foreach (IWeightTensor item in wl)
             {
                 WeightTensor m = item as WeightTensor;
-                sx += m.Rows;
-                sy = m.Columns;
+                sumDimSize += m.Sizes[dim];
 
                 twl.Add(m.TWeight);
                 wlNameList.Add(item.Name);
             }
 
+            long[] newSizes = new long[wl[0].Sizes.Length];
+            for (int i = 0; i < newSizes.Length; i++)
+            {
+                newSizes[i] = wl[0].Sizes[i];
+            }
+            newSizes[dim] = sumDimSize;
+
+
             string wlName = string.Join("_", wlNameList);
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sx, sy, m_deviceId, name: $"{GetHashString(wlName)}.ConcatRows", graphToBind: this);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(newSizes, m_deviceId, name: $"{GetHashString(wlName)}.Concat", graphToBind: this);
             VisualizeNodes(wl, res);
 
-            Ops.Concat(res.TWeight, 0, twl.ToArray());
+            Ops.Concat(res.TWeight, dim, twl.ToArray());
 
             if (m_needsBackprop)
             {
@@ -1243,11 +1255,11 @@ namespace Seq2SeqSharp.Tools
                     res.ReleaseWeight();
                     bool isOwnerExclusive = res.TGradient.IsOwnerExclusive();
 
-                    sx = 0;
+                    long sx = 0;
                     foreach (IWeightTensor item in wl)
                     {
                         WeightTensor m = item as WeightTensor;
-                        using Tensor tTmp = res.TGradient.Narrow(0, sx, m.Rows);
+                        using Tensor tTmp = res.TGradient.Narrow(dim, sx, m.Sizes[dim]);
                         if (isOwnerExclusive && m.IsGradientNull())
                         {
                             m.TGradient = tTmp.CopyRef();
@@ -1257,7 +1269,7 @@ namespace Seq2SeqSharp.Tools
                             m.CopyOrAddGradient(tTmp, res.Name);
                         }
 
-                        sx += m.Rows;
+                        sx += m.Sizes[dim];
                     }
 
                     res.Dispose();
@@ -1302,68 +1314,7 @@ namespace Seq2SeqSharp.Tools
 
             return res;
         }
-
-        public IWeightTensor ConcatColumns(params IWeightTensor[] wl)
-        {
-            if (wl.Length == 1)
-            {
-                return wl[0];
-            }
-
-            List<string> srcNameList = new List<string>();
-            List<Tensor> twl = new List<Tensor>();
-            int sx = 0;
-            int sy = 0;
-
-            foreach (IWeightTensor item in wl)
-            {
-                WeightTensor m = item as WeightTensor;
-                sx = m.Rows;
-                sy += m.Columns;
-
-                twl.Add(m.TWeight);
-                srcNameList.Add(item.Name);
-            }
-
-
-            string srcNames = string.Join("_", srcNameList);
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sx, sy, m_deviceId, name: $"{GetHashString(srcNames)}.ConcatColumns", graphToBind: this);
-                                              
-            VisualizeNodes(wl, res);
-
-            Ops.Concat(res.TWeight, 1, twl.ToArray());
-            if (m_needsBackprop)
-            {
-                void backward()
-                {
-                    res.ReleaseWeight();
-                    bool isOwnerExclusive = res.TGradient.IsOwnerExclusive();
-
-                    sy = 0;
-                    foreach (IWeightTensor item in wl)
-                    {
-                        WeightTensor m = item as WeightTensor;
-                        using Tensor tTmp = res.TGradient.Narrow(1, sy, m.Columns);
-                        if (isOwnerExclusive && m.IsGradientNull())
-                        {
-                            m.TGradient = tTmp.CopyRef();
-                        }
-                        else
-                        {
-                            m.CopyOrAddGradient(tTmp, res.Name);
-                        }
-
-                        sy += m.Columns;
-                    }
-
-                    res.Dispose();
-                }
-                m_backprop.Add(backward);
-            }
-
-            return res;
-        }
-
+       
         public List<IWeightTensor> SplitColumns2(IWeightTensor w, params int[] sizes)
         {
             WeightTensor m = w as WeightTensor;

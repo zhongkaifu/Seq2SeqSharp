@@ -380,7 +380,7 @@ namespace Seq2SeqSharp.Corpus
             return TgtTknsGroups.Count;
         }
 
-        public virtual void CreateBatch(List<List<List<string>>> srcTokensGroups)
+        public virtual void CreateBatch(List<List<List<string>>> srcTokensGroups, List<List<List<string>>> tgtTokensGroups)
         {
             throw new NotImplementedException();
         }

@@ -59,7 +59,7 @@ namespace Seq2SeqSharp.Corpus
                 }
 
                 T batch = new T();
-                batch.CreateBatch(inputBatchs);
+                batch.CreateBatch(inputBatchs, null);
 
                 return (oldIdx, batch);
             }

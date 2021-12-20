@@ -42,7 +42,7 @@ namespace SeqSimilarityWebAPI
             groupBatchTokens.Add(batchTokens);
 
             DecodingOptions decodingOptions = opts.CreateDecodingOptions();
-            List<NetworkResult> nrs = m_seqSimilarity.Test<SeqClassificationMultiTasksCorpusBatch>(groupBatchTokens, decodingOptions);
+            List<NetworkResult> nrs = m_seqSimilarity.Test<SeqClassificationMultiTasksCorpusBatch>(groupBatchTokens, null, decodingOptions);
 
             List<string> tags = new List<string>();
             foreach (var nr in nrs)

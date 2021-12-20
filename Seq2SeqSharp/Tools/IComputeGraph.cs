@@ -27,11 +27,13 @@ namespace Seq2SeqSharp
         IWeightTensor Peek(IWeightTensor w, int dim, int ix, int num = 1, bool runGradients = true);
         IWeightTensor Dropout(IWeightTensor V, int batchSize, float drop_prob, bool inPlace = false);
         IWeightTensor Softmax(IWeightTensor w, bool runGradients = true, bool inPlace = false);
-        IWeightTensor ConcatColumns(params IWeightTensor[] wl);
         List<IWeightTensor> SplitColumns2(IWeightTensor w, params int[] sizes);
         (IWeightTensor r1, IWeightTensor r2) SplitColumns(IWeightTensor w, int size1, int size2);
         (IWeightTensor r1, IWeightTensor r2, IWeightTensor r3) SplitColumns(IWeightTensor w, int size1, int size2, int size3);
-        IWeightTensor ConcatRows(List<IWeightTensor> wl);
+        IWeightTensor Concate(List<IWeightTensor> wl, int dim);
+
+        IWeightTensor Concate(int dim, params IWeightTensor[] wl);
+        
         IWeightTensor Transpose(IWeightTensor w);
         IWeightTensor Mul(IWeightTensor w, float v, bool inPlace = false, bool runGradient = true);
         IWeightTensor LayerNorm(IWeightTensor src, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-9f);

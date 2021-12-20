@@ -38,7 +38,7 @@ namespace SeqClassificationWebAPI
             }
 
             DecodingOptions decodingOptions = opts.CreateDecodingOptions();
-            List<NetworkResult> nrs = m_seqClassification.Test<SeqClassificationMultiTasksCorpusBatch>(groupBatchTokens, decodingOptions);
+            List<NetworkResult> nrs = m_seqClassification.Test<SeqClassificationMultiTasksCorpusBatch>(groupBatchTokens, null, decodingOptions);
 
             List<string> tags = new List<string>();
             foreach (var nr in nrs)
