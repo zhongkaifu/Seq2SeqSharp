@@ -168,7 +168,7 @@ namespace Seq2SeqSharp
                 {
                     Dictionary<string, IWeightTensor> cachedTensors = new Dictionary<string, IWeightTensor>();
                     List<List<BeamSearchStatus>> beam2batchStatus = Decoder.InitBeamSearchStatusListList(batchSize, tgtTokensList);
-                    for (int i = 0; i < decodingOptions.MaxTgtSentLength; i++)
+                    for (int i = tgtTokensList[0].Count; i < decodingOptions.MaxTgtSentLength; i++)
                     {
                         List<List<BeamSearchStatus>> batch2beam2seq = null; //(batch_size, beam_search_size)
                         try
