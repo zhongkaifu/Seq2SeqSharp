@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 
 using AdvUtils;
+using Microsoft.Extensions.Caching.Memory;
 using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Layers;
@@ -30,11 +31,18 @@ namespace Seq2SeqSharp
         private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
         readonly Seq2SeqOptions m_options = null;
 
+        private MemoryCache m_memoryCache;
+
         public Seq2Seq(Seq2SeqOptions options, Vocab srcVocab = null, Vocab tgtVocab = null)
             : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions, options.ValidIntervalHours, updateFreq: options.UpdateFreq)
         {
             m_shuffleType = options.ShuffleType;
             m_options = options;
+
+            m_memoryCache = new MemoryCache(new MemoryCacheOptions
+            {
+                SizeLimit = 1024
+            });
 
             // Model must exist if current task is not for training
             if ((m_options.Task != ModeEnums.Train) && !File.Exists(m_options.ModelFilePath))
@@ -114,6 +122,19 @@ namespace Seq2SeqSharp
                     m_posEmbedding?.GetNetworkOnDevice(deviceIdIdx), m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx), m_pointerGenerator?.GetNetworkOnDevice(deviceIdIdx));
         }
 
+        private string GenerateCacheKey(List<List<string>> strs)
+        {
+            List<string> r = new List<string>();
+
+            foreach (var str in strs)
+            {
+                r.Add(string.Join(" ", str));
+            }
+
+            return string.Join("\t", r);
+        }
+
+
         /// <summary>
         /// Run forward part on given single device
         /// </summary>
@@ -135,7 +156,26 @@ namespace Seq2SeqSharp
                 throw new InvalidDataException($"The source sentence is too long. Its length = '{srcSnts[0].Count}', but MaxTrainSrcSentLength is '{m_options.MaxTrainSrcSentLength}'. The sentence is '{string.Join(" ", srcSnts[0])}'");
             }
 
-            IWeightTensor encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcTokensList, originalSrcLengths);
+            IWeightTensor encOutput;
+            if (!isTraining && (m_options.ProcessorType == ProcessorTypeEnums.CPU))
+            {
+                // Try to get src tensor from cache
+                string cacheKey = GenerateCacheKey(srcSnts);
+                if (!m_memoryCache.TryGetValue(cacheKey, out encOutput))
+                {
+                    encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcTokensList, originalSrcLengths);
+
+                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSize(1);
+                    m_memoryCache.Set(cacheKey, encOutput.CopyWeightsRef($"cache_{encOutput.Name}"), cacheEntryOptions);
+                }
+
+
+            }
+            else
+            {
+                // Compute src tensor
+                encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcTokensList, originalSrcLengths);
+            }
 
             List<NetworkResult> nrs = new List<NetworkResult>();
 
