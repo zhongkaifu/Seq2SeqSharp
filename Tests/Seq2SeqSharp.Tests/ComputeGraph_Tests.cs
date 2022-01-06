@@ -33,7 +33,7 @@ public class ComputeGraph_Tests
     public void TestSeq2SeqInference()
     {
         var opts = new Seq2SeqOptions();
-        opts.ModelFilePath = "data\\seq2seq_mt_enu_chs_tiny_test.model";
+        opts.ModelFilePath = "seq2seq_mt_enu_chs_tiny_test.model";
         opts.MaxTestSrcSentLength = 110;
         opts.MaxTestTgtSentLength = 110;
         opts.ProcessorType = ProcessorTypeEnums.CPU;
