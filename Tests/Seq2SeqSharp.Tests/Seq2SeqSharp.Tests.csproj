@@ -18,4 +18,10 @@
     <ProjectReference Include="..\..\Seq2SeqSharp\Seq2SeqSharp.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="data\seq2seq_mt_enu_chs_tiny_test.model">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

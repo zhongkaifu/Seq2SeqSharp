@@ -1,5 +1,9 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Seq2SeqSharp.Applications;
+using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Tools;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Seq2SeqSharp.Tests;
 
@@ -22,5 +26,42 @@ public class ComputeGraph_Tests
 
         Assert.IsTrue(v == 3.0f);
 
+    }
+
+    [TestMethod]
+    [DeploymentItem("data\\seq2seq_mt_enu_chs_tiny_test.model")]
+    public void TestSeq2SeqInference()
+    {
+        var opts = new Seq2SeqOptions();
+        opts.ModelFilePath = "data\\seq2seq_mt_enu_chs_tiny_test.model";
+        opts.MaxTestSrcSentLength = 110;
+        opts.MaxTestTgtSentLength = 110;
+        opts.ProcessorType = ProcessorTypeEnums.CPU;
+        opts.DeviceIds = "0";
+
+        var seq2seq = new Seq2Seq(opts);
+        DecodingOptions decodingOptions = opts.CreateDecodingOptions();
+
+        List<List<List<string>>> groupBatchTokens = BuildInputGroupBatchTokens("▁yes , ▁solutions ▁do ▁exist .");
+        var nrs = seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, null, decodingOptions);
+        var out_tokens = nrs[0].Output[0][0];
+        var output = string.Join(" ", out_tokens);
+        Assert.IsTrue(output == "<s> ▁是的 , 解决方案 存在 。 </s>");
+
+
+        groupBatchTokens = BuildInputGroupBatchTokens("▁a ▁question ▁of ▁climate .");
+        nrs = seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, null, decodingOptions);
+        out_tokens = nrs[0].Output[0][0];
+        output = string.Join(" ", out_tokens);
+        Assert.IsTrue(output == "<s> ▁ 气候 问题 。 </s>");
+
+    }
+
+    private static List<List<List<string>>> BuildInputGroupBatchTokens(string input)
+    {
+        var tokens = input.Split(' ').ToList();
+        var batchTokens = new List<List<string>> { tokens };
+        var groupBatchTokens = new List<List<List<string>>> { batchTokens };
+        return groupBatchTokens;
     }
 }
