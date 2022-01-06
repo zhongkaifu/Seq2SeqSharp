@@ -29,7 +29,7 @@ public class ComputeGraph_Tests
     }
 
     [TestMethod]
-    [DeploymentItem("data\\seq2seq_mt_enu_chs_tiny_test.model")]
+    [DeploymentItem("seq2seq_mt_enu_chs_tiny_test.model")]
     public void TestSeq2SeqInference()
     {
         var opts = new Seq2SeqOptions();
