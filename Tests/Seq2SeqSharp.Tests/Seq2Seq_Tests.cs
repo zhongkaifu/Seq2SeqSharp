@@ -87,6 +87,30 @@ public class Seq2Seq_Tests
 
     static double lastEpochAvgCost = 1000000.0;
 
+
+    [TestMethod]
+    public void TestSeq2SeqBuildSharedVocabs()
+    {
+        // Build configs for training
+        Seq2SeqOptions opts = CreateOptions(trainFolderPath, validFolderPath);
+
+        // Load training corpus
+        var trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize, maxSrcSentLength: opts.MaxTrainSrcSentLength, maxTgtSentLength: opts.MaxTrainTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence);
+
+        // Build vocabularies for training
+        (var srcVocab, var tgtVocab) = trainCorpus.BuildVocabs(opts.SrcVocabSize, opts.TgtVocabSize, sharedVocab: true);
+
+        Assert.IsTrue(srcVocab.Count == tgtVocab.Count);
+
+        var srcTokens = srcVocab.GetAllTokens();
+        var tgtTokens = tgtVocab.GetAllTokens();
+
+        for (int i = 0; i < srcTokens.Count; i++)
+        {
+            Assert.IsTrue(srcTokens[i] == tgtTokens[i]);
+        }
+    }
+
     [TestMethod]
     public void TestSeq2SeqTraining()
     {

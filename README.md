@@ -1,5 +1,6 @@
 ﻿Donate a beverage to help me to keep Seq2SeqSharp up to date :) [![Support via PayPal](https://www.paypalobjects.com/en_GB/i/btn/btn_donate_SM.gif)](https://www.paypal.me/fuzhongkai/)
 
+[![.NET](https://github.com/zhongkaifu/Seq2SeqSharp/actions/workflows/dotnet.yml/badge.svg)](https://github.com/zhongkaifu/Seq2SeqSharp/actions/workflows/dotnet.yml)
 # Seq2SeqSharp  
 Seq2SeqSharp is a tensor based fast & flexible encoder-decoder deep neural network framework written by .NET (C#). It can be used for sequence-to-sequence task, sequence-labeling task and sequence-classification task and other NLP tasks. Seq2SeqSharp supports both CPUs and GPUs. It's powered by .NET core, so Seq2SeqSharp can run on both Windows and Linux without any modification and recompilation.  
 
