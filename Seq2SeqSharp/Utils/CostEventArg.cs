@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Seq2SeqSharp.Metrics;
+using System;
+using System.Collections.Generic;
 
 namespace Seq2SeqSharp
 {
@@ -23,5 +25,7 @@ namespace Seq2SeqSharp
         public string Message;
         public ConsoleColor Color;
         public string Title;
+        public List<IMetric> Metrics;
+        public bool BetterModel;
     }
 }

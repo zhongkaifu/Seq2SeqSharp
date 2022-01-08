@@ -18,12 +18,11 @@ namespace Seq2SeqSharp.Tools
         float LearningRateFactor { get; set; }
 
         float GetWeightAt(long[] indices);
+        float GetGradientAt(long[] indices);
+
         void SetWeightAt(float val, long[] indices);
-        void SetGradientAt(float val, long[] indices);
 
         void CopyWeightsToGradients(IWeightTensor src);
-
-        void SetWeightAtRow(int row, float[] val);
 
         List<int> GetTopNMaxWeightIdx(int topN);
 
@@ -44,7 +43,6 @@ namespace Seq2SeqSharp.Tools
 
         void UnbindFromComputeGraph();
 
-        bool IsWeightNull();
         bool IsGradientNull();
 
         IAllocator Allocator { get; }

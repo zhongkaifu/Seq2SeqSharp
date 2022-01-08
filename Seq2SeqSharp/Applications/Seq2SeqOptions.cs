@@ -20,7 +20,7 @@ namespace Seq2SeqSharp
         public DecoderTypeEnums DecoderType = DecoderTypeEnums.Transformer;
 
         [Arg("Apply coverage model in decoder", nameof(EnableCoverageModel))]
-        public bool EnableCoverageModel = true;
+        public bool EnableCoverageModel = false;
 
         [Arg("It indicates if the decoder is trainable", nameof(IsDecoderTrainable))]
         public bool IsDecoderTrainable = true;

@@ -84,6 +84,7 @@ namespace Seq2SeqSharp.Tools
     {
         public event EventHandler StatusUpdateWatcher;
         public event EventHandler EvaluationWatcher;
+        public event EventHandler EpochEndWatcher;
 
         private readonly int[] m_deviceIds;
         internal T m_modelMetaData;
@@ -324,6 +325,7 @@ namespace Seq2SeqSharp.Tools
             long tgtWordCntsInTotal = 0;
             double avgCostPerWordInTotal = 0.0;
             int updatesInOneEpoch = 0;
+            float lr = 0.0f;
 
             Logger.WriteLine($"Start to process training corpus.");
             List<ISntPairBatch> sntPairBatchs = new List<ISntPairBatch>();
@@ -352,7 +354,7 @@ namespace Seq2SeqSharp.Tools
                             SumGradientsToTensorsInDefaultDevice();
 
                             //Optmize parameters
-                            float lr = learningRate.GetCurrentLearningRate();
+                            lr = learningRate.GetCurrentLearningRate();
                             List<IWeightTensor> models = GetParametersFromDefaultDevice();
 
                             m_weightsUpdateCount++;
@@ -462,6 +464,21 @@ namespace Seq2SeqSharp.Tools
 
             Logger.WriteLine(Logger.Level.info, ConsoleColor.Green, $"Epoch '{ep}' took '{DateTime.Now - startDateTime}' time to finish. AvgCost = {avgCostPerWordInTotal:F6}, AvgCostInLastEpoch = {m_avgCostPerWordInTotalInLastEpoch:F6}");
             m_avgCostPerWordInTotalInLastEpoch = avgCostPerWordInTotal;
+
+            if (EpochEndWatcher != null)
+            {
+                EpochEndWatcher(this, new CostEventArg()
+                {
+                    LearningRate = lr,
+                    AvgCostInTotal = avgCostPerWordInTotal,
+                    Epoch = ep,
+                    Update = m_weightsUpdateCount,
+                    ProcessedSentencesInTotal = processedLineInTotal,
+                    ProcessedWordsInTotal = srcWordCntsInTotal + tgtWordCntsInTotal,
+                    StartDateTime = startDateTime
+                });
+
+            }
         }
 
         private int TryToSplitBatchFactor(List<ISntPairBatch> sntPairBatchs, int batchSplitFactor, string message)
@@ -870,11 +887,13 @@ namespace Seq2SeqSharp.Tools
             if (taskId2metrics.Count > 0)
             {
                 StringBuilder sb = new StringBuilder();
+                List<IMetric> metricList = new List<IMetric>();
 
                 foreach (var pair in taskId2metrics) // Run metrics for each task
                 {
                     int taskId = pair.Key;
                     List<IMetric> metrics = pair.Value;
+                    metricList.AddRange(metrics);
 
                     sb.AppendLine($"Metrics result on task '{taskId}' on data set '{prefixName}':");
                     foreach (IMetric metric in metrics)
@@ -902,8 +921,10 @@ namespace Seq2SeqSharp.Tools
                     {
                         Title = $"Evaluation result for model '{m_modelFilePath}' on test set '{prefixName}'",
                         Message = sb.ToString(),
+                        Metrics = metricList,
+                        BetterModel = betterModel,
                         Color = ConsoleColor.Green
-                    }); ;
+                    });
                 }
             }
 

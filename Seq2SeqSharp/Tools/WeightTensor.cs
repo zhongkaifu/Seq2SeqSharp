@@ -233,20 +233,14 @@ namespace Seq2SeqSharp.Tools
             return TWeight.GetElementAsFloat(indices);
         }
 
+        public float GetGradientAt(long[] indices)
+        {
+            return TGradient.GetElementAsFloat(indices);
+        }
+
         public void SetWeightAt(float val, long[] indices)
         {
             TWeight.SetElementAsFloat(val, indices);
-        }
-
-
-        public void SetGradientAt(float val, long[] indices)
-        {
-            TGradient.SetElementAsFloat(val, indices);
-        }
-
-        public void SetWeightAtRow(int row, float[] val)
-        {
-            TWeight.SetElementsAsFloat(val, row, 0);
         }
 
         public void CopyWeightsToGradients(IWeightTensor src)
@@ -289,12 +283,6 @@ namespace Seq2SeqSharp.Tools
             return TWeight.GetElementsAsFloat(Rows * Columns);
         }
 
-        public float[] ToGradientArray()
-        {
-            return TGradient.GetElementsAsFloat(Rows * Columns);
-        }
-
-
         public void AddSoftmaxGradient(WeightTensor src, bool inPlace = false)
         {
             if (m_TGradient == null)
@@ -302,8 +290,6 @@ namespace Seq2SeqSharp.Tools
                 m_allocator = TensorAllocator.Allocator(DeviceId);
                 m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
                 Ops.SoftmaxGrad(m_TGradient, src.TGradient, src.TWeight, false);
-
-            //    releasedGradient = false;
 
                 m_GradientSetName = "AddSoftmaxGradient";
             }
@@ -321,8 +307,6 @@ namespace Seq2SeqSharp.Tools
                 m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
                 Ops.Copy(m_TGradient, src.TGradient);
 
-             //   releasedGradient = false;
-
                 m_GradientSetName = "CopyOrAddGradient_WeightTensor";
             }
             else
@@ -339,8 +323,6 @@ namespace Seq2SeqSharp.Tools
                 m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
                 Ops.Copy(m_TGradient, src);
 
-             //   releasedGradient = false;
-
                 m_GradientSetName = $"CopyOrAddGradient_Tensor_CalledBy_{callerName}";
             }
             else
@@ -356,8 +338,6 @@ namespace Seq2SeqSharp.Tools
                 m_allocator = TensorAllocator.Allocator(DeviceId);
                 m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
                 Ops.Mul(m_TGradient, w, g);
-
-             //   releasedGradient = false;
 
                 m_GradientSetName = "AddMulGrdient";
             }
@@ -382,8 +362,6 @@ namespace Seq2SeqSharp.Tools
                 m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
                 Ops.SigmoidD(m_TGradient, src.TWeight, src.TGradient);
 
-             //   releasedGradient = false;
-
                 m_GradientSetName = "AddSigmoidGradient";
             }
             else
@@ -401,8 +379,6 @@ namespace Seq2SeqSharp.Tools
                 m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
 
                 Ops.TanhD(m_TGradient, src.TWeight, src.TGradient);
-
-            //    releasedGradient = false;
 
                 m_GradientSetName = "AddTanhGradient";
             }
@@ -430,11 +406,6 @@ namespace Seq2SeqSharp.Tools
             TWeight.SetElementsAsFloat(v);
         }
 
-        public void SetGradientArray(float[] v)
-        {
-            TGradient.SetElementsAsFloat(v);
-        }
-
         public WeightTensor CopyWeightsRef(string name)
         {
             WeightTensor result = new WeightTensor(Sizes, DeviceId, name)
@@ -449,11 +420,6 @@ namespace Seq2SeqSharp.Tools
         {
             ReleaseWeight();
             ReleaseGradient();
-        }
-
-        public bool IsWeightNull()
-        {
-            return m_TWeight == null;
         }
 
         public bool IsGradientNull()
@@ -477,7 +443,6 @@ namespace Seq2SeqSharp.Tools
             {
                 m_TGradient.Dispose();
                 m_TGradient = null;
-            //    releasedGradient = true;
             }
         }
 
@@ -499,14 +464,7 @@ namespace Seq2SeqSharp.Tools
 
         public List<IWeightTensor> GetParams()
         {
-            //if (IsTrainable)
-            //{
-                return new List<IWeightTensor>() { this };
-            //}
-            //else
-            //{
-            //    return new List<IWeightTensor>();
-            //}
+            return new List<IWeightTensor>() { this };
         }
     }
 }
