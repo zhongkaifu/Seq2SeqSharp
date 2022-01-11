@@ -1,0 +1,1 @@
+﻿To use SentencePiece models, please copy "\Seq2SeqSharp\dll\win_x64\sentencepiece.dll" (Windows) or "C:\Seq2SeqSharp\dll\linux\libsentencepiece.so" to "bin" folder.

@@ -111,6 +111,36 @@ public class Seq2Seq_Tests
         }
     }
 
+
+    [TestMethod]
+    public void TestSeq2SeqCorpusPrefixSuffix()
+    {
+        // Build configs for training
+        Seq2SeqOptions opts = CreateOptions(trainFolderPath, validFolderPath);
+
+        // Load training corpus
+        var trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize, maxSrcSentLength: opts.MaxTrainSrcSentLength, maxTgtSentLength: opts.MaxTrainTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence);
+
+        foreach (var batch in trainCorpus)
+        {
+            var srcBatch = batch.GetSrcTokens(0);
+            foreach (var srcTokens in srcBatch)
+            {
+                Assert.IsTrue(srcTokens[0] == BuildInTokens.BOS);
+                Assert.IsTrue(srcTokens[srcTokens.Count - 1] == BuildInTokens.EOS);
+            }
+
+            var tgtBatch = batch.GetTgtTokens(0);
+            foreach (var tgtTokens in tgtBatch)
+            {
+                Assert.IsTrue(tgtTokens[0] == BuildInTokens.BOS);
+                Assert.IsTrue(tgtTokens[tgtTokens.Count - 1] == BuildInTokens.EOS);
+            }
+        }
+
+    }
+
+
     [TestMethod]
     public void TestSeq2SeqTraining()
     {
