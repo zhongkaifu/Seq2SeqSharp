@@ -26,14 +26,15 @@ __global__ void gather_kernel(
     unsigned __int64 srcOffset = 0;
     unsigned __int64 indexOffset = 0;
 
+    unsigned __int64 linearId2 = linearId;
     for (int d = index.dims - 1; d >= 0; d--) {
-      unsigned __int64 curDimIndex = linearId % index.sizes[d];
+      unsigned __int64 curDimIndex = linearId2 % index.sizes[d];
       indexOffset += curDimIndex * index.strides[d];
       tensorOffset += curDimIndex * tensor.strides[d];
       if (d != dim) {
         srcOffset += curDimIndex * src.strides[d];
       }
-      linearId /= index.sizes[d];
+      linearId2 /= index.sizes[d];
     }
 
     unsigned __int64 indexValue = (unsigned __int64)index.data[indexOffset];
@@ -58,14 +59,15 @@ __global__ void scatter_kernel(
     unsigned __int64 srcOffset = 0;
     unsigned __int64 indexOffset = 0;
 
+    unsigned __int64 linearId2 = linearId;
     for (int d = index.dims - 1; d >= 0; d--) {
-      unsigned __int64 curDimIndex = linearId % index.sizes[d];
+      unsigned __int64 curDimIndex = linearId2 % index.sizes[d];
       indexOffset += curDimIndex * index.strides[d];
       srcOffset += curDimIndex * src.strides[d];
       if (d != dim) {
         tensorOffset += curDimIndex * tensor.strides[d];
       }
-      linearId /= index.sizes[d];
+      linearId2 /= index.sizes[d];
     }
 
     unsigned __int64 indexValue = (unsigned __int64)index.data[indexOffset];
@@ -89,13 +91,14 @@ __global__ void scatterFill_kernel(
     unsigned __int64 tensorOffset = 0;
     unsigned __int64 indexOffset = 0;
 
+    unsigned __int64 linearId2 = linearId;
     for (int d = index.dims - 1; d >= 0; d--) {
-      unsigned __int64 curDimIndex = linearId % index.sizes[d];
+      unsigned __int64 curDimIndex = linearId2 % index.sizes[d];
       indexOffset += curDimIndex * index.strides[d];
       if (d != dim) {
         tensorOffset += curDimIndex * tensor.strides[d];
       }
-      linearId /= index.sizes[d];
+      linearId2 /= index.sizes[d];
     }
 
     unsigned __int64 indexValue = (unsigned __int64)index.data[indexOffset];
