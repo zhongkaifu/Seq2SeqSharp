@@ -22,17 +22,17 @@ namespace Seq2SeqSharp
             return g.LayerNorm(input, m_alpha, m_beta, 1e-06f);
         }
 
-        /// <summary>
-        /// LayerNorm (input1 + input2)
-        /// </summary>
-        /// <param name="input1"></param>
-        /// <param name="input2"></param>
-        /// <param name="g"></param>
-        /// <returns></returns>
-        public IWeightTensor AddNorm(IWeightTensor input1, IWeightTensor input2, IComputeGraph g)
-        {
-            return g.AddLayerNorm(input1, input2, m_alpha, m_beta);
-        }
+        ///// <summary>
+        ///// LayerNorm (input1 + input2)
+        ///// </summary>
+        ///// <param name="input1"></param>
+        ///// <param name="input2"></param>
+        ///// <param name="g"></param>
+        ///// <returns></returns>
+        //public IWeightTensor AddNorm(IWeightTensor input1, IWeightTensor input2, IComputeGraph g)
+        //{
+        //    return g.AddLayerNorm(input1, input2, m_alpha, m_beta);
+        //}
 
         public virtual List<IWeightTensor> GetParams()
         {

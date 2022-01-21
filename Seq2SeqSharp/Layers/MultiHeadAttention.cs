@@ -97,7 +97,7 @@ namespace Seq2SeqSharp
 
             if (keyMask != null)
             {
-                attn = g.Add(attn, keyMask, runGradient1: true, runGradient2: false, inPlace: true);
+                attn = g.Add(attn, keyMask, inPlace: true);
             }
 
             var attnProbs = g.Softmax(attn, inPlace: true);
@@ -106,8 +106,8 @@ namespace Seq2SeqSharp
             if (outputAttenWeights)
             {
                 //Merge all attention probs over multi-heads
-                sumAttnWeights = graph.Sum(attnProbs, 1, runGradient: false);
-                sumAttnWeights = graph.View(sumAttnWeights, false, new long[] { batchSize, seqLenQ, seqLenQ });
+                sumAttnWeights = graph.Sum(attnProbs, 1);
+                sumAttnWeights = graph.View(sumAttnWeights, new long[] { batchSize, seqLenQ, seqLenQ });
             }
 
             attnProbs = g.View(attnProbs, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenQ });
@@ -171,7 +171,7 @@ namespace Seq2SeqSharp
                 if (cachedTensors.ContainsKey(KsCacheName) == false)
                 {
                     Ks = g.View(g.AsContiguous(g.Transpose(g.Transpose(allK, 1, 2), 2, 3)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenK });
-                    cachedTensors.Add(KsCacheName, Ks.CopyWeightsRef(KsCacheName));
+                    cachedTensors.Add(KsCacheName, Ks.CopyWeightsRef(KsCacheName, Ks.NeedGradient));
                 }
                 else
                 {
@@ -181,7 +181,7 @@ namespace Seq2SeqSharp
                 if (cachedTensors.ContainsKey(VsCacheName) == false)
                 {
                     Vs = g.View(g.AsContiguous(g.Transpose(allV, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenV, m_d });
-                    cachedTensors.Add(VsCacheName, Vs.CopyWeightsRef(VsCacheName));
+                    cachedTensors.Add(VsCacheName, Vs.CopyWeightsRef(VsCacheName, Vs.NeedGradient));
                 }
                 else
                 {
@@ -197,7 +197,7 @@ namespace Seq2SeqSharp
 
             if (keyMask != null)
             {
-                attn = g.Add(attn, keyMask, runGradient1: true, runGradient2: false, inPlace: true);
+                attn = g.Add(attn, keyMask, inPlace: true);
             }
 
             var attnProbs = g.Softmax(attn, inPlace: true);
@@ -208,7 +208,7 @@ namespace Seq2SeqSharp
                 //Merge all attention probs over multi-heads
                 sumAttnWeights = g.Sum(attnProbs, 1);
                 sumAttnWeights = graph.Mul(sumAttnWeights, 1.0f / (float)m_multiHeadNum);
-                sumAttnWeights = graph.View(sumAttnWeights, true, new long[] { batchSize * seqLenQ, seqLenK });
+                sumAttnWeights = graph.View(sumAttnWeights, new long[] { batchSize * seqLenQ, seqLenK });
             }
 
             attnProbs = g.View(attnProbs, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenK });

@@ -99,13 +99,13 @@ namespace Seq2SeqSharp
                 IWeightTensor selfMaskTensor = null;
                 if (tgtSelfMask != null)
                 {
-                    selfMaskTensor = subg.Expand(tgtSelfMask, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ });
+                    selfMaskTensor = subg.Expand(tgtSelfMask, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ });
                 }
 
                 IWeightTensor crossMaskTensor = null;
                 if (srcTgtMask != null)
                 {
-                    crossMaskTensor = subg.Expand(srcTgtMask, runGradient: false, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK });
+                    crossMaskTensor = subg.Expand(srcTgtMask, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK });
                 }
 
                 for (int k = 0; k < m_selfAttns.Count; k++)

@@ -18,8 +18,8 @@ namespace Seq2SeqSharp.Tests;
 [DeploymentItem("train.chs.snt")]
 public class Seq2Seq_Tests
 {
-    private string trainFolderPath = null;
-    private string validFolderPath = null;
+    private string trainFolderPath = String.Empty;
+    private string validFolderPath = String.Empty;
 
     [TestInitialize]
     public void TestInitialize()

@@ -11,20 +11,20 @@ namespace Seq2SeqSharp
         IWeightTensor MulBatch(IWeightTensor m1, IWeightTensor m2, float alpha = 1.0f);
         IWeightTensor Mul(IWeightTensor w1, IWeightTensor w2, float alpha = 1.0f);
         IWeightTensor EltMul(IWeightTensor w1, IWeightTensor w2);
-        IWeightTensor Add(IWeightTensor w1, IWeightTensor w2, bool runGradient1 = true, bool runGradient2 = true, bool inPlace = false);
-        IWeightTensor Add(IWeightTensor w1, float v, bool runGradient = true);
+        IWeightTensor Add(IWeightTensor w1, IWeightTensor w2, bool inPlace = false);
+        IWeightTensor Add(IWeightTensor w1, float v);
         IWeightTensor Tanh(IWeightTensor w);
         IWeightTensor Sigmoid(IWeightTensor w);
         IWeightTensor Relu(IWeightTensor w, bool inPlace = false);
         IWeightTensor Affine(IWeightTensor m1, IWeightTensor m2, IWeightTensor mbias, float alpha = 1.0f);
-        IWeightTensor EltMulMulAdd(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3, IWeightTensor w4, bool runGraident = true);
+        IWeightTensor EltMulMulAdd(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3, IWeightTensor w4);
         IWeightTensor TransposeBatch(IWeightTensor m, int batchSize);
-        IWeightTensor AsContiguous(IWeightTensor w, bool runGradient = true, bool shareTensor = true);
-        IWeightTensor View(IWeightTensor w, bool runGradient = true, params long[] dims);
-        IWeightTensor Expand(IWeightTensor w, bool runGradient = true, params long[] dims);
+        IWeightTensor AsContiguous(IWeightTensor w, bool shareTensor = true);
+        IWeightTensor View(IWeightTensor w, params long[] dims);
+        IWeightTensor Expand(IWeightTensor w, params long[] dims);
         IWeightTensor AddTanh(IWeightTensor w1, IWeightTensor w2);
         IWeightTensor AddTanh(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3);
-        IWeightTensor Peek(IWeightTensor w, int dim, int ix, int num = 1, bool runGradients = true);
+        IWeightTensor Peek(IWeightTensor w, int dim, int ix, int num = 1);
         IWeightTensor Dropout(IWeightTensor V, int batchSize, float drop_prob, bool inPlace = false);
         IWeightTensor Softmax(IWeightTensor w, bool runGradients = true, bool inPlace = false);
         List<IWeightTensor> SplitColumns2(IWeightTensor w, params int[] sizes);
@@ -35,9 +35,9 @@ namespace Seq2SeqSharp
         IWeightTensor Concate(int dim, params IWeightTensor[] wl);
         
         IWeightTensor Transpose(IWeightTensor w);
-        IWeightTensor Mul(IWeightTensor w, float v, bool inPlace = false, bool runGradient = true);
+        IWeightTensor Mul(IWeightTensor w, float v, bool inPlace = false);
         IWeightTensor LayerNorm(IWeightTensor src, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-9f);
-        IWeightTensor AddLayerNorm(IWeightTensor src1, IWeightTensor src2, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-09f);
+        //IWeightTensor AddLayerNorm(IWeightTensor src1, IWeightTensor src2, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-09f);
 
         IWeightTensor Select(IWeightTensor src, int dim, int index);
         void Backward();
@@ -57,9 +57,9 @@ namespace Seq2SeqSharp
 
 
         IWeightTensor Gather(IWeightTensor src, IWeightTensor indices, int dim);
-        IWeightTensor Scatter(IWeightTensor source, IWeightTensor indices, int dim, bool runGradient = true, params long[] shape);
+        IWeightTensor Scatter(IWeightTensor source, IWeightTensor indices, int dim, params long[] shape);
         IWeightTensor Scatter(IWeightTensor indices, float val, int dim, bool runGradient = true, params long[] shape);
-        IWeightTensor Sub(float v, IWeightTensor w1, bool runGradient = true);
+        IWeightTensor Sub(float v, IWeightTensor w1);
 
         #region Operations for masking
         IWeightTensor BuildSrcTgtMask(int srcPaddedLength, int tgtPaddedLength, float[] tgtOriginalLengths, float[] srcOriginalLengths);
@@ -73,10 +73,11 @@ namespace Seq2SeqSharp
 
         IWeightTensor BuildFeatureMask(int paddedLength, List<int> appliedLengths, int dim);
 
-        IWeightTensor Sum(IWeightTensor w, int dim, bool runGradient = true);
+        IWeightTensor Sum(IWeightTensor w, int dim);
         IWeightTensor Log(IWeightTensor w);
 
         IWeightTensor Rsqrt(IWeightTensor w);
 
+        (IWeightTensor, float) Softmax_Cross_Entropy_Loss(IWeightTensor ffLayer, IWeightTensor truthTgtSeqs, bool inPlace = false);
     }
 }

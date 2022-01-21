@@ -37,60 +37,66 @@ namespace TensorSharp.Cpu
         [RegisterOpStorageType("addmm", typeof(CpuStorage))]
         public static Tensor Addmm(Tensor result, float beta, Tensor src, float alpha, Tensor m1, Tensor m2)
         {
-            //Console.WriteLine($"src0 = {src.Sizes[0]}, src1 = {src.Sizes[1]}, m1_0 = {m1.Sizes[0]}, m1_1 = {m1.Sizes[1]}, m2_0 = {m2.Sizes[0]}, m2_1 = {m2.Sizes[1]}");
-
-            if (src.ElementType != m1.ElementType || src.ElementType != m2.ElementType || (result != null && result.ElementType != src.ElementType))
+            try
             {
-                throw new InvalidOperationException("All tensors must have the same element type");
-            }
+                if (src.ElementType != m1.ElementType || src.ElementType != m2.ElementType || (result != null && result.ElementType != src.ElementType))
+                {
+                    throw new InvalidOperationException("All tensors must have the same element type");
+                }
 
-            if (result != null && !(result.Storage is CpuStorage))
+                if (result != null && !(result.Storage is CpuStorage))
+                {
+                    throw new ArgumentException("result must be a CPU tensor", nameof(result));
+                }
+
+                if (!(m1.Storage is CpuStorage))
+                {
+                    throw new ArgumentException("m1 must be a CPU tensor", nameof(m1));
+                }
+
+                if (!(m2.Storage is CpuStorage))
+                {
+                    throw new ArgumentException("m2 must be a CPU tensor", nameof(m2));
+                }
+
+                if (src.DimensionCount != 2)
+                {
+                    throw new ArgumentException("src must be a matrix", nameof(src));
+                }
+
+                if (m1.DimensionCount != 2)
+                {
+                    throw new ArgumentException("m1 must be a matrix", nameof(m1));
+                }
+
+                if (m2.DimensionCount != 2)
+                {
+                    throw new ArgumentException("m2 must be a matrix", nameof(m2));
+                }
+
+                if (src.Sizes[0] != m1.Sizes[0] || src.Sizes[1] != m2.Sizes[1] || m1.Sizes[1] != m2.Sizes[0])
+                {
+                    throw new InvalidOperationException("Size mismatch");
+                }
+
+                Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
+
+                if (writeTarget != src)
+                {
+                    Ops.Copy(writeTarget, src);
+                }
+
+
+                MatrixMultiplication.Gemm(alpha, m1, m2, beta, writeTarget);
+
+
+                return writeTarget;
+            }
+            catch (Exception err)
             {
-                throw new ArgumentException("result must be a CPU tensor", nameof(result));
+                Logger.WriteLine(Logger.Level.err, $"Exception = '{err.Message}', Call stack = '{err.StackTrace}'");
+                throw;
             }
-
-            if (!(m1.Storage is CpuStorage))
-            {
-                throw new ArgumentException("m1 must be a CPU tensor", nameof(m1));
-            }
-
-            if (!(m2.Storage is CpuStorage))
-            {
-                throw new ArgumentException("m2 must be a CPU tensor", nameof(m2));
-            }
-
-            if (src.DimensionCount != 2)
-            {
-                throw new ArgumentException("src must be a matrix", nameof(src));
-            }
-
-            if (m1.DimensionCount != 2)
-            {
-                throw new ArgumentException("m1 must be a matrix", nameof(m1));
-            }
-
-            if (m2.DimensionCount != 2)
-            {
-                throw new ArgumentException("m2 must be a matrix", nameof(m2));
-            }
-
-            if (src.Sizes[0] != m1.Sizes[0] || src.Sizes[1] != m2.Sizes[1] || m1.Sizes[1] != m2.Sizes[0])
-            {
-                throw new InvalidOperationException("Size mismatch");
-            }
-
-            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
-
-            if (writeTarget != src)
-            {
-                Ops.Copy(writeTarget, src);
-            }
-
-
-            MatrixMultiplication.Gemm(alpha, m1, m2, beta, writeTarget);
-
-
-            return writeTarget;
         }
 
         [RegisterOpStorageType("addmmbatch", typeof(CpuStorage))]

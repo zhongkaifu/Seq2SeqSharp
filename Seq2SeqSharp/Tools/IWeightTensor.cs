@@ -13,6 +13,8 @@ namespace Seq2SeqSharp.Tools
 
         bool IsTrainable { get; set; }
 
+        bool NeedGradient { get; set; }
+
         int DeviceId { get; set; }
 
         float LearningRateFactor { get; set; }
@@ -34,7 +36,7 @@ namespace Seq2SeqSharp.Tools
         void ZeroGradient();
         void CleanWeight();
 
-        WeightTensor CopyWeightsRef(string name);
+        WeightTensor CopyWeightsRef(string name, bool needGradient);
 
         void CopyWeightsFrom(IWeightTensor src);
         void AddGradientFrom(IWeightTensor src);

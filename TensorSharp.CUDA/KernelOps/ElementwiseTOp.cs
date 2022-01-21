@@ -1,4 +1,5 @@
-﻿using ManagedCuda;
+﻿using AdvUtils;
+using ManagedCuda;
 using ManagedCuda.BasicTypes;
 using System;
 using System.Collections.Generic;
@@ -15,26 +16,34 @@ namespace TensorSharp.CUDA.KernelOps
         {
             ThrowIfAnyTensorInvalid(args);
 
-            cudaContext.SetCurrent();
+            try
+            {
+                cudaContext.SetCurrent();
 
-            CudaDeviceProperties deviceInfo = context.DeviceInfoForContext(cudaContext);
+                CudaDeviceProperties deviceInfo = context.DeviceInfoForContext(cudaContext);
 
-            IEnumerable<Tensor> allTensors = args.OfType<Tensor>();
-            Tensor firstTensor = allTensors.First();
-            long elementCount = firstTensor.ElementCount();
-            ApplySpecialization spec = new ApplySpecialization(allTensors.ToArray());
+                IEnumerable<Tensor> allTensors = args.OfType<Tensor>();
+                Tensor firstTensor = allTensors.First();
+                long elementCount = firstTensor.ElementCount();
+                ApplySpecialization spec = new ApplySpecialization(allTensors.ToArray());
 
-            ConvertTensorArgs.Convert(cudaContext, spec.Use32BitIndices, args);
+                ConvertTensorArgs.Convert(cudaContext, spec.Use32BitIndices, args);
 
-            ManagedCuda.VectorTypes.dim3 block = ApplyUtils.GetApplyBlock();
-            ManagedCuda.VectorTypes.dim3 grid = ApplyUtils.GetApplyGrid(deviceInfo, elementCount);
+                ManagedCuda.VectorTypes.dim3 block = ApplyUtils.GetApplyBlock();
+                ManagedCuda.VectorTypes.dim3 grid = ApplyUtils.GetApplyGrid(deviceInfo, elementCount);
 
-            string fullKernelName = PermutationGenerator.GetMangledName(baseName, spec);
-            CudaKernel kernel = context.KernelCache.Get(cudaContext, ptx, fullKernelName);
+                string fullKernelName = PermutationGenerator.GetMangledName(baseName, spec);
+                CudaKernel kernel = context.KernelCache.Get(cudaContext, ptx, fullKernelName);
 
-            kernel.GridDimensions = grid;
-            kernel.BlockDimensions = block;
-            kernel.RunAsync(CUstream.NullStream, args);
+                kernel.GridDimensions = grid;
+                kernel.BlockDimensions = block;
+                kernel.RunAsync(CUstream.NullStream, args);
+            }
+            catch (Exception ex)
+            {
+                Logger.WriteLine($"Exception message = {ex.Message}, Call stack = {ex.StackTrace}");
+                throw;
+            }
 
         }
 
@@ -226,26 +235,34 @@ namespace TensorSharp.CUDA.KernelOps
     {
         public static Tensor Invoke(CudaCode kernels, string funcName, Tensor result, Tensor lhs, Tensor rhs)
         {
-            TSCudaContext context = CudaHelpers.TSContextForTensor(lhs);
-            CudaContext cudaContext = context.CudaContextForTensor(lhs);
-
-            cudaContext.SetCurrent();
-
-            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, lhs.Sizes);
-            long elementCount = writeTarget.ElementCount();
-
-            byte[] ptx = kernels.GetPtx(context.Compiler);
-
-            if (result == lhs)
+            try
             {
-                ApplyOpInvoke.Invoke(context, cudaContext, ptx, "t1_" + funcName, writeTarget, rhs, elementCount);
-            }
-            else
-            {
-                ApplyOpInvoke.Invoke(context, cudaContext, ptx, "t2_" + funcName, writeTarget, lhs, rhs, elementCount);
-            }
+                TSCudaContext context = CudaHelpers.TSContextForTensor(lhs);
+                CudaContext cudaContext = context.CudaContextForTensor(lhs);
 
-            return writeTarget;
+                cudaContext.SetCurrent();
+
+                Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, lhs.Sizes);
+                long elementCount = writeTarget.ElementCount();
+
+                byte[] ptx = kernels.GetPtx(context.Compiler);
+
+                if (result == lhs)
+                {
+                    ApplyOpInvoke.Invoke(context, cudaContext, ptx, "t1_" + funcName, writeTarget, rhs, elementCount);
+                }
+                else
+                {
+                    ApplyOpInvoke.Invoke(context, cudaContext, ptx, "t2_" + funcName, writeTarget, lhs, rhs, elementCount);
+                }
+
+                return writeTarget;
+            }
+            catch (Exception e)
+            {
+                Logger.WriteLine($"Exception message = '{e.Message}', Call stack = '{e.StackTrace}'");
+                throw;
+            }
         }
     }
 

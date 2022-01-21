@@ -22,13 +22,13 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
     var repeatPenalty = float.Parse(Configuration["Seq2Seq:RepeatPenalty"]);
     var topPSampling = float.Parse(Configuration["Seq2Seq:TopPSampling"]);
 
-    SentencePiece srcSpm = null;
+    SentencePiece? srcSpm = null;
     if (String.IsNullOrEmpty(Configuration["SourceSpm:ModelFilePath"]) == false)
     {
         srcSpm = new SentencePiece(Configuration["SourceSpm:ModelFilePath"]);
     }
 
-    SentencePiece tgtSpm = null;
+    SentencePiece? tgtSpm = null;
     if (String.IsNullOrEmpty(Configuration["TargetSpm:ModelFilePath"]) == false)
     {
         tgtSpm = new SentencePiece(Configuration["TargetSpm:ModelFilePath"]);

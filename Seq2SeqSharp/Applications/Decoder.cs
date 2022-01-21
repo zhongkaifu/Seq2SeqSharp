@@ -192,8 +192,6 @@ namespace Seq2SeqSharp.Applications
             bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, bool pointerGenerator = false, IWeightTensor pointerGeneratorWeights = null, List<List<int>> srcSeqs = null, Dictionary<string, IWeightTensor> cachedTensors = null)
         {
             int eosTokenId = tgtVocab.GetWordIndex(BuildInTokens.EOS, logUnk: true);
-            float cost = 0.0f;
-
             int batchSize = tgtSeqs.Count;
             var tgtOriginalLengths = BuildInTokens.PadSentences(tgtSeqs, eosTokenId);
             int tgtSeqLen = tgtSeqs[0].Count;
@@ -201,19 +199,19 @@ namespace Seq2SeqSharp.Applications
             IWeightTensor srcTgtMask = (shuffleType == ShuffleEnums.NoPadding || batchSize == 1) ? null : g.BuildSrcTgtMask(srcSeqLen, tgtSeqLen, tgtOriginalLengths, srcOriginalLenghts);
             if (srcTgtMask != null)
             {
-                srcTgtMask = g.View(srcTgtMask, false, new long[] { srcTgtMask.Sizes[0], 1, srcTgtMask.Sizes[1], srcTgtMask.Sizes[2] });
+                srcTgtMask = g.View(srcTgtMask, new long[] { srcTgtMask.Sizes[0], 1, srcTgtMask.Sizes[1], srcTgtMask.Sizes[2] });
             }
 
             IWeightTensor tgtSelfTriMask;
             if (shuffleType == ShuffleEnums.NoPadding || shuffleType == ShuffleEnums.NoPaddingInTgt || batchSize == 1)
             {
                 tgtSelfTriMask = g.BuildTriMask(tgtSeqLen, batchSize);
-                tgtSelfTriMask = g.View(tgtSelfTriMask, false, new long[] { 1, 1, tgtSeqLen, tgtSeqLen });
+                tgtSelfTriMask = g.View(tgtSelfTriMask, new long[] { 1, 1, tgtSeqLen, tgtSeqLen });
             }
             else
             {
                 tgtSelfTriMask = g.BuildSelfTriMask(tgtSeqLen, tgtOriginalLengths);
-                tgtSelfTriMask = g.View(tgtSelfTriMask, false, new long[] { batchSize, 1, tgtSeqLen, tgtSeqLen });
+                tgtSelfTriMask = g.View(tgtSelfTriMask, new long[] { batchSize, 1, tgtSeqLen, tgtSeqLen });
             }
 
             IWeightTensor inputEmbs = TensorUtils.CreateTokensEmbeddings(tgtSeqs, g, tgtEmbedding, tgtOriginalLengths, null, null, tgtVocab, scaleFactor: (float)Math.Sqrt(tgtEmbedding.Columns));
@@ -270,31 +268,19 @@ namespace Seq2SeqSharp.Applications
 
                 decOutput = g.IndexSelect(decOutput, decOutputIdx);
             }
-
             IWeightTensor ffLayer = decoderFFLayer.Process(decOutput, batchSize, g);
-            IWeightTensor probs = g.Softmax(ffLayer, runGradients: false, inPlace: true);
 
             if (isTraining)
             {
                 var leftShiftTgtSeqs = g.LeftShiftTokens(tgtSeqs, eosTokenId);
-                var scatterIdxTensor = g.View(leftShiftTgtSeqs, false, new long[] { tgtSeqs.Count * tgtSeqs[0].Count, 1 });
-                var gatherTensor = g.Gather(probs, scatterIdxTensor, 1);
-
-
-                var rnd = new TensorSharp.RandomGenerator();
-                int idx = rnd.NextSeed() % (batchSize * tgtSeqLen);
-                float score = gatherTensor.GetWeightAt(new long[] { idx, 0 });
-                cost += (float)-Math.Log(score + 1e-8f);
-
-                var lossTensor = g.Add(gatherTensor, -1.0f, false);
-                TensorUtils.Scatter(probs, lossTensor, scatterIdxTensor, 1);
-
-                ffLayer.CopyWeightsToGradients(probs);
-
+                (var loss, var cost) = g.Softmax_Cross_Entropy_Loss(ffLayer, leftShiftTgtSeqs, true);
+                ffLayer.CopyWeightsToGradients(loss);
                 return (cost, null);
             }
             else
             {
+                IWeightTensor probs = g.Softmax(ffLayer, runGradients: false, inPlace: true);
+
                 // Transformer decoder with beam search at inference time
                 List<List<BeamSearchStatus>> bssSeqList = new List<List<BeamSearchStatus>>(); //shape: (beam_search_size, batch_size)
                 int beamSearchSize = decodingOptions.BeamSearchSize;

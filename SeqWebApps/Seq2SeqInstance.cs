@@ -12,10 +12,10 @@ namespace Seq2SeqWebApps
 {
     public static class Seq2SeqInstance
     {
-        static private Seq2Seq m_seq2seq;
-        static private SentencePiece m_srcSpm = null;
-        static private SentencePiece m_tgtSpm = null;
-        static private Seq2SeqOptions opts;
+        static private Seq2Seq? m_seq2seq;
+        static private SentencePiece? m_srcSpm = null;
+        static private SentencePiece? m_tgtSpm = null;
+        static private Seq2SeqOptions? opts;
 
 
         static public void Initialization(string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, string deviceIds, SentencePiece srcSpm, SentencePiece tgtSpm,

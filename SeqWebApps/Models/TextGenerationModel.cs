@@ -8,11 +8,11 @@ namespace SeqWebApps.Models
         ///<summary>
         /// Gets or sets Output.
         ///</summary>
-        public string Output { get; set; }
+        public string? Output { get; set; }
 
         ///<summary>
         /// Gets or sets DateTime.
         ///</summary>
-        public string DateTime { get; set; }
+        public string? DateTime { get; set; }
     }
 }

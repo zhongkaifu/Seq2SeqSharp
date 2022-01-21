@@ -14,14 +14,14 @@ namespace Seq2SeqSharp.Utils
             var Column = posEmbedding.Columns;
             int seqLen = inputEmbs.Rows / batchSize;
 
-            using (var posEmbeddingPeek = g.Peek(posEmbedding, 0, 0, seqLen, false))
+            using (var posEmbeddingPeek = g.Peek(posEmbedding, 0, 0, seqLen))
             {
-                using (var posEmbeddingPeekView = g.View(posEmbeddingPeek, runGradient: false, dims: new long[] { 1, seqLen, Column }))
+                using (var posEmbeddingPeekView = g.View(posEmbeddingPeek, dims: new long[] { 1, seqLen, Column }))
                 {
-                    using (var posEmbeddingPeekViewExp = g.Expand(posEmbeddingPeekView, runGradient: false, dims: new long[] { batchSize, seqLen, Column }))
+                    using (var posEmbeddingPeekViewExp = g.Expand(posEmbeddingPeekView, dims: new long[] { batchSize, seqLen, Column }))
                     {
                         inputEmbs = g.View(inputEmbs, dims: new long[] { batchSize, seqLen, Column });
-                        inputEmbs = g.Add(inputEmbs, posEmbeddingPeekViewExp, runGradient1: true, runGradient2: false, inPlace: true);
+                        inputEmbs = g.Add(inputEmbs, posEmbeddingPeekViewExp, inPlace: true);
                         inputEmbs = g.View(inputEmbs, dims: new long[] { batchSize * seqLen, Column });
                     }
                 }
@@ -36,7 +36,7 @@ namespace Seq2SeqSharp.Utils
         {
             Logger.WriteLine($"Building position weights tensor. Row = '{row}', Column = '{column}', DeviceId = '{deviceId}', Name = '{name}', Trainable = '{isTrainable}'");
 
-            WeightTensor t = new WeightTensor(new long[2] { row, column }, deviceId, name: name, isTrainable: isTrainable);
+            WeightTensor t = new WeightTensor(new long[2] { row, column }, deviceId, name: name, isTrainable: isTrainable, needGradient: isTrainable);
             float[] posWeights = new float[row * column];
 
             float numTimescales = (float)column / 2;

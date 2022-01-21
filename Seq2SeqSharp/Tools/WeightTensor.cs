@@ -33,6 +33,8 @@ namespace Seq2SeqSharp.Tools
         public string Name { get; set; }
         public bool IsTrainable { get; set; }
 
+        public bool NeedGradient { get; set; }
+
         public int DeviceId { get; set; }
 
         public float LearningRateFactor { get; set; } = 1.0f;
@@ -101,11 +103,6 @@ namespace Seq2SeqSharp.Tools
         {
             get
             {
-                //if (releasedGradient)
-                //{
-                //    throw new Exception($"The gradient '{Name}' has been released, you cannot access it.");
-                //}
-
                 if (m_TGradient == null)
                 {
                     m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
@@ -139,18 +136,18 @@ namespace Seq2SeqSharp.Tools
                             }
                         }
                     }
-                    //releasedGradient = false;
                 }
             }
         }
 
 
-        public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, NormType normType = NormType.None, bool fanIn = false, bool fanOut = false, float learningRateFactor = 1.0f, IComputeGraph graphToBind = null)
+        public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, NormType normType = NormType.None, bool fanIn = false, bool fanOut = false, float learningRateFactor = 1.0f, IComputeGraph graphToBind = null, bool needGradient = true)
         {
             Name = name;
             DeviceId = deviceId;
             LearningRateFactor = learningRateFactor;
             IsTrainable = isTrainable;
+            NeedGradient = needGradient;
             m_allocator = TensorAllocator.Allocator(DeviceId);
             Sizes = sizes;
             m_fanIn = fanIn;
@@ -186,11 +183,12 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        public WeightTensor(long[] sizes, float c, int deviceId, string name = "", bool isTrainable = false, float learningRateFactor = 1.0f)
+        public WeightTensor(long[] sizes, float c, int deviceId, string name = "", bool isTrainable = false, float learningRateFactor = 1.0f, bool needGradient = true)
         {
             Name = name;
             DeviceId = deviceId;
             IsTrainable = isTrainable;
+            NeedGradient = needGradient;
             LearningRateFactor = learningRateFactor;
             Sizes = sizes;
             m_allocator = TensorAllocator.Allocator(DeviceId);
@@ -215,7 +213,7 @@ namespace Seq2SeqSharp.Tools
 
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
-            return new WeightTensor(Sizes, deviceId, Name, IsTrainable, normType: m_normType, fanIn: m_fanIn, fanOut: m_fanOut);
+            return new WeightTensor(Sizes, deviceId, Name, IsTrainable, normType: m_normType, fanIn: m_fanIn, fanOut: m_fanOut, needGradient: NeedGradient);
         }
 
         public void ZeroGradient()
@@ -406,9 +404,9 @@ namespace Seq2SeqSharp.Tools
             TWeight.SetElementsAsFloat(v);
         }
 
-        public WeightTensor CopyWeightsRef(string name)
+        public WeightTensor CopyWeightsRef(string name, bool needGradient)
         {
-            WeightTensor result = new WeightTensor(Sizes, DeviceId, name)
+            WeightTensor result = new WeightTensor(Sizes, DeviceId, name, needGradient: needGradient)
             {
                 m_TWeight = m_TWeight.CopyRef()
             };
