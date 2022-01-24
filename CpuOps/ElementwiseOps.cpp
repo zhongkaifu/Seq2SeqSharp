@@ -42,7 +42,7 @@ template<typename T> INLINE_FUNC T rdiv_op(T x, T y) { return (T)(y / x); }
 INFIX_TO_FUNC(add_op, +)
 INFIX_TO_FUNC(sub_op, -)
 INFIX_TO_FUNC(mul_op, *)
-INFIX_TO_FUNC(div_op, /)
+//INFIX_TO_FUNC(div_op, /)
 
 INFIX_TO_FUNC(gt_op, >)
 INFIX_TO_FUNC(lt_op, <)
@@ -240,7 +240,7 @@ int EXPORTNAME(TensorRef* result, TensorRef* lhs, float rhs)\
 
 
 DECLARE_T_S_ALL_CPU_TYPES(TS_Sub, sub_op)
-DECLARE_T_S_ALL_CPU_TYPES(TS_Div, div_op)
+//DECLARE_T_S_ALL_CPU_TYPES(TS_Div, div_op)
 DECLARE_T_S_ALL_CPU_TYPES(TS_Rdiv, rdiv_op)
 DECLARE_T_S_ALL_CPU_TYPES(TS_Mod, Mod_op)
 
@@ -266,7 +266,7 @@ int EXPORTNAME(TensorRef* result, TensorRef* lhs, TensorRef* rhs)\
 	API_END()\
 }
 
-DECLARE_T_T_ALL_CPU_TYPES(TS_CDiv, div_op)
+//DECLARE_T_T_ALL_CPU_TYPES(TS_CDiv, div_op)
 DECLARE_T_T_ALL_CPU_TYPES(TS_CMod, Mod_op)
 
 DECLARE_T_T_ALL_CPU_TYPES(TS_gtTensor, gt_op)

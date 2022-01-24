@@ -268,19 +268,19 @@ namespace Seq2SeqSharp.Applications
 
                 decOutput = g.IndexSelect(decOutput, decOutputIdx);
             }
+            
             IWeightTensor ffLayer = decoderFFLayer.Process(decOutput, batchSize, g);
+            IWeightTensor probs = g.Softmax(ffLayer);
 
             if (isTraining)
             {
                 var leftShiftTgtSeqs = g.LeftShiftTokens(tgtSeqs, eosTokenId);
-                (var loss, var cost) = g.Softmax_Cross_Entropy_Loss(ffLayer, leftShiftTgtSeqs, true);
-                ffLayer.CopyWeightsToGradients(loss);
+                var cost = g.Cross_Entropy_Loss(probs, leftShiftTgtSeqs);
+
                 return (cost, null);
             }
             else
             {
-                IWeightTensor probs = g.Softmax(ffLayer, runGradients: false, inPlace: true);
-
                 // Transformer decoder with beam search at inference time
                 List<List<BeamSearchStatus>> bssSeqList = new List<List<BeamSearchStatus>>(); //shape: (beam_search_size, batch_size)
                 int beamSearchSize = decodingOptions.BeamSearchSize;

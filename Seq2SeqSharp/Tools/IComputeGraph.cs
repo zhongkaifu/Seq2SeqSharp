@@ -78,6 +78,8 @@ namespace Seq2SeqSharp
 
         IWeightTensor Rsqrt(IWeightTensor w);
 
-        (IWeightTensor, float) Softmax_Cross_Entropy_Loss(IWeightTensor ffLayer, IWeightTensor truthTgtSeqs, bool inPlace = false);
+        IWeightTensor Div(IWeightTensor w, float v, bool inPlace = false);
+
+        float Cross_Entropy_Loss(IWeightTensor probs, IWeightTensor truthTgtSeqs);
     }
 }

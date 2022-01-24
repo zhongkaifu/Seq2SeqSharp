@@ -107,7 +107,8 @@ namespace Seq2SeqSharp
             {
                 //Merge all attention probs over multi-heads
                 sumAttnWeights = graph.Sum(attnProbs, 1);
-                sumAttnWeights = graph.View(sumAttnWeights, new long[] { batchSize, seqLenQ, seqLenQ });
+                sumAttnWeights = graph.Div(sumAttnWeights, (float)m_multiHeadNum);
+                sumAttnWeights = graph.View(sumAttnWeights, new long[] { batchSize * seqLenQ, seqLenQ });
             }
 
             attnProbs = g.View(attnProbs, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenQ });
@@ -207,7 +208,7 @@ namespace Seq2SeqSharp
             {
                 //Merge all attention probs over multi-heads
                 sumAttnWeights = g.Sum(attnProbs, 1);
-                sumAttnWeights = graph.Mul(sumAttnWeights, 1.0f / (float)m_multiHeadNum);
+                sumAttnWeights = graph.Div(sumAttnWeights, (float)m_multiHeadNum); //.Mul(sumAttnWeights, 1.0f / (float)m_multiHeadNum);
                 sumAttnWeights = graph.View(sumAttnWeights, new long[] { batchSize * seqLenQ, seqLenK });
             }
 

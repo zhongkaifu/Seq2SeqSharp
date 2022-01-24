@@ -49,6 +49,8 @@ namespace Seq2SeqSharp.Tools
 
         IAllocator Allocator { get; }
 
+        void FillGradient(float val);
+
 
     }
 }

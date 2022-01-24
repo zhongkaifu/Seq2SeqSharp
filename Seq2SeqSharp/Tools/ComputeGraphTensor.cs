@@ -322,6 +322,52 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+
+        public IWeightTensor Div(IWeightTensor w, float v, bool inPlace = false)
+        {
+            WeightTensor m = w as WeightTensor;
+            WeightTensor res = null;
+
+            if (inPlace)
+            {
+                res = m.CopyWeightsRef($"{GetHashString(m.Name)}.DivV", m.NeedGradient);
+            }
+            else
+            {
+                res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.DivV", graphToBind: this, needGradient: m.NeedGradient);
+            }
+
+            VisualizeNodes(w, res);
+
+            Ops.Div(res.TWeight, m.TWeight, v);
+
+            if (m_needsBackprop)
+            {
+                void backward()
+                {
+                    if (m.NeedGradient)
+                    {
+                        res.ReleaseWeight();
+
+                        if (inPlace && res.TGradient.IsOwnerExclusive() && m.IsGradientNull())
+                        {
+                            m.TGradient = res.TGradient.CopyRef();
+                            Ops.Div(m.TGradient, res.TGradient, v);
+                        }
+                        else
+                        {
+                            Ops.AddMulV(m.TGradient, m.TGradient, res.TGradient, 1.0f / v);
+                        }
+                    }
+
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
         public void Bind(IWeightTensor w)
         {
             m_tensorsBindToCurrentGraph.Add(w);
@@ -516,18 +562,30 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor Log(IWeightTensor w)
         {
             WeightTensor m = w as WeightTensor;
-            var resultWeights = Ops.Log(null, m.TWeight);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Log", graphToBind: this, needGradient: m.NeedGradient);
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(resultWeights.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Log", graphToBind: this, needGradient: m.NeedGradient);
-            res.TWeight = resultWeights;
-
+            Ops.Log(res.TWeight, m.TWeight);
             if (m_needsBackprop)
             {
-                throw new NotSupportedException($"Log operation doesn't support back propagation.");
+                void backward()
+                {
+                    if (m.NeedGradient)
+                    {
+                        res.ReleaseWeight();
+
+                        using (var tmp = Ops.Div(null, res.TGradient, m.TWeight))
+                        {
+                            m.CopyOrAddGradient(tmp);
+                        }
+                    }
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+
+                m.UnbindFromComputeGraph();
             }
 
             return res;
-
         }
 
         public IWeightTensor Add(IWeightTensor w1, float v)
@@ -1835,6 +1893,12 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="lastTokenToPad"></param>
+        /// <returns>Shape: [batch_size, seq_len]</returns>
         public IWeightTensor LeftShiftTokens(List<List<int>> input, int lastTokenToPad)
         {
             float[] buf = new float[input.Count * input[0].Count];
@@ -2014,23 +2078,21 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public (IWeightTensor, float) Softmax_Cross_Entropy_Loss(IWeightTensor ffLayer, IWeightTensor truthTgtSeqs, bool inPlace = false)
+        public float Cross_Entropy_Loss(IWeightTensor probs, IWeightTensor truthTgtSeqs)
         {
-            IWeightTensor probs = Softmax(ffLayer, runGradients: false, inPlace: inPlace);
+            probs = Log(probs);
 
             var scatterIdxTensor = View(truthTgtSeqs, new long[] { -1, 1 });
-            var gatherTensor = Gather(probs, scatterIdxTensor, 1);
-            var lossTensor = Add(gatherTensor, -1.0f);
+            var oneHotTensor = Scatter(scatterIdxTensor, 1.0f, 1, shape: probs.Sizes);
+            var loss = EltMul(probs, oneHotTensor);
 
-            TensorUtils.Scatter(probs, lossTensor, scatterIdxTensor, 1);
+            var lossSum = Sum(loss, 1);
+            lossSum = Mul(lossSum, -1.0f);
 
+            lossSum = Sum(lossSum, 0);
+            lossSum.FillGradient(1.0f);
 
-            var rnd = new TensorSharp.RandomGenerator();
-            int idx = (int)(rnd.NextSeed() % gatherTensor.Sizes[0]);
-            float score = gatherTensor.GetWeightAt(new long[] { idx, 0 });
-            float cost = (float)-Math.Log(score + 1e-8f);
-
-            return (probs, cost);
+            return lossSum.GetWeightAt(new long[] { 0, 0 });
         }
 
 

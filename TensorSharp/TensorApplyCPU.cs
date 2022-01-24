@@ -478,6 +478,36 @@ namespace TensorSharp
 		}
 
 
+		unsafe public static void Div(Tensor result, Tensor lhs, float rhs)
+		{
+			int vectorSize = Vector<float>.Count;
+			if (result.Strides[^1] == 1 && lhs.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
+			{
+				unsafe void funcVec(float* r, float* s)
+				{
+					Span<float> spanR = new Span<float>(r, vectorSize);
+					Span<float> spanS = new Span<float>(s, vectorSize);
+
+					Vector<float> vecS = new Vector<float>(spanS);
+					Vector<float> vecV = new Vector<float>(rhs);
+
+					Vector<float> vecR = vecS / vecV;
+					vecR.CopyTo(spanR);
+				}
+
+				Apply2(result, lhs, funcVec, vectorSize);
+			}
+			else
+			{
+				unsafe void func(float* r, float* s)
+				{
+					*r = div(*s, rhs);
+				}
+
+				Apply2(result, lhs, func);
+			}
+		}
+
 		unsafe public static void Mul(Tensor result, Tensor lhs, Tensor rhs)
 		{
 			int vectorSize = Vector<float>.Count;
@@ -504,6 +534,39 @@ namespace TensorSharp
 				unsafe void func(float* r, float* left, float* right)
 				{
 					*r = mul(*left, *right);
+				}
+
+				Apply3(result, lhs, rhs, func);
+			}
+		}
+
+
+		unsafe public static void Div(Tensor result, Tensor lhs, Tensor rhs)
+		{
+			int vectorSize = Vector<float>.Count;
+			if (result.Strides[^1] == 1 && lhs.Strides[^1] == 1 && rhs.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
+			{
+				unsafe void funcVec(float* r, float* left, float* right)
+				{
+					Span<float> spanR = new Span<float>(r, vectorSize);
+					Span<float> spanLeft = new Span<float>(left, vectorSize);
+					Span<float> spanRight = new Span<float>(right, vectorSize);
+
+					Vector<float> vecLeft = new Vector<float>(spanLeft);
+					Vector<float> vecRight = new Vector<float>(spanRight);
+
+					Vector<float> vecR = vecLeft / vecRight;
+					vecR.CopyTo(spanR);
+
+				}
+
+				Apply3(result, lhs, rhs, funcVec, vectorSize);
+			}
+			else
+			{
+				unsafe void func(float* r, float* left, float* right)
+				{
+					*r = div(*left, *right);
 				}
 
 				Apply3(result, lhs, rhs, func);
@@ -1241,6 +1304,12 @@ namespace TensorSharp
 			return x * y;
 		}
 
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float div(float x, float y)
+		{
+			return x / y;
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		static float sigmoid(float x)

@@ -536,12 +536,18 @@ namespace TensorSharp.Cpu
             return writeTarget;
         }
 
-
-
-
-        private readonly MethodInfo div_func = NativeWrapper.GetMethod("TS_Div");
+       // private readonly MethodInfo div_func = NativeWrapper.GetMethod("TS_Div");
         [RegisterOpStorageType("divv", typeof(CpuStorage))]
-        public Tensor Div(Tensor result, Tensor lhs, float rhs) { return NativeWrapper.InvokeNullableResultElementwise(div_func, result, lhs, rhs); }
+        public Tensor Div(Tensor result, Tensor lhs, float rhs)
+        {
+
+            //return NativeWrapper.InvokeNullableResultElementwise(div_func, result, lhs, rhs);
+
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, lhs.Sizes);
+            TensorApplyCPU.Div(writeTarget, lhs, rhs);
+
+            return writeTarget;
+        }
 
         private readonly MethodInfo rdiv_func = NativeWrapper.GetMethod("TS_Rdiv");
         [RegisterOpStorageType("rdivv", typeof(CpuStorage))]
@@ -608,9 +614,17 @@ namespace TensorSharp.Cpu
             return writeTarget;
         }
 
-        private readonly MethodInfo cdiv_func = NativeWrapper.GetMethod("TS_CDiv");
+        //private readonly MethodInfo cdiv_func = NativeWrapper.GetMethod("TS_CDiv");
         [RegisterOpStorageType("divt", typeof(CpuStorage))]
-        public Tensor Div(Tensor result, Tensor lhs, Tensor rhs) { return NativeWrapper.InvokeNullableResultElementwise(cdiv_func, result, lhs, rhs); }
+        public Tensor Div(Tensor result, Tensor lhs, Tensor rhs)
+        {
+            //return NativeWrapper.InvokeNullableResultElementwise(cdiv_func, result, lhs, rhs);
+
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, lhs.Sizes);
+            TensorApplyCPU.Div(writeTarget, lhs, rhs);
+
+            return writeTarget;
+        }
 
         private readonly MethodInfo cmod_func = NativeWrapper.GetMethod("TS_CMod");
         [RegisterOpStorageType("modt", typeof(CpuStorage))]

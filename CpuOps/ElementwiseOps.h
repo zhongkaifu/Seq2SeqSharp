@@ -40,7 +40,7 @@ OPS_API int TS_MaskFill(TensorRef* result, TensorRef* t, TensorRef* mask, float 
 
 OPS_API int TS_Sub(TensorRef* result, TensorRef* lhs, float rhs);
 OPS_API int TS_Mul(TensorRef* result, TensorRef* lhs, float rhs);
-OPS_API int TS_Div(TensorRef* result, TensorRef* lhs, float rhs);
+//OPS_API int TS_Div(TensorRef* result, TensorRef* lhs, float rhs);
 OPS_API int TS_Rdiv(TensorRef* result, TensorRef* lhs, float rhs);
 OPS_API int TS_Mod(TensorRef* result, TensorRef* lhs, float rhs);
 
@@ -52,7 +52,7 @@ OPS_API int TS_eqValue(TensorRef* result, TensorRef* lhs, float rhs);
 OPS_API int TS_neValue(TensorRef* result, TensorRef* lhs, float rhs);
 
 
-OPS_API int TS_CDiv(TensorRef* result, TensorRef* lhs, TensorRef* rhs);
+//OPS_API int TS_CDiv(TensorRef* result, TensorRef* lhs, TensorRef* rhs);
 OPS_API int TS_CMod(TensorRef* result, TensorRef* lhs, TensorRef* rhs);
 
 OPS_API int TS_gtTensor(TensorRef* result, TensorRef* lhs, TensorRef* rhs);

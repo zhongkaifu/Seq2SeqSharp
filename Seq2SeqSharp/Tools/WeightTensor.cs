@@ -226,6 +226,11 @@ namespace Seq2SeqSharp.Tools
             Ops.Fill(TWeight, 0.0f);
         }
 
+        public void FillGradient(float val)
+        {
+            Ops.Fill(TGradient, val);
+        }
+
         public float GetWeightAt(long[] indices)
         {
             return TWeight.GetElementAsFloat(indices);
