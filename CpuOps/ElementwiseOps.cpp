@@ -76,13 +76,13 @@ template <typename T> INLINE_FUNC T sgn(T val) {
 	return T(0);
 }
 
-template <typename T> INLINE_FUNC T Clamp(T val, T min, T max) {
-	if (val < min)
-		return min;
-	if (val > max)
-		return max;
-	return val;
-}
+//template <typename T> INLINE_FUNC T Clamp(T val, T min, T max) {
+//	if (val < min)
+//		return min;
+//	if (val > max)
+//		return max;
+//	return val;
+//}
 
 template <typename T> INLINE_FUNC T MaskFill(T t, T mask, T defValue) {
 	if (mask == T(0))
@@ -209,19 +209,19 @@ int TS_MaskFill(TensorRef* result, TensorRef* srcX, TensorRef* srcY, float v)
 
 
 
-template<typename T>
-INLINE_FUNC void Clamp_Apply(TensorRef* result, TensorRef* src, float min, float max)
-{
-	auto func = [min, max](T *r, T *s) { *r = Clamp(*s, (T)min, (T)max); };
-	Apply2<T, T>(result, src, func);
-}
+//template<typename T>
+//INLINE_FUNC void Clamp_Apply(TensorRef* result, TensorRef* src, float min, float max)
+//{
+//	auto func = [min, max](T *r, T *s) { *r = Clamp(*s, (T)min, (T)max); };
+//	Apply2<T, T>(result, src, func);
+//}
 
-int TS_Clamp(TensorRef* result, TensorRef* src, float min, float max)
-{
-	API_BEGIN()
-	SWITCH_TENSOR_TYPE_FLOAT(result->elementType, Clamp_Apply, result, src, min, max)
-	API_END()
-}
+//int TS_Clamp(TensorRef* result, TensorRef* src, float min, float max)
+//{
+//	API_BEGIN()
+//	SWITCH_TENSOR_TYPE_FLOAT(result->elementType, Clamp_Apply, result, src, min, max)
+//	API_END()
+//}
 
 
 #define DECLARE_T_S_ALL_CPU_TYPES(EXPORTNAME, FUNCNAME)\

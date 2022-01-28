@@ -572,11 +572,7 @@ namespace Seq2SeqSharp.Tools
                     if (m.NeedGradient)
                     {
                         res.ReleaseWeight();
-
-                        using (var tmp = Ops.Div(null, res.TGradient, m.TWeight))
-                        {
-                            m.CopyOrAddGradient(tmp);
-                        }
+                        Ops.AddDiv(m.TGradient, m.TGradient, res.TGradient, m.TWeight);
                     }
                     res.Dispose();
                 }
@@ -1627,6 +1623,36 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+
+        public IWeightTensor ScatterAdd(IWeightTensor source, IWeightTensor indices, int dim, params long[] shape)
+        {
+            WeightTensor s = source as WeightTensor;
+            WeightTensor i = indices as WeightTensor;
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(shape, m_deviceId, name: $"{GetHashString(s.Name + i.Name)}.Scatter", graphToBind: this, needGradient: s.NeedGradient);
+
+            Ops.Fill(res.TWeight, 0.0f);
+            Ops.ScatterAdd(res.TWeight, s.TWeight, dim, i.TWeight);
+
+            if (m_needsBackprop)
+            {
+                void backward()
+                {
+                    if (s.NeedGradient)
+                    {
+                        res.ReleaseWeight();
+                        using var tmp = Ops.Gather(null, res.TGradient, dim, i.TWeight);
+                        s.CopyOrAddGradient(tmp);
+                    }
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
+
         public IWeightTensor Scatter(IWeightTensor indices, float val, int dim, bool needGradient = true, params long[] shape)
         {
             WeightTensor i = indices as WeightTensor;
@@ -1847,15 +1873,7 @@ namespace Seq2SeqSharp.Tools
                     if (s.NeedGradient)
                     {
                         res.ReleaseWeight();
-
-                        if (s.IsGradientNull())
-                        {
-                            Ops.Scatter(s.TGradient, res.TGradient, dim, i.TWeight);
-                        }
-                        else
-                        {
-                            throw new NotImplementedException("Not implment gradient computing when src gradient is not null");
-                        }
+                        Ops.ScatterAdd(s.TGradient, res.TGradient, dim, i.TWeight);
                     }
 
                     res.Dispose();
@@ -2078,22 +2096,39 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+        //public float Cross_Entropy_Loss(IWeightTensor probs, IWeightTensor truthTgtSeqs)
+        //{
+        //    probs = Log(probs);
+
+        //    var scatterIdxTensor = View(truthTgtSeqs, new long[] { -1, 1 });
+        //    var oneHotTensor = Scatter(scatterIdxTensor, 1.0f, 1, shape: probs.Sizes);
+        //    var loss = EltMul(probs, oneHotTensor);
+
+        //    var lossSum = Sum(loss, 1);
+        //    lossSum = Mul(lossSum, -1.0f);
+        //    lossSum = Sum(lossSum, 0);
+
+        //    var lossMean = Div(lossSum, (float)probs.Sizes[0]);
+        //    lossMean.FillGradient(1.0f);
+
+        //    return lossMean.GetWeightAt(new long[] { 0, 0 });
+        //}
+
+
         public float Cross_Entropy_Loss(IWeightTensor probs, IWeightTensor truthTgtSeqs)
         {
-            probs = Log(probs);
-
             var scatterIdxTensor = View(truthTgtSeqs, new long[] { -1, 1 });
-            var oneHotTensor = Scatter(scatterIdxTensor, 1.0f, 1, shape: probs.Sizes);
-            var loss = EltMul(probs, oneHotTensor);
+            var loss = Gather(probs, scatterIdxTensor, 1);
+            loss = Log(loss);
 
-            var lossSum = Sum(loss, 1);
-            lossSum = Mul(lossSum, -1.0f);
+            var lossSum = Sum(loss, 0);
+            var lossMean = Div(lossSum, (float)loss.Sizes[0] * -1.0f);
 
-            lossSum = Sum(lossSum, 0);
-            lossSum.FillGradient(1.0f);
+            lossMean.FillGradient(1.0f);
 
-            return lossSum.GetWeightAt(new long[] { 0, 0 });
+            return lossMean.GetWeightAt(new long[] { 0, 0 });
         }
+
 
 
         public void Dispose()

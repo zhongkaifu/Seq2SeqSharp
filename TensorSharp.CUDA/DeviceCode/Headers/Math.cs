@@ -35,6 +35,11 @@ template<typename T> INLINE_FUNC T Neg(T x) {
 	return -x;
 }
 
+template<typename T> INLINE_FUNC T AddDiv(T x, T y, T z) {
+	return x + y / z;
+}
+
+
 template<typename T> INLINE_FUNC T AddMul(T x, T y, T z) {
 	return x + y * z;
 }

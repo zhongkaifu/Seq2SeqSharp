@@ -203,7 +203,7 @@ namespace TensorSharp
 				{
 					long idx = (long)*(iData + i * iStride);
 					if (idx < 0 || idx >= rSize) { throw new IndexOutOfRangeException($"Invalid index in scatter. Idx = '{idx}', rSize = '{rSize}'"); }
-
+				
 					rData[idx * rStride] = *(sData + i * sStride);
 				}
 
@@ -212,7 +212,25 @@ namespace TensorSharp
 			ApplyDim3(result, src, indices, dim, func);
 		}
 
+		unsafe public static void ScatterAdd(Tensor result, Tensor src, int dim, Tensor indices)
+		{
+			unsafe void func(float* rData, long rSize, long rStride,
+				float* sData, long sSize, long sStride,
+				float* iData, long iSize, long iStride)
+			{
 
+				for (int i = 0; i < iSize; ++i)
+				{
+					long idx = (long)*(iData + i * iStride);
+					if (idx < 0 || idx >= rSize) { throw new IndexOutOfRangeException($"Invalid index in scatter. Idx = '{idx}', rSize = '{rSize}'"); }
+
+					rData[idx * rStride] += *(sData + i * sStride);
+				}
+
+			}
+
+			ApplyDim3(result, src, indices, dim, func);
+		}
 
 		unsafe public static void ScatterFill(Tensor result, float value, int dim, Tensor indices)
 		{
@@ -241,6 +259,16 @@ namespace TensorSharp
 			}
 
 			Apply1(result, func);
+		}
+
+
+		unsafe public static void Clamp(Tensor result, Tensor src, float min, float max)
+		{
+			unsafe void func(float* r, float* s)
+			{
+				*r = clamp(*s, min, max);
+			}
+			Apply2(result, src, func);
 		}
 
 
@@ -753,6 +781,17 @@ namespace TensorSharp
 			unsafe void func(float* r, float* x, float* y, float* z)
 			{
 				*r = addmul(*x, *y, *z);
+			}
+
+			Apply4(result, srcX, srcY, srcZ, func);
+		}
+
+
+		unsafe static public void AddDiv(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ)
+		{
+			unsafe void func(float* r, float* x, float* y, float* z)
+			{
+				*r = adddiv(*x, *y, *z);
 			}
 
 			Apply4(result, srcX, srcY, srcZ, func);
@@ -1333,10 +1372,27 @@ namespace TensorSharp
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float clamp(float val, float min, float max)
+		{
+			if (val < min)
+				return min;
+			if (val > max)
+				return max;
+			return val;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		static float addmul(float x, float y, float z)
 		{
 			return x + y * z;
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float adddiv(float x, float y, float z)
+		{
+			return x + y / z;
+		}
+
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		static float addtanh(float x, float y)

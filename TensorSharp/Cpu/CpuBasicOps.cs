@@ -334,6 +334,14 @@ namespace TensorSharp.Cpu
             return writeTarget;
         }
 
+        [RegisterOpStorageType("adddiv", typeof(CpuStorage))]
+        public Tensor AddDiv(Tensor result, Tensor x, Tensor y, Tensor z)
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, x, false, x.Sizes);
+            TensorApplyCPU.AddDiv(writeTarget, x, y, z);
+
+            return writeTarget;
+        }
 
         [RegisterOpStorageType("buildsrctgtmask", typeof(CpuStorage))]
         public Tensor BuildSrcTgtMask(Tensor result, Tensor srcOriginalLengths, Tensor tgtOriginalLengths, int srcPaddedSeqLen, int tgtPaddedSeqLen, float value, float maskedValue)
@@ -450,9 +458,17 @@ namespace TensorSharp.Cpu
         [RegisterOpStorageType("lerp", typeof(CpuStorage))]
         public Tensor Lerp(Tensor result, Tensor srcA, Tensor srcB, float weight) { return NativeWrapper.InvokeNullableResultElementwise(lerp_func, result, srcA, srcB, weight); }
 
-        private readonly MethodInfo clamp_func = NativeWrapper.GetMethod("TS_Clamp");
+        // private readonly MethodInfo clamp_func = NativeWrapper.GetMethod("TS_Clamp");
         [RegisterOpStorageType("clamp", typeof(CpuStorage))]
-        public Tensor Clamp(Tensor result, Tensor src, float min, float max) { return NativeWrapper.InvokeNullableResultElementwise(clamp_func, result, src, min, max); }
+        public Tensor Clamp(Tensor result, Tensor src, float min, float max)
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
+            TensorApplyCPU.Clamp(writeTarget, src, min, max);
+
+            return writeTarget;
+
+            //return NativeWrapper.InvokeNullableResultElementwise(clamp_func, result, src, min, max);
+        }
 
 
         [RegisterOpStorageType("mulmuladd", typeof(CpuStorage))]

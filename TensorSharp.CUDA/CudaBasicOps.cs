@@ -378,6 +378,10 @@ namespace TensorSharp.CUDA
         public Tensor AddMulV(Tensor result, Tensor x, Tensor y, float z) { return ElementwiseTTTSOp.Invoke(elementwiseKernels, "addmulv", result, x, y, z); }
 
 
+        [RegisterOpStorageType("adddiv", typeof(CudaStorage))]
+        public Tensor AddDiv(Tensor result, Tensor x, Tensor y, Tensor z) { return ElementwiseTTTTOp.Invoke(elementwiseKernels, "adddiv", result, x, y, z); }
+
+
         [RegisterOpStorageType("maskfill", typeof(CudaStorage))]
         public Tensor MaskFill(Tensor result, Tensor t, Tensor mask, float defValue) { return ElementwiseTTTSOp.Invoke(elementwiseKernels, "maskfill", result, t, mask, defValue); }
 

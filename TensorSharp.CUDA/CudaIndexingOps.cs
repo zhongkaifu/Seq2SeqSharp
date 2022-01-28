@@ -22,6 +22,11 @@ namespace TensorSharp.CUDA
         [RegisterOpStorageType("scatter", typeof(CudaStorage))]
         public Tensor Scatter(Tensor result, Tensor src, int dimension, Tensor indices) { return gather.Scatter(result, src, dimension, indices); }
 
+
+        [RegisterOpStorageType("scatter_add", typeof(CudaStorage))]
+        public Tensor ScatterAdd(Tensor result, Tensor src, int dimension, Tensor indices) { return gather.ScatterAdd(result, src, dimension, indices); }
+
+
         [RegisterOpStorageType("scatter_fill", typeof(CudaStorage))]
         public Tensor ScatterFill(Tensor result, float value, int dimension, Tensor indices) { return gather.ScatterFill(result, value, dimension, indices); }
     }

@@ -318,6 +318,11 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
+        public void Clamp(float min, float max)
+        {
+            Ops.Clamp(TWeight, TWeight, min, max);
+        }
+
         public void CopyOrAddGradient(Tensor src, string callerName = "")
         {
             if (m_TGradient == null)

@@ -31,6 +31,8 @@
             AppendTTTTFunc(result, "addmul", "AddMul");
             AppendTTTSFunc(result, "addmulv", "AddMul");
 
+            AppendTTTTFunc(result, "adddiv", "AddDiv");
+
             AppendTTTSFunc(result, "maskfill", "MaskFill");
 
             result.AddApplyTS("t1_pow", "*a = powf(*a, b);");
@@ -40,8 +42,8 @@
 
             result.AddApplyTTTS("lerp", "*a = Lerp(*b, *c, d);");
 
-            //result.AddApplyTSS("t1_clamp", "*a = Clamp(*a, b, c);");
-            //result.AddApplyTTSS("t2_clamp", "*a = Clamp(*b, c, d);");
+            result.AddApplyTSS("t1_clamp", "*a = Clamp(*a, b, c);");
+            result.AddApplyTTSS("t2_clamp", "*a = Clamp(*b, c, d);");
 
             return result.ToString();
         }

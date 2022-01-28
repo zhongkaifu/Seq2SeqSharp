@@ -78,6 +78,40 @@ __global__ void scatter_kernel(
 }
 }
 
+
+extern ""C"" {\
+__global__ void scatterAdd_kernel(
+    TensorInfo<unsigned __int64> tensor,
+    TensorInfo<unsigned __int64> src,
+    TensorInfo<unsigned __int64> index,
+    const int dim,
+    const unsigned __int64 totalElements) {
+  for (unsigned __int64 linearId = blockIdx.x * blockDim.x + threadIdx.x;
+       linearId < totalElements;
+       linearId += gridDim.x * blockDim.x) {
+    unsigned __int64 tensorOffset = 0;
+    unsigned __int64 srcOffset = 0;
+    unsigned __int64 indexOffset = 0;
+
+    unsigned __int64 linearId2 = linearId;
+    for (int d = index.dims - 1; d >= 0; d--) {
+      unsigned __int64 curDimIndex = linearId2 % index.sizes[d];
+      indexOffset += curDimIndex * index.strides[d];
+      srcOffset += curDimIndex * src.strides[d];
+      if (d != dim) {
+        tensorOffset += curDimIndex * tensor.strides[d];
+      }
+      linearId2 /= index.sizes[d];
+    }
+
+    unsigned __int64 indexValue = (unsigned __int64)index.data[indexOffset];
+    tensorOffset += indexValue * tensor.strides[dim];
+
+    tensor.data[tensorOffset] += src.data[srcOffset];
+  }
+}
+}
+
 extern ""C"" {\
 __global__ void scatterFill_kernel(
     TensorInfo<unsigned __int64> tensor,
@@ -204,6 +238,53 @@ __global__ void scatterFill_kernel(
             dim3 grid = ApplyUtils.GetApplyGrid(context.DeviceInfoForContext(cudaContext), nElement);
 
             Invoke(context, cudaContext, "scatter_kernel", grid, block, 0, CUstream.NullStream, false, writeTarget, src, indices, dim, nElement);
+
+            return writeTarget;
+        }
+
+
+        public Tensor ScatterAdd(Tensor result, Tensor src, int dim, Tensor indices)
+        {
+            TSCudaContext context = CudaHelpers.TSContextForTensor(src);
+            CudaContext cudaContext = context.CudaContextForTensor(src);
+
+            if (result == null)
+            {
+                throw new ArgumentNullException("result");
+            }
+
+            if (result.DimensionCount != src.DimensionCount)
+            {
+                throw new InvalidOperationException("result and src must have same number of dimensions");
+            }
+
+            if (dim < 0 && dim >= result.DimensionCount)
+            {
+                throw new ArgumentOutOfRangeException("dim");
+            }
+
+            if (indices.DimensionCount != src.DimensionCount)
+            {
+                throw new InvalidOperationException("src and indices must have same number of dimensions");
+            }
+
+            if (!src.IsSameSizeAs(indices))
+            {
+                throw new InvalidOperationException("src and indices must be the same size");
+            }
+
+            if (!TensorResultBuilder.ArrayEqualExcept(src.Sizes, result.Sizes, dim))
+            {
+                throw new InvalidOperationException("result and src must be the same size except in dimension dim");
+            }
+
+            Tensor writeTarget = result;
+
+            long nElement = indices.ElementCount();
+            dim3 block = ApplyUtils.GetApplyBlock();
+            dim3 grid = ApplyUtils.GetApplyGrid(context.DeviceInfoForContext(cudaContext), nElement);
+
+            Invoke(context, cudaContext, "scatterAdd_kernel", grid, block, 0, CUstream.NullStream, false, writeTarget, src, indices, dim, nElement);
 
             return writeTarget;
         }

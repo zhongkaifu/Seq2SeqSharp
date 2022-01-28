@@ -221,7 +221,28 @@ namespace Seq2SeqSharp.Applications
             IWeightTensor decEncAttnProbs;
             (decOutput, decEncAttnProbs) = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g, outputAttnWeights: pointerGenerator, cachedTensors: cachedTensors);
 
+            if (isTraining == false)
+            {
+                // For inference, we only process last token of each sequence in order to speed up
+                float[] decOutputIdx = new float[batchSize];
+                for (int i = 0; i < batchSize; i++)
+                {
+                    decOutputIdx[i] = tgtSeqLen * (i + 1) - 1;
+                }
 
+                decOutput = g.IndexSelect(decOutput, decOutputIdx);
+
+                if (pointerGenerator)
+                {
+                    inputEmbs = g.IndexSelect(inputEmbs, decOutputIdx);
+                    decEncAttnProbs = g.IndexSelect(decEncAttnProbs, decOutputIdx);
+                }
+
+                tgtSeqLen = 1;
+            }
+
+            IWeightTensor ffLayer = decoderFFLayer.Process(decOutput, batchSize, g);
+            IWeightTensor probs = g.Softmax(ffLayer, inPlace: true);
 
             if (pointerGenerator)
             {
@@ -237,40 +258,23 @@ namespace Seq2SeqSharp.Applications
                 p_gen = g.Sigmoid(p_gen);
                 var p_copy = g.Sub(1.0f, p_gen);
 
-                p_gen = g.Expand(p_gen, dims: new long[] { batchSize * tgtSeqLen, encOutputsBatch.Sizes[^1] });
-                p_copy = g.Expand(p_copy, dims: new long[] { batchSize * tgtSeqLen, encOutputsBatch.Sizes[^1] });
+                p_gen = g.Expand(p_gen, dims: new long[] { batchSize * tgtSeqLen, ffLayer.Sizes[^1] });
+                p_copy = g.Expand(p_copy, dims: new long[] { batchSize * tgtSeqLen, ffLayer.Sizes[^1] });
 
 
-                decOutput = g.EltMulMulAdd(p_gen, decOutput, p_copy, pointer_context);
+                var seqSeqsIndex = g.CreateTokensTensor(srcSeqs);
+                seqSeqsIndex = g.View(seqSeqsIndex, dims: new long[] { batchSize, 1, srcSeqLen });
+                seqSeqsIndex = g.Expand(seqSeqsIndex, dims: new long[] { batchSize, tgtSeqLen, srcSeqLen });
 
+                var probsCopy = g.ScatterAdd(decEncAttnProbsBatch, seqSeqsIndex, 2, shape: new long[] { batchSize, tgtSeqLen, ffLayer.Sizes[^1] });
+                probsCopy = g.View(probsCopy, dims: new long[] { batchSize * tgtSeqLen, ffLayer.Sizes[^1] });
 
-                //var seqSeqsTensor = g.CreateTokensTensor(srcSeqs);
-                //seqSeqsTensor = g.View(seqSeqsTensor, dims:new long[] { batchSize * srcSeqLen, 1 });
-                //var one_hot = g.Scatter(seqSeqsTensor, 1.0f, 1, true, new long[] { batchSize * srcSeqLen, ffLayer.Sizes[^1] });
+                probs = g.EltMulMulAdd(p_gen, probs, p_copy, probsCopy);
 
-                //var one_hot_batch = g.View(one_hot, dims: new long[] { batchSize, srcSeqLen, -1 });
-
-
-                //var p_copy_vocab = g.MulBatch(decEncAttnProbsBatch, one_hot_batch); //Output: [batchSize, tgtSeqLen, embedding_size]
-                //p_copy_vocab = g.View(p_copy_vocab, dims: new long[] { batchSize * tgtSeqLen, -1 });
-
-                //probs = g.EltMulMulAdd(p_gen, probs, p_copy, p_copy_vocab);
+                probs.Clamp(1e-10f, 1.0f);
             }
 
-            if (isTraining == false)
-            {
-                // For inference, we only process last token of each sequence in order to speed up
-                float[] decOutputIdx = new float[batchSize];
-                for (int i = 0; i < batchSize; i++)
-                {
-                    decOutputIdx[i] = tgtSeqLen * (i + 1) - 1;
-                }
 
-                decOutput = g.IndexSelect(decOutput, decOutputIdx);
-            }
-            
-            IWeightTensor ffLayer = decoderFFLayer.Process(decOutput, batchSize, g);
-            IWeightTensor probs = g.Softmax(ffLayer);
 
             if (isTraining)
             {
