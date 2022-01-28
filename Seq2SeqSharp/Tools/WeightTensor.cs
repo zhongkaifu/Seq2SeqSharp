@@ -47,7 +47,6 @@ namespace Seq2SeqSharp.Tools
         private static readonly object locker = new object();
 
         private bool releasedWeight = false;
-      //  private bool releasedGradient = false;
         private readonly IComputeGraph m_computeGraphToBind;
 
         private string m_GradientSetName = "None";
@@ -55,6 +54,15 @@ namespace Seq2SeqSharp.Tools
         private readonly bool m_fanIn = false;
         private readonly bool m_fanOut = false;
         private readonly NormType m_normType = NormType.None;
+
+        public long ElementCount
+        {
+            get
+            {
+                return m_TWeight.ElementCount();
+            }
+        }
+
 
         public Tensor TWeight
         {

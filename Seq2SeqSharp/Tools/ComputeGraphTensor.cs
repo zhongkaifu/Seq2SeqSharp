@@ -2115,18 +2115,28 @@ namespace Seq2SeqSharp.Tools
         //}
 
 
-        public float Cross_Entropy_Loss(IWeightTensor probs, IWeightTensor truthTgtSeqs)
+        public float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, bool avgLoss = false)
         {
             var scatterIdxTensor = View(truthTgtSeqs, new long[] { -1, 1 });
             var loss = Gather(probs, scatterIdxTensor, 1);
             loss = Log(loss);
+            loss = Sum(loss, 0);
 
-            var lossSum = Sum(loss, 0);
-            var lossMean = Div(lossSum, (float)loss.Sizes[0] * -1.0f);
+            float cost = 0.0f;
+            if (avgLoss)
+            {
+                loss = Div(loss, (float)scatterIdxTensor.ElementCount * -1.0f);
+                cost = loss.GetWeightAt(new long[] { 0, 0 });
+            }
+            else
+            {
+                loss = Mul(loss, -1.0f);
+                cost = loss.GetWeightAt(new long[] { 0, 0 }) / scatterIdxTensor.ElementCount;
+            }
 
-            lossMean.FillGradient(1.0f);
+            loss.FillGradient(graident);
 
-            return lossMean.GetWeightAt(new long[] { 0, 0 });
+            return cost;
         }
 
 

@@ -52,5 +52,7 @@ namespace Seq2SeqSharp.Tools
         void FillGradient(float val);
 
         void Clamp(float min, float max);
+
+        long ElementCount { get; }
     }
 }

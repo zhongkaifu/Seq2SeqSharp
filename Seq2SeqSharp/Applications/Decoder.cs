@@ -279,7 +279,7 @@ namespace Seq2SeqSharp.Applications
             if (isTraining)
             {
                 var leftShiftTgtSeqs = g.LeftShiftTokens(tgtSeqs, eosTokenId);
-                var cost = g.Cross_Entropy_Loss(probs, leftShiftTgtSeqs);
+                var cost = g.CrossEntropyLoss(probs, leftShiftTgtSeqs);
 
                 return (cost, null);
             }
