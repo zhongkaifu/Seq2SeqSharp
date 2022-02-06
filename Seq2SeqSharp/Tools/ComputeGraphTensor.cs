@@ -1694,8 +1694,20 @@ namespace Seq2SeqSharp.Tools
                     if (m.NeedGradient)
                     {
                         res.ReleaseWeight();
-                        using var mGExp = m.TGradient.Expand(dims);
-                        Ops.Add(mGExp, mGExp, res.TGradient);
+
+                        int expDim = -1;
+                        for (int i = 0; i < dims.Length; i++)
+                        {
+                            if (m.Sizes[i] == 1 && dims[i] > 1)
+                            {
+                                expDim = i;
+                                break;
+                            }
+                        }
+
+                        using var resGSum = Ops.Sum(null, res.TGradient, expDim);
+                        Ops.Add(m.TGradient, m.TGradient, resGSum);
+
                     }
                     res.Dispose();
                 }
