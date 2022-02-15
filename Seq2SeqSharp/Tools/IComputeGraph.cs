@@ -82,6 +82,6 @@ namespace Seq2SeqSharp
 
         IWeightTensor Div(IWeightTensor w, float v, bool inPlace = false);
 
-        float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, bool avgLoss = false);
+        float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f);
     }
 }

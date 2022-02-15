@@ -108,6 +108,12 @@ namespace TensorSharp
         public int DimensionCount => sizes.Length;
 
 
+
+        public long GetStorageSize()
+        {
+            return TensorDimensionHelpers.GetStorageSize(sizes, strides);
+        }
+
         /// <summary>
         /// Returns a new Tensor object which points to the same storage as this,
         /// incrementing the refcount of the storage object.

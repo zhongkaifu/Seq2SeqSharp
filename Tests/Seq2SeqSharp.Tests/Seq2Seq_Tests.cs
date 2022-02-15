@@ -273,6 +273,7 @@ public class Seq2Seq_Tests
         opts.MaxEpochNum = 3;
 
         opts.ModelFilePath = "seq2seq_test.model";
+
         return opts;
     }
 }

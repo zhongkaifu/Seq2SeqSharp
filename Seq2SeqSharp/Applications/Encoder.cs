@@ -56,8 +56,6 @@ namespace Seq2SeqSharp.Applications
         static public IWeightTensor Run(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, IEncoder encoder, IModel modelMetaData, ShuffleEnums shuffleType,
             IWeightTensor srcEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, List<List<int>> srcSntsIds, float[] originalSrcLengths)
         {
-            int batchSize = srcSntsIds.Count;
-
             // Reset networks
             encoder.Reset(computeGraph.GetWeightFactory(), srcSntsIds.Count);
 
@@ -108,7 +106,7 @@ namespace Seq2SeqSharp.Applications
             IWeightTensor srcSelfMask = (shuffleType == ShuffleEnums.NoPaddingInSrc || shuffleType == ShuffleEnums.NoPadding || batchSize == 1) ? null : computeGraph.BuildPadSelfMask(srcSeqPaddedLen, originalSrcLengths); // The length of source sentences are same in a single mini-batch, so we don't have source mask.
 
             // Encoding input source sentences
-            var encOutput = RunEncoder(computeGraph, srcTokensList, encoder, modelMetaData, srcEmbedding, srcSelfMask, posEmbedding, originalSrcLengths, segmentEmbedding, contextEmbeddings);
+            var encOutput = RunEncoder(computeGraph, srcTokensList, encoder, modelMetaData, srcEmbedding, srcSelfMask, posEmbedding, segmentEmbedding, contextEmbeddings);
             if (srcSelfMask != null)
             {
                 srcSelfMask.Dispose();
@@ -127,11 +125,11 @@ namespace Seq2SeqSharp.Applications
         /// <param name="reversEncoder"></param>
         /// <param name="embeddings"></param>
         /// <returns></returns>
-        static private IWeightTensor RunEncoder(IComputeGraph g, List<List<int>> seqs, IEncoder encoder, IModel modelMetaData, IWeightTensor embeddings, IWeightTensor selfMask, IWeightTensor posEmbeddings, float[] seqOriginalLengths, 
+        static private IWeightTensor RunEncoder(IComputeGraph g, List<List<int>> seqs, IEncoder encoder, IModel modelMetaData, IWeightTensor embeddings, IWeightTensor selfMask, IWeightTensor posEmbeddings, 
             IWeightTensor segmentEmbeddings, IWeightTensor contextEmbeddings)
         {
             int batchSize = seqs.Count;
-            var inputEmbs = TensorUtils.CreateTokensEmbeddings(seqs, g, embeddings, seqOriginalLengths, segmentEmbeddings, contextEmbeddings, modelMetaData.SrcVocab, applyContextEmbeddingsToEntireSequence: modelMetaData.ApplyContextEmbeddingsToEntireSequence, (float)Math.Sqrt(embeddings.Columns));
+            var inputEmbs = TensorUtils.CreateTokensEmbeddings(seqs, g, embeddings, segmentEmbeddings, contextEmbeddings, modelMetaData.SrcVocab, applyContextEmbeddingsToEntireSequence: modelMetaData.ApplyContextEmbeddingsToEntireSequence, (float)Math.Sqrt(embeddings.Columns));
 
             if (modelMetaData.EncoderType == EncoderTypeEnums.Transformer)
             {

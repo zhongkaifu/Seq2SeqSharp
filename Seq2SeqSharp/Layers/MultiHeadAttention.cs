@@ -1,4 +1,5 @@
-﻿using Seq2SeqSharp.Tools;
+﻿using AdvUtils;
+using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -206,9 +207,14 @@ namespace Seq2SeqSharp
             IWeightTensor sumAttnWeights = null;
             if (outputAttenWeights)
             {
-                //Merge all attention probs over multi-heads
-                sumAttnWeights = g.Sum(attnProbs, 1);
-                sumAttnWeights = graph.Div(sumAttnWeights, (float)m_multiHeadNum); //.Mul(sumAttnWeights, 1.0f / (float)m_multiHeadNum);
+                sumAttnWeights = g.Select(attnProbs, 1, 0);
+                for (int i = 1; i < m_multiHeadNum; i++)
+                {
+                    var tmp = g.Select(attnProbs, 1, i);
+                    sumAttnWeights = g.Add(sumAttnWeights, tmp);
+                }
+
+                sumAttnWeights = graph.Div(sumAttnWeights, (float)m_multiHeadNum);
                 sumAttnWeights = graph.View(sumAttnWeights, new long[] { batchSize * seqLenQ, seqLenK });
             }
 

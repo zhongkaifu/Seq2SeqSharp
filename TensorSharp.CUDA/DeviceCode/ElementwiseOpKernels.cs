@@ -41,8 +41,17 @@
             AppendTTTFunc(result, "cne", "ne_op");
 
 
+            AppendAtomicAdd(result, "atomicAdd");
+
             return result.ToString();
         }
+
+
+        private static void AppendAtomicAdd(PermutationGenerator pg, string kernelBaseName)
+        {
+            pg.AddApplyTT("t1_" + kernelBaseName, "atomicAdd(a, *b);");
+        }
+
 
         private static void AppendTTSFunc(PermutationGenerator pg, string kernelBaseName, string func)
         {

@@ -73,26 +73,34 @@ namespace TensorSharp.CUDA.KernelOps
     {
         public static Tensor Invoke(CudaCode kernels, string funcName, Tensor result, Tensor src)
         {
-            TSCudaContext context = CudaHelpers.TSContextForTensor(src);
-            CudaContext cudaContext = context.CudaContextForTensor(src);
-
-            cudaContext.SetCurrent();
-
-            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
-            long elementCount = writeTarget.ElementCount();
-
-            byte[] ptx = kernels.GetPtx(context.Compiler);
-
-            if (result == src)
+            try
             {
-                ApplyOpInvoke.Invoke(context, cudaContext, ptx, "t1_" + funcName, writeTarget, elementCount);
-            }
-            else
-            {
-                ApplyOpInvoke.Invoke(context, cudaContext, ptx, "t2_" + funcName, writeTarget, src, elementCount);
-            }
+                TSCudaContext context = CudaHelpers.TSContextForTensor(src);
+                CudaContext cudaContext = context.CudaContextForTensor(src);
 
-            return writeTarget;
+                cudaContext.SetCurrent();
+
+                Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
+                long elementCount = writeTarget.ElementCount();
+
+                byte[] ptx = kernels.GetPtx(context.Compiler);
+
+                if (result == src)
+                {
+                    ApplyOpInvoke.Invoke(context, cudaContext, ptx, "t1_" + funcName, writeTarget, elementCount);
+                }
+                else
+                {
+                    ApplyOpInvoke.Invoke(context, cudaContext, ptx, "t2_" + funcName, writeTarget, src, elementCount);
+                }
+
+                return writeTarget;
+            }
+            catch (Exception e)
+            {
+                Logger.WriteLine($"Error = '{e.Message}', Call stack = '{e.StackTrace}'");
+                throw;
+            }
         }
     }
 
@@ -257,6 +265,34 @@ namespace TensorSharp.CUDA.KernelOps
                 }
 
                 return writeTarget;
+            }
+            catch (Exception e)
+            {
+                Logger.WriteLine($"Exception message = '{e.Message}', Call stack = '{e.StackTrace}'");
+                throw;
+            }
+        }
+    }
+
+    public static class ElementwiseAtomicAddOp
+    {
+        public static Tensor Invoke(CudaCode kernels, Tensor result, Tensor rhs)
+        {
+            try
+            {
+                TSCudaContext context = CudaHelpers.TSContextForTensor(rhs);
+                CudaContext cudaContext = context.CudaContextForTensor(rhs);
+
+                cudaContext.SetCurrent();
+
+                long elementCount = result.ElementCount();
+
+                byte[] ptx = kernels.GetPtx(context.Compiler);
+                
+                ApplyOpInvoke.Invoke(context, cudaContext, ptx, "t1_atomicAdd", result, rhs, elementCount);
+
+
+                return result;
             }
             catch (Exception e)
             {

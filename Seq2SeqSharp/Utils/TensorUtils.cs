@@ -40,7 +40,7 @@ namespace Seq2SeqSharp.Utils
         /// <param name="segmentEmbedding"></param>
         /// <param name="vocab"></param>
         /// <returns>The embedding tensor. shape: (batchsize * seqLen, embedding_dim) </returns>
-        public static IWeightTensor CreateTokensEmbeddings(List<List<int>> seqs, IComputeGraph g, IWeightTensor embeddingsTensor, float[] seqOriginalLengths, 
+        public static IWeightTensor CreateTokensEmbeddings(List<List<int>> seqs, IComputeGraph g, IWeightTensor embeddingsTensor, 
             IWeightTensor segmentEmbedding, IWeightTensor contextEmbeddings, Vocab vocab, bool applyContextEmbeddingsToEntireSequence = true, float scaleFactor = 1.0f)
         {
             if (seqs is null)
@@ -56,11 +56,6 @@ namespace Seq2SeqSharp.Utils
             if (embeddingsTensor is null)
             {
                 throw new ArgumentNullException(nameof(embeddingsTensor));
-            }
-
-            if (seqOriginalLengths is null)
-            {
-                throw new ArgumentNullException(nameof(seqOriginalLengths));
             }
 
             if (vocab is null)

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using TensorSharp;
 
 namespace Seq2SeqSharp.Tools
@@ -82,6 +83,7 @@ namespace Seq2SeqSharp.Tools
             }
             set
             {
+ 
                 if (m_TWeight != null)
                 {
                     throw new Exception($"Please call ReleaseWeight function before assign a new value to weight '{Name}'.");
@@ -201,8 +203,10 @@ namespace Seq2SeqSharp.Tools
             Sizes = sizes;
             m_allocator = TensorAllocator.Allocator(DeviceId);
 
-            TWeight = new Tensor(m_allocator, DType.Float32, Sizes);
-            Ops.Fill(TWeight, c);
+            var tensor = new Tensor(m_allocator, DType.Float32, Sizes);
+            Ops.Fill(tensor, c);
+
+            TWeight = tensor;
         }
 
 
@@ -291,8 +295,9 @@ namespace Seq2SeqSharp.Tools
 
         public float[] ToWeightArray()
         {
-            return TWeight.GetElementsAsFloat(Rows * Columns);
+            return TWeight.GetElementsAsFloat((int)m_TWeight.GetStorageSize());
         }
+
 
         public void AddSoftmaxGradient(WeightTensor src, bool inPlace = false)
         {
@@ -385,7 +390,6 @@ namespace Seq2SeqSharp.Tools
                 Ops.AddSigmoidD(m_TGradient, m_TGradient, src.TWeight, src.TGradient);
             }
         }
-
 
         public void AddTanhGradient(WeightTensor src)
         {

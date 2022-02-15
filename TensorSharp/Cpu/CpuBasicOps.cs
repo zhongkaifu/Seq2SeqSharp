@@ -599,7 +599,6 @@ namespace TensorSharp.Cpu
         public Tensor NotEqual(Tensor result, Tensor lhs, float rhs) { return NativeWrapper.InvokeNullableResultElementwise(neValue_func, result, lhs, rhs); }
 
 
-
         [RegisterOpStorageType("addt", typeof(CpuStorage))]
         public Tensor Add(Tensor result, Tensor lhs, Tensor rhs)
         {
@@ -609,6 +608,13 @@ namespace TensorSharp.Cpu
             return writeTarget;
         }
 
+        [RegisterOpStorageType("atomicadd", typeof(CpuStorage))]
+        public Tensor AtomicAdd(Tensor result, Tensor rhs)
+        {
+            TensorApplyCPU.Add(result, result, rhs);
+
+            return result;
+        }
 
         [RegisterOpStorageType("subt", typeof(CpuStorage))]
         public Tensor Sub(Tensor result, Tensor lhs, Tensor rhs)

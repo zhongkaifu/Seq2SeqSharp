@@ -13,9 +13,6 @@ namespace Seq2SeqSharp
         private static int[] m_deviceIds;
         private static ProcessorTypeEnums m_archType;
 
-        private static readonly object locker = new object();
-
-
         public static void InitDevices(ProcessorTypeEnums archType, int[] ids, float memoryUsageRatio = 0.9f, string[] compilerOptions = null)
         {
             m_archType = archType;

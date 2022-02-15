@@ -139,69 +139,69 @@ namespace Seq2SeqSharp.Tools
             return new ComputeGraphTensor(new WeightTensorFactory(), DeviceIds[deviceIdIdx], needBack);
         }
 
-        public bool SaveModel_As_BinaryFormatter()
-        {
-            try
-            {
-                Logger.WriteLine($"Saving model to '{m_modelFilePath}'");
+        //public bool SaveModel_As_BinaryFormatter()
+        //{
+        //    try
+        //    {
+        //        Logger.WriteLine($"Saving model to '{m_modelFilePath}'");
 
-                if (File.Exists(m_modelFilePath))
-                {
-                    File.Copy(m_modelFilePath, $"{m_modelFilePath}.bak", true);
-                }
+        //        if (File.Exists(m_modelFilePath))
+        //        {
+        //            File.Copy(m_modelFilePath, $"{m_modelFilePath}.bak", true);
+        //        }
 
-                BinaryFormatter bf = new BinaryFormatter();
-                using (FileStream fs = new FileStream(m_modelFilePath, FileMode.Create, FileAccess.Write))
-                {
-                    SaveParameters();
-                    // Save model meta data to the stream
-                    bf.Serialize(fs, m_modelMetaData);
-                    // All networks and tensors which are MultiProcessorNetworkWrapper<T> will be saved to given stream
+        //        BinaryFormatter bf = new BinaryFormatter();
+        //        using (FileStream fs = new FileStream(m_modelFilePath, FileMode.Create, FileAccess.Write))
+        //        {
+        //            SaveParameters();
+        //            // Save model meta data to the stream
+        //            bf.Serialize(fs, m_modelMetaData);
+        //            // All networks and tensors which are MultiProcessorNetworkWrapper<T> will be saved to given stream
 
-                }
+        //        }
 
-                return true;
-            }
-            catch (Exception err)
-            {
-                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Failed to save model to file. Exception = '{err.Message}', Callstack = '{err.StackTrace}'");
-                return false;
-            }
-        }
-        public void LoadModel_As_BinaryFormatter(Func<T, bool> InitializeParameters)
-        {
-            Logger.WriteLine($"Loading model from '{m_modelFilePath}'...");
-            BinaryFormatter bf = new BinaryFormatter();
-            using (FileStream fs = new FileStream(m_modelFilePath, FileMode.Open, FileAccess.Read))
-            {
-                m_modelMetaData = bf.Deserialize(fs) as T;
+        //        return true;
+        //    }
+        //    catch (Exception err)
+        //    {
+        //        Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Failed to save model to file. Exception = '{err.Message}', Callstack = '{err.StackTrace}'");
+        //        return false;
+        //    }
+        //}
+        //public void LoadModel_As_BinaryFormatter(Func<T, bool> InitializeParameters)
+        //{
+        //    Logger.WriteLine($"Loading model from '{m_modelFilePath}'...");
+        //    BinaryFormatter bf = new BinaryFormatter();
+        //    using (FileStream fs = new FileStream(m_modelFilePath, FileMode.Open, FileAccess.Read))
+        //    {
+        //        m_modelMetaData = bf.Deserialize(fs) as T;
 
-                //Initialize parameters on devices
-                InitializeParameters(m_modelMetaData);
+        //        //Initialize parameters on devices
+        //        InitializeParameters(m_modelMetaData);
 
-                // Load embedding and weights from given model
-                // All networks and tensors which are MultiProcessorNetworkWrapper<T> will be loaded from given stream
-                LoadParameters();
-            }
+        //        // Load embedding and weights from given model
+        //        // All networks and tensors which are MultiProcessorNetworkWrapper<T> will be loaded from given stream
+        //        LoadParameters();
+        //    }
 
-            //For multi-GPUs, copying weights from default device to other all devices
-            CopyWeightsFromDefaultDeviceToAllOtherDevices();
-        }
+        //    //For multi-GPUs, copying weights from default device to other all devices
+        //    CopyWeightsFromDefaultDeviceToAllOtherDevices();
+        //}
 
         protected T LoadModelImpl_WITH_CONVERT(Func<T, bool> initializeParametersFunc)
         {
-            try
-            {
+            //try
+            //{
                 return (LoadModelImpl());
-            }
-            catch (ProtoBuf.ProtoException ex)
-            {
-                System.Diagnostics.Debug.WriteLine(ex);
+            //}
+            //catch (ProtoBuf.ProtoException ex)
+            //{
+            //    System.Diagnostics.Debug.WriteLine(ex);
 
-                LoadModel_As_BinaryFormatter(initializeParametersFunc);
-                SaveModel(createBackupPrevious: true);
-                return (m_modelMetaData);
-            }
+            //    LoadModel_As_BinaryFormatter(initializeParametersFunc);
+            //    SaveModel(createBackupPrevious: true);
+            //    return (m_modelMetaData);
+            //}
         }
 
         public bool SaveModel(bool createBackupPrevious = false, string suffix = "") => SaveModelImpl(m_modelMetaData, createBackupPrevious, suffix);

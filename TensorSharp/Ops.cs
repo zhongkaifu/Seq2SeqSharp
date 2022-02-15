@@ -89,7 +89,6 @@ namespace TensorSharp
         public static Tensor Neg(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("neg", result, src); }
         public static Tensor Sign(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("sign", result, src); }
 
-
         public static Tensor Relu(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("relu", result, src); }
 
 
@@ -174,6 +173,9 @@ namespace TensorSharp
         public static Tensor Mul(Tensor result, Tensor lhs, Tensor rhs) { return (Tensor)OpRegistry.Invoke("mult", result, lhs, rhs); }
         public static Tensor Div(Tensor result, Tensor lhs, Tensor rhs) { return (Tensor)OpRegistry.Invoke("divt", result, lhs, rhs); }
         public static Tensor Mod(Tensor result, Tensor lhs, Tensor rhs) { return (Tensor)OpRegistry.Invoke("modt", result, lhs, rhs); }
+
+
+        public static Tensor AtomicAdd(Tensor result, Tensor rhs) { return (Tensor)OpRegistry.Invoke("atomicadd", result, rhs); }
 
         public static Tensor GreaterThan(Tensor result, Tensor lhs, Tensor rhs) { return (Tensor)OpRegistry.Invoke("gtTensor", result, lhs, rhs); }
         public static Tensor LessThan(Tensor result, Tensor lhs, Tensor rhs) { return (Tensor)OpRegistry.Invoke("ltTensor", result, lhs, rhs); }

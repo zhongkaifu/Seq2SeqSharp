@@ -104,7 +104,7 @@ namespace TensorSharp
 		}
 
 
-		unsafe static void Apply5(Tensor tensor1, Tensor tensor2, Tensor tensor3, Tensor tensor4, Tensor tensor5, Apply5KernelFunction func)
+		unsafe static void Apply5(Tensor tensor1, Tensor tensor2, Tensor tensor3, Tensor tensor4, Tensor tensor5, Apply5KernelFunction func, int step = 1)
 		{
 			float* buffer1 = (float*)CpuNativeHelpers.GetBufferStart(tensor1);
 			float* buffer2 = (float*)CpuNativeHelpers.GetBufferStart(tensor2);
@@ -113,11 +113,11 @@ namespace TensorSharp
 			float* buffer5 = (float*)CpuNativeHelpers.GetBufferStart(tensor5);
 
 
-			TensorIterState tensor1Iter = new TensorIterState(buffer1, tensor1.DimensionCount, tensor1.Sizes, tensor1.Strides);
-			TensorIterState tensor2Iter = new TensorIterState(buffer2, tensor2.DimensionCount, tensor2.Sizes, tensor2.Strides);
-			TensorIterState tensor3Iter = new TensorIterState(buffer3, tensor3.DimensionCount, tensor3.Sizes, tensor3.Strides);
-			TensorIterState tensor4Iter = new TensorIterState(buffer4, tensor4.DimensionCount, tensor4.Sizes, tensor4.Strides);
-			TensorIterState tensor5Iter = new TensorIterState(buffer5, tensor5.DimensionCount, tensor5.Sizes, tensor5.Strides);
+			TensorIterState tensor1Iter = new TensorIterState(buffer1, tensor1.DimensionCount, tensor1.Sizes, tensor1.Strides, step);
+			TensorIterState tensor2Iter = new TensorIterState(buffer2, tensor2.DimensionCount, tensor2.Sizes, tensor2.Strides, step);
+			TensorIterState tensor3Iter = new TensorIterState(buffer3, tensor3.DimensionCount, tensor3.Sizes, tensor3.Strides, step);
+			TensorIterState tensor4Iter = new TensorIterState(buffer4, tensor4.DimensionCount, tensor4.Sizes, tensor4.Strides, step);
+			TensorIterState tensor5Iter = new TensorIterState(buffer5, tensor5.DimensionCount, tensor5.Sizes, tensor5.Strides, step);
 
 			do
 			{
@@ -423,15 +423,13 @@ namespace TensorSharp
 			int vectorSize = Vector<float>.Count;
 			if (result.Strides[^1] == 1 && src.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
 			{
-				//Logger.WriteLine($"ADDTS Vector.");
-
+				Vector<float> vecV = new Vector<float>(value);
 				unsafe void funcVec(float* r, float* s)
 				{
 					Span<float> spanR = new Span<float>(r, vectorSize);
 					Span<float> spanS = new Span<float>(s, vectorSize);
 
 					Vector<float> vecS = new Vector<float>(spanS);
-					Vector<float> vecV = new Vector<float>(value);
 
 					Vector<float> vecR = vecS + vecV;
 					vecR.CopyTo(spanR);
@@ -465,12 +463,33 @@ namespace TensorSharp
 
 		unsafe public static void RSub(Tensor result, float value, Tensor src)
 		{
-			unsafe void func(float* r, float* s)
+			int vectorSize = Vector<float>.Count;
+			if (result.Strides[^1] == 1 && src.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
 			{
-				*r = value - *s;
-			}
+				Vector<float> vecV = new Vector<float>(value);
+				unsafe void funcVec(float* r, float* s)
+				{
+					Span<float> spanR = new Span<float>(r, vectorSize);
+					Span<float> spanS = new Span<float>(s, vectorSize);
 
-			Apply2(result, src, func);
+					Vector<float> vecS = new Vector<float>(spanS);
+
+					Vector<float> vecR = vecV - vecS;
+					vecR.CopyTo(spanR);
+
+				}
+
+				Apply2(result, src, funcVec, vectorSize);
+			}
+			else
+			{
+				unsafe void func(float* r, float* s)
+				{
+					*r = value - *s;
+				}
+
+				Apply2(result, src, func);
+			}
 		}
 
 
@@ -480,13 +499,13 @@ namespace TensorSharp
 			int vectorSize = Vector<float>.Count;
 			if (result.Strides[^1] == 1 && src.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
 			{
+				Vector<float> vecV = new Vector<float>(value);
 				unsafe void funcVec(float* r, float* s)
 				{
 					Span<float> spanR = new Span<float>(r, vectorSize);
 					Span<float> spanS = new Span<float>(s, vectorSize);
 
 					Vector<float> vecS = new Vector<float>(spanS);
-					Vector<float> vecV = new Vector<float>(value);
 
 					Vector<float> vecR = vecS * vecV;
 					vecR.CopyTo(spanR);
@@ -511,13 +530,13 @@ namespace TensorSharp
 			int vectorSize = Vector<float>.Count;
 			if (result.Strides[^1] == 1 && lhs.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
 			{
+				Vector<float> vecV = new Vector<float>(rhs);
 				unsafe void funcVec(float* r, float* s)
 				{
 					Span<float> spanR = new Span<float>(r, vectorSize);
 					Span<float> spanS = new Span<float>(s, vectorSize);
 
 					Vector<float> vecS = new Vector<float>(spanS);
-					Vector<float> vecV = new Vector<float>(rhs);
 
 					Vector<float> vecR = vecS / vecV;
 					vecR.CopyTo(spanR);
@@ -600,7 +619,6 @@ namespace TensorSharp
 				Apply3(result, lhs, rhs, func);
 			}
 		}
-
 
 		unsafe static public void Relu(Tensor result, Tensor src)
 		{
@@ -765,12 +783,37 @@ namespace TensorSharp
 
 		unsafe static public void MulMulAdd(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ, Tensor srcW)
 		{
-			unsafe void func(float* r, float* x, float* y, float* z, float* w)
+			int vectorSize = Vector<float>.Count;
+			if (result.Strides[^1] == 1 && srcX.Strides[^1] == 1 && srcY.Strides[^1] == 1 && srcZ.Strides[^1] == 1 && srcW.Strides[^1] == 1 && result.Sizes[^1] % vectorSize == 0)
 			{
-				*r = mulmuladd(*x, *y, *z, *w);
-			}
+				unsafe void funcVec(float* r, float* x, float* y, float* z, float* w)
+				{
+					Span<float> spanR = new Span<float>(r, vectorSize);
+					Span<float> spanX = new Span<float>(x, vectorSize);
+					Span<float> spanY = new Span<float>(y, vectorSize);
+					Span<float> spanZ = new Span<float>(z, vectorSize);
+					Span<float> spanW = new Span<float>(w, vectorSize);
 
-			Apply5(result, srcX, srcY, srcZ, srcW, func);
+					Vector<float> vecX = new Vector<float>(spanX);
+					Vector<float> vecY = new Vector<float>(spanY);
+					Vector<float> vecZ = new Vector<float>(spanZ);
+					Vector<float> vecW = new Vector<float>(spanW);
+
+					Vector<float> vecR = vecX * vecY + vecZ * vecW;
+					vecR.CopyTo(spanR);
+				}
+
+				Apply5(result, srcX, srcY, srcZ, srcW, funcVec, vectorSize);
+			}
+			else
+			{
+				unsafe void func(float* r, float* x, float* y, float* z, float* w)
+				{
+					*r = mulmuladd(*x, *y, *z, *w);
+				}
+
+				Apply5(result, srcX, srcY, srcZ, srcW, func);
+			}
 		}
 
 
@@ -932,13 +975,6 @@ namespace TensorSharp
 					sum += ex;
 				}
 
-				//for (int i = 0; i < cols; ++i)
-				//{
-				//	so[i] /= sum;
-				//}
-
-
-
 				Span<float> spanSO = new Span<float>(so, cols);
 				int vectorSize = Vector<float>.Count;
 				int k = 0;
@@ -1060,12 +1096,6 @@ namespace TensorSharp
 				Span<float> spanSP = new Span<float>(sp, cols);
 
 				float sum = 0.0f;
-				//for (int i = 0; i < cols; ++i)
-				//{
-				//	sum += sp[i];
-				//}
-
-
 				int vectorSize = Vector<float>.Count;
 				Vector<float> vecAdded = Vector<float>.Zero;
 				int i = 0;
@@ -1081,16 +1111,8 @@ namespace TensorSharp
 					sum += sp[i];
 				}
 
-
-
 				float mean = sum / cols;
 				float sqSum = 0.0f;
-
-				//for (int i = 0; i < cols; ++i)
-				//{
-				//	float ex = sp[i] - mean;
-				//	sqSum += ex * ex;
-				//}
 
 				Vector<float> vecMean = new Vector<float>(mean);
 				for (i = 0; i < cols - vectorSize; i += vectorSize)
@@ -1111,18 +1133,6 @@ namespace TensorSharp
 				Span<float> spanAlpha = new Span<float>(alpha, cols);
 				Span<float> spanBeta = (beta != null) ? new Span<float>(beta, cols) : null;
 				Vector<float> vecSigma = new Vector<float>(sigma);
-
-				//for (int i = 0; i < cols; ++i)
-				//{
-				//	float t = alpha[i] * ((sp[i] - mean) / sigma);
-				//	if (beta != null)
-				//	{
-				//		t += beta[i];
-				//	}
-
-				//	so[i] = t;
-				//}
-
 
 				for (i = 0; i < cols - vectorSize; i += vectorSize)
 				{
@@ -1313,6 +1323,7 @@ namespace TensorSharp
 
 
 		#region Internal operations
+
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		static float relu(float w)

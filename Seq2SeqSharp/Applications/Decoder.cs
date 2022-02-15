@@ -1,4 +1,5 @@
-﻿using Seq2SeqSharp.Corpus;
+﻿using AdvUtils;
+using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Layers;
 using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
@@ -214,7 +215,7 @@ namespace Seq2SeqSharp.Applications
                 tgtSelfTriMask = g.View(tgtSelfTriMask, new long[] { batchSize, 1, tgtSeqLen, tgtSeqLen });
             }
 
-            IWeightTensor inputEmbs = TensorUtils.CreateTokensEmbeddings(tgtSeqs, g, tgtEmbedding, tgtOriginalLengths, null, null, tgtVocab, scaleFactor: (float)Math.Sqrt(tgtEmbedding.Columns));
+            IWeightTensor inputEmbs = TensorUtils.CreateTokensEmbeddings(tgtSeqs, g, tgtEmbedding, null, null, tgtVocab, scaleFactor: (float)Math.Sqrt(tgtEmbedding.Columns));
             inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbedding, batchSize, inputEmbs, dropoutRatio);
 
             IWeightTensor decOutput;
@@ -256,22 +257,31 @@ namespace Seq2SeqSharp.Applications
                 var p_gen = g.Mul(all_context, pointerGeneratorWeights); // Output: [batchSize * tgtSeqLen, 1]
 
                 p_gen = g.Sigmoid(p_gen);
+
                 var p_copy = g.Sub(1.0f, p_gen);
 
-                p_gen = g.Expand(p_gen, dims: new long[] { batchSize * tgtSeqLen, ffLayer.Sizes[^1] });
-                p_copy = g.Expand(p_copy, dims: new long[] { batchSize * tgtSeqLen, ffLayer.Sizes[^1] });
+
+                p_copy = g.View(p_copy, dims: new long[] { batchSize, tgtSeqLen, 1 });
+                p_copy = g.Expand(p_copy, dims: new long[] { batchSize, tgtSeqLen, srcSeqLen });
+                var probsCopy = g.EltMul(decEncAttnProbsBatch, p_copy);
+
 
 
                 var seqSeqsIndex = g.CreateTokensTensor(srcSeqs);
                 seqSeqsIndex = g.View(seqSeqsIndex, dims: new long[] { batchSize, 1, srcSeqLen });
                 seqSeqsIndex = g.Expand(seqSeqsIndex, dims: new long[] { batchSize, tgtSeqLen, srcSeqLen });
 
-                var probsCopy = g.ScatterAdd(decEncAttnProbsBatch, seqSeqsIndex, 2, shape: new long[] { batchSize, tgtSeqLen, ffLayer.Sizes[^1] });
+
+                probsCopy = g.ScatterAdd(probsCopy, seqSeqsIndex, 2, shape: new long[] { batchSize, tgtSeqLen, ffLayer.Sizes[^1] });
                 probsCopy = g.View(probsCopy, dims: new long[] { batchSize * tgtSeqLen, ffLayer.Sizes[^1] });
 
-                probs = g.EltMulMulAdd(p_gen, probs, p_copy, probsCopy);
 
-                probs.Clamp(1e-10f, 1.0f);
+
+                p_gen = g.Expand(p_gen, dims: new long[] { batchSize * tgtSeqLen, ffLayer.Sizes[^1] });
+                probs = g.EltMul(probs, p_gen);
+
+                probs = g.Add(probs, probsCopy);
+
             }
 
 

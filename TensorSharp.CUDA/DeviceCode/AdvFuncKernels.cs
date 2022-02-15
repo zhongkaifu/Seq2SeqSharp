@@ -623,7 +623,11 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-        gradRow[id] += adjRow[id];
+//        gradRow[id] += adjRow[id];
+
+
+        atomicAdd(gradRow + id, adjRow[id]);
+
         }
       }
     }

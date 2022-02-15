@@ -54,5 +54,6 @@ namespace Seq2SeqSharp.Tools
         void Clamp(float min, float max);
 
         long ElementCount { get; }
+
     }
 }

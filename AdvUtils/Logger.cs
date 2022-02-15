@@ -73,7 +73,7 @@ namespace AdvUtils
 
         }
 
-        public static string LogFile
+        public static string? LogFile
         {
             get => s_strLogfile;
             set

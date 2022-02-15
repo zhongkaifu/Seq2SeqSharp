@@ -9,19 +9,21 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using TensorSharp;
 
 namespace Seq2SeqSharp.Tests;
 
 [TestClass]
 public class ComputeGraph_Tests
 {
+    static Random rnd = new Random(DateTime.Now.Millisecond);
+
     private WeightTensor BuildRandomTensor(long[] shape, string name, bool isTrainable = true)
     {
         var tensorA = new WeightTensor(shape, 1, 0, name: name, isTrainable: isTrainable);
 
         //Build test data and ground truth data
         float[] arrayA = new float[tensorA.ElementCount];
-        Random rnd = new Random(DateTime.Now.Millisecond);
         for (int i = 0; i < tensorA.ElementCount; i++)
         {
             arrayA[i] = (float)rnd.NextDouble();
@@ -37,7 +39,6 @@ public class ComputeGraph_Tests
 
         //Build ground truth labels
         float[] arrayIdx = new float[batchSize];
-        Random rnd = new Random(DateTime.Now.Millisecond);
         for (int i = 0; i < batchSize; i++)
         {
             arrayIdx[i] = rnd.Next(0, categoryNum);
@@ -129,6 +130,55 @@ public class ComputeGraph_Tests
         Assert.IsTrue(gA == gB);
     }
 
+
+    [TestMethod]
+    public void TestSum()
+    {
+        int batchSize = 5;
+        int vocabSize = 20;
+        TensorAllocator.InitDevices(ProcessorTypeEnums.CPU, new int[] { 0 });
+        var graph = new ComputeGraphTensor(new WeightTensorFactory(), 0, true);
+
+        var tensorA = BuildRandomTensor(shape: new long[2] { batchSize, vocabSize }, name: "tensorA", isTrainable: true);
+        var tensorAWeights = tensorA.ToWeightArray();
+        float sum1 = tensorAWeights.Sum();
+
+        var tensorSum = graph.Sum(tensorA, 1);
+        var tensorSumWeights = tensorSum.ToWeightArray();
+        float sum2 = tensorSumWeights.Sum();
+
+        Assert.IsTrue(Math.Round(sum1, 5) == Math.Round(sum2, 5));
+
+    }
+
+
+    [TestMethod]
+    public void TestAtomicAdd()
+    {
+        int batchSize = 5;
+        int vocabSize = 20;
+        TensorAllocator.InitDevices(ProcessorTypeEnums.CPU, new int[] { 0 });
+        var graph = new ComputeGraphTensor(new WeightTensorFactory(), 0, true);
+
+        var tensorA = BuildRandomTensor(shape: new long[2] { batchSize, vocabSize }, name: "tensorA", isTrainable: true);
+        var tensorAWeights = tensorA.ToWeightArray();
+        float sumA = tensorAWeights.Sum();
+
+        var tensorB = BuildRandomTensor(shape: new long[2] { batchSize, vocabSize }, name: "tensorB", isTrainable: true);
+        var tensorBWeights = tensorB.ToWeightArray();
+        float sumB = tensorBWeights.Sum();
+
+        float sum = sumA + sumB;
+
+        Ops.AtomicAdd(tensorA.TWeight, tensorB.TWeight);
+        var tensorSumWeights = tensorA.ToWeightArray();
+        float sum2 = tensorSumWeights.Sum();
+
+        Assert.IsTrue(Math.Round(sum, 5) == Math.Round(sum2, 5));
+
+    }
+
+
     [TestMethod]
     public void TestCrossEntropyLoss()
     {
@@ -142,7 +192,7 @@ public class ComputeGraph_Tests
 
         var probs = graph.Softmax(tensorA);
         float[] softmaxWeights = probs.ToWeightArray();
-        graph.CrossEntropyLoss(probs, tensorIdx, avgLoss: false);
+        graph.CrossEntropyLoss(probs, tensorIdx);
 
         graph.Backward();
 

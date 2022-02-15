@@ -9,6 +9,6 @@ namespace Seq2SeqSharp.Layers
 {
     public interface IFeedForwardLayer : INeuralUnit
     {
-        IWeightTensor Process(IWeightTensor inputT, int batchSize, IComputeGraph g);
+        IWeightTensor Process(IWeightTensor inputT, int batchSize, IComputeGraph g, float alpha = 1.0f);
     }
 }

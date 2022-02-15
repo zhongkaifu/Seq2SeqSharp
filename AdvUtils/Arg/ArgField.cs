@@ -29,10 +29,10 @@ namespace AdvUtils
                     Type argumentType = m_fi.FieldType.IsGenericType && m_fi.FieldType.GetGenericTypeDefinition() == typeof(Nullable<>) ?
                         m_fi.FieldType.GenericTypeArguments[0] : m_fi.FieldType;
 
-                    MethodInfo mi = argumentType.GetMethod("Parse", new Type[] { typeof(string) });
+                    MethodInfo? mi = argumentType.GetMethod("Parse", new Type[] { typeof(string) });
                     if (mi != null)
                     {
-                        object oValue = mi.Invoke(null, new object[] { val });
+                        object? oValue = mi.Invoke(null, new object[] { val });
                         m_fi.SetValue(m_o, oValue);
                     }
                     else if (argumentType.IsEnum)
