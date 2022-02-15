@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using AdvUtils;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Metrics;
@@ -147,7 +148,13 @@ public class ComputeGraph_Tests
         var tensorSumWeights = tensorSum.ToWeightArray();
         float sum2 = tensorSumWeights.Sum();
 
-        Assert.IsTrue(Math.Round(sum1, 5) == Math.Round(sum2, 5));
+
+        sum1 = (float)Math.Round(sum1, 5);
+        sum2 = (float)Math.Round(sum2, 5);
+
+        Logger.WriteLine($"sum from .net core = '{sum1}', sum from sum operator = '{sum2}'");
+
+        Assert.IsTrue(sum1 == sum2);
 
     }
 
