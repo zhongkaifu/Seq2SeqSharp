@@ -250,9 +250,10 @@ namespace Seq2SeqSharp.Applications
                 //Build onehot tensor for source tokens
                 var seqSeqsIndex = g.CreateTokensTensor(srcSeqs);
                 seqSeqsIndex = g.View(seqSeqsIndex, dims: new long[] { batchSize, 1, srcSeqLen });
-                seqSeqsIndex = g.Expand(seqSeqsIndex, dims: new long[] { batchSize, tgtSeqLen, srcSeqLen });
+                seqSeqsIndex = g.AsContiguous(g.Expand(seqSeqsIndex, dims: new long[] { batchSize, tgtSeqLen, srcSeqLen }));
+                seqSeqsIndex = g.View(seqSeqsIndex, dims: new long[] { batchSize * tgtSeqLen, srcSeqLen });
 
-
+                //Build context tensor for pointer generator
                 IWeightTensor decEncAttnProbsBatch = g.View(decEncAttnProbs, dims: new long[] { batchSize, tgtSeqLen, srcSeqLen });
                 IWeightTensor encOutputsBatch = g.View(encOutputs, dims: new long[] { batchSize, srcSeqLen, -1 });
 
@@ -260,20 +261,24 @@ namespace Seq2SeqSharp.Applications
                 pointer_context = g.View(pointer_context, dims: new long[] { batchSize * tgtSeqLen, -1 });
 
                 var all_context = g.Concate(1, pointer_context, decOutput, inputEmbs);
-                var p_gen_all = g.Mul(all_context, pointerGeneratorWeights); // Output: [batchSize * tgtSeqLen, vocab_size]
-                p_gen_all = g.Sigmoid(p_gen_all);
+                var p_copy = g.Mul(all_context, pointerGeneratorWeights); // Output: [batchSize * tgtSeqLen, 1]
+                p_copy = g.Sigmoid(p_copy);
 
-                var p_gen_src = g.View(p_gen_all, dims: new long[] { batchSize, tgtSeqLen, ffLayer.Sizes[^1] });
-                p_gen_src = g.Gather(p_gen_src, seqSeqsIndex, 2); //Outputter: [batchSize, tgtSeqLen, srcSeqLen]
+                var p_gen = g.Sub(1.0f, p_copy);
+                p_gen = g.Expand(p_gen, dims: new long[] { batchSize * tgtSeqLen, ffLayer.Sizes[^1] });
 
-                var p_copy = g.Sub(1.0f, p_gen_src);
-                var probsCopy = g.EltMul(decEncAttnProbsBatch, p_copy);
+             //   p_copy.PrintWeights();
 
-                probsCopy = g.ScatterAdd(probsCopy, seqSeqsIndex, 2, shape: new long[] { batchSize, tgtSeqLen, ffLayer.Sizes[^1] });
-                probsCopy = g.View(probsCopy, dims: new long[] { batchSize * tgtSeqLen, ffLayer.Sizes[^1] });
+                //Apply copy probs to attention weights in source side
+                p_copy = g.Expand(p_copy, dims: new long[] { batchSize * tgtSeqLen, srcSeqLen });
+                var probsCopy = g.EltMul(p_copy, decEncAttnProbs); // Output shape: [batchSize * tgtSeqLen, srcSeqLen]
 
-                probs = g.EltMul(probs, p_gen_all);
+                probsCopy = g.ScatterAdd(probsCopy, seqSeqsIndex, 1, shape: new long[] { batchSize * tgtSeqLen, ffLayer.Sizes[^1] });
+
+                probs = g.EltMul(probs, p_gen);
                 probs = g.Add(probs, probsCopy);
+
+                probs.Clamp(1e-10f, 1.0f);
 
             }
 

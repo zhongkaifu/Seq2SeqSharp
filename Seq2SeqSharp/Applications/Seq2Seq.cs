@@ -99,7 +99,7 @@ namespace Seq2SeqSharp
                 }
 
                 Logger.WriteLine($"Create pointer generator weights...");
-                m_pointerGenerator = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { model.HiddenDim * 3, model.TgtVocab.Count }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, name: "PointerGeneratorWeights", isTrainable: true), DeviceIds);
+                m_pointerGenerator = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { model.HiddenDim * 3, 1 }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, name: "PointerGeneratorWeights", isTrainable: true), DeviceIds);
             }
             else
             {

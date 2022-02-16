@@ -299,6 +299,29 @@ namespace Seq2SeqSharp.Tools
         }
 
 
+
+        static DateTime lastCheckDT = DateTime.Now;
+        public void PrintWeights()
+        {
+            if (DateTime.Now - lastCheckDT >= TimeSpan.FromMinutes(2.0f))
+            {
+                lastCheckDT = DateTime.Now;
+                var weights = ToWeightArray();
+
+                StringBuilder sb = new StringBuilder();
+                sb.Append($"Weights for '{Name}': [");
+
+                foreach (var weight in weights)
+                {
+                    sb.Append($"{weight:F4}, ");
+                }
+
+                sb.Append("]");
+
+                Logger.WriteLine(sb.ToString());
+            }
+        }
+
         public void AddSoftmaxGradient(WeightTensor src, bool inPlace = false)
         {
             if (m_TGradient == null)

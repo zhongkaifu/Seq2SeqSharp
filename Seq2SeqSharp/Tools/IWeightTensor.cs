@@ -55,5 +55,6 @@ namespace Seq2SeqSharp.Tools
 
         long ElementCount { get; }
 
+        void PrintWeights();
     }
 }
