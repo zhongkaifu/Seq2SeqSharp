@@ -303,7 +303,7 @@ namespace Seq2SeqSharp.Tools
         static DateTime lastCheckDT = DateTime.Now;
         public void PrintWeights()
         {
-            if (DateTime.Now - lastCheckDT >= TimeSpan.FromMinutes(2.0f))
+            if (DateTime.Now - lastCheckDT >= TimeSpan.FromMinutes(5.0f))
             {
                 lastCheckDT = DateTime.Now;
                 var weights = ToWeightArray();

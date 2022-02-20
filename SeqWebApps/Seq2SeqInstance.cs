@@ -12,10 +12,10 @@ namespace Seq2SeqWebApps
 {
     public static class Seq2SeqInstance
     {
-        static private Seq2Seq m_seq2seq;
+        static private Seq2Seq? m_seq2seq;
         static private SentencePiece? m_srcSpm = null;
         static private SentencePiece? m_tgtSpm = null;
-        static private Seq2SeqOptions opts;
+        static private Seq2SeqOptions? opts;
 
 
         static public void Initialization(string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, string deviceIds, SentencePiece? srcSpm, SentencePiece? tgtSpm,
@@ -40,6 +40,16 @@ namespace Seq2SeqWebApps
 
         static public string Call(string srcInput, string tgtInput, int tokenNumToGenerate, bool random, float distancePenalty, float repeatPenalty)
         {
+            if (opts == null)
+            {
+                throw new ArgumentNullException($"The {nameof(Seq2SeqInstance)} may not be initialized, and option instance is null.");
+            }
+
+            if (m_seq2seq == null)
+            {
+                throw new ArgumentNullException($"The {nameof(Seq2SeqInstance)} is null.");
+            }
+
             srcInput = (m_srcSpm != null) ? m_srcSpm.Encode(srcInput) : srcInput;
             List<string> tokens = srcInput.Split(' ').ToList();
 

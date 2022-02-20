@@ -179,7 +179,7 @@ public class Seq2Seq_Tests
         //New training
         var ss = new Seq2Seq(opts, srcVocab, tgtVocab);
 
-        // Add event handler for monitoring
+        // Add event handler for monitoring       
         ss.StatusUpdateWatcher += Ss_StatusUpdateWatcher;
         ss.EpochEndWatcher += Ss_EpochEndWatcher;
 
@@ -195,49 +195,61 @@ public class Seq2Seq_Tests
     public static void Ss_StatusUpdateWatcher(object sender, EventArgs e)
     {
         CostEventArg? ep = e as CostEventArg;
-
-        TimeSpan ts = DateTime.Now - ep.StartDateTime;
-        double sentPerMin = 0;
-        double wordPerSec = 0;
-        if (ts.TotalMinutes > 0)
+        if (ep != null)
         {
-            sentPerMin = ep.ProcessedSentencesInTotal / ts.TotalMinutes;
-        }
+            TimeSpan ts = DateTime.Now - ep.StartDateTime;
+            double sentPerMin = 0;
+            double wordPerSec = 0;
+            if (ts.TotalMinutes > 0)
+            {
+                sentPerMin = ep.ProcessedSentencesInTotal / ts.TotalMinutes;
+            }
 
-        if (ts.TotalSeconds > 0)
+            if (ts.TotalSeconds > 0)
+            {
+                wordPerSec = ep.ProcessedWordsInTotal / ts.TotalSeconds;
+            }
+
+            Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate:F6}, AvgCost = {ep.AvgCostInTotal:F4}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin:F}, WordPerSec = {wordPerSec:F}");
+
+            Assert.IsFalse(double.IsNaN(ep.AvgCostInTotal));
+        }
+        else
         {
-            wordPerSec = ep.ProcessedWordsInTotal / ts.TotalSeconds;
+            throw new ArgumentNullException("The input event argument e is not a CostEventArg.");
         }
-
-        Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate:F6}, AvgCost = {ep.AvgCostInTotal:F4}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin:F}, WordPerSec = {wordPerSec:F}");
-
-        Assert.IsFalse(double.IsNaN(ep.AvgCostInTotal));
-
     }
 
     public static void Ss_EpochEndWatcher(object sender, EventArgs e)
     {
         CostEventArg? ep = e as CostEventArg;
 
-        TimeSpan ts = DateTime.Now - ep.StartDateTime;
-        double sentPerMin = 0;
-        double wordPerSec = 0;
-        if (ts.TotalMinutes > 0)
+        if (ep != null)
         {
-            sentPerMin = ep.ProcessedSentencesInTotal / ts.TotalMinutes;
-        }
+            TimeSpan ts = DateTime.Now - ep.StartDateTime;
+            double sentPerMin = 0;
+            double wordPerSec = 0;
+            if (ts.TotalMinutes > 0)
+            {
+                sentPerMin = ep.ProcessedSentencesInTotal / ts.TotalMinutes;
+            }
 
-        if (ts.TotalSeconds > 0)
+            if (ts.TotalSeconds > 0)
+            {
+                wordPerSec = ep.ProcessedWordsInTotal / ts.TotalSeconds;
+            }
+
+            Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate:F6}, AvgCost = {ep.AvgCostInTotal:F4}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin:F}, WordPerSec = {wordPerSec:F}");
+
+            Assert.IsFalse(double.IsNaN(ep.AvgCostInTotal));
+
+            Assert.IsTrue(ep.AvgCostInTotal < lastEpochAvgCost);
+            lastEpochAvgCost = ep.AvgCostInTotal;
+        }
+        else
         {
-            wordPerSec = ep.ProcessedWordsInTotal / ts.TotalSeconds;
+            throw new ArgumentNullException("The input event argument e is not a CostEventArg.");
         }
-
-        Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate:F6}, AvgCost = {ep.AvgCostInTotal:F4}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin:F}, WordPerSec = {wordPerSec:F}");
-
-        Assert.IsFalse(double.IsNaN(ep.AvgCostInTotal));
-
-        Assert.IsTrue(ep.AvgCostInTotal < lastEpochAvgCost);
-        lastEpochAvgCost = ep.AvgCostInTotal;
     }
 
     private static Seq2SeqOptions CreateOptions(string trainFolderPath, string validFolderPath)

@@ -13,15 +13,6 @@ namespace Seq2SeqSharp.Utils
 {
     public class TensorUtils
     {
-        public static void Scatter(IWeightTensor res, IWeightTensor source, IWeightTensor indices, int dim)
-        {
-            WeightTensor i = indices as WeightTensor;
-            WeightTensor s = source as WeightTensor;
-            WeightTensor r = res as WeightTensor;
-
-            Ops.Scatter(r.TWeight, s.TWeight, dim, i.TWeight);
-        }
-
         public static void ScatterFill(IWeightTensor res, float val, IWeightTensor indices, int dim)
         {
             WeightTensor i = indices as WeightTensor;

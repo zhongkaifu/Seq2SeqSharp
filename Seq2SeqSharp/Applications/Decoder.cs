@@ -267,8 +267,6 @@ namespace Seq2SeqSharp.Applications
                 var p_gen = g.Sub(1.0f, p_copy);
                 p_gen = g.Expand(p_gen, dims: new long[] { batchSize * tgtSeqLen, ffLayer.Sizes[^1] });
 
-             //   p_copy.PrintWeights();
-
                 //Apply copy probs to attention weights in source side
                 p_copy = g.Expand(p_copy, dims: new long[] { batchSize * tgtSeqLen, srcSeqLen });
                 var probsCopy = g.EltMul(p_copy, decEncAttnProbs); // Output shape: [batchSize * tgtSeqLen, srcSeqLen]
@@ -278,16 +276,12 @@ namespace Seq2SeqSharp.Applications
                 probs = g.EltMul(probs, p_gen);
                 probs = g.Add(probs, probsCopy);
 
-                probs.Clamp(1e-10f, 1.0f);
-
             }
-
-
 
             if (isTraining)
             {
                 var leftShiftTgtSeqs = g.LeftShiftTokens(tgtSeqs, eosTokenId);
-                var cost = g.CrossEntropyLoss(probs, leftShiftTgtSeqs);
+                var cost = g.CrossEntropyLoss(probs, leftShiftTgtSeqs, smooth: pointerGenerator ? 1e-10f : 0.0f);
 
                 return (cost, null);
             }

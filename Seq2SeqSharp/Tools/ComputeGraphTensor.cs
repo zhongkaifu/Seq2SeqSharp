@@ -2104,10 +2104,15 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f)
+        public float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f)
         {
             var scatterIdxTensor = View(truthTgtSeqs, new long[] { -1, 1 });
             var loss = Gather(probs, scatterIdxTensor, 1);
+
+            if (smooth > 0.0f)
+            {
+                loss = Add(loss, smooth);
+            }
 
             loss = Log(loss);
             loss = Mul(loss, -1.0f);
