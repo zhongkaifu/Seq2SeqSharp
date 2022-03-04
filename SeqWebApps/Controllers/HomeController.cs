@@ -29,11 +29,11 @@ namespace SeqWebApps.Controllers
         }
 
         [HttpPost]
-        public IActionResult GenerateText(string srcInput, string tgtInput, int num, bool random, float distancePenalty, float repeatPenalty, int contextSize)
+        public IActionResult GenerateText(string srcInput, string tgtInput, int num, bool random, float repeatPenalty, int contextSize)
         {
             TextGenerationModel textGeneration = new TextGenerationModel
             {
-                Output = CallBackend(srcInput, tgtInput, num, random, distancePenalty, repeatPenalty, contextSize),
+                Output = CallBackend(srcInput, tgtInput, num, random, repeatPenalty, contextSize),
                 DateTime = DateTime.Now.ToString()
             };
 
@@ -41,7 +41,7 @@ namespace SeqWebApps.Controllers
         }
 
 
-        private string CallBackend(string srcInputText, string tgtInputText, int tokenNumToGenerate, bool random, float distancePenalty, float repeatPenalty, int tgtContextSize)
+        private string CallBackend(string srcInputText, string tgtInputText, int tokenNumToGenerate, bool random, float repeatPenalty, int tgtContextSize)
         {
             srcInputText = srcInputText.Replace("<br />", "");
             tgtInputText = tgtInputText.Replace("<br />", "");
@@ -73,7 +73,7 @@ namespace SeqWebApps.Controllers
                 setInputSents.Add(srcInputText);
             }
 
-            string outputText = Seq2SeqInstance.Call(srcInputText, tgtInputText, tokenNumToGenerate, random, distancePenalty, repeatPenalty);
+            string outputText = Seq2SeqInstance.Call(srcInputText, tgtInputText, tokenNumToGenerate, random, repeatPenalty);
 
             stopwatch.Stop();
 

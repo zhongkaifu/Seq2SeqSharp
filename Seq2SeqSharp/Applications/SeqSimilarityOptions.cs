@@ -30,7 +30,6 @@ namespace Seq2SeqSharp.Applications
         {
             DecodingOptions decodingOptions = new DecodingOptions();
             decodingOptions.DecodingStrategy = DecodingStrategy;
-            decodingOptions.DistancePenalty = DecodingDistancePenalty;
             decodingOptions.TopPValue = DecodingTopPValue;
             decodingOptions.RepeatPenalty = DecodingRepeatPenalty;
 

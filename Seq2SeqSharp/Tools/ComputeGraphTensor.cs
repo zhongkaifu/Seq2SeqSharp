@@ -959,12 +959,6 @@ namespace Seq2SeqSharp.Tools
             return BitConverter.Int64BitsToDouble(((long)tmp2) << 32);
         }
 
-        private static double Exp(double x)
-        {
-            var tmp = (long)(1512775 * x + 1072632447);
-            return BitConverter.Int64BitsToDouble(tmp << 32);
-        }
-
         /// <summary>
         /// Top-P sampling for each row in given tensor
         /// </summary>
@@ -972,7 +966,7 @@ namespace Seq2SeqSharp.Tools
         /// <param name="seqs"></param>
         /// <param name="topP"></param>
         /// <returns>The sampled index</returns>
-        public IWeightTensor TopPSampleIndice(IWeightTensor w, List<List<int>> seqs, float topP = 0.95f, float repeatPenalty = 2.0f, float distancePenalty = 10.0f)
+        public IWeightTensor TopPSampleIndice(IWeightTensor w, List<List<int>> seqs, float topP = 0.95f, float repeatPenalty = 5.0f)
         {
             WeightTensor m = w as WeightTensor;
             float[] weights = m.ToWeightArray();
@@ -1023,7 +1017,7 @@ namespace Seq2SeqSharp.Tools
                         if (tokenId2OffsetInSeq.ContainsKey(j))
                         {
                             int offsetInSeq = tokenId2OffsetInSeq[j];
-                            weight = (float)((weight * (1.0 - Exp((offsetInSeq + 1 - seq.Count) / distancePenalty))) / PowerA(repeatPenalty, tokenId2Cnt[j]));
+                            weight = (float)(weight * PowerA(repeatPenalty, -1.0 - (double)tokenId2Cnt[j] / (double)(seq.Count - offsetInSeq)));
                         }
 
                         if (Math.Abs(weight) < thresholdValue)
@@ -1056,7 +1050,7 @@ namespace Seq2SeqSharp.Tools
                         if (tokenId2OffsetInSeq.ContainsKey(j))
                         {
                             int offsetInSeq = tokenId2OffsetInSeq[j];
-                            weight = (float)((weight * (1.0 - Exp((offsetInSeq + 1 - seq.Count) / distancePenalty))) / PowerA(repeatPenalty, tokenId2Cnt[j]));
+                            weight = (float)(weight * PowerA(repeatPenalty, -1.0 - (double)tokenId2Cnt[j] / (double)(seq.Count - offsetInSeq)));
                         }
 
                         if (Math.Abs(weight) < thresholdValue || weight2tokenId.ContainsKey(weight))

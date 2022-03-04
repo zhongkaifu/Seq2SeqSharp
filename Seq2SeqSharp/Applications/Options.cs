@@ -30,11 +30,8 @@ namespace Seq2SeqSharp.Applications
         [Arg("The top-P value for sampling decoding strategy. The value above 0.0 will cause non-deterministic results. Default is 0.0", nameof(DecodingTopPValue))]
         public float DecodingTopPValue = 0.0f;
 
-        [Arg("The penalty for decoded repeat tokens. Default is 2.0", nameof(DecodingRepeatPenalty))]
-        public float DecodingRepeatPenalty = 2.0f;
-
-        [Arg("The penalty for decoded token distance. Default is 5.0", nameof(DecodingDistancePenalty))]
-        public float DecodingDistancePenalty = 5.0f;
+        [Arg("The penalty for decoded repeat tokens. Default is 5.0", nameof(DecodingRepeatPenalty))]
+        public float DecodingRepeatPenalty = 5.0f;
 
         [Arg("Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2", nameof(DeviceIds))]
         public string DeviceIds = "0";
