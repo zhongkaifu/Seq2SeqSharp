@@ -16,8 +16,6 @@ namespace Seq2SeqSharp.Models
     [ProtoContract(SkipConstructor=true)]
     public sealed class Vocab_4_ProtoBufSerializer
     {
-        public const int START_MEANING_INDEX = 3;
-
         [ProtoMember(1)] private Dictionary<string, int> _WordToIndex;
         [ProtoMember(2)] private Dictionary<int, string> _IndexToWord;
         [ProtoMember(3)] private bool _IgnoreCase;
@@ -41,6 +39,17 @@ namespace Seq2SeqSharp.Models
             indexToWord[ (int) SENTTAGS.START ] = BuildInTokens.BOS;
             indexToWord[ (int) SENTTAGS.UNK ] = BuildInTokens.UNK;
 
+
+            //Add positional OOV tokens
+            int idx = wordToIndex.Count;
+            for (int i = 0; i < 10; i++)
+            {
+                string oovToken = $"[OOV_{i}]";
+                wordToIndex[oovToken] = idx;
+                indexToWord[idx] = oovToken;
+                idx++;
+            }
+
             return (wordToIndex, indexToWord, ignoreCase);
         }
 
@@ -59,7 +68,7 @@ namespace Seq2SeqSharp.Models
 
             using var sr = new StreamReader( vocabFilePath );
             //Build word index for both source and target sides
-            int q = START_MEANING_INDEX;
+            int q = _WordToIndex.Count;
             for ( var line = sr.ReadLine(); line != null; line = sr.ReadLine() )
             {
                 var idx = line.IndexOf( '\t' );

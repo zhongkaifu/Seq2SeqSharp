@@ -106,9 +106,14 @@ namespace Seq2SeqSharp
             IWeightTensor sumAttnWeights = null;
             if (outputAttenWeights)
             {
-                //Merge all attention probs over multi-heads
-                sumAttnWeights = graph.Sum(attnProbs, 1);
-                sumAttnWeights = graph.Div(sumAttnWeights, (float)m_multiHeadNum);
+                sumAttnWeights = g.AsContiguous(g.Select(attnProbs, 1, 0));
+                //for (int i = 1; i < m_multiHeadNum; i++)
+                //{
+                //    var tmp = g.Select(attnProbs, 1, i);
+                //    sumAttnWeights = g.Add(sumAttnWeights, tmp);
+                //}
+
+                //sumAttnWeights = graph.Div(sumAttnWeights, (float)m_multiHeadNum);
                 sumAttnWeights = graph.View(sumAttnWeights, new long[] { batchSize * seqLenQ, seqLenQ });
             }
 
@@ -209,14 +214,14 @@ namespace Seq2SeqSharp
             IWeightTensor sumAttnWeights = null;
             if (outputAttenWeights)
             {
-                sumAttnWeights = g.Select(attnProbs, 1, 0);
-                for (int i = 1; i < m_multiHeadNum; i++)
-                {
-                    var tmp = g.Select(attnProbs, 1, i);
-                    sumAttnWeights = g.Add(sumAttnWeights, tmp);
-                }
+                sumAttnWeights = g.AsContiguous(g.Select(attnProbs, 1, 0));
+                //for (int i = 1; i < m_multiHeadNum; i++)
+                //{
+                //    var tmp = g.Select(attnProbs, 1, i);
+                //    sumAttnWeights = g.Add(sumAttnWeights, tmp);
+                //}
 
-                sumAttnWeights = graph.Div(sumAttnWeights, (float)m_multiHeadNum);
+                //sumAttnWeights = graph.Div(sumAttnWeights, (float)m_multiHeadNum);
                 sumAttnWeights = graph.View(sumAttnWeights, new long[] { batchSize * seqLenQ, seqLenK });
             }
 

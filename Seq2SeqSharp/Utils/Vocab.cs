@@ -90,6 +90,20 @@ namespace Seq2SeqSharp.Utils
             IndexToWord[(int)SENTTAGS.END] = BuildInTokens.EOS;
             IndexToWord[(int)SENTTAGS.START] = BuildInTokens.BOS;
             IndexToWord[(int)SENTTAGS.UNK] = BuildInTokens.UNK;
+
+
+            //Add positional OOV tokens
+            int idx = WordToIndex.Count;
+            for (int i = 0; i < 100; i++)
+            {
+                string oovToken = $"[OOV_{i}]";
+
+                Items.Add(oovToken);
+                WordToIndex[oovToken] = idx;
+                IndexToWord[idx] = oovToken;
+
+                idx++;
+            }
         }
 
         /// <summary>
@@ -103,7 +117,7 @@ namespace Seq2SeqSharp.Utils
             CreateIndex();
 
             //Build word index for both source and target sides
-            int q = 3;
+            int q = WordToIndex.Count;
             foreach (string line in vocab)
             {
                 string[] items = line.Split('\t');
@@ -215,7 +229,7 @@ namespace Seq2SeqSharp.Utils
             return result;
         }
 
-        public List<List<List<string>>> ExtractTokens(List<List<BeamSearchStatus>> beam2batch2seq)
+        public List<List<List<string>>> ExtractTokens(List<List<BeamSearchStatus>> beam2batch2seq, List<List<string>> posOOVLists = null)
         {
             List<List<List<string>>> result = new List<List<List<string>>>();
             lock (locker)
@@ -223,6 +237,7 @@ namespace Seq2SeqSharp.Utils
                 foreach (var batch2seq in beam2batch2seq)
                 {
                     List<List<string>> b = new List<List<string>>();
+                    int batchIdx = 0;
                     foreach (var seq in batch2seq)
                     {
                         List<string> r = new List<string>();
@@ -232,10 +247,26 @@ namespace Seq2SeqSharp.Utils
                             {
                                 letter = BuildInTokens.UNK;
                             }
+
+                            if (posOOVLists != null)
+                            {
+                                var posOOVList = posOOVLists[batchIdx];
+                                if (letter.StartsWith("[OOV_"))
+                                {
+                                    int oovIdx = int.Parse(letter.Replace("[OOV_", "").Replace("]", ""));
+
+                                    Logger.WriteLine($"Converted word '{posOOVList[oovIdx]}' back from '{letter}'");
+
+                                    letter = posOOVList[oovIdx];
+                                }
+                            }
+
                             r.Add(letter);
                         }
 
                         b.Add(r);
+
+                        batchIdx++;
                     }
                     result.Add(b);
                 }
@@ -260,9 +291,10 @@ namespace Seq2SeqSharp.Utils
             }
         }
 
-        public List<List<int>> GetWordIndex(List<List<string>> seqs, bool logUnk = false)
+        public List<List<int>> GetWordIndex(List<List<string>> seqs, List<List<string>> posOOVLists = null)
         {
             List<List<int>> result = new List<List<int>>();
+            int batchIdx = 0;
 
             lock (locker)
             {
@@ -273,16 +305,52 @@ namespace Seq2SeqSharp.Utils
                     {
                         if (!WordToIndex.TryGetValue(word, out int id))
                         {
-                            id = (int)SENTTAGS.UNK;
-                            if (logUnk)
+                            //The token is not in the vocabulary, so let's convert it to postional OOV token.
+                            if (posOOVLists != null)
                             {
-                                Logger.WriteLine($"Source word '{word}' is UNK");
+                                var posOOVList = posOOVLists[batchIdx];
+                                bool newOOV = true;
+                                for (int i = 0; i < posOOVList.Count; i++)
+                                {
+                                    if (word == posOOVList[i])
+                                    {
+                                        id = WordToIndex[$"[OOV_{i}]"];
+                                        newOOV = false;
+
+                                        Logger.WriteLine($"Converted token '{word}' to '[OOV_{i}]'");
+
+                                        break;
+                                    }
+                                }
+
+                                if (newOOV)
+                                {
+                                    string newOOVToken = $"[OOV_{posOOVList.Count}]";
+                                    if (WordToIndex.ContainsKey(newOOVToken))
+                                    {
+                                        posOOVList.Add(word);
+                                        id = WordToIndex[newOOVToken];
+
+                                        Logger.WriteLine($"Converted token '{word}' to '{newOOVToken}'");
+                                    }
+                                    else
+                                    {
+                                        id = (int)SENTTAGS.UNK;
+                                    }
+                                }
+                                
+                            }
+                            else
+                            {
+                                id = (int)SENTTAGS.UNK;
                             }
                         }
                         r.Add(id);
                     }
 
                     result.Add(r);
+
+                    batchIdx++;
                 }
             }
 

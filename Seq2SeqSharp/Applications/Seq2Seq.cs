@@ -26,7 +26,7 @@ namespace Seq2SeqSharp
         private MultiProcessorNetworkWrapper<IWeightTensor> m_posEmbedding;
         private MultiProcessorNetworkWrapper<IWeightTensor> m_segmentEmbedding;
 
-        private MultiProcessorNetworkWrapper<IWeightTensor> m_pointerGenerator;
+        private MultiProcessorNetworkWrapper<IFeedForwardLayer> m_pointerGenerator;
 
         private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
         readonly Seq2SeqOptions m_options = null;
@@ -99,7 +99,8 @@ namespace Seq2SeqSharp
                 }
 
                 Logger.WriteLine($"Create pointer generator weights...");
-                m_pointerGenerator = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { model.HiddenDim * 3, 1 }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, name: "PointerGeneratorWeights", isTrainable: true), DeviceIds);
+                m_pointerGenerator = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("PointerGenerator_0", model.HiddenDim * 2, 1, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),
+                isTrainable: true, learningRateFactor: m_options.DecoderStartLearningRateFactor), DeviceIds);
             }
             else
             {
@@ -112,7 +113,7 @@ namespace Seq2SeqSharp
         /// <summary>
         /// Get networks on specific devices
         /// </summary>
-        private (IEncoder, IDecoder, IFeedForwardLayer, IWeightTensor, IWeightTensor, IWeightTensor, IWeightTensor, IWeightTensor) GetNetworksOnDeviceAt(int deviceIdIdx)
+        private (IEncoder, IDecoder, IFeedForwardLayer, IWeightTensor, IWeightTensor, IWeightTensor, IWeightTensor, IFeedForwardLayer) GetNetworksOnDeviceAt(int deviceIdIdx)
         {
             return (m_encoder.GetNetworkOnDevice(deviceIdIdx),
                     m_decoder.GetNetworkOnDevice(deviceIdIdx),
@@ -145,11 +146,21 @@ namespace Seq2SeqSharp
         /// <returns>The cost of forward part</returns>
         public override List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, int deviceIdIdx, bool isTraining, DecodingOptions decodingOptions)
         {
-            (IEncoder encoder, IDecoder decoder, IFeedForwardLayer decoderFFLayer, IWeightTensor srcEmbedding, IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, IWeightTensor pointerGeneratorWeights) = GetNetworksOnDeviceAt(deviceIdIdx);
+            (IEncoder encoder, IDecoder decoder, IFeedForwardLayer decoderFFLayer, IWeightTensor srcEmbedding, IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, IFeedForwardLayer pointerGeneratorWeights) = GetNetworksOnDeviceAt(deviceIdIdx);
 
             var srcSnts = sntPairBatch.GetSrcTokens(0);
+            int batchSize = srcSnts.Count;
             var originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
-            var srcTokensList = m_modelMetaData.SrcVocab.GetWordIndex(srcSnts);
+
+
+
+            List<List<string>> posOOVLists = new List<List<string>>();
+            for (int i = 0; i < batchSize; i++)
+            {
+                posOOVLists.Add(new List<string>());
+            }
+
+            var srcTokensList = m_modelMetaData.SrcVocab.GetWordIndex(srcSnts, posOOVLists);
 
             if (isTraining && srcSnts[0].Count > m_options.MaxTrainSrcSentLength + 2)
             {
@@ -180,9 +191,8 @@ namespace Seq2SeqSharp
             List<NetworkResult> nrs = new List<NetworkResult>();
 
             // Generate output decoder sentences
-            int batchSize = srcSnts.Count;
             var tgtSnts = sntPairBatch.GetTgtTokens(0);
-            var tgtTokensList = m_modelMetaData.TgtVocab.GetWordIndex(tgtSnts);
+            var tgtTokensList = m_modelMetaData.TgtVocab.GetWordIndex(tgtSnts, posOOVLists);
             NetworkResult nr = new NetworkResult();
 
             decoder.Reset(computeGraph.GetWeightFactory(), srcSnts.Count);
