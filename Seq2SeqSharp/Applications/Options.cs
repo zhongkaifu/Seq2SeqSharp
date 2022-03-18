@@ -90,6 +90,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("Processor type: GPU, CPU", nameof(ProcessorType))]
         public ProcessorTypeEnums ProcessorType = ProcessorTypeEnums.GPU;
 
+        [Arg("Allow to copy OOV tokens from source side to target side. It's based on positional OOV.", nameof(ReplaceOOVs))]
+        public bool ReplaceOOVs = false;
+
         [Arg("Source language name.", nameof(SrcLang))]
         public string SrcLang;
 

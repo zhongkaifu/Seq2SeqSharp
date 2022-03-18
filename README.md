@@ -24,6 +24,7 @@ Embedding & Pre-trained model
 Built-in metrics and extendable, such as BLEU score, Length ratio, F1 score and so on  
 Attention alignment generation between source side and target side  
 ProtoBuf serialized model  
+Positional OOVs and replacement  
 Visualize neural network  
 
 # Architecture  
@@ -90,7 +91,8 @@ Parameters:
 **-MaxTestSrcSentLength**: Maxmium source sentence length on valid/test set. Default is 110 tokens  
 **-MaxTestTgtSentLength**: Maxmium target sentence length on valid/test set. Default is 110 tokens  
 **-WarmUpSteps**: The number of steps for warming up. Default is 8,000  
-**-CompilerOptions**: The options for CUDA NVRTC compiler. Options are split by space. For example: "--use_fast_math --gpu-architecture=compute_60" means to use fast math libs and run on Pascal and above GPUs  
+**-CompilerOptions**: The options for CUDA NVRTC compiler. Options are split by space. For example: "--use_fast_math --gpu-architecture=compute_70" means to use fast math libs and run on Pascal and above GPUs  
+**-ReplaceOOV**: Allow to copy OOVs from source side to target side  
 **-Optimizer**: The weights optimizer during training. It supports Adam and RMSProp. Adam is default  
 
 Note that:  

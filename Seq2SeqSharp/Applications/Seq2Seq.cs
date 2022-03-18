@@ -99,7 +99,7 @@ namespace Seq2SeqSharp
                 }
 
                 Logger.WriteLine($"Create pointer generator weights...");
-                m_pointerGenerator = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("PointerGenerator_0", model.HiddenDim * 2, 1, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),
+                m_pointerGenerator = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("PointerGenerator_0", model.HiddenDim, 1, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),
                 isTrainable: true, learningRateFactor: m_options.DecoderStartLearningRateFactor), DeviceIds);
             }
             else
@@ -262,7 +262,7 @@ namespace Seq2SeqSharp
                     }
 
                     nr.Cost = 0.0f;
-                    nr.Output = m_modelMetaData.TgtVocab.ExtractTokens(beam2batchStatus);
+                    nr.Output = m_modelMetaData.TgtVocab.ExtractTokens(beam2batchStatus, (m_options.ReplaceOOVs ? posOOVLists : null));
 
                     if (cachedTensors != null)
                     {

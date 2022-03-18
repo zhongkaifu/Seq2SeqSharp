@@ -235,7 +235,6 @@ namespace Seq2SeqSharp.Applications
 
                 if (pointerGenerator)
                 {
-                    inputEmbs = g.IndexSelect(inputEmbs, decOutputIdx);
                     decEncAttnProbs = g.IndexSelect(decEncAttnProbs, decOutputIdx);
                 }
 
@@ -253,15 +252,14 @@ namespace Seq2SeqSharp.Applications
                 seqSeqsIndex = g.AsContiguous(g.Expand(seqSeqsIndex, dims: new long[] { batchSize, tgtSeqLen, srcSeqLen }));
                 seqSeqsIndex = g.View(seqSeqsIndex, dims: new long[] { batchSize * tgtSeqLen, srcSeqLen });
 
-                ////Build context tensor for pointer generator
-                //IWeightTensor decEncAttnProbsBatch = g.View(decEncAttnProbs, dims: new long[] { batchSize, tgtSeqLen, srcSeqLen });
-                //IWeightTensor encOutputsBatch = g.View(encOutputs, dims: new long[] { batchSize, srcSeqLen, -1 });
+                //Build context tensor for pointer generator
+                IWeightTensor decEncAttnProbsBatch = g.View(decEncAttnProbs, dims: new long[] { batchSize, tgtSeqLen, srcSeqLen });
+                IWeightTensor encOutputsBatch = g.View(encOutputs, dims: new long[] { batchSize, srcSeqLen, -1 });
 
-                //var pointer_context = g.MulBatch(decEncAttnProbsBatch, encOutputsBatch); //Output: [batchSize, tgtSeqLen, embedding_size]
-                //pointer_context = g.View(pointer_context, dims: new long[] { batchSize * tgtSeqLen, -1 });
+                var pointer_context = g.MulBatch(decEncAttnProbsBatch, encOutputsBatch); //Output: [batchSize, tgtSeqLen, embedding_size]
+                pointer_context = g.View(pointer_context, dims: new long[] { batchSize * tgtSeqLen, -1 });
 
-                var all_context = g.Concate(1, decOutput, inputEmbs);
-                var p_gen = pointerGeneratorWeights.Process(all_context, batchSize, g); // Output: [batchSize * tgtSeqLen, 1]
+                var p_gen = pointerGeneratorWeights.Process(pointer_context, batchSize, g); // Output: [batchSize * tgtSeqLen, 1]
                 p_gen = g.Sigmoid(p_gen);
 
                 var p_copy = g.Sub(1.0f, p_gen);
@@ -275,7 +273,6 @@ namespace Seq2SeqSharp.Applications
 
                 probs = g.EltMul(probs, p_gen);
                 probs = g.Add(probs, probsCopy);
-
             }
 
             if (isTraining)

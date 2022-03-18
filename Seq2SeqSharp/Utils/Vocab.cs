@@ -254,11 +254,20 @@ namespace Seq2SeqSharp.Utils
                                 if (letter.StartsWith("[OOV_"))
                                 {
                                     int oovIdx = int.Parse(letter.Replace("[OOV_", "").Replace("]", ""));
-
-                                    Logger.WriteLine($"Converted word '{posOOVList[oovIdx]}' back from '{letter}'");
-
-                                    letter = posOOVList[oovIdx];
+                                    if (oovIdx < posOOVList.Count)
+                                    {
+                                        Logger.WriteLine($"Converted word '{posOOVList[oovIdx]}' back from '{letter}'");
+                                        letter = posOOVList[oovIdx];
+                                    }
+                                    else
+                                    {
+                                        letter = BuildInTokens.UNK;
+                                    }
                                 }
+                            }
+                            else if (letter.StartsWith("[OOV_"))
+                            {
+                                letter = BuildInTokens.UNK;
                             }
 
                             r.Add(letter);

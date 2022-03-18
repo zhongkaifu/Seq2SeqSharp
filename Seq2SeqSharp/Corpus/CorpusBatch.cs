@@ -335,7 +335,7 @@ namespace Seq2SeqSharp.Corpus
                     sd[kv.Value].Add(kv.Key);
                 }
 
-                int q = 3;
+                int q = vocab.WordToIndex.Count;
                 foreach (var kv in sd.Reverse())
                 {
                     foreach (var token in kv.Value)
