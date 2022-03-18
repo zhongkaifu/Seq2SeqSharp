@@ -31,6 +31,11 @@ namespace SeqWebApps.Controllers
         [HttpPost]
         public IActionResult GenerateText(string srcInput, string tgtInput, int num, bool random, float repeatPenalty, int contextSize)
         {
+            if (tgtInput == null)
+            {
+                tgtInput = "";
+            }
+
             TextGenerationModel textGeneration = new TextGenerationModel
             {
                 Output = CallBackend(srcInput, tgtInput, num, random, repeatPenalty, contextSize),
@@ -43,8 +48,8 @@ namespace SeqWebApps.Controllers
 
         private string CallBackend(string srcInputText, string tgtInputText, int tokenNumToGenerate, bool random, float repeatPenalty, int tgtContextSize)
         {
-            srcInputText = srcInputText.Replace("<br />", "");
-            tgtInputText = tgtInputText.Replace("<br />", "");
+            srcInputText = srcInputText.Replace("<br />", "").Replace("「", "“").Replace("」", "”");
+            tgtInputText = tgtInputText.Replace("<br />", "").Replace("「", "“").Replace("」", "”");
 
             string[] srcLines = srcInputText.Split("\n");
             string[] tgtLines = tgtInputText.Split("\n");
@@ -67,10 +72,11 @@ namespace SeqWebApps.Controllers
                 srcInputText = srcInputText + "。";
             }
 
-            if (setInputSents.Contains(srcInputText) == false)
+            string logStr = $"Input Text = '{srcInputText}', Repeat Penalty = '{repeatPenalty}', Target Context Size = '{tgtContextSize}'";
+            if (setInputSents.Contains(logStr) == false)
             {
-                Logger.WriteLine(srcInputText);
-                setInputSents.Add(srcInputText);
+                Logger.WriteLine(logStr);
+                setInputSents.Add(logStr);
             }
 
             string outputText = Seq2SeqInstance.Call(srcInputText, tgtInputText, tokenNumToGenerate, random, repeatPenalty);
@@ -79,6 +85,7 @@ namespace SeqWebApps.Controllers
 
             outputText = prefixTgtLine + outputText;
 
+            outputText = outputText.Replace("「", "“").Replace("」", "”");
             var outputSents = SplitSents(outputText);
 
             return String.Join("<br />", outputSents);
@@ -141,7 +148,36 @@ namespace SeqWebApps.Controllers
                 sents.Add(p);
             }
 
-            return sents;
+
+            List<string> newSents = new List<string>();
+            int matchNum = 0;
+            string currSent = "";
+            for (int k = 0; k < sents.Count; k++)
+            {
+                var sent = sents[k];
+                for (int i = 0; i < sent.Length; i++)
+                {
+                    if (sent[i] == '“')
+                    {
+                        matchNum++;
+                    }
+                    else if (sent[i] == '”')
+                    {
+                        matchNum--;
+                    }
+                }
+
+                currSent = currSent + sent;
+                if (matchNum == 0)
+                {
+                    newSents.Add(currSent);
+                    currSent = "";
+                }
+            }
+
+            newSents.Add(currSent);
+
+            return newSents;
         }
 
     }

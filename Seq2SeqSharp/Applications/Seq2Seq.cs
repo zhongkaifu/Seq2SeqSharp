@@ -26,7 +26,7 @@ namespace Seq2SeqSharp
         private MultiProcessorNetworkWrapper<IWeightTensor> m_posEmbedding;
         private MultiProcessorNetworkWrapper<IWeightTensor> m_segmentEmbedding;
 
-        private MultiProcessorNetworkWrapper<IWeightTensor> m_pointerGenerator;
+        private MultiProcessorNetworkWrapper<IFeedForwardLayer> m_pointerGenerator;
 
         private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
         readonly Seq2SeqOptions m_options = null;
@@ -99,7 +99,8 @@ namespace Seq2SeqSharp
                 }
 
                 Logger.WriteLine($"Create pointer generator weights...");
-                m_pointerGenerator = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { model.HiddenDim * 3, 1 }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, name: "PointerGeneratorWeights", isTrainable: true), DeviceIds);
+                m_pointerGenerator = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("PointerGenerator_0", model.HiddenDim, 1, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),
+                isTrainable: true, learningRateFactor: m_options.DecoderStartLearningRateFactor), DeviceIds);
             }
             else
             {
@@ -112,7 +113,7 @@ namespace Seq2SeqSharp
         /// <summary>
         /// Get networks on specific devices
         /// </summary>
-        private (IEncoder, IDecoder, IFeedForwardLayer, IWeightTensor, IWeightTensor, IWeightTensor, IWeightTensor, IWeightTensor) GetNetworksOnDeviceAt(int deviceIdIdx)
+        private (IEncoder, IDecoder, IFeedForwardLayer, IWeightTensor, IWeightTensor, IWeightTensor, IWeightTensor, IFeedForwardLayer) GetNetworksOnDeviceAt(int deviceIdIdx)
         {
             return (m_encoder.GetNetworkOnDevice(deviceIdIdx),
                     m_decoder.GetNetworkOnDevice(deviceIdIdx),
@@ -145,7 +146,7 @@ namespace Seq2SeqSharp
         /// <returns>The cost of forward part</returns>
         public override List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, int deviceIdIdx, bool isTraining, DecodingOptions decodingOptions)
         {
-            (IEncoder encoder, IDecoder decoder, IFeedForwardLayer decoderFFLayer, IWeightTensor srcEmbedding, IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, IWeightTensor pointerGeneratorWeights) = GetNetworksOnDeviceAt(deviceIdIdx);
+            (var encoder, var decoder, var decoderFFLayer, var srcEmbedding, var tgtEmbedding, var posEmbedding, var segmentEmbedding, var pointerGenerator) = GetNetworksOnDeviceAt(deviceIdIdx);
 
             var srcSnts = sntPairBatch.GetSrcTokens(0);
             var originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
@@ -200,7 +201,7 @@ namespace Seq2SeqSharp
                 if (isTraining)
                 {
                     (var c, _) = Decoder.DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding, originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 
-                        m_options.DropoutRatio, null, isTraining, pointerGenerator: m_modelMetaData.PointerGenerator, pointerGeneratorWeights: pointerGeneratorWeights, srcSeqs: srcTokensList);
+                        m_options.DropoutRatio, null, isTraining, pointerGenerator: pointerGenerator, srcSeqs: srcTokensList);
                     nr.Cost = c;
                     nr.Output = null;
                 }
@@ -220,7 +221,7 @@ namespace Seq2SeqSharp
                                 (var cost2, var bssSeqList) = Decoder.DecodeTransformer(batch2tgtTokens, g, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding,
                                                                                 originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, decodingOptions, isTraining,
                                                                                 outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus,
-                                                                                pointerGenerator: m_modelMetaData.PointerGenerator, pointerGeneratorWeights: pointerGeneratorWeights, srcSeqs: srcTokensList, 
+                                                                                pointerGenerator: pointerGenerator, srcSeqs: srcTokensList, 
                                                                                 cachedTensors: cachedTensors);
 
                                 bssSeqList = Decoder.SwapBeamAndBatch(bssSeqList); // Swap shape: (beam_search_size, batch_size) -> (batch_size, beam_search_size)

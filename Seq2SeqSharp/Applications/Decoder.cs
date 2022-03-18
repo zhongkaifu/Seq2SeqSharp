@@ -190,7 +190,7 @@ namespace Seq2SeqSharp.Applications
 
         public static (float, List<List<BeamSearchStatus>>) DecodeTransformer(List<List<int>> tgtSeqs, IComputeGraph g, IWeightTensor encOutputs, TransformerDecoder decoder, IFeedForwardLayer decoderFFLayer,
             IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, float[] srcOriginalLenghts, Vocab tgtVocab, ShuffleEnums shuffleType, float dropoutRatio, DecodingOptions decodingOptions, bool isTraining = true,
-            bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, bool pointerGenerator = false, IWeightTensor pointerGeneratorWeights = null, List<List<int>> srcSeqs = null, Dictionary<string, IWeightTensor> cachedTensors = null)
+            bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, IFeedForwardLayer pointerGenerator = null, List<List<int>> srcSeqs = null, Dictionary<string, IWeightTensor> cachedTensors = null)
         {
             int eosTokenId = tgtVocab.GetWordIndex(BuildInTokens.EOS, logUnk: true);
             int batchSize = tgtSeqs.Count;
@@ -220,7 +220,7 @@ namespace Seq2SeqSharp.Applications
 
             IWeightTensor decOutput;
             IWeightTensor decEncAttnProbs;
-            (decOutput, decEncAttnProbs) = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g, outputAttnWeights: pointerGenerator, cachedTensors: cachedTensors);
+            (decOutput, decEncAttnProbs) = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g, outputAttnWeights: pointerGenerator != null, cachedTensors: cachedTensors);
 
             if (isTraining == false)
             {
@@ -233,9 +233,8 @@ namespace Seq2SeqSharp.Applications
 
                 decOutput = g.IndexSelect(decOutput, decOutputIdx);
 
-                if (pointerGenerator)
+                if (pointerGenerator != null)
                 {
-                    inputEmbs = g.IndexSelect(inputEmbs, decOutputIdx);
                     decEncAttnProbs = g.IndexSelect(decEncAttnProbs, decOutputIdx);
                 }
 
@@ -245,7 +244,7 @@ namespace Seq2SeqSharp.Applications
             IWeightTensor ffLayer = decoderFFLayer.Process(decOutput, batchSize, g);
             IWeightTensor probs = g.Softmax(ffLayer, inPlace: true);
 
-            if (pointerGenerator)
+            if (pointerGenerator != null)
             {
                 //Build onehot tensor for source tokens
                 var seqSeqsIndex = g.CreateTokensTensor(srcSeqs);
@@ -260,8 +259,7 @@ namespace Seq2SeqSharp.Applications
                 var pointer_context = g.MulBatch(decEncAttnProbsBatch, encOutputsBatch); //Output: [batchSize, tgtSeqLen, embedding_size]
                 pointer_context = g.View(pointer_context, dims: new long[] { batchSize * tgtSeqLen, -1 });
 
-                var all_context = g.Concate(1, pointer_context, decOutput, inputEmbs);
-                var p_copy = g.Mul(all_context, pointerGeneratorWeights); // Output: [batchSize * tgtSeqLen, 1]
+                var p_copy = pointerGenerator.Process(pointer_context, batchSize, g); // Output: [batchSize * tgtSeqLen, 1]
                 p_copy = g.Sigmoid(p_copy);
 
                 var p_gen = g.Sub(1.0f, p_copy);
@@ -281,7 +279,7 @@ namespace Seq2SeqSharp.Applications
             if (isTraining)
             {
                 var leftShiftTgtSeqs = g.LeftShiftTokens(tgtSeqs, eosTokenId);
-                var cost = g.CrossEntropyLoss(probs, leftShiftTgtSeqs, smooth: pointerGenerator ? 1e-10f : 0.0f);
+                var cost = g.CrossEntropyLoss(probs, leftShiftTgtSeqs);
 
                 return (cost, null);
             }
