@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Seq2SeqSharp\Seq2SeqSharp.csproj" />
+    <ProjectReference Include="..\..\Seq2SeqSharp\Seq2SeqSharp.csproj" />
   </ItemGroup>
   <!--
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
@@ -29,5 +29,5 @@
     <Exec Command="copy &quot;..\dll\win_x64\libopenblas.dll&quot; &quot;$(ProjectDir)\bin&quot;" />
     <Exec Command="copy &quot;..\dll\win_x64\libquadmath-0.dll&quot; &quot;$(ProjectDir)\bin&quot;" />
   </Target>
-  -->
+  -->  
 </Project>

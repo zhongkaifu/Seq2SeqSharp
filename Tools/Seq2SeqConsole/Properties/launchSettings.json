@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "Seq2SeqConsole": {
+      "commandName": "Project",
+      "commandLineArgs": "-Task Test -ModelFilePath .\\model\\seq2seq_yb_pt.model -InputTestFile .\\data\\test\\test_yb.txt -OutputFile out_yb.txt -MaxTestSrcSentLength 256 -MaxTestTgtSentLength 256 -ProcessorType CPU -SrcSentencePieceModelPath .\\spm\\chsYBspm.model -TgtSentencePieceModelPath .\\spm\\chsYBspm.model -BeamSearchSize 1 -DeviceIds 0,1,2,3 -DecodingStrategy Sampling",
+      "workingDirectory": "C:\\ReleasePackage"
+    },
+    "Seq2SeqConsole-v0": {
+      "commandName": "Project",
+      "commandLineArgs": "-ConfigFilePath ..\\..\\..\\s2s_settings_for_test.json"
+    }
+  }
+}

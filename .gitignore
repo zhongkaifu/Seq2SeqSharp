@@ -57,3 +57,8 @@ Temporary Items
 *.user
 /AdvUtils/obj
 /AdvUtils/bin
+/Tests/Seq2SeqSharp.Tests/bin
+/Tools/SeqDictMatchConsole/bin/Release/net6.0
+/Tools/SeqDictMatchConsole/obj
+/Tools/SeqWebApps/bin
+/Tools/SeqWebApps/obj

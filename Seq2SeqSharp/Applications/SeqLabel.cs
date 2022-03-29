@@ -115,6 +115,8 @@ namespace Seq2SeqSharp
             var srcTokensList = m_modelMetaData.SrcVocab.GetWordIndex(srcSnts);
 
             BuildInTokens.PadSentences(tgtSnts);
+            var tgtTokensLists = m_modelMetaData.ClsVocab.GetWordIndex(tgtSnts);
+
             int seqLen = srcSnts[0].Count;
             int batchSize = srcSnts.Count;
 
@@ -123,50 +125,24 @@ namespace Seq2SeqSharp
             IWeightTensor ffLayer = decoderFFLayer.Process(encOutput, batchSize, g);
 
             float cost = 0.0f;
-            using (IWeightTensor probs = g.Softmax(ffLayer, runGradients: false, inPlace: true))
+            IWeightTensor probs = g.Softmax(ffLayer, inPlace: true);
+
+            if (isTraining)
             {
-                if (isTraining)
+                var tgtTokensTensor = g.CreateTokensTensor(tgtTokensLists);
+                cost = g.CrossEntropyLoss(probs, tgtTokensTensor);
+            }
+            else
+            {
+                // Output "i"th target word
+                using var targetIdxTensor = g.Argmax(probs, 1);
+                float[] targetIdx = targetIdxTensor.ToWeightArray();
+                List<string> targetWords = m_modelMetaData.ClsVocab.ConvertIdsToString(targetIdx.ToList());
+
+                for (int k = 0; k < batchSize; k++)
                 {
-                    //Calculate loss for each word in the batch
-                    for (int k = 0; k < batchSize; k++)
-                    {
-                        for (int j = 0; j < seqLen; j++)
-                        {
-
-                            if (k >= tgtSnts.Count)
-                            {
-                                throw new IndexOutOfRangeException($"Sequence #'{k}' is out of range in target sequences (size '{tgtSnts.Count})'. Source sequences batch size is '{srcSnts.Count}'");
-                            }
-
-                            if (j >= tgtSnts[k].Count)
-                            {
-                                throw new IndexOutOfRangeException($"Token offset '{j}' is out of range in current target sequence (size = '{tgtSnts[k].Count}' text = '{string.Join(' ', tgtSnts[k])}'). Source sequence size is '{srcSnts[k].Count}' text is {string.Join(' ', srcSnts[k])}");
-                            }
-
-
-                            int ix_targets_k_j = m_modelMetaData.ClsVocab.GetWordIndex(tgtSnts[k][j]);
-                            float score_k = probs.GetWeightAt(new long[] { k * seqLen + j, ix_targets_k_j });
-                            cost += (float)-Math.Log(score_k);
-
-                            probs.SetWeightAt(score_k - 1, new long[] { k * seqLen + j, ix_targets_k_j });
-                        }
-                    }
-
-                    ffLayer.CopyWeightsToGradients(probs);
+                    tgtSnts[k] = targetWords.GetRange(k * seqLen, seqLen);
                 }
-                else
-                {
-                    // Output "i"th target word
-                    using var targetIdxTensor = g.Argmax(probs, 1);
-                    float[] targetIdx = targetIdxTensor.ToWeightArray();
-                    List<string> targetWords = m_modelMetaData.ClsVocab.ConvertIdsToString(targetIdx.ToList());
-
-                    for (int k = 0; k < batchSize; k++)
-                    {
-                        tgtSnts[k] = targetWords.GetRange(k * seqLen, seqLen);
-                    }
-                }
-
             }
 
             NetworkResult nr = new NetworkResult
