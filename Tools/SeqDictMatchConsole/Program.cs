@@ -42,16 +42,33 @@ namespace SeqDictMatchConsole
                 match.Search(line, ref dm_r, ref offsetList, DictMatch.DM_OUT_FMM);
 
                 //if dm_r.Count > 0, it means some contigous terms in strLine have matched terms in the dictionary.
+                StringBuilder sb = new StringBuilder();
+                int currOffset = 0;
+
                 for (int i = 0; i < dm_r.Count; i++)
                 {
                     uint len = dm_r[i].len;
                     int offset = offsetList[i];
                     string strProp = dm_r[i].strProp;
                     string strTerm = line.Substring(offset, (int)len);
-                    line = line.Replace(strTerm, $"<{strProp}> {strTerm} </{strProp}>");
+
+                    if (offset > currOffset)
+                    {
+                        sb.Append(line.Substring(currOffset, offset - currOffset));
+                    }
+
+                    sb.Append($" <{strProp}> {strTerm} </{strProp}> ");
+
+                    currOffset = (int)(offset + len);
+
                 }
 
-                sw.WriteLine(line);
+                if (currOffset < line.Length)
+                {
+                    sb.Append(line.Substring(currOffset));
+                }
+
+                sw.WriteLine(sb.ToString().Replace("  ", " "));
             }
             sr.Close();
             sw.Close();
@@ -62,7 +79,7 @@ namespace SeqDictMatchConsole
         {
             if (args.Length != 3)
             {
-                Console.WriteLine("SeqDictMatchConsole [lexical dictionary file path] [input file path] [output file path");
+                Console.WriteLine("SeqDictMatchConsole [lexical dictionary file path] [input file path] [output file path]");
                 return;
             }
 
