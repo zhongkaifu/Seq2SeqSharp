@@ -52,7 +52,7 @@ namespace Seq2SeqSharp.Applications
             else
             {
                 m_modelMetaData = new SeqClassificationModel(options.HiddenSize, options.EmbeddingDim, options.EncoderLayerDepth, options.MultiHeadNum,
-                    options.EncoderType, srcVocab, clsVocabs, options.EnableSegmentEmbeddings, options.ApplyContextEmbeddingsToEntireSequence, options.MaxSegmentNum);
+                    options.EncoderType, srcVocab, clsVocabs, options.EnableSegmentEmbeddings, options.EnableTagEmbeddings, options.MaxSegmentNum);
 
                 //Initializng weights in encoders and decoders
                 CreateTrainableParameters(m_modelMetaData);

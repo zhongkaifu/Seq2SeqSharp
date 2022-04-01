@@ -17,7 +17,7 @@ namespace Seq2SeqSharp
         public SeqLabelModel( Model_4_ProtoBufSerializer m )
             : base( m.HiddenDim, m.EncoderLayerDepth, m.EncoderType, m.EncoderEmbeddingDim, m.MultiHeadNum,
                     m.SrcVocab?.ToVocab(), 
-                    enableSegmentEmbeddings: false, applyContextEmbeddingsToEntireSequence: false, m.MaxSegmentNum, false )
+                    enableSegmentEmbeddings: false, enableTagEmbeddings: false, m.MaxSegmentNum, false )
         {
             ClsVocabs    = m.ClsVocabs?.Select( v => v.ToVocab() ).ToList(); 
             Name2Weights = m.Name2Weights;

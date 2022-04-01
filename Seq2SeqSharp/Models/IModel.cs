@@ -23,7 +23,7 @@ namespace Seq2SeqSharp
 
         public string SimilarityType { get; set; }
 
-        public bool ApplyContextEmbeddingsToEntireSequence { get; set; }
+        public bool EnableTagEmbeddings { get; set; }
 
         public int MaxSegmentNum { get; set; }
 

@@ -32,39 +32,20 @@ namespace Seq2SeqSharp.Utils
         /// <param name="vocab"></param>
         /// <returns>The embedding tensor. shape: (batchsize * seqLen, embedding_dim) </returns>
         public static IWeightTensor CreateTokensEmbeddings(List<List<int>> seqs, IComputeGraph g, IWeightTensor embeddingsTensor, 
-            IWeightTensor segmentEmbedding, IWeightTensor contextEmbeddings, Vocab vocab, bool applyContextEmbeddingsToEntireSequence = true, float scaleFactor = 1.0f)
+            IWeightTensor segmentEmbedding, Vocab vocab, float scaleFactor = 1.0f, bool enableTagEmbedding = false)
         {
-            if (seqs is null)
-            {
-                throw new ArgumentNullException(nameof(seqs));
-            }
-
-            if (g is null)
-            {
-                throw new ArgumentNullException(nameof(g));
-            }
-
-            if (embeddingsTensor is null)
-            {
-                throw new ArgumentNullException(nameof(embeddingsTensor));
-            }
-
-            if (vocab is null)
-            {
-                throw new ArgumentNullException(nameof(vocab));
-            }
-
             int batchSize = seqs.Count;
             int seqLen = seqs[0].Count;
 
             float[] idxs = new float[batchSize * seqLen];
             float[] segIdxs = new float[batchSize * seqLen];
 
-            List<int> segment0Length = new List<int>();
+            Dictionary<string, List<int>> tag2Offsets = new Dictionary<string, List<int>>();
 
             for (int i = 0; i < batchSize; i++)
             {
                 int segIdx = 0;
+                HashSet<string> currTags = new HashSet<string>(); //keep all opening tags
                 for (int j = 0; j < seqLen; j++)
                 {
                     idxs[i * seqLen + j] = seqs[i][j];
@@ -74,19 +55,43 @@ namespace Seq2SeqSharp.Utils
                     if (token == BuildInTokens.SEP)
                     {
                         //A new segment
-
-                        if (segIdx == 0)
-                        {
-                            segment0Length.Add(j);
-                        }
-
                         segIdx++;
                     }
-                }
 
-                if (segIdx == 0)
-                {
-                    segment0Length.Add(seqLen);
+
+                    if (enableTagEmbedding)
+                    {
+                        if (token.StartsWith("<") && token.EndsWith(">") && BuildInTokens.IsPreDefinedToken(token) == false)
+                        {
+                            if (token[1] == '/')
+                            {
+                                string tag = token.Substring(2, token.Length - 3);
+                                currTags.Remove(tag);
+
+                                //Logger.WriteLine($"Closed tag: '{tag}'");
+                            }
+                            else
+                            {
+                                string tag = token.Substring(1, token.Length - 2);
+                                currTags.Add(tag);
+
+                                //Logger.WriteLine($"Openning tag: '{tag}'");
+                            }
+                        }
+                        else
+                        {
+                            foreach (var tag in currTags)
+                            {
+                                if (tag2Offsets.ContainsKey(tag) == false)
+                                {
+                                    tag2Offsets.Add(tag, new List<int>());
+                                }
+                                tag2Offsets[tag].Add(i * seqLen + j);
+
+                                //Logger.WriteLine($"Adding tag: '{tag}' to seq '{i}' offset '{j}'");
+                            }
+                        }
+                    }
                 }
             }
 
@@ -103,22 +108,22 @@ namespace Seq2SeqSharp.Utils
                 embeddingRst = g.Add(embeddingRst, g.IndexSelect(segmentEmbedding, segIdxs));
             }
 
-            // Apply contextual feature embeddings to the input sequence embeddings
-            if (contextEmbeddings != null)
+            if (enableTagEmbedding)
             {
-                int dim = contextEmbeddings.Columns;
-                contextEmbeddings = g.View(contextEmbeddings, dims: new long[] { batchSize, 1, dim });
-                contextEmbeddings = g.Expand(contextEmbeddings, dims: new long[] { batchSize, seqLen, dim });
-
-                if (applyContextEmbeddingsToEntireSequence == false)
+                Dictionary<IWeightTensor, List<int>> tensor2offsets = new Dictionary<IWeightTensor, List<int>>();
+                foreach (var pair in tag2Offsets)
                 {
-                    //Only apply contexual feature embeddings to the first segment of the input sequence
-                    IWeightTensor featureMaskTensor = g.BuildFeatureMask(seqLen, segment0Length, embeddingsTensor.Columns); //shape: (batch_size, seqLen, dim)
-                    contextEmbeddings = g.EltMul(contextEmbeddings, featureMaskTensor);
+                    string tagName = pair.Key;
+                    int tagId = vocab.GetWordIndex(tagName);
+                    IWeightTensor tagTensor = g.Peek(embeddingsTensor, 0, tagId);
+                    tensor2offsets.Add(tagTensor, pair.Value);
                 }
 
-                embeddingRst = g.Add(embeddingRst, contextEmbeddings);
-
+                if (tensor2offsets.Count > 0)
+                {
+                    var tagEmbeddings = g.IndexCopy(embeddingRst.Sizes, tensor2offsets);
+                    embeddingRst = g.Add(embeddingRst, tagEmbeddings);
+                }
             }
 
             return embeddingRst;

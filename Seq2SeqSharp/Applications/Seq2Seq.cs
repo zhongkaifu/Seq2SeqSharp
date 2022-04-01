@@ -66,7 +66,7 @@ namespace Seq2SeqSharp
             {
                 // Model doesn't exist, we create it and initlaize parameters
                 m_modelMetaData = new Seq2SeqModel(options.HiddenSize, options.SrcEmbeddingDim, options.TgtEmbeddingDim, options.EncoderLayerDepth, options.DecoderLayerDepth, options.MultiHeadNum,
-                   options.EncoderType, options.DecoderType, srcVocab, tgtVocab, options.EnableCoverageModel, options.SharedEmbeddings, options.EnableSegmentEmbeddings, options.ApplyContextEmbeddingsToEntireSequence, options.MaxSegmentNum, options.PointerGenerator);
+                   options.EncoderType, options.DecoderType, srcVocab, tgtVocab, options.EnableCoverageModel, options.SharedEmbeddings, options.EnableSegmentEmbeddings, options.EnableTagEmbeddings, options.MaxSegmentNum, options.PointerGenerator);
 
                 //Initializng weights in encoders and decoders
                 CreateTrainableParameters(m_modelMetaData);

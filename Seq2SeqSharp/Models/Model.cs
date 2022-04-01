@@ -26,7 +26,7 @@ namespace Seq2SeqSharp.Models
 
         public string SimilarityType { get; set; }
 
-        public bool ApplyContextEmbeddingsToEntireSequence { get; set; }
+        public bool EnableTagEmbeddings { get; set; }
 
         public int MaxSegmentNum { get; set; }
 
@@ -66,7 +66,7 @@ namespace Seq2SeqSharp.Models
 
         public Model() { }
         public Model( int hiddenDim, int encoderLayerDepth, EncoderTypeEnums encoderType, int encoderEmbeddingDim, int multiHeadNum, Vocab srcVocab,
-            bool enableSegmentEmbeddings, bool applyContextEmbeddingsToEntireSequence, int maxSegmentNum, bool pointerGenerator )
+            bool enableSegmentEmbeddings, bool enableTagEmbeddings, int maxSegmentNum, bool pointerGenerator )
         {
             HiddenDim = hiddenDim;
             EncoderLayerDepth = encoderLayerDepth;
@@ -75,7 +75,7 @@ namespace Seq2SeqSharp.Models
             SrcVocab = srcVocab;
             EncoderEmbeddingDim = encoderEmbeddingDim;
             EnableSegmentEmbeddings = enableSegmentEmbeddings;
-            ApplyContextEmbeddingsToEntireSequence = applyContextEmbeddingsToEntireSequence;
+            EnableTagEmbeddings = enableTagEmbeddings;
             MaxSegmentNum = maxSegmentNum;
             PointerGenerator = pointerGenerator;
 
@@ -114,7 +114,7 @@ namespace Seq2SeqSharp.Models
             Logger.WriteLine( $"Hidden layer dim: '{HiddenDim}'" );
             Logger.WriteLine( $"Enable segment embeddings: '{EnableSegmentEmbeddings}'" );
             Logger.WriteLine( $"Enable shared embeddings: '{SharedEmbeddings}'" );
-            Logger.WriteLine( $"Apply context embeddings to entire sequence: '{ApplyContextEmbeddingsToEntireSequence}'" );
+            Logger.WriteLine( $"Enable tag embeddings: '{EnableTagEmbeddings}'" );
             Logger.WriteLine( $"Multi-head size: '{MultiHeadNum}'" );
             Logger.WriteLine($"Pointer Generator: '{PointerGenerator}'");
 
