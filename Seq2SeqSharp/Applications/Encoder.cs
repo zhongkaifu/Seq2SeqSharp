@@ -59,23 +59,7 @@ namespace Seq2SeqSharp.Applications
             // Reset networks
             encoder.Reset(computeGraph.GetWeightFactory(), srcSntsIds.Count);
 
-            //Build contextual feature if they exist
-            IWeightTensor contextTensor = null;
-            for (int i = 1; i < sntPairBatch.GetSrcGroupSize(); i++)
-            {
-                var contextCLSOutput = BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, shuffleType, encoder, modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, i);
-                if (contextTensor == null)
-                {
-                    contextTensor = contextCLSOutput;
-                }
-                else
-                {
-                    contextTensor = computeGraph.Add(contextTensor, contextCLSOutput);
-                }
-            }
-
-
-            IWeightTensor encOutput = InnerRunner(computeGraph, srcSntsIds, originalSrcLengths, shuffleType, encoder, modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, contextTensor);
+            IWeightTensor encOutput = InnerRunner(computeGraph, srcSntsIds, originalSrcLengths, shuffleType, encoder, modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding);
             return encOutput;
         }
 
@@ -99,14 +83,14 @@ namespace Seq2SeqSharp.Applications
         }
 
         static private IWeightTensor InnerRunner(IComputeGraph computeGraph, List<List<int>> srcTokensList, float[] originalSrcLengths, ShuffleEnums shuffleType, IEncoder encoder, IModel modelMetaData,
-           IWeightTensor srcEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, IWeightTensor contextEmbeddings = null)
+           IWeightTensor srcEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding)
         {
             int batchSize = srcTokensList.Count;
             int srcSeqPaddedLen = srcTokensList[0].Count;
             IWeightTensor srcSelfMask = (shuffleType == ShuffleEnums.NoPaddingInSrc || shuffleType == ShuffleEnums.NoPadding || batchSize == 1) ? null : computeGraph.BuildPadSelfMask(srcSeqPaddedLen, originalSrcLengths); // The length of source sentences are same in a single mini-batch, so we don't have source mask.
 
             // Encoding input source sentences
-            var encOutput = RunEncoder(computeGraph, srcTokensList, encoder, modelMetaData, srcEmbedding, srcSelfMask, posEmbedding, segmentEmbedding, contextEmbeddings);
+            var encOutput = RunEncoder(computeGraph, srcTokensList, encoder, modelMetaData, srcEmbedding, srcSelfMask, posEmbedding, segmentEmbedding);
             if (srcSelfMask != null)
             {
                 srcSelfMask.Dispose();
@@ -126,10 +110,10 @@ namespace Seq2SeqSharp.Applications
         /// <param name="embeddings"></param>
         /// <returns></returns>
         static private IWeightTensor RunEncoder(IComputeGraph g, List<List<int>> seqs, IEncoder encoder, IModel modelMetaData, IWeightTensor embeddings, IWeightTensor selfMask, IWeightTensor posEmbeddings, 
-            IWeightTensor segmentEmbeddings, IWeightTensor contextEmbeddings)
+            IWeightTensor segmentEmbeddings)
         {
             int batchSize = seqs.Count;
-            var inputEmbs = TensorUtils.CreateTokensEmbeddings(seqs, g, embeddings, segmentEmbeddings, contextEmbeddings, modelMetaData.SrcVocab, applyContextEmbeddingsToEntireSequence: modelMetaData.ApplyContextEmbeddingsToEntireSequence, (float)Math.Sqrt(embeddings.Columns));
+            var inputEmbs = TensorUtils.CreateTokensEmbeddings(seqs, g, embeddings, segmentEmbeddings, modelMetaData.SrcVocab, (float)Math.Sqrt(embeddings.Columns), enableTagEmbedding: modelMetaData.EnableTagEmbeddings);
 
             if (modelMetaData.EncoderType == EncoderTypeEnums.Transformer)
             {

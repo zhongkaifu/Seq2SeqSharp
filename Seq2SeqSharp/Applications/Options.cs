@@ -144,8 +144,8 @@ namespace Seq2SeqSharp.Applications
         [Arg("The size of vocabulary in target side", nameof(TgtVocabSize))]
         public int TgtVocabSize = 45000;
 
-        [Arg("It indicates if contextual features' embeddings are applied to entire input sequence rather than the first segment", nameof(ApplyContextEmbeddingsToEntireSequence))]
-        public bool ApplyContextEmbeddingsToEntireSequence = true;
+        [Arg("It indicates if tags are embedded and applied to normal tokens.", nameof(EnableTagEmbeddings))]
+        public bool EnableTagEmbeddings = false;
 
         [Arg("SentencePiece model for source side", nameof(SrcSentencePieceModelPath))]
         public string SrcSentencePieceModelPath = null;

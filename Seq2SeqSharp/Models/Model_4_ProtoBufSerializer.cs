@@ -249,8 +249,8 @@ namespace Seq2SeqSharp.Models
             SharedEmbeddings        = m.SharedEmbeddings;
             //SimilarityType_         = m.SimilarityType;
             SimilarityType          = m.SimilarityType;
-            ApplyContextEmbeddingsToEntireSequence
-                                    = m.ApplyContextEmbeddingsToEntireSequence;
+            EnableTagEmbeddings
+                                    = m.EnableTagEmbeddings;
             MaxSegmentNum           = m.MaxSegmentNum;
             PointerGenerator        = m.PointerGenerator;
         }
@@ -275,7 +275,7 @@ namespace Seq2SeqSharp.Models
         [ProtoMember(14)] public bool EnableCoverageModel { get; set; }
         [ProtoMember(15)] public bool SharedEmbeddings { get; set; }
         [ProtoMember(16)] public string SimilarityType { get; set; }
-        [ProtoMember(17)] public bool ApplyContextEmbeddingsToEntireSequence { get; set; }
+        [ProtoMember(17)] public bool EnableTagEmbeddings { get; set; }
         //[ProtoMember(18)] public SimilarityTypeEnums SimilarityType_ { get; set; }
         [ProtoMember(19)] public int MaxSegmentNum { get; set; }
 

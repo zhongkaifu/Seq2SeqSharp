@@ -2071,6 +2071,70 @@ namespace Seq2SeqSharp.Tools
         }
 
 
+
+        public IWeightTensor IndexCopy(long[] Sizes, Dictionary<IWeightTensor, List<int>> tensor2offsets)
+        {
+
+            bool needGradient = false;
+            foreach (var pair in tensor2offsets)
+            {
+                var tensor = pair.Key as WeightTensor;
+
+                if (tensor.NeedGradient)
+                {
+                    needGradient = tensor.NeedGradient;
+                    break;
+                }
+            }
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(Sizes, m_deviceId, name: $"IndexCopy_{m_deviceId}", graphToBind: this, needGradient: needGradient);
+
+            Ops.Fill(res.TWeight, 0.0f);
+
+            foreach (var pair in tensor2offsets)
+            {
+                var tensor = pair.Key as WeightTensor;
+                var offsets = pair.Value;
+
+                foreach (var offset in offsets)
+                {
+                    using var resWRow = res.TWeight.Narrow(0, offset, 1);
+                    Ops.Add(resWRow, resWRow, tensor.TWeight);
+
+
+                    //Logger.WriteLine($"Apply tag embeddings to '{offset}'");
+                }
+            }
+
+            if (m_needsBackprop)
+            {
+                void backward()
+                {
+                    res.ReleaseWeight();
+
+                    foreach (var pair in tensor2offsets)
+                    {
+                        var tensor = pair.Key as WeightTensor;
+                        var offsets = pair.Value;
+
+                        foreach (var offset in offsets)
+                        {
+                            using var resGradRow = res.TGradient.Narrow(0, offset, 1);
+                            Ops.Add(tensor.TGradient, tensor.TGradient, resGradRow);
+                        }
+                    }
+
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+
+            }
+
+
+            return res;
+
+        }
+
         public IWeightTensor BuildSrcTgtMask(int srcPaddedLength, int tgtPaddedLength, float[] tgtOriginalLengths, float[] srcOriginalLengths)
         {
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { tgtOriginalLengths.Length, tgtPaddedLength, srcPaddedLength }, m_deviceId, name: $"SrcTgtMask_{m_deviceId}", graphToBind: this, needGradient: false);

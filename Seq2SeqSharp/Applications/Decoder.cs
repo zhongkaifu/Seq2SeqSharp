@@ -215,7 +215,7 @@ namespace Seq2SeqSharp.Applications
                 tgtSelfTriMask = g.View(tgtSelfTriMask, new long[] { batchSize, 1, tgtSeqLen, tgtSeqLen });
             }
 
-            IWeightTensor inputEmbs = TensorUtils.CreateTokensEmbeddings(tgtSeqs, g, tgtEmbedding, null, null, tgtVocab, scaleFactor: (float)Math.Sqrt(tgtEmbedding.Columns));
+            IWeightTensor inputEmbs = TensorUtils.CreateTokensEmbeddings(tgtSeqs, g, tgtEmbedding, null, tgtVocab, scaleFactor: (float)Math.Sqrt(tgtEmbedding.Columns));
             inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbedding, batchSize, inputEmbs, dropoutRatio);
 
             IWeightTensor decOutput;

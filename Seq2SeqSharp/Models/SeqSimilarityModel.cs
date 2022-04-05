@@ -17,7 +17,7 @@ namespace Seq2SeqSharp.Models
         public SeqSimilarityModel(Model_4_ProtoBufSerializer m)
             : base(m.HiddenDim, m.EncoderLayerDepth, m.EncoderType, m.EncoderEmbeddingDim, m.MultiHeadNum,
                     m.SrcVocab?.ToVocab(),
-                    m.EnableSegmentEmbeddings, applyContextEmbeddingsToEntireSequence: false, m.MaxSegmentNum, false)
+                    m.EnableSegmentEmbeddings, enableTagEmbeddings: false, m.MaxSegmentNum, false)
         {
             ClsVocabs = m.ClsVocabs?.Select(v => v.ToVocab()).ToList();
             Name2Weights = m.Name2Weights;
