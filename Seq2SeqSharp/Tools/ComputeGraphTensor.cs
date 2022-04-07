@@ -2071,7 +2071,12 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-
+        /// <summary>
+        /// Create a new tensor which shape is Sizes, and copy tensors (keys in tensor2offsets) to the corresponding rows (values in tensor2offset)
+        /// </summary>
+        /// <param name="Sizes">The shape of the result tensor</param>
+        /// <param name="tensor2offsets">Source tensors where the copying from and the corresponding rows in the result tensor</param>
+        /// <returns></returns>
         public IWeightTensor IndexCopy(long[] Sizes, Dictionary<IWeightTensor, List<int>> tensor2offsets)
         {
 

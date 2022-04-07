@@ -16,6 +16,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Seq2SeqClassificationModel.jpeg = Seq2SeqClassificationModel.jpeg
 		Seq2SeqModel.jpeg = Seq2SeqModel.jpeg
 		SeqClassificationModel.jpeg = SeqClassificationModel.jpeg
+		TagEmbeddings.jpeg = TagEmbeddings.jpeg
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TensorSharp", "TensorSharp\TensorSharp.csproj", "{75332198-952C-48DE-9F2B-21F49BC68ED2}"
@@ -44,7 +45,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Seq2SeqSharp.Tests", "Tests
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SeqWebApps", "Tools\SeqWebApps\SeqWebApps.csproj", "{0E14AD11-A23C-45EC-8C3C-165E9B6B07E3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeqDictMatchConsole", "Tools\SeqDictMatchConsole\SeqDictMatchConsole.csproj", "{2E076AAD-CBED-4AA0-B1F6-603D57FE5F5A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SeqDictMatchConsole", "Tools\SeqDictMatchConsole\SeqDictMatchConsole.csproj", "{2E076AAD-CBED-4AA0-B1F6-603D57FE5F5A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

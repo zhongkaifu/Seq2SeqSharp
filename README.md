@@ -10,8 +10,9 @@ Transformer encoder and decoder with pointer generator
 Attention based LSTM decoder with coverage model  
 Bi-directional LSTM encoder  
 Support multi-platforms, such as Windows, Linux, MacOS and others  
-Built-in several networks for sequence-to-sequence, sequence-classification, sequence-labeling and sequence similarity task  
+Built-in several networks for sequence-to-sequence, sequence-classification, labeling and similarity tasks  
 Built-in SentencePiece supported  
+Support tags embeddings mechanism  
 Include console tools and web apis for built-in networks  
 Graph based neural network  
 Automatic differentiation  
@@ -21,7 +22,7 @@ Optimized CUDA memory management for higher performance
 Different Text Generation Strategy: ArgMax, Beam Search, Top-P Sampling  
 RMSProp and Adam optmization  
 Embedding & Pre-trained model 
-Built-in metrics and extendable, such as BLEU score, Length ratio, F1 score and so on  
+Built-in metrics and extendable, such as BLEU, Length ratio, F1 score and so on  
 Attention alignment generation between source side and target side  
 ProtoBuf serialized model  
 Visualize neural network  
@@ -90,6 +91,7 @@ Parameters:
 **-MaxTestSrcSentLength**: Maxmium source sentence length on valid/test set. Default is 110 tokens  
 **-MaxTestTgtSentLength**: Maxmium target sentence length on valid/test set. Default is 110 tokens  
 **-WarmUpSteps**: The number of steps for warming up. Default is 8,000  
+**-EnableTagEmbeddings**: Enable tag embeddings in encoder. The tag embeddings will be added to token embeddings. Default is false  
 **-CompilerOptions**: The options for CUDA NVRTC compiler. Options are split by space. For example: "--use_fast_math --gpu-architecture=compute_60" means to use fast math libs and run on Pascal and above GPUs  
 **-Optimizer**: The weights optimizer during training. It supports Adam and RMSProp. Adam is default  
 
@@ -480,6 +482,11 @@ Seq2SeqSharp has several built-in tokens and they are used for certain purposes.
 | [SEP]   | The token used to split input sequence into many segments |
 | [CLS]   | The token used to predict classification                  |
 
+# Tag Embeddings  
+Seq2SeqSharp has some built-in special embeddings, such as position embeddings and segment embeddings, it also has a another type of special embeddings called "Tag embeddings". When this feature is enabled (EnableTagEmbeddings == true), tokens included in certain tags will add the corresponding tag embeddings into their input embeddings. Here is an example:  
+![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/TagEmbeddings.jpeg)  
+The embedding of "<ANATOMY> will be added to the embedding of token "rotator" and "cuff" and the embedding of "<DISCIPLINE>" will be added to the embedding of token "pathology".  
+The tags in the embedding are in source or target vocabulary. They can be recursive and all relative tags' embeddings will be added to the input. For example: <TAG1> Token1 <TAG2> Token2 </TAG2> </TAG1>. For "Token2", both TAG1's embeddings and TAG2's embeddings will be added to its input embedding. However, for "Token1", only TAG1's embedding will be added to its input embedding.  
 
 # Build Your Layers  
 Benefit from automatic differentiation, tensor based compute graph and other features, you can easily build your customized layers by a few code. The only thing you need to implment is forward part, and the framework will automatically build the corresponding backward part for you, and make the network could run on multi-GPUs or CPUs.  
