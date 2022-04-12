@@ -39,13 +39,16 @@ namespace Seq2SeqSharp.Utils
 
             float[] idxs = new float[batchSize * seqLen];
             float[] segIdxs = new float[batchSize * seqLen];
-            float[] tagIdxs = new float[batchSize * seqLen];
+            List<float[]> tagIdxsList = new List<float[]>();
+
+            //float[] tagIdxs = new float[batchSize * seqLen];
 
             for (int i = 0; i < batchSize; i++)
             {
                 int segIdx = 0;
-                int currTagIdx = -1;
-                string currTagName = String.Empty;
+                List<int> currTagIdxs = new List<int>();
+                int currTagLevel = 0;
+                
                 for (int j = 0; j < seqLen; j++)
                 {
                     idxs[i * seqLen + j] = seqs[i][j];
@@ -65,42 +68,57 @@ namespace Seq2SeqSharp.Utils
                         {
                             if (token[1] == '/')
                             {
-                                string closedTagName = token.Substring(2, token.Length - 3);
-                                if (closedTagName != currTagName)
-                                {
-                                    throw new DataMisalignedException($"Tag '{currTagName}' and '{closedTagName}' are not paired.");
-                                }
-                                currTagIdx = -1;
-                                currTagName = String.Empty;
+                                currTagLevel--;
+                                currTagIdxs[currTagLevel] = -1;
                             }
                             else
                             {
-                                if (currTagIdx != -1)
+                                //A new opening tag
+                                while (tagIdxsList.Count <= currTagLevel)
                                 {
-                                    throw new DataMisalignedException($"Tag '{currTagName}' is still opening, you must close it before opening another tag.");
+                                    float[] tagIdxs = new float[batchSize * seqLen];
+                                    Array.Fill(tagIdxs, -1.0f);
+                                    tagIdxsList.Add(tagIdxs);
                                 }
 
-                                currTagIdx = seqs[i][j];
-                                currTagName = token.Substring(1, token.Length - 2);
+                                while (currTagIdxs.Count <= currTagLevel)
+                                {
+                                    currTagIdxs.Add(-1);
+                                }
+
+                                currTagIdxs[currTagLevel] = seqs[i][j];
+
+                                currTagLevel++;
                             }
                         }
                         else
                         {
-                            tagIdxs[i * seqLen + j] = currTagIdx;
+                            for (int k = 0; k < currTagLevel; k++)
+                            {
+                                tagIdxsList[k][i * seqLen + j] = currTagIdxs[k];
+
+                                //Logger.WriteLine($"Add tag embeddings: '{currTagIdxs[k]}'");
+                            }
                         }
                     }
-                }
-
-                if (currTagIdx != -1)
-                {
-                    throw new DataMisalignedException($"Tag '{currTagName}' is still opening at the end of the sentence.");
                 }
             }
 
             IWeightTensor tagEmbeddings = null;
             if (enableTagEmbedding)
             {
-                tagEmbeddings = g.IndexSelect(embeddingsTensor, tagIdxs, clearWeights: true);
+                for (int k = 0; k < tagIdxsList.Count; k++)
+                {
+                    var tagEmbeddings_k = g.IndexSelect(embeddingsTensor, tagIdxsList[k], clearWeights: true);
+                    if (tagEmbeddings == null)
+                    {
+                        tagEmbeddings = tagEmbeddings_k;
+                    }
+                    else
+                    {
+                        tagEmbeddings = g.Add(tagEmbeddings, tagEmbeddings_k);
+                    }
+                }
             }
 
             IWeightTensor embeddingRst = g.IndexSelect(embeddingsTensor, idxs);
