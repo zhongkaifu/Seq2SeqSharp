@@ -765,12 +765,20 @@ namespace Seq2SeqSharp.Tools
 
         public void Test<X>(string inputTestFile, string outputFile, int batchSize, DecodingOptions decodingOptions, string srcSpmPath, string tgtSpmPath) where X : ISntPairBatch, new()
         {
-            SntPairBatchStreamReader<X> reader = new SntPairBatchStreamReader<X>(inputTestFile, batchSize, decodingOptions.MaxSrcSentLength, srcSpmPath);
-            SntPairBatchStreamWriter writer = new SntPairBatchStreamWriter(outputFile, tgtSpmPath);
+            SntBatchStreamReader<X> reader = new SntBatchStreamReader<X>(inputTestFile, batchSize, decodingOptions.MaxSrcSentLength, srcSpmPath);
+            SntBatchStreamWriter writer = new SntBatchStreamWriter(outputFile, tgtSpmPath);
             RunTest<X>(reader, writer, decodingOptions, RunForwardOnSingleDevice);
         }
 
-        internal void RunTest<X>(SntPairBatchStreamReader<X> reader, SntPairBatchStreamWriter writer, DecodingOptions decodingOptions, Func<IComputeGraph, ISntPairBatch, int, bool, DecodingOptions, List<NetworkResult>> ForwardOnSingleDevice) where X : ISntPairBatch, new()
+        public void Test<X>(string inputTestFile, string inputPromptFile, string outputFile, int batchSize, DecodingOptions decodingOptions, string srcSpmPath, string tgtSpmPath) where X : ISntPairBatch, new()
+        {
+            SntPairBatchStreamReader<X> reader = new SntPairBatchStreamReader<X>(inputTestFile, inputPromptFile, batchSize, decodingOptions.MaxSrcSentLength, srcSpmPath, tgtSpmPath);
+            SntBatchStreamWriter writer = new SntBatchStreamWriter(outputFile, tgtSpmPath);
+            RunTest<X>(reader, writer, decodingOptions, RunForwardOnSingleDevice);
+        }
+
+
+        internal void RunTest<X>(IBatchStreamReader<X> reader, SntBatchStreamWriter writer, DecodingOptions decodingOptions, Func<IComputeGraph, ISntPairBatch, int, bool, DecodingOptions, List<NetworkResult>> ForwardOnSingleDevice) where X : ISntPairBatch, new()
         {
             if (ForwardOnSingleDevice is null)
             {

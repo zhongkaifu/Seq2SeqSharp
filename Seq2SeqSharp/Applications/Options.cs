@@ -87,6 +87,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("The test result file.", nameof(OutputFile))]
         public string OutputFile = null;
 
+        [Arg("The prompt for output. It's a input file along with InputTestFile", nameof(OutputPromptFile))]
+        public string OutputPromptFile = null;
+
         [Arg("Processor type: GPU, CPU", nameof(ProcessorType))]
         public ProcessorTypeEnums ProcessorType = ProcessorTypeEnums.GPU;
 

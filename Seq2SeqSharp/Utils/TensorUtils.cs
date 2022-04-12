@@ -39,13 +39,13 @@ namespace Seq2SeqSharp.Utils
 
             float[] idxs = new float[batchSize * seqLen];
             float[] segIdxs = new float[batchSize * seqLen];
-
-            Dictionary<string, List<int>> tag2Offsets = new Dictionary<string, List<int>>();
+            float[] tagIdxs = new float[batchSize * seqLen];
 
             for (int i = 0; i < batchSize; i++)
             {
                 int segIdx = 0;
-                HashSet<string> currTags = new HashSet<string>(); //keep all opening tags
+                int currTagIdx = -1;
+                string currTagName = String.Empty;
                 for (int j = 0; j < seqLen; j++)
                 {
                     idxs[i * seqLen + j] = seqs[i][j];
@@ -65,36 +65,52 @@ namespace Seq2SeqSharp.Utils
                         {
                             if (token[1] == '/')
                             {
-                                string tag = token.Substring(2, token.Length - 3);
-                                currTags.Remove(tag);
-
-                                //Logger.WriteLine($"Closed tag: '{tag}'");
+                                string closedTagName = token.Substring(2, token.Length - 3);
+                                if (closedTagName != currTagName)
+                                {
+                                    throw new DataMisalignedException($"Tag '{currTagName}' and '{closedTagName}' are not paired.");
+                                }
+                                currTagIdx = -1;
+                                currTagName = String.Empty;
                             }
                             else
                             {
-                                string tag = token.Substring(1, token.Length - 2);
-                                currTags.Add(tag);
+                                if (currTagIdx != -1)
+                                {
+                                    throw new DataMisalignedException($"Tag '{currTagName}' is still opening, you must close it before opening another tag.");
+                                }
 
-                                //Logger.WriteLine($"Openning tag: '{tag}'");
+                                currTagIdx = seqs[i][j];
+                                currTagName = token.Substring(1, token.Length - 2);
                             }
                         }
                         else
                         {
-                            foreach (var tag in currTags)
+                            if (currTagIdx == -1)
                             {
-                                if (tag2Offsets.ContainsKey(tag) == false)
-                                {
-                                    tag2Offsets.Add(tag, new List<int>());
-                                }
-                                tag2Offsets[tag].Add(i * seqLen + j);
+                                tagIdxs[i * seqLen + j] = (int)SENTTAGS.START;
+                            }
+                            else
+                            {
+                                tagIdxs[i * seqLen + j] = currTagIdx;
 
-                                //Logger.WriteLine($"Adding tag: '{tag}' to seq '{i}' offset '{j}'");
+                              //  Logger.WriteLine($"Adding tag '{currTagIdx}'");
                             }
                         }
                     }
                 }
+
+                if (currTagIdx != -1)
+                {
+                    throw new DataMisalignedException($"Tag '{currTagName}' is still opening at the end of the sentence.");
+                }
             }
 
+            IWeightTensor tagEmbeddings = null;
+            if (enableTagEmbedding)
+            {
+                tagEmbeddings = g.IndexSelect(embeddingsTensor, tagIdxs);
+            }
 
             IWeightTensor embeddingRst = g.IndexSelect(embeddingsTensor, idxs);
             if (scaleFactor != 1.0f)
@@ -108,22 +124,9 @@ namespace Seq2SeqSharp.Utils
                 embeddingRst = g.Add(embeddingRst, g.IndexSelect(segmentEmbedding, segIdxs));
             }
 
-            if (enableTagEmbedding)
+            if (tagEmbeddings != null)
             {
-                Dictionary<IWeightTensor, List<int>> tensor2offsets = new Dictionary<IWeightTensor, List<int>>();
-                foreach (var pair in tag2Offsets)
-                {
-                    string tagName = pair.Key;
-                    int tagId = vocab.GetWordIndex(tagName);
-                    IWeightTensor tagTensor = g.Peek(embeddingsTensor, 0, tagId);
-                    tensor2offsets.Add(tagTensor, pair.Value);
-                }
-
-                if (tensor2offsets.Count > 0)
-                {
-                    var tagEmbeddings = g.IndexCopy(embeddingRst.Sizes, tensor2offsets);
-                    embeddingRst = g.Add(embeddingRst, tagEmbeddings);
-                }
+                embeddingRst = g.Add(embeddingRst, tagEmbeddings);
             }
 
             return embeddingRst;

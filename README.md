@@ -12,7 +12,8 @@ Bi-directional LSTM encoder
 Support multi-platforms, such as Windows, Linux, MacOS and others  
 Built-in several networks for sequence-to-sequence, sequence-classification, labeling and similarity tasks  
 Built-in SentencePiece supported  
-Support tags embeddings mechanism  
+Tags embeddings mechanism  
+Prompted Decoders  
 Include console tools and web apis for built-in networks  
 Graph based neural network  
 Automatic differentiation  
@@ -120,6 +121,7 @@ Here is the command line to test models
 Parameters:  
 **-InputTestFile**: The input file for test.  
 **-OutputFile**: The test result file.  
+**-OutputPromptFile**: The prompt file for output. It is a input file along with input test file.  
 **-ModelFilePath**: The trained model file path. 
 **-ProcessorType**: Architecture type: CPU or GPU 
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
@@ -433,14 +435,14 @@ The following models were trained by Seq2SeqSharp and included in the release pa
 | Model Name                    |   Comments                                                                                          |    Trained By   |  Test Script              |  Input Test File            |
 | ----------------------------- | --------------------------------------------------------------------------------------------------- | --------------- | ------------------------- | --------------------------- |
 | seq2seq_mt_enu_chs.model      | Sentence translation model from English to Chinese (Greedy Search)                                  | Seq2SeqConsole  | test_enu_chs.bat          | test_enu_raw.txt            |
-| seq2seq_mt_enu_chs.model      | Sentence translation model from English to Chinese (Top-P sampling with decay weights               | Seq2SeqConsole  | test_enu_chs_sampling.bat | test_enu_raw.txt            |
+| seq2seq_mt_enu_chs.model      | Sentence translation model from English to Chinese (Top-P sampling with decay weights)              | Seq2SeqConsole  | test_enu_chs_sampling.bat | test_enu_raw.txt            |
 | seq2seq_mt_chs_enu.model      | Sentence translation model from Chinese to English                                                  | Seq2SeqConsole  | test_chs_enu.bat          | test_chs_raw.txt            |
 | seq2seq_mt_enu_jpn.model      | Sentence translation model from English to Japanese                                                 | Seq2SeqConsole  | test_enu_jpn.bat          | test_enu_raw.txt            |
 | seq2seq_mt_jpn_enu.model      | Sentence translation model from Japanese to English                                                 | Seq2SeqConsole  | test_jpn_enu.bat          | test_jpn_raw.txt            |
 | seq2seq_mt_enu_cjk.model      | Translation from English to Chinese, Japanese and Korean. It's a multi-languages translation model. | Seq2SeqConsole  | test_enu_cjk.bat          | test_enu_raw.txt            |
 | seq2seq_mt_rus_enu.model      | Sentence translation model from Russian to English                                                  | Seq2SeqConsole  | test_rus_enu.bat          | test_rus_raw.txt            |
 | seq2seq_mt_enu_rus.model      | Sentence translation model from English to Russian                                                  | Seq2SeqConsole  | test_enu_rus.bat          | test_enu_raw.txt            |
-| seq2seq_medical_qa_chs.model  | Question-Answer model in Chinese medical domain                                                     | Seq2SeqConsole  | test_medical_qa_chs.bat   |  test_medicalQA_chs_raw.txt |
+| seq2seq_medical_qa_chs.model  | Question-Answer model in Chinese medical domain                                                     | Seq2SeqConsole  | test_medical_qa_chs.bat   | test_medicalQA_chs_raw.txt  |
 | seq_ner_enu.model             | Named entity recognizer for person, originazation and location in English                           | SeqLabelConsole | test_ner_enu.bat          | test_ner_enu.txt            |
 
 # Build From Source Code  

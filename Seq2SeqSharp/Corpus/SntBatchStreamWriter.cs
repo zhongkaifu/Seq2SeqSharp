@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.Corpus
 {
-    public class SntPairBatchStreamWriter
+    public class SntBatchStreamWriter
     {
         static object locker = new object();
         private string filePath;
@@ -22,7 +22,7 @@ namespace Seq2SeqSharp.Corpus
 
         SentencePiece sp;
 
-        public SntPairBatchStreamWriter(string filePath, string sentencePieceModelPath = null)
+        public SntBatchStreamWriter(string filePath, string sentencePieceModelPath = null)
         {
             this.filePath = filePath;
             sw = new StreamWriter(filePath, false);
