@@ -86,16 +86,7 @@ namespace Seq2SeqSharp.Utils
                         }
                         else
                         {
-                            if (currTagIdx == -1)
-                            {
-                                tagIdxs[i * seqLen + j] = (int)SENTTAGS.START;
-                            }
-                            else
-                            {
-                                tagIdxs[i * seqLen + j] = currTagIdx;
-
-                              //  Logger.WriteLine($"Adding tag '{currTagIdx}'");
-                            }
+                            tagIdxs[i * seqLen + j] = currTagIdx;
                         }
                     }
                 }
@@ -109,7 +100,7 @@ namespace Seq2SeqSharp.Utils
             IWeightTensor tagEmbeddings = null;
             if (enableTagEmbedding)
             {
-                tagEmbeddings = g.IndexSelect(embeddingsTensor, tagIdxs);
+                tagEmbeddings = g.IndexSelect(embeddingsTensor, tagIdxs, clearWeights: true);
             }
 
             IWeightTensor embeddingRst = g.IndexSelect(embeddingsTensor, idxs);

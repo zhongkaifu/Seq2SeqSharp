@@ -1040,14 +1040,16 @@ namespace TensorSharp
 
 			for (int j = 0; j < rows; j++)
 			{
-
 				int srcIdx = (int)indice[j];
-				float* resultRow = result + j * cols;
-				float* srcRow = src + srcIdx * cols;
-
-				for (int i = 0; i < cols; ++i)
+				if (srcIdx >= 0)
 				{
-					resultRow[i] = srcRow[i];
+					float* resultRow = result + j * cols;
+					float* srcRow = src + srcIdx * cols;
+
+					for (int i = 0; i < cols; ++i)
+					{
+						resultRow[i] = srcRow[i];
+					}
 				}
 			}
 		}
@@ -1061,14 +1063,16 @@ namespace TensorSharp
 
 			for (int j = 0; j < rows; j++)
 			{
-
 				int gradIdx = (int)indice[j];
-				float* adjRow = adj + j * cols;
-				float* gradRow = grad + gradIdx * cols;
-
-				for (int i = 0; i < cols; ++i)
+				if (gradIdx >= 0)
 				{
-					gradRow[i] += adjRow[i];
+					float* adjRow = adj + j * cols;
+					float* gradRow = grad + gradIdx * cols;
+
+					for (int i = 0; i < cols; ++i)
+					{
+						gradRow[i] += adjRow[i];
+					}
 				}
 			}
 		}

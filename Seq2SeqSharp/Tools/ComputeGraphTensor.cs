@@ -1284,10 +1284,10 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightTensor IndexSelect(IWeightTensor s, float[] idxs)
+        public IWeightTensor IndexSelect(IWeightTensor s, float[] idxs, bool clearWeights = false)
         {
             WeightTensor src = s as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { idxs.Length, s.Sizes[^1] }, m_deviceId, name: $"{GetHashString(src.Name)}.IndexSelect", graphToBind: this, needGradient: src.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { idxs.Length, s.Sizes[^1] }, m_deviceId, name: $"{GetHashString(src.Name)}.IndexSelect", graphToBind: this, needGradient: src.NeedGradient, clearWeights: clearWeights);
 
             Tensor indice = new Tensor(src.Allocator, DType.Float32, idxs.Length);
             indice.CopyFrom(idxs);

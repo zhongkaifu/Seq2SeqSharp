@@ -470,14 +470,17 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
     if(j < rows) {
 
       const int srcIdx = indice[j];
-      float* resultRow = result + j * cols;
-      float* srcRow = src + srcIdx * cols;
+      if (srcIdx >= 0)
+      {
+          float* resultRow = result + j * cols;
+          float* srcRow = src + srcIdx * cols;
 
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-        resultRow[id] = srcRow[id];
-        }
+          for(int tid = 0; tid < cols; tid += blockDim.x) {
+            int id = tid + threadIdx.x;
+            if(id < cols) {
+            resultRow[id] = srcRow[id];
+            }
+          }
       }
     }
   }
@@ -617,18 +620,17 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
     if(j < rows) {
 
       const int gradIdx = indice[j];
-      float* adjRow = adj + j * cols;
-      float* gradRow = grad + gradIdx * cols;
+      if (gradIdx >= 0)
+      {
+          float* adjRow = adj + j * cols;
+          float* gradRow = grad + gradIdx * cols;
 
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-//        gradRow[id] += adjRow[id];
-
-
-        atomicAdd(gradRow + id, adjRow[id]);
-
-        }
+          for(int tid = 0; tid < cols; tid += blockDim.x) {
+            int id = tid + threadIdx.x;
+            if(id < cols) {
+            atomicAdd(gradRow + id, adjRow[id]);
+            }
+          }
       }
     }
   }

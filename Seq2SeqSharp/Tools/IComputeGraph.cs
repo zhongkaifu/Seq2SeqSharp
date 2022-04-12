@@ -50,7 +50,7 @@ namespace Seq2SeqSharp
         IWeightTensor TopPSampleIndice(IWeightTensor w, List<List<int>> seqs, float topP = 0.9f, float repeatPenalty = 5.0f);
 
 
-        IWeightTensor IndexSelect(IWeightTensor s, float[] idxs);
+        IWeightTensor IndexSelect(IWeightTensor s, float[] idxs, bool clearWeights = false);
 
         void Bind(IWeightTensor w);
         void Unbind(IWeightTensor w);
