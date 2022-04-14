@@ -232,7 +232,14 @@ But train01.cjk.snt is the same as train01.chs.snt in above.
 ### Prompt decoding  
 Beside decoding entire sequence from the scratch, Seq2SeqConsole also supports to decode sequence by given prompts.  
 Here is an example of machine translation model from English to CJK (Chinese, Japanese and Korean). This single model is able to translate sentence from English to any CJK language. The input sentence is normal English, and then you give the decoder a prompt for translation.   
-For example: the input sentence is "▁i ▁would ▁like ▁to ▁drink ▁with ▁you ." (Note that it has been tokenized by sentence piece model). If you give prompt <CHS> to decoder, the model will generate Chinese sentence "<CHS> ▁我想 和你一起 喝酒 。". For the same input sentence, if you give prompt <JPN>, it will output Japanese sentence "<JPN> ▁ あなたと 飲み たい".  
+For example: given the input sentence "▁i ▁would ▁like ▁to ▁drink ▁with ▁you ." (Note that it has been tokenized by sentence piece model) and different prompt for decoder, the model will translate it to different languages.   
+
+| Prompt |   Translated Sentence |
+| ------ | ----------------------- |
+| <CHS>  | <CHS> ▁我想 和你一起 喝酒 。 |      
+| <JPN>  | <JPN> ▁ あなたと 飲み たい |    
+| <KOR>  | <KOR> ▁나는 ▁당신과 ▁함께 ▁마시 길 ▁바랍니다 . | 
+
 
 ## SeqClassification for sequence-classification task  
 SeqClassification is used to classify input sequence to a certain category.  Given an input sequence, the tool will add a [CLS] tag at the beginning of sequence, and then send it to the encoder. At top layer of the encoder, it will run softmax against [CLS] and decide which category the sequence belongs to.  
@@ -437,15 +444,17 @@ Here are steps on how to play it.  
 # Applications in the release package  
 The release package includes some out of the box applications and you can easily call them for running. These test scripts are located at root path in the package, the corresponding models and test files are in model folder and data/test folder.  
 The followings are different tasks included in the package:  
-| Type                    |   Test Script           |   Model File                 |   Input File           |  Trained & Tested By |  Comments                                                                                                                                                                                     |
-| ----------------------- | ----------------------- | ---------------------------- | --------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Machine Translation     | test_%src%_enu.bat      | seq2seq_mt_%src%_enu.model   | test_%src%_raw.txt         |  Seq2SeqConsole      | Machine Translation from %src% to English(ENU). Each model for one language pair. <br> %src% can be Chinese(CHS), Japanese(JPN), Korean(KOR), Russian(RUS), German(DEU), French(FRA), Italian(ITA) |
-| Machine Translation     | test_enu_%tgt%.bat      | seq2seq_mt_enu_%tgt%.model   | test_enu_raw.txt           |  Seq2SeqConsole      | Machine Translation from English(ENU) to %tgt%. Each model for one language pair. <br> %tgt% can be Chinese(CHS), Japanese(JPN), Korean(KOR), Russian(RUS), German(DEU), French(FRA), Italian(ITA) |
-| Machine Translation     | test_enu_%cjk%.bat      | seq2seq_mt_enu_%cjk%.model   | test_enu_raw.txt <br> test_output_prompt_%cjk%.txt as prompt files for decoding |  Seq2SeqConsole      | Machine Translation from English(ENU) to %cjk%. The single model serves all three language pairs. <br> %cjk% can be Chinese(CHS), Japanese(JPN), Korean(KOR) | 
+| Type                    |   Test Script           |   Model File                 |   Input File |  Trained & Tested By |  Comments      |
+| ----------------------- | ----------------------- | ---------------------------- | ------------ | -------------------- | --------------- |
+| Machine Translation     | test_%src%_enu.bat      | seq2seq_mt_%src%_enu.model   | test_%src%_raw.txt |  Seq2SeqConsole      | Machine Translation from %src% to English(ENU). Each model for one language pair. |
+| Machine Translation     | test_enu_%tgt%.bat      | seq2seq_mt_enu_%tgt%.model   | test_enu_raw.txt   |  Seq2SeqConsole      | Machine Translation from English(ENU) to %tgt%. Each model for one language pair. |
+| Machine Translation     | test_enu_%cjk%.bat      | seq2seq_mt_enu_%cjk%.model   | test_enu_raw.txt <br> test_output_prompt_%cjk%.txt as prompt files for decoding |  Seq2SeqConsole      | Machine Translation from English(ENU) to %cjk%. The single model serves all three language pairs. | 
 | Question Answer         | test_medical_qa_chs.bat | seq2seq_medical_qa_chs.model | test_medicalQA_chs_raw.txt |  Seq2SeqConsole      | Given medical question in Chinese, the model will output the corresponding answer. |
-| Named Entity Recognizer | test_ner_enu.bat        | seq_ner_enu.model            | test_ner_enu.txt           |  SeqLabelConsole     | Named entity recognizer for person, originazation and location in English. |
+| Named Entity Recognizer | test_ner_enu.bat        | seq_ner_enu.model            | test_ner_enu.txt   |  SeqLabelConsole     | Named entity recognizer for person, originazation and location in English. |
 | Named Entity Recognizer | train_ner_enu.bat       | seq_ner_enu.model            | train_enu.ner.snt as training set <br> train_ner_opts as config file for training | SeqLabelConsole | Train named entity recognier model for person, originazation and location in English. |
 | Fiction Generation      | test_fiction.bat        | seq2seq_fiction.model        | test_fiction.txt <br> test_fiction_prompt.txt as prompt files for decoding | Seq2SeqConsole | Given texts as context and prompt, asking model to write fiction in Chinese. | 
+
+Note: %src% and %tgt% can be Chinese(CHS), Japanese(JPN), Korean(KOR), Russian(RUS), German(DEU), French(FRA), Italian(ITA) in above table, and %cjk% can be Chinese(CHS), Japanese(JPN), Korean(KOR)  
 
 Besides above command line application, the release package also includes a web application called SeqWebApps. It is located in webapp folder and configured for fiction generation task.  
 
