@@ -229,6 +229,11 @@ But train01.cjk.snt is the same as train01.chs.snt in above.
 孩子 们 挤 成 一 团 以 取暖 .  
 汽车 业 也 在 不断 地 变化 .  
 
+### Prompt decoding  
+Beside decoding entire sequence from the scratch, Seq2SeqConsole also supports to decode sequence by given prompts.  
+Here is an example of machine translation model from English to CJK (Chinese, Japanese and Korean). This single model is able to translate sentence from English to any CJK language. The input sentence is normal English, and then you give the decoder a prompt for translation.   
+For example: the input sentence is "▁i ▁would ▁like ▁to ▁drink ▁with ▁you ." (Note that it has been tokenized by sentence piece model). If you give prompt <CHS> to decoder, the model will generate Chinese sentence "<CHS> ▁我想 和你一起 喝酒 。". For the same input sentence, if you give prompt <JPN>, it will output Japanese sentence "<JPN> ▁ あなたと 飲み たい".  
+
 ## SeqClassification for sequence-classification task  
 SeqClassification is used to classify input sequence to a certain category.  Given an input sequence, the tool will add a [CLS] tag at the beginning of sequence, and then send it to the encoder. At top layer of the encoder, it will run softmax against [CLS] and decide which category the sequence belongs to.  
 This tool can be used to train a model for sequence-classification task, and test the model.  
@@ -429,21 +434,21 @@ Here are steps on how to play it.  
 
 4. Check quality by comparing output Chinese text with reference text   
 
-# Models in the release package  
-The following models were trained by Seq2SeqSharp and included in the release package.  
+# Applications in the release package  
+The release package includes some out of the box applications and you can easily call them for running. These test scripts are located at root path in the package, the corresponding models and test files are in model folder and data/test folder.  
+The followings are different tasks included in the package:  
+| Type                    |   Test Script           |   Model File                 |   Input File           |  Trained & Tested By |  Comments                                                                                                                                                                                     |
+| ----------------------- | ----------------------- | ---------------------------- | --------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Machine Translation     | test_%src%_enu.bat      | seq2seq_mt_%src%_enu.model   | test_%src%_raw.txt         |  Seq2SeqConsole      | Machine Translation from %src% to English(ENU). Each model for one language pair. <br> %src% can be Chinese(CHS), Japanese(JPN), Korean(KOR), Russian(RUS), German(DEU), French(FRA), Italian(ITA) |
+| Machine Translation     | test_enu_%tgt%.bat      | seq2seq_mt_enu_%tgt%.model   | test_enu_raw.txt           |  Seq2SeqConsole      | Machine Translation from English(ENU) to %tgt%. Each model for one language pair. <br> %tgt% can be Chinese(CHS), Japanese(JPN), Korean(KOR), Russian(RUS), German(DEU), French(FRA), Italian(ITA) |
+| Machine Translation     | test_enu_%cjk%.bat      | seq2seq_mt_enu_%cjk%.model   | test_enu_raw.txt <br> test_output_prompt_%cjk%.txt as prompt files for decoding |  Seq2SeqConsole      | Machine Translation from English(ENU) to %cjk%. The single model serves all three language pairs. <br> %cjk% can be Chinese(CHS), Japanese(JPN), Korean(KOR) | 
+| Question Answer         | test_medical_qa_chs.bat | seq2seq_medical_qa_chs.model | test_medicalQA_chs_raw.txt |  Seq2SeqConsole      | Given medical question in Chinese, the model will output the corresponding answer. |
+| Named Entity Recognizer | test_ner_enu.bat        | seq_ner_enu.model            | test_ner_enu.txt           |  SeqLabelConsole     | Named entity recognizer for person, originazation and location in English. |
+| Named Entity Recognizer | train_ner_enu.bat       | seq_ner_enu.model            | train_enu.ner.snt as training set <br> train_ner_opts as config file for training | SeqLabelConsole | Train named entity recognier model for person, originazation and location in English. |
+| Fiction Generation      | test_fiction.bat        | seq2seq_fiction.model        | test_fiction.txt <br> test_fiction_prompt.txt as prompt files for decoding | Seq2SeqConsole | Given texts as context and prompt, asking model to write fiction in Chinese. | 
 
-| Model Name                    |   Comments                                                                                          |    Trained By   |  Test Script              |  Input Test File            |
-| ----------------------------- | --------------------------------------------------------------------------------------------------- | --------------- | ------------------------- | --------------------------- |
-| seq2seq_mt_enu_chs.model      | Sentence translation model from English to Chinese (Greedy Search)                                  | Seq2SeqConsole  | test_enu_chs.bat          | test_enu_raw.txt            |
-| seq2seq_mt_enu_chs.model      | Sentence translation model from English to Chinese (Top-P sampling with decay weights)              | Seq2SeqConsole  | test_enu_chs_sampling.bat | test_enu_raw.txt            |
-| seq2seq_mt_chs_enu.model      | Sentence translation model from Chinese to English                                                  | Seq2SeqConsole  | test_chs_enu.bat          | test_chs_raw.txt            |
-| seq2seq_mt_enu_jpn.model      | Sentence translation model from English to Japanese                                                 | Seq2SeqConsole  | test_enu_jpn.bat          | test_enu_raw.txt            |
-| seq2seq_mt_jpn_enu.model      | Sentence translation model from Japanese to English                                                 | Seq2SeqConsole  | test_jpn_enu.bat          | test_jpn_raw.txt            |
-| seq2seq_mt_enu_cjk.model      | Translation from English to Chinese, Japanese and Korean. It's a multi-languages translation model. | Seq2SeqConsole  | test_enu_cjk.bat          | test_enu_raw.txt            |
-| seq2seq_mt_rus_enu.model      | Sentence translation model from Russian to English                                                  | Seq2SeqConsole  | test_rus_enu.bat          | test_rus_raw.txt            |
-| seq2seq_mt_enu_rus.model      | Sentence translation model from English to Russian                                                  | Seq2SeqConsole  | test_enu_rus.bat          | test_enu_raw.txt            |
-| seq2seq_medical_qa_chs.model  | Question-Answer model in Chinese medical domain                                                     | Seq2SeqConsole  | test_medical_qa_chs.bat   | test_medicalQA_chs_raw.txt  |
-| seq_ner_enu.model             | Named entity recognizer for person, originazation and location in English                           | SeqLabelConsole | test_ner_enu.bat          | test_ner_enu.txt            |
+Besides above command line application, the release package also includes a web application called SeqWebApps. It is located in webapp folder and configured for fiction generation task.  
+
 
 # Build From Source Code  
 Besides using the release package, you could also build Seq2SeqSharp from source code. It has just two steps:  
