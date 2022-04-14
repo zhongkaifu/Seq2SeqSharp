@@ -236,9 +236,9 @@ For example: given the input sentence "▁i ▁would ▁like ▁to ▁drink ▁w
 
 | Prompt |   Translated Sentence |
 | ------ | ----------------------- |
-| <CHS>  | <CHS> ▁我想 和你一起 喝酒 。 |      
-| <JPN>  | <JPN> ▁ あなたと 飲み たい |    
-| <KOR>  | <KOR> ▁나는 ▁당신과 ▁함께 ▁마시 길 ▁바랍니다 . | 
+| \<CHS\>  | \<CHS\> ▁我想 和你一起 喝酒 。 |      
+| \<JPN\>  | \<JPN\> ▁ あなたと 飲み たい |    
+| \<KOR\>  | \<KOR\> ▁나는 ▁당신과 ▁함께 ▁마시 길 ▁바랍니다 . | 
 
 
 ## SeqClassification for sequence-classification task  
