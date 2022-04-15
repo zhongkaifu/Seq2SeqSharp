@@ -1,14 +1,7 @@
 ﻿using AdvUtils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Seq2SeqSharp.Applications;
-using Seq2SeqSharp.Corpus;
-using Seq2SeqSharp.Metrics;
-using Seq2SeqSharp.Optimizer;
 using Seq2SeqSharp.Tools;
-using Seq2SeqSharp.Utils;
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using TensorSharp;
 

@@ -30,7 +30,7 @@ Visualize neural network
 
 # Architecture  
 Here is the architecture of Seq2SeqSharp  
-![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Overview.jpg)
+![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Images/Overview.jpg)
 
 Seq2SeqSharp provides the unified tensor operations, which means all tensor operations running on CPUs and GPUs are completely same and they can get switched on different device types without any modification.  
 Seq2SeqSharp is also a framework that neural networks can run on multi-GPUs in parallel. It can automatically distribute/sync weights/gradients over devices, manage resources and models and so on, so developers are able to totally focus on how to design and implment networks for their tasks.  
@@ -55,7 +55,7 @@ It also provides web service APIs for above tasks.
 
 ## Seq2SeqConsole for sequence-to-sequence task  
 Here is the graph that what the model looks like:  
-![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Seq2SeqModel.jpeg)
+![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Images/Seq2SeqModel.jpeg)
 
 You can use Seq2SeqConsole tool to train, test and visualize models.  
 Here is the command line to train a model:  
@@ -142,7 +142,7 @@ Parameters:
 Example: Seq2SeqConsole.exe -Task VisualizeNetwork -VisNNFile abc.png -EncoderType Transformer -EncoderLayerDepth 2 -DecoderLayerDepth 2  
 
 Then it will visualize the network looks like below:  
-![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/NetworkViz.png)
+![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Images/NetworkViz.png)
 
 You can also keep all parameters into a json file and run Seq2SeqConsole.exe -ConfigFilePath <config_file_path> Here is an example for training.  
 ```json
@@ -246,7 +246,7 @@ SeqClassification is used to classify input sequence to a certain category.  Giv
 This tool can be used to train a model for sequence-classification task, and test the model.  
 
 Here is the graph that what the model looks like:  
-![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/SeqClassificationModel.jpeg)
+![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Images/SeqClassificationModel.jpeg)
 
 Here is the configuration file for model training.  
 ```json
@@ -302,7 +302,7 @@ Here is an example:
 
 ## Seq2SeqClassificationConsole for sequence-to-sequence and classification multi-tasks  
 Here is the graph that what the model looks like:  
-![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Seq2SeqClassificationModel.jpeg)
+![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Images/Seq2SeqClassificationModel.jpeg)
 
 
 ## SeqLabelConsole for sequence-labeling task  
@@ -457,7 +457,7 @@ The followings are different tasks included in the package:
 Note: %src% and %tgt% can be Chinese(CHS), Japanese(JPN), Korean(KOR), Russian(RUS), German(DEU), French(FRA), Italian(ITA) in above table, and %cjk% can be Chinese(CHS), Japanese(JPN), Korean(KOR)  
 
 Besides above command line application, the release package also includes a web application called SeqWebApps. It is located in webapp folder and configured for fiction generation task.  
-
+![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Images/FictionGeneration.gif)  
 
 # Build From Source Code  
 Besides using the release package, you could also build Seq2SeqSharp from source code. It has just two steps:  
@@ -500,7 +500,7 @@ Seq2SeqSharp has several built-in tokens and they are used for certain purposes.
 
 # Tag Embeddings  
 Seq2SeqSharp has some built-in special embeddings, such as position embeddings and segment embeddings, it also has a another type of special embeddings called "Tag embeddings". When this feature is enabled (EnableTagEmbeddings == true), tokens included in certain tags will add the corresponding tag embeddings into their input embeddings. Here is an example:  
-![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/TagEmbeddings.jpeg)  
+![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Images/TagEmbeddings.jpeg)  
 The embedding of "<ANATOMY> will be added to the embedding of token "rotator" and "cuff" and the embedding of "<DISCIPLINE>" will be added to the embedding of token "pathology".  
 The tags in the embedding are in source or target vocabulary. They can be recursive and all relative tags' embeddings will be added to the input. For example: <TAG1> Token1 <TAG2> Token2 </TAG2> </TAG1>. For "Token2", both TAG1's embeddings and TAG2's embeddings will be added to its input embedding. However, for "Token1", only TAG1's embedding will be added to its input embedding.  
 

@@ -19,6 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="enuSpm.vocab">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="seq2seq_mt_enu_chs_tiny_test.model">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
