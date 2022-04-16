@@ -1,4 +1,14 @@
-﻿using AdvUtils;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using AdvUtils;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Utils;
 using System;
@@ -6,7 +16,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -176,73 +185,93 @@ namespace Seq2SeqSharp.Tools
             int tooLongTgtSntCnt = 0;
 
             Parallel.For(0, m_srcFileList.Count, i =>
-            //            for (int i = 0; i < m_srcFileList.Count; i++)
             {
-                if (m_showTokenDist)
+                try
                 {
-                    Logger.WriteLine($"Process file '{m_srcFileList[i]}' and '{m_tgtFileList[i]}'");
-                }
-
-                StreamReader srSrc = new StreamReader(m_srcFileList[i]);
-                StreamReader srTgt = new StreamReader(m_tgtFileList[i]);
-                List<RawSntPair> sntPairs = new List<RawSntPair>();
-
-                while (true)
-                {
-                    if (srSrc.EndOfStream && srTgt.EndOfStream)
-                    {
-                        break;
-                    }
-
-                    RawSntPair rawSntPair = new RawSntPair(srSrc.ReadLine(), srTgt.ReadLine(), m_maxSrcSentLength, m_maxTgtSentLength, m_tooLongSequence == TooLongSequence.Truncation);
-                    if (rawSntPair.IsEmptyPair())
-                    {
-                        break;
-                    }
-
                     if (m_showTokenDist)
                     {
-                        lock (locker)
-                        {
-                            if (dictSrcLenDist.ContainsKey(rawSntPair.SrcLength / 100) == false)
-                            {
-                                dictSrcLenDist.Add(rawSntPair.SrcLength / 100, 0);
-                            }
-                            dictSrcLenDist[rawSntPair.SrcLength / 100]++;
+                        Logger.WriteLine($"Process file '{m_srcFileList[i]}' and '{m_tgtFileList[i]}'");
+                    }
 
-                            if (dictTgtLenDist.ContainsKey(rawSntPair.TgtLength / 100) == false)
+                    StreamReader srSrc = new StreamReader(m_srcFileList[i]);
+                    StreamReader srTgt = new StreamReader(m_tgtFileList[i]);
+                    List<RawSntPair> sntPairs = new List<RawSntPair>();
+
+                    while (true)
+                    {
+                        if (srSrc.EndOfStream && srTgt.EndOfStream)
+                        {
+                            break;
+                        }
+
+                        RawSntPair rawSntPair = new RawSntPair(srSrc.ReadLine(), srTgt.ReadLine(), m_maxSrcSentLength, m_maxTgtSentLength, m_tooLongSequence == TooLongSequence.Truncation);
+                        if (rawSntPair.IsEmptyPair())
+                        {
+                            break;
+                        }
+
+                        if (m_showTokenDist)
+                        {
+                            lock (locker)
                             {
-                                dictTgtLenDist.Add(rawSntPair.TgtLength / 100, 0);
+                                if (dictSrcLenDist.ContainsKey(rawSntPair.SrcLength / 100) == false)
+                                {
+                                    dictSrcLenDist.Add(rawSntPair.SrcLength / 100, 0);
+                                }
+                                dictSrcLenDist[rawSntPair.SrcLength / 100]++;
+
+                                if (dictTgtLenDist.ContainsKey(rawSntPair.TgtLength / 100) == false)
+                                {
+                                    dictTgtLenDist.Add(rawSntPair.TgtLength / 100, 0);
+                                }
+                                dictTgtLenDist[rawSntPair.TgtLength / 100]++;
                             }
-                            dictTgtLenDist[rawSntPair.TgtLength / 100]++;
+                        }
+
+                        bool hasTooLongSent = false;
+                        if (rawSntPair.SrcLength > m_maxSrcSentLength)
+                        {
+                            Interlocked.Increment(ref tooLongSrcSntCnt);
+                            hasTooLongSent = true;
+                        }
+
+                        if (rawSntPair.TgtLength > m_maxTgtSentLength)
+                        {
+                            Interlocked.Increment(ref tooLongTgtSntCnt);
+                            hasTooLongSent = true;
+                        }
+
+                        if (hasTooLongSent)
+                        {
+                            continue;
+                        }
+
+                        sntPairs.Add(rawSntPair);
+                        Interlocked.Increment(ref corpusSize);
+
+                        if (m_blockSize > 0 && sntPairs.Count >= m_blockSize)
+                        {
+                            Shuffle(sntPairs);
+
+                            lock (lockerForShuffle)
+                            {
+                                foreach (RawSntPair item in sntPairs)
+                                {
+                                    swSrc.WriteLine(item.SrcSnt);
+                                    swTgt.WriteLine(item.TgtSnt);
+                                }
+                            }
+
+                            sntPairs.Clear();
                         }
                     }
 
-                    bool hasTooLongSent = false;
-                    if (rawSntPair.SrcLength > m_maxSrcSentLength)
-                    {
-                        Interlocked.Increment(ref tooLongSrcSntCnt);
-                        hasTooLongSent = true;
-                    }
+                    srSrc.Close();
+                    srTgt.Close();
 
-                    if (rawSntPair.TgtLength > m_maxTgtSentLength)
-                    {
-                        Interlocked.Increment(ref tooLongTgtSntCnt);
-                        hasTooLongSent = true;
-                    }
-
-                    if (hasTooLongSent)
-                    {
-                        continue;
-                    }
-
-                    sntPairs.Add(rawSntPair);
-                    Interlocked.Increment(ref corpusSize);
-
-                    if (m_blockSize > 0 && sntPairs.Count >= m_blockSize)
+                    if (sntPairs.Count > 0)
                     {
                         Shuffle(sntPairs);
-
                         lock (lockerForShuffle)
                         {
                             foreach (RawSntPair item in sntPairs)
@@ -255,25 +284,13 @@ namespace Seq2SeqSharp.Tools
                         sntPairs.Clear();
                     }
                 }
-
-                srSrc.Close();
-                srTgt.Close();
-
-                if (sntPairs.Count > 0)
+                catch (Exception ex)
                 {
-                    Shuffle(sntPairs);
-                    lock (lockerForShuffle)
-                    {
-                        foreach (RawSntPair item in sntPairs)
-                        {
-                            swSrc.WriteLine(item.SrcSnt);
-                            swTgt.WriteLine(item.TgtSnt);
-                        }
-                    }
+                    Logger.WriteLine(Logger.Level.err, $"Failed to shuffle file '{m_srcFileList[i]}' and '{m_tgtFileList[i]}' due to '{ex.Message}'");
+                    Logger.WriteLine(Logger.Level.err, $"Call stack: {ex.StackTrace}");
 
-                    sntPairs.Clear();
+                    throw;
                 }
-
             });
 
             swSrc.Close();
