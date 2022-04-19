@@ -1,8 +1,17 @@
-﻿using System;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-
 using AdvUtils;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Layers;
@@ -116,11 +125,9 @@ namespace Seq2SeqSharp.Applications
             List<NetworkResult> nrs = new List<NetworkResult>();
 
             (IEncoder encoder, IWeightTensor srcEmbedding, List<IFeedForwardLayer> encoderFFLayer, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding) = GetNetworksOnDeviceAt(deviceIdIdx);
-
             var srcSnts = sntPairBatch.GetSrcTokens(0);
             var originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
             var srcTokensList = m_modelMetaData.SrcVocab.GetWordIndex(srcSnts);
-
             IWeightTensor encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcTokensList, originalSrcLengths);
 
             int srcSeqPaddedLen = srcSnts[0].Count;
@@ -141,52 +148,39 @@ namespace Seq2SeqSharp.Applications
             IWeightTensor clsWeightTensor = computeGraph.IndexSelect(encOutput, clsIdxs);
             for (int i = 0; i < m_encoderFFLayer.Length; i++)
             {
-                float cost = 0.0f;
                 NetworkResult nr = new NetworkResult
                 {
                     Output = new List<List<List<string>>>()
                 };
 
                 IWeightTensor ffLayer = encoderFFLayer[i].Process(clsWeightTensor, batchSize, computeGraph);
-                using (IWeightTensor probs = computeGraph.Softmax(ffLayer, runGradients: false, inPlace: true))
+                IWeightTensor probs = computeGraph.Softmax(ffLayer, inPlace: true);
+
+                if (isTraining)
                 {
-                    if (isTraining)
+                    var tgtSnts = sntPairBatch.GetTgtTokens(i);
+                    var tgtTokensLists = m_modelMetaData.ClsVocabs[i].GetWordIndex(tgtSnts);
+                    var tgtTokensTensor = computeGraph.CreateTokensTensor(tgtTokensLists);
+                    nr.Cost = computeGraph.CrossEntropyLoss(probs, tgtTokensTensor);
+                }
+                else
+                {
+                    // Output "i"th target word
+                    using var targetIdxTensor = computeGraph.Argmax(probs, 1);
+                    float[] targetIdx = targetIdxTensor.ToWeightArray();
+                    List<string> targetWords = m_modelMetaData.ClsVocabs[i].ConvertIdsToString(targetIdx.ToList());
+                    nr.Output.Add(new List<List<string>>());
+
+                    for (int k = 0; k < batchSize; k++)
                     {
-                        var tgtSnts = sntPairBatch.GetTgtTokens(i);
-                        for (int k = 0; k < batchSize; k++)
-                        {
-                            int ix_targets_k_j = m_modelMetaData.ClsVocabs[i].GetWordIndex(tgtSnts[k][0]);
-                            float score_k = probs.GetWeightAt(new long[] { k, ix_targets_k_j });
-                            cost += (float)-Math.Log(score_k);
-                            probs.SetWeightAt(score_k - 1, new long[] { k, ix_targets_k_j });
-                        }
-
-                        ffLayer.CopyWeightsToGradients(probs);
-
-                        nr.Cost = cost / batchSize;
-                    }
-                    else
-                    {
-                        // Output "i"th target word
-                        using var targetIdxTensor = computeGraph.Argmax(probs, 1);
-                        float[] targetIdx = targetIdxTensor.ToWeightArray();
-                        List<string> targetWords = m_modelMetaData.ClsVocabs[i].ConvertIdsToString(targetIdx.ToList());
-                        nr.Output.Add(new List<List<string>>());
-
-                        for (int k = 0; k < batchSize; k++)
-                        {
-                            nr.Output[0].Add(new List<string>());
-                            nr.Output[0][k].Add(targetWords[k]);
-                        }
+                        nr.Output[0].Add(new List<string>());
+                        nr.Output[0][k].Add(targetWords[k]);
                     }
                 }
 
                 nrs.Add(nr);
             }
-
-
             return nrs;
-
         }
     }
 }
