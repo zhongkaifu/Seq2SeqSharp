@@ -1,4 +1,14 @@
-﻿using System;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -22,10 +32,12 @@ namespace Seq2SeqSharp.Tools
     {
         public float Cost;
         public List<List<List<string>>> Output; // (beam_size, batch_size, seq_len)
+        public List<List<List<int>>> Alignments; // (beam_size, batch_size, seq_len)
 
         public NetworkResult()
         {
             Output = null;
+            Alignments = null;
 
         }
 
@@ -763,17 +775,17 @@ namespace Seq2SeqSharp.Tools
             return nrs;
         }
 
-        public void Test<X>(string inputTestFile, string outputFile, int batchSize, DecodingOptions decodingOptions, string srcSpmPath, string tgtSpmPath) where X : ISntPairBatch, new()
+        public void Test<X>(string inputTestFile, string outputFile, int batchSize, DecodingOptions decodingOptions, string srcSpmPath, string tgtSpmPath, string outputAlignmentFile = null) where X : ISntPairBatch, new()
         {
             SntBatchStreamReader<X> reader = new SntBatchStreamReader<X>(inputTestFile, batchSize, decodingOptions.MaxSrcSentLength, srcSpmPath);
-            SntBatchStreamWriter writer = new SntBatchStreamWriter(outputFile, tgtSpmPath);
+            SntBatchStreamWriter writer = new SntBatchStreamWriter(outputFile, tgtSpmPath, outputAlignmentFile);
             RunTest<X>(reader, writer, decodingOptions, RunForwardOnSingleDevice);
         }
 
-        public void Test<X>(string inputTestFile, string inputPromptFile, string outputFile, int batchSize, DecodingOptions decodingOptions, string srcSpmPath, string tgtSpmPath) where X : ISntPairBatch, new()
+        public void Test<X>(string inputTestFile, string inputPromptFile, string outputFile, int batchSize, DecodingOptions decodingOptions, string srcSpmPath, string tgtSpmPath, string outputAlignmentFile = null) where X : ISntPairBatch, new()
         {
             SntPairBatchStreamReader<X> reader = new SntPairBatchStreamReader<X>(inputTestFile, inputPromptFile, batchSize, decodingOptions.MaxSrcSentLength, srcSpmPath, tgtSpmPath);
-            SntBatchStreamWriter writer = new SntBatchStreamWriter(outputFile, tgtSpmPath);
+            SntBatchStreamWriter writer = new SntBatchStreamWriter(outputFile, tgtSpmPath, outputAlignmentFile);
             RunTest<X>(reader, writer, decodingOptions, RunForwardOnSingleDevice);
         }
 

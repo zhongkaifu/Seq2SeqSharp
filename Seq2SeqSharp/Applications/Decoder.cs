@@ -44,10 +44,10 @@ namespace Seq2SeqSharp.Applications
         /// Input shape: (batch_size)
         /// </summary>
         /// <param name="batchStatus"></param>
-        /// <returns></returns>
+        /// <returns>shape: [batch_size, seq_len]</returns>
         public static List<List<int>> ExtractBatchTokens(List<BeamSearchStatus> batchStatus, int index = -1, int count = -1)
         {
-            List<List<int>> batchTokens = new List<List<int>>();
+            List<List<int>> batchTokens = new List<List<int>>();            
             foreach (var item in batchStatus)
             {
                 if (index < 0 || count < 0)
@@ -61,6 +61,31 @@ namespace Seq2SeqSharp.Applications
             }
 
             return batchTokens;
+        }
+
+
+        /// <summary>
+        /// Extract aligments from given batch status
+        /// Input shape: (batch_size)
+        /// </summary>
+        /// <param name="batchStatus"></param>
+        /// <returns>shape: [batch_size, seq_len]</returns>
+        public static List<List<int>> ExtractBatchAligments(List<BeamSearchStatus> batchStatus, int index = -1, int count = -1)
+        {
+            List<List<int>> batchAligments = new List<List<int>>();
+            foreach (var item in batchStatus)
+            {
+                if (index < 0 || count < 0)
+                {
+                    batchAligments.Add(item.AlignmentsToSrc);
+                }
+                else
+                {
+                    batchAligments.Add(item.AlignmentsToSrc.GetRange(index, count));
+                }
+            }
+
+            return batchAligments;
         }
 
         /// <summary>
@@ -79,6 +104,12 @@ namespace Seq2SeqSharp.Applications
             {
                 BeamSearchStatus bss = new BeamSearchStatus();
                 bss.OutputIds.AddRange(tgtTokensList[i]);
+
+                for (int j = 0; j < bss.OutputIds.Count; j++)
+                {
+                    bss.AlignmentsToSrc.Add(-1);
+                }
+
                 bssList.Add(bss);
             }
 
@@ -87,6 +118,34 @@ namespace Seq2SeqSharp.Applications
             return beam2batchStatus;
         }
 
+
+        /// <summary>
+        /// Extract alginments from beam search result
+        /// </summary>
+        /// <param name="beam2batch2seq"></param>
+        /// <returns></returns>
+        public static List<List<List<int>>> ExtractAlignments(List<List<BeamSearchStatus>> beam2batch2seq)
+        {
+            List<List<List<int>>> result = new List<List<List<int>>>();
+            foreach (var batch2seq in beam2batch2seq)
+            {
+                List<List<int>> b = new List<List<int>>();
+                foreach (var seq in batch2seq)
+                {
+                    List<int> r = new List<int>();
+                    foreach (int idx in seq.AlignmentsToSrc)
+                    {
+                        r.Add(idx);
+                    }
+
+                    b.Add(r);
+                }
+                result.Add(b);
+
+            }
+
+            return result;
+        }
 
 
         /// <summary>
@@ -109,37 +168,6 @@ namespace Seq2SeqSharp.Applications
                 for (int k = 0; k < size2; k++)
                 {
                     output[k].Add(input[j][k]);
-                }
-            }
-
-            return output;
-        }
-
-        /// <summary>
-        /// Append tokens in beam search results to the source tokens
-        /// </summary>
-        /// <param name="srcTokens">(batch_size, seq_len)</param>
-        /// <param name="beamBatchResults">(beam_search_size, batch_size)</param>
-        /// <returns>output shape: (beam_search_size, batch_size)</returns>
-        public static List<List<BeamSearchStatus>> AppendOutputTokens(List<List<int>> srcTokens, List<List<BeamSearchStatus>> beamBatchResults)
-        {
-            int beamSize = beamBatchResults.Count;
-            int batchSize = beamBatchResults[0].Count;
-
-            List<List<BeamSearchStatus>> output = new List<List<BeamSearchStatus>>();
-            for (int i = 0; i < beamSize; i++)
-            {
-                List<BeamSearchStatus> batch = new List<BeamSearchStatus>();
-                output.Add(batch);
-
-                for (int j = 0; j < batchSize; j++)
-                {
-                    BeamSearchStatus item = new BeamSearchStatus();
-                    item.OutputIds.AddRange(srcTokens[j]);
-                    item.OutputIds.AddRange(beamBatchResults[i][j].OutputIds);
-                    item.Score = beamBatchResults[i][j].Score;
-
-                    batch.Add(item);
                 }
             }
 
@@ -196,7 +224,8 @@ namespace Seq2SeqSharp.Applications
 
         public static (float, List<List<BeamSearchStatus>>) DecodeTransformer(List<List<int>> tgtSeqs, IComputeGraph g, IWeightTensor encOutputs, TransformerDecoder decoder, IFeedForwardLayer decoderFFLayer,
             IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, float[] srcOriginalLenghts, Vocab tgtVocab, ShuffleEnums shuffleType, float dropoutRatio, DecodingOptions decodingOptions, bool isTraining = true,
-            bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, IFeedForwardLayer pointerGenerator = null, List<List<int>> srcSeqs = null, Dictionary<string, IWeightTensor> cachedTensors = null)
+            bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, IFeedForwardLayer pointerGenerator = null, List<List<int>> srcSeqs = null, Dictionary<string, IWeightTensor> cachedTensors = null, 
+            List<List<int>> alignmentsToSrc = null)
         {
             int eosTokenId = tgtVocab.GetWordIndex(BuildInTokens.EOS, logUnk: true);
             int batchSize = tgtSeqs.Count;
@@ -306,6 +335,13 @@ namespace Seq2SeqSharp.Applications
                         gatherTensor = g.Log(gatherTensor);
                     }
 
+                    float[] aligmentsIdx = null;
+                    if (alignmentsToSrc != null)
+                    {
+                        using var aligmentsIdxTensor = g.Argmax(decEncAttnProbs, 1);
+                        aligmentsIdx = aligmentsIdxTensor.ToWeightArray();
+                    }
+
                     float[] targetIdx = targetIdxTensor.ToWeightArray();
                     List<BeamSearchStatus> outputTgtSeqs = new List<BeamSearchStatus>();
                     for (int i = 0; i < batchSize; i++)
@@ -313,6 +349,12 @@ namespace Seq2SeqSharp.Applications
                         BeamSearchStatus bss = new BeamSearchStatus();
                         bss.OutputIds.AddRange(tgtSeqs[i]);
                         bss.OutputIds.Add((int)(targetIdx[i]));
+
+                        if (aligmentsIdx != null)
+                        {
+                            bss.AlignmentsToSrc.AddRange(alignmentsToSrc[i]);
+                            bss.AlignmentsToSrc.Add((int)(aligmentsIdx[i]));
+                        }
 
                         if (outputSentScore)
                         {
