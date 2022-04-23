@@ -19,12 +19,14 @@ namespace Seq2SeqSharp
     {
         public List<int> OutputIds;
         public List<int> AlignmentsToSrc;
+        public List<float> AlignmentScores;
         public float Score;
 
         public BeamSearchStatus()
         {
             OutputIds = new List<int>();
             AlignmentsToSrc = new List<int>();
+            AlignmentScores = new List<float>();
             Score = 1.0f;
         }
     }

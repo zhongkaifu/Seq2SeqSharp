@@ -227,6 +227,7 @@ namespace Seq2SeqSharp
                             {
                                 var batch2tgtTokens = Decoder.ExtractBatchTokens(batchStatus);
                                 List<List<int>> alignmentsToSrc = null;
+                                List<List<float>> alignmentScores = null;
                                 if (decodingOptions.OutputAligmentsToSrc)
                                 {
                                     if (pointerGenerator == null)
@@ -234,7 +235,7 @@ namespace Seq2SeqSharp
                                         throw new ArgumentException($"Only pointer generator model can output alignments to source sequence.");
                                     }
 
-                                    alignmentsToSrc = Decoder.ExtractBatchAligments(batchStatus);
+                                    (alignmentsToSrc, alignmentScores) = Decoder.ExtractBatchAlignments(batchStatus);
                                 }
 
                                 using var g = computeGraph.CreateSubGraph($"TransformerDecoder_Step_{i}");
@@ -242,7 +243,7 @@ namespace Seq2SeqSharp
                                                                                 originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, decodingOptions, isTraining,
                                                                                 outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus,
                                                                                 pointerGenerator: pointerGenerator, srcSeqs: srcTokensList, 
-                                                                                cachedTensors: cachedTensors, alignmentsToSrc: alignmentsToSrc);
+                                                                                cachedTensors: cachedTensors, alignmentsToSrc: alignmentsToSrc, alignmentScoresToSrc: alignmentScores);
 
                                 bssSeqList = Decoder.SwapBeamAndBatch(bssSeqList); // Swap shape: (beam_search_size, batch_size) -> (batch_size, beam_search_size)
                                 batch2beam2seq = Decoder.CombineBeamSearchResults(batch2beam2seq, bssSeqList);
@@ -276,7 +277,7 @@ namespace Seq2SeqSharp
                     nr.Output = m_modelMetaData.TgtVocab.ExtractTokens(beam2batchStatus);
                     if (decodingOptions.OutputAligmentsToSrc)
                     {
-                        nr.Alignments = Decoder.ExtractAlignments(beam2batchStatus);
+                        (nr.Alignments, nr.AlignmentScores) = Decoder.ExtractAlignments(beam2batchStatus);
                     }
 
                     if (cachedTensors != null)

@@ -33,11 +33,13 @@ namespace Seq2SeqSharp.Tools
         public float Cost;
         public List<List<List<string>>> Output; // (beam_size, batch_size, seq_len)
         public List<List<List<int>>> Alignments; // (beam_size, batch_size, seq_len)
+        public List<List<List<float>>> AlignmentScores; // (beam_size, batch_size, seq_len)
 
         public NetworkResult()
         {
             Output = null;
             Alignments = null;
+            AlignmentScores = null;
 
         }
 

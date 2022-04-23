@@ -97,7 +97,12 @@ namespace Seq2SeqSharp.Corpus
                             List<string> alignmentBeams = new List<string>();
                             for (int beamIdx = 0; beamIdx < result.Alignments.Count; beamIdx++)
                             {
-                                string alignment = string.Join(" ", result.Alignments[beamIdx][batchIdx]);
+                                List<string> alignmentItems = new List<string>();
+                                for (int k = 0; k < result.Alignments[beamIdx][batchIdx].Count; k++)
+                                {
+                                    alignmentItems.Add($"{result.Alignments[beamIdx][batchIdx][k]}({result.AlignmentScores[beamIdx][batchIdx][k].ToString("F2")})");
+                                }
+                                string alignment = string.Join(" ", alignmentItems);
                                 alignmentBeams.Add(alignment);
                             }
 
