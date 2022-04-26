@@ -319,6 +319,21 @@ namespace TensorSharp
 		}
 
 
+		unsafe public static void Mean(Tensor result, Tensor src, int dimension)
+		{
+			unsafe void func(float* r, long rSize, long rStride, float* s, long sSize, long sStride)
+			{
+				float sum = 0.0f;
+				for (long i = 0; i < sSize; ++i)
+				{
+					sum += s[i * sStride];
+				}
+				*r = sum / sSize;
+			}
+			ApplyDim2(result, src, dimension, func);
+		}
+
+
 		unsafe public static void Argmax(Tensor resultIndices, Tensor src, int dimension)
 		{
 

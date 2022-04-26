@@ -112,7 +112,7 @@ namespace Seq2SeqSharp.Utils
             CreateIndex();
 
             //Build word index for both source and target sides
-            int q = 3;
+            int q = IndexToWord.Count;
             foreach (string line in vocab)
             {
                 string[] items = line.Split('\t');

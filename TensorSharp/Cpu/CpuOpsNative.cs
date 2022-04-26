@@ -102,7 +102,6 @@ namespace TensorSharp.Cpu
 
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Argmin(IntPtr result, IntPtr src, int dimension);
 
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_Mean(IntPtr result, IntPtr src, int dimension);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Norm(IntPtr result, IntPtr src, int dimension, float value);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Std(IntPtr result, IntPtr src, int dimension, bool normByN);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Var(IntPtr result, IntPtr src, int dimension, bool normByN);

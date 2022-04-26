@@ -122,6 +122,7 @@ Parameters:
 **-InputTestFile**: The input file for test.  
 **-OutputFile**: The test result file.  
 **-OutputPromptFile**: The prompt file for output. It is a input file along with input test file.  
+**-OutputAlignmentsFile**: The output file that contains alignments between target sequence and source sequence. It only works for pointer-generator enabled model.  
 **-ModelFilePath**: The trained model file path. 
 **-ProcessorType**: Architecture type: CPU or GPU 
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  

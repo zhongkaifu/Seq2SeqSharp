@@ -19,7 +19,6 @@ OPS_API int TS_MaxAll(TensorRef* result, TensorRef* src);
 //
 // Floating point only ops
 //
-OPS_API int TS_Mean(TensorRef* result, TensorRef* src, int dimension);
 OPS_API int TS_Norm(TensorRef* result, TensorRef* src, int dimension, float value);
 
 // If normByN == true, result is normalized by n,

@@ -126,29 +126,6 @@ OPS_API int TS_Argmin(TensorRef *resultIndices, TensorRef* src, int dimension)
 
 
 template<typename T>
-INLINE_FUNC void Mean_Apply(TensorRef* result, TensorRef* src, int dimension)
-{
-	auto func = [](T *r, __int64 rSize, __int64 rStride, T *s, __int64 sSize, __int64 sStride)
-	{
-		T sum = T(0);
-		for (__int64 i = 0; i < sSize; ++i)
-		{
-			sum += s[i*sStride];
-		}
-		*r = sum / sSize;
-	};
-	ApplyDim2<T, T>(result, src, dimension, func);
-}
-
-int TS_Mean(TensorRef* result, TensorRef* src, int dimension)
-{
-	API_BEGIN()
-	SWITCH_TENSOR_TYPE_FLOAT(result->elementType, Mean_Apply, result, src, dimension)
-	API_END()
-}
-
-
-template<typename T>
 INLINE_FUNC void Norm_Apply(TensorRef* result, TensorRef* src, int dimension, float value)
 {
 	if (value == 0)

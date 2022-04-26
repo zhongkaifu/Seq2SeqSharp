@@ -76,6 +76,7 @@ namespace Seq2SeqSharp
         IWeightTensor BuildFeatureMask(int paddedLength, List<int> appliedLengths, int dim);
 
         IWeightTensor Sum(IWeightTensor w, int dim);
+        IWeightTensor Mean(IWeightTensor w, int dim);
         IWeightTensor Log(IWeightTensor w);
 
         IWeightTensor Rsqrt(IWeightTensor w);

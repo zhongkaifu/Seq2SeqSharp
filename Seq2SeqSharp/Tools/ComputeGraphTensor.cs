@@ -567,6 +567,42 @@ namespace Seq2SeqSharp.Tools
 
         }
 
+
+        public IWeightTensor Mean(IWeightTensor w, int dim)
+        {
+            WeightTensor m = w as WeightTensor;
+            var newSizes = (long[])m.Sizes.Clone();
+            newSizes[dim] = 1;
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(newSizes, m_deviceId, name: $"{m.Name}.Mean", graphToBind: this, needGradient: m.NeedGradient);
+            Ops.Mean(res.TWeight, m.TWeight, dim);
+
+            if (m_needsBackprop)
+            {
+                void backward()
+                {
+                    if (m.NeedGradient)
+                    {
+                        res.ReleaseWeight();
+
+                        using (Tensor tmp = Ops.Div(null, res.TGradient, (float)m.Sizes[dim]))
+                        {
+                            using (Tensor tmp2 = tmp.Expand(m.Sizes))
+                            {
+                                m.CopyOrAddGradient(tmp2);
+                            }
+                        }
+                    }
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+            }
+
+            return res;
+
+        }
+
+
         public IWeightTensor Log(IWeightTensor w)
         {
             WeightTensor m = w as WeightTensor;

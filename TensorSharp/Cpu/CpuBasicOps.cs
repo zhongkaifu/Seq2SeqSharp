@@ -697,6 +697,14 @@ namespace TensorSharp.Cpu
             return writeTarget;
         }
 
+        [RegisterOpStorageType("mean", typeof(CpuStorage))]
+        public Tensor Mean(Tensor result, Tensor src, int dimension)
+        {
+            Tensor writeTarget = NativeWrapper.CreateResultDimensionwise(result, src, dimension);
+            TensorApplyCPU.Mean(writeTarget, src, dimension);
+
+            return writeTarget;
+        }
 
 
         private readonly MethodInfo prod_func = NativeWrapper.GetMethod("TS_Prod");
@@ -734,11 +742,6 @@ namespace TensorSharp.Cpu
             return writeTarget;
 
         }
-
-
-        private readonly MethodInfo mean_func = NativeWrapper.GetMethod("TS_Mean");
-        [RegisterOpStorageType("mean", typeof(CpuStorage))]
-        public Tensor Mean(Tensor result, Tensor src, int dimension) { return NativeWrapper.InvokeNullableResultDimensionwise(mean_func, result, src, dimension); }
 
         private readonly MethodInfo norm_func = NativeWrapper.GetMethod("TS_Norm");
         [RegisterOpStorageType("norm", typeof(CpuStorage))]
