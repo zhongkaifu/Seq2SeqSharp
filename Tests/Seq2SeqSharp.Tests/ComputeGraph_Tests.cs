@@ -152,8 +152,8 @@ public class ComputeGraph_Tests
         float sum2 = tensorSumWeights.Sum();
 
 
-        sum1 = (float)Math.Round(sum1, 5);
-        sum2 = (float)Math.Round(sum2, 5);
+        sum1 = (float)Math.Round(sum1, 4);
+        sum2 = (float)Math.Round(sum2, 4);
 
         Logger.WriteLine($"sum from .net core = '{sum1}', sum from sum operator = '{sum2}'");
 
@@ -186,8 +186,8 @@ public class ComputeGraph_Tests
             }
             float mean = sum / vocabSize;
 
-            float mean1 = (float)Math.Round(mean, 5);
-            float mean2 = (float)Math.Round(tensorMeanWegiths[i], 5);
+            float mean1 = (float)Math.Round(mean, 4);
+            float mean2 = (float)Math.Round(tensorMeanWegiths[i], 4);
 
             Logger.WriteLine($"row '{i}': mean from .net core = '{mean1}', mean from mean operator = '{mean2}'");
 
@@ -218,8 +218,8 @@ public class ComputeGraph_Tests
         var tensorSumWeights = tensorA.ToWeightArray();
         float sum2 = tensorSumWeights.Sum();
 
-        double r1 = Math.Round(sum, 5);
-        double r2 = Math.Round(sum2, 5);
+        double r1 = Math.Round(sum, 4);
+        double r2 = Math.Round(sum2, 4);
 
 
         Logger.WriteLine($"sum = '{sum}', sum2 = '{sum2}', r1 = '{r1}', r2 = '{r2}'");
@@ -255,11 +255,11 @@ public class ComputeGraph_Tests
 
                 if (tensorIdx.GetWeightAt(new long[] {i, 0}) != j)
                 {
-                    Assert.IsTrue(Math.Round(tensorAGrad, 5) == Math.Round(softmaxWeight, 5));
+                    Assert.IsTrue(Math.Round(tensorAGrad, 4) == Math.Round(softmaxWeight, 4));
                 }
                 else
                 {
-                    Assert.IsTrue(Math.Round(tensorAGrad, 5) == Math.Round(softmaxWeight - 1.0f, 5));
+                    Assert.IsTrue(Math.Round(tensorAGrad, 4) == Math.Round(softmaxWeight - 1.0f, 4));
                 }
             }
         }
