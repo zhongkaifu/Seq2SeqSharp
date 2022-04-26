@@ -1,9 +1,14 @@
-﻿using Seq2SeqSharp.Utils;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using Seq2SeqSharp.Utils;
 
 namespace Seq2SeqSharp.Applications
 {
@@ -24,6 +29,9 @@ namespace Seq2SeqSharp.Applications
 
         // Decoding strategies. It supports GreedySearch and Sampling. Default is GreedySearch
         public DecodingStrategyEnums DecodingStrategy = DecodingStrategyEnums.GreedySearch;
+
+        // It indicates if aligments to source sequence should be outputted
+        public bool OutputAligmentsToSrc = false;
 
     }
 }
