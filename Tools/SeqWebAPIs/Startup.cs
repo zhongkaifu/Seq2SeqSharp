@@ -1,11 +1,9 @@
 using AdvUtils;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using Seq2SeqSharp;
 using Seq2SeqSharp._SentencePiece;
@@ -15,8 +13,6 @@ using SeqClassificationWebAPI;
 using SeqSimilarityWebAPI;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace SeqWebAPIs
 {

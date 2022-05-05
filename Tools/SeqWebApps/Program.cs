@@ -1,6 +1,7 @@
 
 using AdvUtils;
 using Microsoft.Extensions.Configuration;
+using Seq2SeqSharp;
 using Seq2SeqSharp._SentencePiece;
 using Seq2SeqWebApps;
 
@@ -15,7 +16,7 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
     var modelFilePath = Configuration["Seq2Seq:ModelFilePath"];
     var maxTestSrcSentLength = int.Parse(Configuration["Seq2Seq:MaxSrcTokenSize"]);
     var maxTestTgtSentLength = int.Parse(Configuration["Seq2Seq:MaxTgtTokenSize"]);
-    var processorType = Configuration["Seq2Seq:ProcessorType"];
+    var processorType = Configuration["Seq2Seq:ProcessorType"].ToEnum<ProcessorTypeEnums>();
     var deviceIds = Configuration["Seq2Seq:DeviceIds"];
     var tokenGenerationStrategy = Configuration["Seq2Seq:TokenGenerationStrategy"];
     var repeatPenalty = float.Parse(Configuration["Seq2Seq:RepeatPenalty"]);
@@ -35,7 +36,7 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
 
     Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum = (Seq2SeqSharp.Utils.DecodingStrategyEnums)Enum.Parse(typeof(Seq2SeqSharp.Utils.DecodingStrategyEnums), tokenGenerationStrategy);
 
-    Seq2SeqInstance.Initialization(modelFilePath, maxTestSrcSentLength, maxTestTgtSentLength, deviceIds, srcSpm, tgtSpm, decodingStrategyEnum, topPSampling, repeatPenalty);
+    Seq2SeqInstance.Initialization(modelFilePath, maxTestSrcSentLength, maxTestTgtSentLength, processorType, deviceIds, srcSpm, tgtSpm, decodingStrategyEnum, topPSampling, repeatPenalty);
 }
 
 
@@ -68,4 +69,13 @@ app.Run();
 static string GetTimeStamp(DateTime timeStamp)
 {
     return string.Format("{0:yyyy}_{0:MM}_{0:dd}_{0:HH}h_{0:mm}m_{0:ss}s", timeStamp);
+}
+
+/// <summary>
+/// 
+/// </summary>
+internal static class Extensions
+{
+    public static T ToEnum<T>(this string s) where T : struct => Enum.Parse<T>(s, true);
+    public static int ToInt(this string s) => int.Parse(s);
 }

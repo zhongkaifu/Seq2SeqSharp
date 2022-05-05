@@ -59,18 +59,23 @@ namespace SeqWebApps.Controllers
 
 
             string prefixTgtLine = "";
-            if (tgtInputText.Length > tgtContextSize)
+            string[] tgtTokens = tgtInputText.Split(" ");
+
+            if (tgtTokens.Length > tgtContextSize)
             {
-                prefixTgtLine = tgtInputText.Substring(0, tgtInputText.Length - tgtContextSize);
-                tgtInputText = tgtInputText.Substring(tgtInputText.Length - tgtContextSize);
+                prefixTgtLine = String.Join(" ", tgtTokens, 0, tgtTokens.Length - tgtContextSize);
+                tgtInputText = String.Join(" ", tgtTokens, tgtTokens.Length - tgtContextSize, tgtContextSize);
+
+                //prefixTgtLine = tgtInputText.Substring(0, tgtInputText.Length - tgtContextSize);
+                //tgtInputText = tgtInputText.Substring(tgtInputText.Length - tgtContextSize);
             }
 
             Stopwatch stopwatch = Stopwatch.StartNew();
 
-            if (srcInputText.EndsWith("。") == false && srcInputText.EndsWith("？") == false && srcInputText.EndsWith("！") == false)
-            {
-                srcInputText = srcInputText + "。";
-            }
+            //if (srcInputText.EndsWith("。") == false && srcInputText.EndsWith("？") == false && srcInputText.EndsWith("！") == false)
+            //{
+            //    srcInputText = srcInputText + "。";
+            //}
 
             string logStr = $"Input Text = '{srcInputText}', Repeat Penalty = '{repeatPenalty}', Target Context Size = '{tgtContextSize}'";
             if (setInputSents.Contains(logStr) == false)
@@ -83,9 +88,9 @@ namespace SeqWebApps.Controllers
 
             stopwatch.Stop();
 
-            outputText = prefixTgtLine + outputText;
+            outputText = prefixTgtLine.Trim() + " " + outputText.Trim();
 
-            outputText = outputText.Replace("「", "“").Replace("」", "”");
+            outputText = outputText.Replace("「", "“").Replace("」", "”").Trim();
             var outputSents = SplitSents(outputText);
 
             return String.Join("<br />", outputSents);
@@ -107,7 +112,7 @@ namespace SeqWebApps.Controllers
                 sb.Append(ch);
                 if (setSeps.Contains(ch) && sb.Length > 1)
                 {
-                    parts.Add(sb.ToString());
+                    parts.Add(sb.ToString().Trim());
                     sb = new StringBuilder();
                 }
             }
@@ -124,7 +129,7 @@ namespace SeqWebApps.Controllers
         {
             List<string> sents = new List<string>();
 
-            string[] parts = Split(currentSent, new char[] { '。', '！', '?' });
+            string[] parts = Split(currentSent, new char[] { '。', '！', '?', '.', '!', '?' });
             for (int i = 0; i < parts.Length; i++)
             {
                 string p = String.Empty;
@@ -134,6 +139,11 @@ namespace SeqWebApps.Controllers
                     {
                         parts[i + 1] = parts[i + 1].Substring(1);
                         p = parts[i] + "”";
+                    }
+                    else if (parts[i + 1][0] == '\"')
+                    {
+                        parts[i + 1] = parts[i + 1].Substring(1);
+                        p = parts[i] + "\"";
                     }
                     else
                     {
@@ -148,36 +158,37 @@ namespace SeqWebApps.Controllers
                 sents.Add(p);
             }
 
+            return sents;
 
-            List<string> newSents = new List<string>();
-            int matchNum = 0;
-            string currSent = "";
-            for (int k = 0; k < sents.Count; k++)
-            {
-                var sent = sents[k];
-                for (int i = 0; i < sent.Length; i++)
-                {
-                    if (sent[i] == '“')
-                    {
-                        matchNum++;
-                    }
-                    else if (sent[i] == '”')
-                    {
-                        matchNum--;
-                    }
-                }
+            //List<string> newSents = new List<string>();
+            //int matchNum = 0;
+            //string currSent = "";
+            //for (int k = 0; k < sents.Count; k++)
+            //{
+            //    var sent = sents[k];
+            //    for (int i = 0; i < sent.Length; i++)
+            //    {
+            //        if (sent[i] == '“')
+            //        {
+            //            matchNum++;
+            //        }
+            //        else if (sent[i] == '”')
+            //        {
+            //            matchNum--;
+            //        }
+            //    }
 
-                currSent = currSent + sent;
-                if (matchNum == 0)
-                {
-                    newSents.Add(currSent);
-                    currSent = "";
-                }
-            }
+            //    currSent = currSent + sent;
+            //    if (matchNum == 0)
+            //    {
+            //        newSents.Add(currSent);
+            //        currSent = "";
+            //    }
+            //}
 
-            newSents.Add(currSent);
+            //newSents.Add(currSent);
 
-            return newSents;
+            //return newSents;
         }
 
     }

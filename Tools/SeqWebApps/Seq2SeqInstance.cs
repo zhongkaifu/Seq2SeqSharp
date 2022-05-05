@@ -18,14 +18,14 @@ namespace Seq2SeqWebApps
         static private Seq2SeqOptions? opts;
 
 
-        static public void Initialization(string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, string deviceIds, SentencePiece? srcSpm, SentencePiece? tgtSpm,
+        static public void Initialization(string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, ProcessorTypeEnums processorType, string deviceIds, SentencePiece? srcSpm, SentencePiece? tgtSpm,
             Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum, float topPSampling, float repeatPenalty)
         {
             opts = new Seq2SeqOptions();
             opts.ModelFilePath = modelFilePath;
             opts.MaxTestSrcSentLength = maxTestSrcSentLength;
             opts.MaxTestTgtSentLength = maxTestTgtSentLength;
-            opts.ProcessorType = ProcessorTypeEnums.CPU;
+            opts.ProcessorType = processorType;
             opts.DeviceIds = deviceIds;
             opts.DecodingStrategy = decodingStrategyEnum;
             opts.DecodingRepeatPenalty = repeatPenalty;

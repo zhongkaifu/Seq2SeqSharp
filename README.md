@@ -454,11 +454,16 @@ The followings are different tasks included in the package:
 | Question Answer         | test_medical_qa_chs.bat | seq2seq_medical_qa_chs.model | test_medicalQA_chs_raw.txt |  Seq2SeqConsole      | Given medical question in Chinese, the model will output the corresponding answer. |
 | Named Entity Recognizer | test_ner_enu.bat        | seq_ner_enu.model            | test_ner_enu.txt   |  SeqLabelConsole     | Named entity recognizer for person, originazation and location in English. |
 | Named Entity Recognizer | train_ner_enu.bat       | seq_ner_enu.model            | train_enu.ner.snt as training set <br> train_ner_opts as config file for training | SeqLabelConsole | Train named entity recognier model for person, originazation and location in English. |
-| Fiction Generation      | test_fiction.bat        | seq2seq_fiction.model        | test_fiction.txt <br> test_fiction_prompt.txt as prompt files for decoding | Seq2SeqConsole | Given texts as context and prompt, asking model to write fiction in Chinese. | 
+| Fiction Generation      | test_fiction.bat        | seq2seq_fiction.model        | test_fiction.txt <br> test_fiction_prompt.txt as prompt files for decoding | Seq2SeqConsole | Given texts as context and prompt, asking model to write fiction. | 
 
 Note: %src% and %tgt% can be Chinese(CHS), Japanese(JPN), Korean(KOR), Russian(RUS), German(DEU), French(FRA), Italian(ITA) in above table, and %cjk% can be Chinese(CHS), Japanese(JPN), Korean(KOR)  
 
 Besides above command line application, the release package also includes a web application called SeqWebApps. It is located in webapp folder and configured for fiction generation task.  
+
+Here is an example that asking model to continue writing after "May the force be with you.".  
+![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Images/FictionGeneration_enu.gif)  
+
+Here is another example of Chinese martial arts novel.  
 ![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Images/FictionGeneration.gif)  
 
 # Build From Source Code  

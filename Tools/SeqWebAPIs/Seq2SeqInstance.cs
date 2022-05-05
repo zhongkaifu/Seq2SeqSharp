@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-
+using AdvUtils;
 using Seq2SeqSharp;
 using Seq2SeqSharp._SentencePiece;
 using Seq2SeqSharp.Applications;
@@ -28,6 +28,9 @@ namespace Seq2SeqWebAPI
 
             _SrcSentPiece = sentPieces.src;
             _TgtSentPiece = sentPieces.tgt;
+
+
+            Logger.WriteLine($"Loading model from '{modelFilePath}', MaxTestSrcSentLength = '{maxTestSrcSentLength}', MaxTestTgtSentLength = '{maxTestTgtSentLength}', ProcessorType = '{opts.ProcessorType}'");
 
             m_seq2seq = new Seq2Seq( opts );
         }
