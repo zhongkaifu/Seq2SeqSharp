@@ -44,6 +44,10 @@
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\AdvUtils\AdvUtils.csproj" />
@@ -57,5 +61,8 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <RepositoryUrl>git@github.com:zhongkaifu/Seq2SeqSharp.git</RepositoryUrl>
     <PackageTags>tensor;cpu</PackageTags>
+    <Version>2.5.0</Version>
+    <Description>A tensor libaray based on CPU. It includes many operations and can be used for neural networks</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 </Project>

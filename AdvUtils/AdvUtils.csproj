@@ -1,9 +1,27 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+    <None Include="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Version>2.5.0</Version>
+    <Authors>Zhongkai Fu</Authors>
+    <Company />
+    <Description>A utility for common alogrithms</Description>
+    <PackageProjectUrl>https://github.com/zhongkaifu/Seq2SeqSharp</PackageProjectUrl>
+    <RepositoryType></RepositoryType>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <RepositoryUrl>git@github.com:zhongkaifu/Seq2SeqSharp.git</RepositoryUrl>
   </PropertyGroup>
 
 </Project>

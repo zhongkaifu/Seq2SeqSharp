@@ -29,7 +29,7 @@ namespace SeqWebApps.Controllers
         }
 
         [HttpPost]
-        public IActionResult GenerateText(string srcInput, string tgtInput, int num, bool random, float repeatPenalty, int contextSize)
+        public IActionResult GenerateText(string srcInput, string tgtInput, int num, bool random, float repeatPenalty, int contextSize, string clientIP)
         {
             if (tgtInput == null)
             {
@@ -38,7 +38,7 @@ namespace SeqWebApps.Controllers
 
             TextGenerationModel textGeneration = new TextGenerationModel
             {
-                Output = CallBackend(srcInput, tgtInput, num, random, repeatPenalty, contextSize),
+                Output = CallBackend(srcInput, tgtInput, num, random, repeatPenalty, contextSize, clientIP),
                 DateTime = DateTime.Now.ToString()
             };
 
@@ -46,51 +46,45 @@ namespace SeqWebApps.Controllers
         }
 
 
-        private string CallBackend(string srcInputText, string tgtInputText, int tokenNumToGenerate, bool random, float repeatPenalty, int tgtContextSize)
+        private string CallBackend(string srcInputText, string tgtInputText, int tokenNumToGenerate, bool random, float repeatPenalty, int tgtContextSize, string clientIP)
         {
-            srcInputText = srcInputText.Replace("<br />", "").Replace("「", "“").Replace("」", "”");
-            tgtInputText = tgtInputText.Replace("<br />", "").Replace("「", "“").Replace("」", "”");
+            srcInputText = srcInputText.Replace("<br />", "");
+            tgtInputText = tgtInputText.Replace("<br />", "");
 
             string[] srcLines = srcInputText.Split("\n");
             string[] tgtLines = tgtInputText.Split("\n");
 
-            srcInputText = String.Join(" ", srcLines).ToLower();
-            tgtInputText = String.Join(" ", tgtLines).ToLower();
+            srcInputText = String.Join("", srcLines).ToLower();
+            tgtInputText = String.Join("", tgtLines).ToLower();
 
 
             string prefixTgtLine = "";
-            string[] tgtTokens = tgtInputText.Split(" ");
 
-            if (tgtTokens.Length > tgtContextSize)
+            //The generated target tokens are too long, let's truncate it.
+            if (tgtInputText.Length > tgtContextSize)
             {
-                prefixTgtLine = String.Join(" ", tgtTokens, 0, tgtTokens.Length - tgtContextSize);
-                tgtInputText = String.Join(" ", tgtTokens, tgtTokens.Length - tgtContextSize, tgtContextSize);
+                prefixTgtLine = tgtInputText.Substring(0, tgtInputText.Length - tgtContextSize);
+                tgtInputText = tgtInputText.Substring(tgtInputText.Length - tgtContextSize);
 
-                //prefixTgtLine = tgtInputText.Substring(0, tgtInputText.Length - tgtContextSize);
-                //tgtInputText = tgtInputText.Substring(tgtInputText.Length - tgtContextSize);
             }
 
             Stopwatch stopwatch = Stopwatch.StartNew();
 
-            //if (srcInputText.EndsWith("。") == false && srcInputText.EndsWith("？") == false && srcInputText.EndsWith("！") == false)
-            //{
-            //    srcInputText = srcInputText + "。";
-            //}
-
-            string logStr = $"Input Text = '{srcInputText}', Repeat Penalty = '{repeatPenalty}', Target Context Size = '{tgtContextSize}'";
+            string logStr = $"Client = '{clientIP}', SrcInput Text = '{srcInputText}', Repeat Penalty = '{repeatPenalty}', Target Context Size = '{tgtContextSize}'";
             if (setInputSents.Contains(logStr) == false)
             {
                 Logger.WriteLine(logStr);
                 setInputSents.Add(logStr);
             }
 
-            string outputText = Seq2SeqInstance.Call(srcInputText, tgtInputText, tokenNumToGenerate, random, repeatPenalty);
+            string outputText = Seq2SeqInstance.Call(tgtInputText, tgtInputText, tokenNumToGenerate, random, repeatPenalty);
 
             stopwatch.Stop();
 
-            outputText = prefixTgtLine.Trim() + " " + outputText.Trim();
+            outputText = prefixTgtLine.Trim() + outputText.Trim();
 
-            outputText = outputText.Replace("「", "“").Replace("」", "”").Trim();
+            outputText = outputText.Trim();
+
             var outputSents = SplitSents(outputText);
 
             return String.Join("<br />", outputSents);
@@ -129,21 +123,23 @@ namespace SeqWebApps.Controllers
         {
             List<string> sents = new List<string>();
 
-            string[] parts = Split(currentSent, new char[] { '。', '！', '?', '.', '!', '?' });
+            HashSet<char> setClosedPunct = new HashSet<char>();
+            setClosedPunct.Add('”');
+            setClosedPunct.Add('\"');
+            setClosedPunct.Add('】');
+            setClosedPunct.Add(')');
+        
+            string[] parts = Split(currentSent, new char[] { '。', '！', '?', '!', '?' });
             for (int i = 0; i < parts.Length; i++)
             {
                 string p = String.Empty;
+                bool skipNextLine = false;
                 if (i < parts.Length - 1)
                 {
-                    if (parts[i + 1][0] == '”')
+                    if (setClosedPunct.Contains(parts[i + 1][0]))
                     {
-                        parts[i + 1] = parts[i + 1].Substring(1);
-                        p = parts[i] + "”";
-                    }
-                    else if (parts[i + 1][0] == '\"')
-                    {
-                        parts[i + 1] = parts[i + 1].Substring(1);
-                        p = parts[i] + "\"";
+                        p = parts[i] + parts[i + 1];
+                        skipNextLine = true;
                     }
                     else
                     {
@@ -156,6 +152,11 @@ namespace SeqWebApps.Controllers
                 }
 
                 sents.Add(p);
+
+                if (skipNextLine)
+                {
+                    i++;
+                }
             }
 
             return sents;

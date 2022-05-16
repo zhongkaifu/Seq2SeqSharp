@@ -7,6 +7,7 @@ using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp._SentencePiece;
 using Seq2SeqSharp.Applications;
+using AdvUtils;
 
 namespace Seq2SeqWebApps
 {
@@ -69,6 +70,13 @@ namespace Seq2SeqWebApps
             List<string> tokens2 = tgtInput.Split(' ').ToList();
             tokenNumToGenerate += tokens2.Count;
 
+            if (tokenNumToGenerate > opts.MaxTestTgtSentLength)
+            {
+                //The target text is too long, so we won't generate any more text for it.
+                Logger.WriteLine($"Given target text '{tgtInput}' is too long, so we won't generate any more text for it.");
+                return tgtInput + " EOS";
+            }
+
             List<List<String>> batchTokens2 = new List<List<string>>();
             batchTokens2.Add(tokens2);
 
@@ -83,7 +91,14 @@ namespace Seq2SeqWebApps
 
             var nrs = m_seq2seq.Test<Seq2SeqCorpusBatch>(srcGroupBatchTokens, tgtGroupBatchTokens, decodingOptions);
             string rst = String.Join(" ", nrs[0].Output[0][0].ToArray(), 0, nrs[0].Output[0][0].Count);
+            bool isEnded = rst.EndsWith("</s>");
+
             rst = (m_tgtSpm != null) ? m_tgtSpm.Decode(rst) : rst;
+            if (isEnded)
+            {
+                rst += " EOS";
+                Logger.WriteLine($"Completed text generation: Source Input Text = '{srcInput}', Target Prompt Text = '{tgtInput}', Token Numbers To Generate = '{tokenNumToGenerate}', IsRandomSample = '{random}', Repeat Penalty = '{repeatPenalty}', Output Text = '{rst}'");
+            }
 
             return rst;
         }

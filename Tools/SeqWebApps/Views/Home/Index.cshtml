@@ -72,6 +72,7 @@
         <option value="256">256</option>
         <option value="384">384</option>
         <option value="512">512</option>
+        <option value="768">768</option>
     </select>
 
 
@@ -88,19 +89,35 @@
     <input type="button" id="btnNextBatch" value="Change it" />
     </div>
 
+    <label hidden id="clientIP">Input Text:</label>
+   
+
+
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+
+    <script type="application/javascript">
+  function getIP(json) {
+      $("#clientIP").html(json.ip);
+  }
+</script>
+
+<script type="application/javascript" src="https://api.ipify.org?format=jsonp&callback=getIP"></script>
+
+
     <script type="text/javascript">
         $(function () {
             $("#btnGet").click(function () {
 
                 $("#btnGet").attr("disabled", true);
+           
+                $("#clientIP").load()
 
                 $.ajax({
                     type: "POST",
                     url: "/Home/GenerateText",
                     data: { "srcInput": $("#txtName").val(), "tgtInput": $("#txtName").val(), "num": $("#ddlOutputTokenNum").val(), 
                     "random": false, "repeatPenalty": $("#ddlRepeatPenalty").val(), 
-                    "contextSize": $("#ddlContextSize").val() },
+                    "contextSize": $("#ddlContextSize").val(), "clientIP": $("#clientIP").text()},
                     beforeSend: function () {
 
                         $("#outputText").html("");
@@ -110,6 +127,13 @@
                     },
                     success: function (response) {
                         $("#outputText").html(response.output);
+
+                        if (response.output.endsWith("eos") == true || response.output.endsWith("EOS") == true)
+                        {
+                            $("#statusText").html("Done");
+                            $("#btnGet").attr("disabled", false);
+                        }
+
 
                         $("#outputText").load();
                         $("#btnNextBatch").trigger("click");
@@ -125,12 +149,16 @@
             });
 
             $("#btnNextBatch").click(function () {
+
+                $("#clientIP").load()
+
+
                 $.ajax({
                     type: "POST",
                     url: "/Home/GenerateText",
                     data: { "srcInput": $("#txtName").val(), "tgtInput": $("#outputText").text(), "num": $("#ddlOutputTokenNum").val(), 
                     "random": false, "repeatPenalty": $("#ddlRepeatPenalty").val(), 
-                    "contextSize": $("#ddlContextSize").val() },
+                    "contextSize": $("#ddlContextSize").val() , "clientIP": $("#clientIP").text()},
                     beforeSend: function () {
                     },
                     success: function (response) {
@@ -141,6 +169,12 @@
                         }
                         else
                         {
+                            if (response.output.endsWith("eos") == true || response.output.endsWith("EOS") == true)
+                            {
+                                $("#statusText").html("Done");
+                                $("#btnGet").attr("disabled", false);
+                            }
+
                             $("#outputText").html(response.output);
                             $("#outputText").load();
 

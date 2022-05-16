@@ -15,6 +15,10 @@
   <PropertyGroup>
     <ServerGarbageCollection>true</ServerGarbageCollection>
     <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+    <Version>2.5.0</Version>
+    <Description>A command line tool for sequence-to-sequence task. It can be used for model training and inference. It supports both CPU and GPU(CUDA).</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <!--<RetainVMGarbageCollection>true</RetainVMGarbageCollection>-->
   </PropertyGroup>
   
@@ -33,6 +37,10 @@
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
     <None Include="..\LICENSE">
       <Pack>True</Pack>
       <PackagePath></PackagePath>
