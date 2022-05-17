@@ -1,9 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
 using Seq2SeqSharp;
-using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp._SentencePiece;
 using Seq2SeqSharp.Applications;
@@ -17,7 +22,7 @@ namespace Seq2SeqWebApps
         static private SentencePiece? m_srcSpm = null;
         static private SentencePiece? m_tgtSpm = null;
         static private Seq2SeqOptions? opts;
-
+        static Semaphore sm = null;
 
         static public void Initialization(string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, ProcessorTypeEnums processorType, string deviceIds, SentencePiece? srcSpm, SentencePiece? tgtSpm,
             Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum, float topPSampling, float repeatPenalty)
@@ -35,10 +40,19 @@ namespace Seq2SeqWebApps
             m_srcSpm = srcSpm;
             m_tgtSpm = tgtSpm;
 
+            if (opts.ProcessorType == ProcessorTypeEnums.CPU)
+            {
+                sm = new Semaphore(Environment.ProcessorCount, Environment.ProcessorCount);
+            }
+            else
+            {
+                sm = new Semaphore(1, 1);
+            }
+
             m_seq2seq = new Seq2Seq(opts);
         }
 
-        static public string Call(string srcInput, string tgtInput, int tokenNumToGenerate, bool random, float repeatPenalty)
+        static public string Call(string srcInput, string rawTgtInput, int tokenNumToGenerate, bool random, float repeatPenalty)
         {
             if (opts == null)
             {
@@ -66,15 +80,15 @@ namespace Seq2SeqWebApps
             srcGroupBatchTokens.Add(batchTokens);
 
 
-            tgtInput = (m_tgtSpm != null) ? m_tgtSpm.Encode(tgtInput) : tgtInput;
+            var tgtInput = (m_tgtSpm != null) ? m_tgtSpm.Encode(rawTgtInput) : rawTgtInput;
             List<string> tokens2 = tgtInput.Split(' ').ToList();
             tokenNumToGenerate += tokens2.Count;
 
             if (tokenNumToGenerate > opts.MaxTestTgtSentLength)
             {
                 //The target text is too long, so we won't generate any more text for it.
-                Logger.WriteLine($"Given target text '{tgtInput}' is too long, so we won't generate any more text for it.");
-                return tgtInput + " EOS";
+                Logger.WriteLine($"Given target text '{rawTgtInput}' is too long, so we won't generate any more text for it.");
+                return rawTgtInput + " EOS";
             }
 
             List<List<String>> batchTokens2 = new List<List<string>>();
@@ -89,18 +103,33 @@ namespace Seq2SeqWebApps
             decodingOptions.TopPValue = random ? 0.5f : 0.0f;
             decodingOptions.RepeatPenalty = repeatPenalty;
 
-            var nrs = m_seq2seq.Test<Seq2SeqCorpusBatch>(srcGroupBatchTokens, tgtGroupBatchTokens, decodingOptions);
-            string rst = String.Join(" ", nrs[0].Output[0][0].ToArray(), 0, nrs[0].Output[0][0].Count);
-            bool isEnded = rst.EndsWith("</s>");
-
-            rst = (m_tgtSpm != null) ? m_tgtSpm.Decode(rst) : rst;
-            if (isEnded)
+            try
             {
-                rst += " EOS";
-                Logger.WriteLine($"Completed text generation: Source Input Text = '{srcInput}', Target Prompt Text = '{tgtInput}', Token Numbers To Generate = '{tokenNumToGenerate}', IsRandomSample = '{random}', Repeat Penalty = '{repeatPenalty}', Output Text = '{rst}'");
-            }
+                sm.WaitOne();
 
-            return rst;
+                var nrs = m_seq2seq.Test<Seq2SeqCorpusBatch>(srcGroupBatchTokens, tgtGroupBatchTokens, decodingOptions);
+                string rst = String.Join(" ", nrs[0].Output[0][0].ToArray(), 0, nrs[0].Output[0][0].Count);
+                bool isEnded = rst.EndsWith("</s>");
+
+                rst = (m_tgtSpm != null) ? m_tgtSpm.Decode(rst) : rst;
+                if (isEnded)
+                {
+                    rst += " EOS";
+                    Logger.WriteLine($"Completed text generation: Source Input Text = '{srcInput}', Target Prompt Text = '{tgtInput}', Token Numbers To Generate = '{tokenNumToGenerate}', IsRandomSample = '{random}', Repeat Penalty = '{repeatPenalty}', Output Text = '{rst}'");
+                }
+
+                return rst;
+            }
+            catch (Exception ex)
+            {
+                Logger.WriteLine(Logger.Level.err, $"Error Message = '{ex.Message}', Call stack = '{ex.StackTrace}'");
+
+                return rawTgtInput + " EOS";
+            }
+            finally
+            {
+                sm.Release();
+            }
         }
     }
 }
