@@ -29,8 +29,8 @@ namespace Seq2SeqWebApps
         {
             opts = new Seq2SeqOptions();
             opts.ModelFilePath = modelFilePath;
-            opts.MaxTestSrcSentLength = maxTestSrcSentLength;
-            opts.MaxTestTgtSentLength = maxTestTgtSentLength;
+            opts.MaxSrcSentLength = maxTestSrcSentLength;
+            opts.MaxTgtSentLength = maxTestTgtSentLength;
             opts.ProcessorType = processorType;
             opts.DeviceIds = deviceIds;
             opts.DecodingStrategy = decodingStrategyEnum;
@@ -67,9 +67,9 @@ namespace Seq2SeqWebApps
             srcInput = (m_srcSpm != null) ? m_srcSpm.Encode(srcInput) : srcInput;
             List<string> tokens = srcInput.Split(' ').ToList();
 
-            if (tokens.Count > opts.MaxTestSrcSentLength)
+            if (tokens.Count > opts.MaxSrcSentLength)
             {
-                tokens = tokens.GetRange(tokens.Count - opts.MaxTestSrcSentLength, opts.MaxTestSrcSentLength);
+                tokens = tokens.GetRange(tokens.Count - opts.MaxSrcSentLength, opts.MaxSrcSentLength);
             }
 
 
@@ -84,7 +84,7 @@ namespace Seq2SeqWebApps
             List<string> tokens2 = tgtInput.Split(' ').ToList();
             tokenNumToGenerate += tokens2.Count;
 
-            if (tokenNumToGenerate > opts.MaxTestTgtSentLength)
+            if (tokenNumToGenerate > opts.MaxTgtSentLength)
             {
                 //The target text is too long, so we won't generate any more text for it.
                 Logger.WriteLine($"Given target text '{rawTgtInput}' is too long, so we won't generate any more text for it.");

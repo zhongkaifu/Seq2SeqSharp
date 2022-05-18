@@ -35,17 +35,17 @@ namespace Seq2SeqSharp
         [Arg("It indicates if the tgt embedding is trainable", nameof(IsTgtEmbeddingTrainable))]
         public bool IsTgtEmbeddingTrainable = true;
 
-        [Arg("Maxmium src sentence length in valid and test set", nameof(MaxTestSrcSentLength))]
-        public int MaxTestSrcSentLength = 32;
+        [Arg("Maxmium src sentence length in valid set", nameof(MaxValidSrcSentLength))]
+        public int MaxValidSrcSentLength = 32;
 
-        [Arg("Maxmium tgt sentence length in valid and test set", nameof(MaxTestTgtSentLength))]
-        public int MaxTestTgtSentLength = 32;
+        [Arg("Maxmium tgt sentence length in valid set", nameof(MaxValidTgtSentLength))]
+        public int MaxValidTgtSentLength = 32;
 
-        [Arg("Maxmium src sentence length in training corpus", nameof(MaxTrainSrcSentLength))]
-        public int MaxTrainSrcSentLength = 110;
+        [Arg("Maxmium src sentence length in training and test set", nameof(MaxSrcSentLength))]
+        public int MaxSrcSentLength = 110;
 
-        [Arg("Maxmium tgt sentence length in training corpus", nameof(MaxTrainTgtSentLength))]
-        public int MaxTrainTgtSentLength = 110;
+        [Arg("Maxmium tgt sentence length in training and test set", nameof(MaxTgtSentLength))]
+        public int MaxTgtSentLength = 110;
 
         [Arg("The metric for sequence generation task. It supports BLEU and RougeL", nameof(SeqGenerationMetric))]
         public string SeqGenerationMetric = "BLEU";
@@ -74,8 +74,8 @@ namespace Seq2SeqSharp
 
             decodingOptions.BeamSearchSize = BeamSearchSize;
 
-            decodingOptions.MaxSrcSentLength = MaxTestSrcSentLength;
-            decodingOptions.MaxTgtSentLength = MaxTestTgtSentLength;
+            decodingOptions.MaxSrcSentLength = MaxSrcSentLength;
+            decodingOptions.MaxTgtSentLength = MaxTgtSentLength;
 
             decodingOptions.OutputAligmentsToSrc = !string.IsNullOrEmpty(OutputAlignmentsFile);
 

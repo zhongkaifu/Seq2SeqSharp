@@ -30,6 +30,9 @@ namespace Seq2SeqSharp
         private readonly IWeightTensor QKV;
         private readonly IWeightTensor QKVb;
 
+
+        private readonly IWeightTensor relativePositionalEmbWeights;
+
         private readonly LayerNormalization layerNormQ;
 
         private readonly int m_hiddenDim;
@@ -39,6 +42,7 @@ namespace Seq2SeqSharp
         private readonly float m_dropoutRatio;
 
         private readonly bool m_sharedQKV;
+        private readonly int m_relativePositionalEmbeddingsContextSize = 65535;
 
         public MultiHeadAttention(string name, int multiHeadNum, int hiddenDim, int inputDim, float dropoutRatio, int deviceId, bool isTrainable, bool sharedQKV = false, float learningRateFactor = 1.0f)
         {
@@ -70,6 +74,10 @@ namespace Seq2SeqSharp
             }
 
             layerNormQ = new LayerNormalization($"{name}.{nameof(layerNormQ)}", m_hiddenDim, deviceId, isTrainable, learningRateFactor: learningRateFactor);
+
+            relativePositionalEmbWeights = new WeightTensor(new long[2] { m_relativePositionalEmbeddingsContextSize * 2 + 1, 1 }, deviceId, name: $"{name}.{nameof(relativePositionalEmbWeights)}", isTrainable: isTrainable,
+                normType: NormType.Uniform, learningRateFactor: learningRateFactor);
+
         }
 
         /// <summary>
@@ -102,8 +110,25 @@ namespace Seq2SeqSharp
             // Scaled softmax
             float scale = 1.0f / (float)(Math.Sqrt(m_d));
             var attn = g.MulBatch(Qs, Ks, scale);
-            attn = g.View(attn, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ });
 
+            // Calculate relative positional bias
+            float[] relPosIdx = new float[seqLenQ * seqLenQ];
+            for (int i = 0; i < seqLenQ; i++)
+            {
+                for (int j = 0; j < seqLenQ; j++)
+                {
+                    relPosIdx[i * seqLenQ + j] = (float)(m_relativePositionalEmbeddingsContextSize - i + j);
+                }
+            }
+
+            var relPosWeights = g.IndexSelect(relativePositionalEmbWeights, relPosIdx);
+            relPosWeights = g.View(relPosWeights, dims: new long[] { 1, seqLenQ, seqLenQ });
+            relPosWeights = g.Expand(relPosWeights, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenQ });
+            attn = g.Add(attn, relPosWeights);
+
+
+            // Add mask
+            attn = g.View(attn, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ });
             if (keyMask != null)
             {
                 attn = g.Add(attn, keyMask, inPlace: true);
@@ -266,6 +291,7 @@ namespace Seq2SeqSharp
                 response.Add(QKVb);
             }
 
+            response.Add(relativePositionalEmbWeights);
             response.AddRange(layerNormQ.GetParams());
 
             return response;
@@ -291,6 +317,7 @@ namespace Seq2SeqSharp
                 QKVb.Save(stream);
             }
 
+            relativePositionalEmbWeights.Save(stream);
 
             W0.Save(stream);
             b0.Save(stream);
@@ -319,6 +346,8 @@ namespace Seq2SeqSharp
                 QKV.Load(stream);
                 QKVb.Load(stream);
             }
+
+            relativePositionalEmbWeights.Load(stream);
 
             W0.Load(stream);
             b0.Load(stream);

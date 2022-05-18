@@ -54,8 +54,8 @@ public class Seq2Seq_Tests
     {
         var opts = new Seq2SeqOptions();
         opts.ModelFilePath = "seq2seq_mt_enu_chs_tiny_test.model";
-        opts.MaxTestSrcSentLength = 110;
-        opts.MaxTestTgtSentLength = 110;
+        opts.MaxValidSrcSentLength = 110;
+        opts.MaxValidTgtSentLength = 110;
         opts.ProcessorType = ProcessorTypeEnums.CPU;
         opts.DeviceIds = "0";
 
@@ -95,7 +95,7 @@ public class Seq2Seq_Tests
         Seq2SeqOptions opts = CreateOptions(trainFolderPath, validFolderPath);
 
         // Load training corpus
-        var trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize, maxSrcSentLength: opts.MaxTrainSrcSentLength, maxTgtSentLength: opts.MaxTrainTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence);
+        var trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize, maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence);
 
         // Build vocabularies for training
         (var srcVocab, var tgtVocab) = trainCorpus.BuildVocabs(opts.SrcVocabSize, opts.TgtVocabSize, sharedVocab: true);
@@ -119,7 +119,7 @@ public class Seq2Seq_Tests
         Seq2SeqOptions opts = CreateOptions(trainFolderPath, validFolderPath);
 
         // Load training corpus
-        var trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize, maxSrcSentLength: opts.MaxTrainSrcSentLength, maxTgtSentLength: opts.MaxTrainTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence);
+        var trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize, maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence);
 
         foreach (var batch in trainCorpus)
         {
@@ -150,7 +150,7 @@ public class Seq2Seq_Tests
         DecodingOptions decodingOptions = opts.CreateDecodingOptions();
 
         // Load training corpus
-        var trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize, maxSrcSentLength: opts.MaxTrainSrcSentLength, maxTgtSentLength: opts.MaxTrainTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence);
+        var trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize, maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence);
 
         // Load valid corpus
         var validCorpusList = new List<Seq2SeqCorpus>();
@@ -159,7 +159,7 @@ public class Seq2Seq_Tests
             string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
             foreach (var validCorpusPath in validCorpusPathList)
             {
-                validCorpusList.Add(new Seq2SeqCorpus(validCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSrcSentLength, opts.MaxTestTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence));
+                validCorpusList.Add(new Seq2SeqCorpus(validCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxValidSrcSentLength, opts.MaxValidTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence));
             }
 
         }
@@ -275,10 +275,10 @@ public class Seq2Seq_Tests
 
         opts.BatchSize = 128;
         opts.ValBatchSize = 128;
-        opts.MaxTrainSrcSentLength = 110;
-        opts.MaxTrainTgtSentLength = 110;
-        opts.MaxTestSrcSentLength = 110;
-        opts.MaxTestTgtSentLength = 110;
+        opts.MaxSrcSentLength = 110;
+        opts.MaxTgtSentLength = 110;
+        opts.MaxValidSrcSentLength = 110;
+        opts.MaxValidTgtSentLength = 110;
         opts.ShuffleType = Utils.ShuffleEnums.NoPadding;
         opts.TooLongSequence = TooLongSequence.Truncation;
         opts.ProcessorType = ProcessorTypeEnums.CPU;

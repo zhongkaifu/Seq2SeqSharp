@@ -21,8 +21,8 @@ namespace Seq2SeqWebAPI
         {
             opts = new Seq2SeqOptions();
             opts.ModelFilePath = modelFilePath;
-            opts.MaxTestSrcSentLength = maxTestSrcSentLength;
-            opts.MaxTestTgtSentLength = maxTestTgtSentLength;
+            opts.MaxSrcSentLength = maxTestSrcSentLength;
+            opts.MaxTgtSentLength = maxTestTgtSentLength;
             opts.ProcessorType = processorType;
             opts.DeviceIds = deviceIds;
 

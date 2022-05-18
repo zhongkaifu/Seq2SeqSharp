@@ -24,8 +24,8 @@ namespace SeqWebAPIs
                 
                 opts = new Seq2SeqClassificationOptions();
                 opts.ModelFilePath = pair.Value;
-                opts.MaxTestSrcSentLength = maxTestSrcSentLength;
-                opts.MaxTestTgtSentLength = maxTestTgtSentLength;
+                opts.MaxSrcSentLength = maxTestSrcSentLength;
+                opts.MaxTgtSentLength = maxTestTgtSentLength;
                 opts.ProcessorType = processorType;
                 opts.DeviceIds = deviceIds;
 

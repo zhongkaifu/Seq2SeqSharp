@@ -1,8 +1,17 @@
-﻿using AdvUtils;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using AdvUtils;
 using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
-using System.IO;
 
 namespace Seq2SeqSharp
 {
@@ -12,9 +21,7 @@ namespace Seq2SeqSharp
         private readonly List<MultiHeadAttention> m_encAttns = new List<MultiHeadAttention>();
         private readonly List<PositionwiseFeedForward> m_posFFNs = new List<PositionwiseFeedForward>();
 
-    //    private readonly FeedForwardLayer m_decoderFFLayer;
         private readonly int m_inputDim;
-     //   private readonly int m_outputDim;
         private readonly float m_dropoutRatio;
         private readonly string m_name;
         private readonly int m_multiHeadNum;
@@ -33,7 +40,6 @@ namespace Seq2SeqSharp
             m_multiHeadNum = multiHeadNum;
             m_hiddenDim = hiddenDim;
             m_inputDim = inputDim;
-        //    m_outputDim = outputDim;
             m_depth = depth;
             m_dropoutRatio = dropoutRatio;
             m_deviceId = deviceId;
@@ -64,8 +70,6 @@ namespace Seq2SeqSharp
 
 
             layerNorm = new LayerNormalization($"{name}.{nameof(layerNorm)}", hiddenDim, deviceId, isTrainable, learningRateFactor: learningRateFactor);
-
-      //     m_decoderFFLayer = new FeedForwardLayer($"{name}.FeedForward", hiddenDim, outputDim, 0.0f, deviceId: deviceId, isTrainable: isTrainable);
 
         }
 
