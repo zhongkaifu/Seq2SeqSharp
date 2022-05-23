@@ -19,7 +19,7 @@ namespace SeqClassificationWebAPI
         {
             opts = new SeqClassificationOptions();
             opts.ModelFilePath = modelFilePath;
-            opts.MaxTestSentLength = maxTestSentLength;
+            opts.MaxSentLength = maxTestSentLength;
             opts.ProcessorType = processorType;
             opts.DeviceIds = deviceIds;
 

@@ -1,4 +1,14 @@
-﻿using AdvUtils;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using AdvUtils;
 using Newtonsoft.Json;
 using Seq2SeqSharp;
 using Seq2SeqSharp.Applications;
@@ -41,7 +51,7 @@ namespace SeqLabelConsole
             if ( opts.Task == ModeEnums.Train )
             {
                 // Load train corpus
-                SeqLabelingCorpus trainCorpus = new SeqLabelingCorpus(opts.TrainCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxTrainSentLength);
+                SeqLabelingCorpus trainCorpus = new SeqLabelingCorpus(opts.TrainCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxSentLength);
 
                 // Load valid corpus
                 List<SeqLabelingCorpus> validCorpusList = new List<SeqLabelingCorpus>();
@@ -50,7 +60,7 @@ namespace SeqLabelConsole
                     string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
                     foreach (var validCorpusPath in validCorpusPathList)
                     {
-                        validCorpusList.Add(new SeqLabelingCorpus(opts.ValidCorpusPaths, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxTestSentLength));
+                        validCorpusList.Add(new SeqLabelingCorpus(validCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxSentLength));
                     }
                 }
 
@@ -110,7 +120,7 @@ namespace SeqLabelConsole
                 Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPaths}'");
 
                 // Load valid corpus
-                SeqLabelingCorpus validCorpus = new SeqLabelingCorpus(opts.ValidCorpusPaths, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxTestSentLength);
+                SeqLabelingCorpus validCorpus = new SeqLabelingCorpus(opts.ValidCorpusPaths, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
                 (Vocab srcVocab, Vocab tgtVocab) = validCorpus.BuildVocabs();
 
                 // Create metrics

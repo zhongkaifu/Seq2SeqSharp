@@ -1,9 +1,14 @@
-﻿using AdvUtils;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using AdvUtils;
 
 namespace Seq2SeqSharp.Applications
 {
@@ -16,11 +21,8 @@ namespace Seq2SeqSharp.Applications
         [Arg("It indicates if the embedding is trainable", "IsEmbeddingTrainable")]
         public bool IsEmbeddingTrainable = true;
 
-        [Arg("Maxmium sentence length in valid and test set", "MaxTestSentLength")]
-        public int MaxTestSentLength = 32;
-
-        [Arg("Maxmium sentence length in training corpus", "MaxTrainSentLength")]
-        public int MaxTrainSentLength = 110;
+        [Arg("Maxmium sentence length", nameof(MaxSentLength))]
+        public int MaxSentLength = 110;
 
         public DecodingOptions CreateDecodingOptions()
         {
@@ -31,8 +33,8 @@ namespace Seq2SeqSharp.Applications
 
             decodingOptions.BeamSearchSize = BeamSearchSize;
 
-            decodingOptions.MaxSrcSentLength = MaxTestSentLength;
-            decodingOptions.MaxTgtSentLength = MaxTestSentLength;
+            decodingOptions.MaxSrcSentLength = MaxSentLength;
+            decodingOptions.MaxTgtSentLength = MaxSentLength;
 
             return decodingOptions;
         }

@@ -183,6 +183,14 @@ namespace Seq2SeqSharp.Tools
         }
 
 
+        public IWeightTensor Swish(IWeightTensor w)
+        {         
+            var w1 = Sigmoid(w);
+            var res = EltMul(w, w1);
+
+            return res;
+        }
+
 
         public IWeightTensor Rsqrt(IWeightTensor w)
         {

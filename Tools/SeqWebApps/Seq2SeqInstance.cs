@@ -52,7 +52,7 @@ namespace Seq2SeqWebApps
             m_seq2seq = new Seq2Seq(opts);
         }
 
-        static public string Call(string srcInput, string rawTgtInput, int tokenNumToGenerate, bool random, float repeatPenalty)
+        static public string Call(string rawSrcInput, string rawTgtInput, int tokenNumToGenerate, bool random, float repeatPenalty)
         {
             if (opts == null)
             {
@@ -64,7 +64,7 @@ namespace Seq2SeqWebApps
                 throw new ArgumentNullException($"The {nameof(Seq2SeqInstance)} is null.");
             }
 
-            srcInput = (m_srcSpm != null) ? m_srcSpm.Encode(srcInput) : srcInput;
+            var srcInput = (m_srcSpm != null) ? m_srcSpm.Encode(rawSrcInput) : rawSrcInput;
             List<string> tokens = srcInput.Split(' ').ToList();
 
             if (tokens.Count > opts.MaxSrcSentLength)
@@ -115,7 +115,7 @@ namespace Seq2SeqWebApps
                 if (isEnded)
                 {
                     rst += " EOS";
-                    Logger.WriteLine($"Completed text generation: Source Input Text = '{srcInput}', Target Prompt Text = '{tgtInput}', Token Numbers To Generate = '{tokenNumToGenerate}', IsRandomSample = '{random}', Repeat Penalty = '{repeatPenalty}', Output Text = '{rst}'");
+                    Logger.WriteLine($"Completed text generation: Source Input Text = '{rawSrcInput}', Target Prompt Text = '{rawTgtInput}', Token Numbers To Generate = '{tokenNumToGenerate}', IsRandomSample = '{random}', Repeat Penalty = '{repeatPenalty}', Output Text = '{rst}'");
                 }
 
                 return rst;

@@ -1,4 +1,14 @@
-﻿using Seq2SeqSharp.Tools;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
 
@@ -16,6 +26,8 @@ namespace Seq2SeqSharp
         IWeightTensor Tanh(IWeightTensor w);
         IWeightTensor Sigmoid(IWeightTensor w);
         IWeightTensor Relu(IWeightTensor w, bool inPlace = false);
+        IWeightTensor Swish(IWeightTensor w);
+
         IWeightTensor Affine(IWeightTensor m1, IWeightTensor m2, IWeightTensor mbias, float alpha = 1.0f);
         IWeightTensor EltMulMulAdd(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3, IWeightTensor w4);
         IWeightTensor TransposeBatch(IWeightTensor m, int batchSize);

@@ -15,7 +15,7 @@ namespace AdvUtils
     public class Lemma
     {
         public uint len;
-        public string strProp;
+        public string? strProp;
     };
 
     public class dm_entry_t
@@ -30,7 +30,7 @@ namespace AdvUtils
     {
         public int hashsize; //该后继块的hash表大小
         public int backsepos; //指向其属主dentry节点
-        public int[] hashList; //存放子树指针的hash表
+        public int[]? hashList; //存放子树指针的hash表
     }
 
     public class DictMatch
@@ -58,7 +58,9 @@ namespace AdvUtils
 
         public DictMatch()
         {
-
+            dentry = new List<dm_entry_t>();
+            seinfo = new List<sufentry>();
+            lmlist = new List<Lemma>();
         }
 
         public void LoadDictFromBinary(string strFileName)
@@ -178,8 +180,8 @@ namespace AdvUtils
             StreamReader sr = new StreamReader(fullpath);
             while (sr.EndOfStream == false)
             {
-                string strLine = sr.ReadLine();
-                string[] items = strLine.Split(new char[] { '\t' });
+                string? strLine = sr.ReadLine();
+                string[]? items = strLine.Split(new char[] { '\t' });
 
                 string strTerm;
                 string strProp = "";

@@ -1,7 +1,15 @@
-﻿using Seq2SeqSharp.Tools;
-using System;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using Seq2SeqSharp.Tools;
 using System.Collections.Generic;
-using System.IO;
 
 namespace Seq2SeqSharp
 {
@@ -26,16 +34,19 @@ namespace Seq2SeqSharp
       
         public IWeightTensor Perform(IWeightTensor input, int batchSize, IComputeGraph graph)
         {
-            using IComputeGraph g = graph.CreateSubGraph($"{m_name}_PositionwiseFeedForward");
+            using var g = graph.CreateSubGraph($"{m_name}_PositionwiseFeedForward");
             var inputNorm = layerNorm2.Norm(input, g);
 
             //Feed forward
-            IWeightTensor ffnResult = feedForwardLayer1.Process(inputNorm, batchSize, g);
-            IWeightTensor reluFFNResult = g.Relu(ffnResult, inPlace: true);
-            IWeightTensor ffn2Result = feedForwardLayer2.Process(reluFFNResult, batchSize, g);
+            var ffnResult = feedForwardLayer1.Process(inputNorm, batchSize, g);
+
+            // Activate function
+            var reluFFNResult = g.Swish(ffnResult);
+
+            var ffn2Result = feedForwardLayer2.Process(reluFFNResult, batchSize, g);
 
             //Skip connection and layer normaliztion
-            IWeightTensor addFFNResult = graph.Add(ffn2Result, input, inPlace: true);
+            var addFFNResult = graph.Add(ffn2Result, input, inPlace: true);
 
             return addFFNResult;
 

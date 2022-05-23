@@ -74,7 +74,7 @@ namespace SeqClassificationConsole
                 {
                     // Load train corpus
                     var trainCorpus = new SeqClassificationMultiTasksCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang,  batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
-                        maxSentLength: opts.MaxTrainSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence );
+                        maxSentLength: opts.MaxSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence );
 
                     // Load valid corpus
                     var validCorpusList = new List<SeqClassificationMultiTasksCorpus>();
@@ -83,7 +83,7 @@ namespace SeqClassificationConsole
                         string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
                         foreach (var validCorpusPath in validCorpusPathList)
                         {
-                            validCorpusList.Add(new SeqClassificationMultiTasksCorpus(validCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxTestSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence ));
+                            validCorpusList.Add(new SeqClassificationMultiTasksCorpus(validCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence ));
                         }
                     }
 
