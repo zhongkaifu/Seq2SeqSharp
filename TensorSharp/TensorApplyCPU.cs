@@ -712,6 +712,17 @@ namespace TensorSharp
 		}
 
 
+		unsafe static public void AddSigmoidD(Tensor result, Tensor t, Tensor resW, Tensor resG)
+		{
+			unsafe void func(float* r, float* x, float* y, float* z)
+			{
+				*r = addSigmoidD(*x, *y, *z);
+			}
+
+			Apply4(result, t, resW, resG, func);
+		}
+
+
 
 		unsafe static public void SigmoidD(Tensor result, Tensor resW, Tensor resG)
 		{
@@ -1396,6 +1407,13 @@ namespace TensorSharp
 		static float sigmoidD(float resW, float resG)
 		{
 			return resW * (1.0f - resW) * resG;
+		}
+
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float addSigmoidD(float t, float resW, float resG)
+		{
+			return t + resW * (1.0f - resW) * resG;
 		}
 
 

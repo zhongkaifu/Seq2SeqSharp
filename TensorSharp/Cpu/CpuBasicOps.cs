@@ -326,6 +326,17 @@ namespace TensorSharp.Cpu
             return writeTarget;
         }
 
+
+        [RegisterOpStorageType("addsigmoidD", typeof(CpuStorage))]
+        public Tensor AddSigmoidD(Tensor result, Tensor t, Tensor resW, Tensor resG)
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, resW, false, resW.Sizes);
+            TensorApplyCPU.AddSigmoidD(writeTarget, t, resW, resG);
+
+            return writeTarget;
+        }
+
+
         private readonly MethodInfo add3_func = NativeWrapper.GetMethod("TS_Add3");
         [RegisterOpStorageType("add3", typeof(CpuStorage))]
         public Tensor Add3(Tensor result, Tensor x, Tensor y, Tensor z) { return NativeWrapper.InvokeNullableResultElementwise(add3_func, result, x, y, z); }

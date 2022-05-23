@@ -93,10 +93,6 @@ public class ComputeGraph_Tests
         Assert.IsTrue(gB == 3.0f);
     }
 
-
-
-
-
     [TestMethod]
     public void TestAddSubGradients()
     {
