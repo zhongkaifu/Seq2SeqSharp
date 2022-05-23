@@ -51,7 +51,7 @@ namespace SeqLabelConsole
             if ( opts.Task == ModeEnums.Train )
             {
                 // Load train corpus
-                SeqLabelingCorpus trainCorpus = new SeqLabelingCorpus(opts.TrainCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxSentLength);
+                SeqLabelingCorpus trainCorpus = new SeqLabelingCorpus(opts.TrainCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxSentLength, shuffleEnums: opts.ShuffleType);
 
                 // Load valid corpus
                 List<SeqLabelingCorpus> validCorpusList = new List<SeqLabelingCorpus>();
@@ -60,7 +60,7 @@ namespace SeqLabelConsole
                     string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
                     foreach (var validCorpusPath in validCorpusPathList)
                     {
-                        validCorpusList.Add(new SeqLabelingCorpus(validCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxSentLength));
+                        validCorpusList.Add(new SeqLabelingCorpus(validCorpusPath, opts.BatchSize, opts.ShuffleBlockSize, maxSentLength: opts.MaxSentLength, shuffleEnums: opts.ShuffleType));
                     }
                 }
 
@@ -120,7 +120,7 @@ namespace SeqLabelConsole
                 Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPaths}'");
 
                 // Load valid corpus
-                SeqLabelingCorpus validCorpus = new SeqLabelingCorpus(opts.ValidCorpusPaths, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength);
+                SeqLabelingCorpus validCorpus = new SeqLabelingCorpus(opts.ValidCorpusPaths, opts.BatchSize, opts.ShuffleBlockSize, opts.MaxSentLength, shuffleEnums: opts.ShuffleType);
                 (Vocab srcVocab, Vocab tgtVocab) = validCorpus.BuildVocabs();
 
                 // Create metrics
