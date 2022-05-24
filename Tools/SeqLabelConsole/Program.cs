@@ -26,6 +26,19 @@ namespace SeqLabelConsole
 {
     internal class Program
     {
+        static SeqLabelOptions opts = new SeqLabelOptions();
+
+        private static void Ss_EvaluationWatcher(object sender, EventArgs e)
+        {
+            EvaluationEventArg ep = e as EvaluationEventArg;
+            Logger.WriteLine(Logger.Level.info, ep.Color, ep.Message);
+
+            if (!opts.NotifyEmail.IsNullOrEmpty())
+            {
+                Email.Send(ep.Title, ep.Message, opts.NotifyEmail, new string[] { opts.NotifyEmail });
+            }
+        }
+
         private static void Main(string[] args)
         {
             ShowOptions(args);
@@ -33,7 +46,7 @@ namespace SeqLabelConsole
             Logger.LogFile = $"{nameof(SeqLabelConsole)}_{Utils.GetTimeStamp(DateTime.Now)}.log";
 
             //Parse command line
-            SeqLabelOptions opts = new SeqLabelOptions();
+
             ArgParser argParser = new ArgParser(args, opts);
 
             if (!opts.ConfigFilePath.IsNullOrEmpty())
@@ -109,6 +122,7 @@ namespace SeqLabelConsole
 
                 // Add event handler for monitoring
                 sl.StatusUpdateWatcher += Misc.Ss_StatusUpdateWatcher;
+                sl.EvaluationWatcher += Ss_EvaluationWatcher;
 
                 // Kick off training
                 sl.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: metrics, decodingOptions: decodingOptions);
