@@ -1,13 +1,18 @@
-﻿using AdvUtils;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using AdvUtils;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Utils;
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Net.Http.Headers;
-using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.Tools
 {
@@ -15,19 +20,22 @@ namespace Seq2SeqSharp.Tools
     {
         private static (string, string) ConvertSequenceLabelingFormatToParallel(string filePath)
         {
-            List<string> srcLines = new List<string>();
-            List<string> tgtLines = new List<string>();
+            string srcFilePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName() + "_src.tmp");
+            string tgtFilePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName() + "_tgt.tmp");
+
+            StreamWriter swSrc = new StreamWriter(srcFilePath);
+            StreamWriter swTgt = new StreamWriter(tgtFilePath);
 
             List<string> currSrcLine = new List<string>();
             List<string> currTgtLine = new List<string>();
-            foreach (var line in File.ReadAllLines(filePath))
+            foreach (var line in File.ReadLines(filePath))
             {
                 if (line.IsNullOrEmpty() )
                 {
                     //This is a new record
 
-                    srcLines.Add(string.Join(" ", currSrcLine));
-                    tgtLines.Add(string.Join(" ", currTgtLine));
+                    swSrc.WriteLine(string.Join(" ", currSrcLine));
+                    swTgt.WriteLine(string.Join(" ", currTgtLine));
 
                     currSrcLine = new List<string>();
                     currTgtLine = new List<string>();
@@ -43,14 +51,14 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
-            srcLines.Add(string.Join(" ", currSrcLine));
-            tgtLines.Add(string.Join(" ", currTgtLine));
+            if (currSrcLine.Count > 0)
+            {
+                swSrc.WriteLine(string.Join(" ", currSrcLine));
+                swTgt.WriteLine(string.Join(" ", currTgtLine));
+            }
 
-            string srcFilePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName() + "_src.tmp");
-            string tgtFilePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName() + "_tgt.tmp");
-
-            File.WriteAllLines(srcFilePath, srcLines);
-            File.WriteAllLines(tgtFilePath, tgtLines);
+            swSrc.Close();
+            swTgt.Close();
 
             Logger.WriteLine($"Convert sequence labeling corpus file '{filePath}' to parallel corpus files '{srcFilePath}' and '{tgtFilePath}'");
 
@@ -66,6 +74,7 @@ namespace Seq2SeqSharp.Tools
             m_maxSrcSentLength = maxSentLength;
             m_maxTgtSentLength = maxSentLength;
             m_shuffleEnums = shuffleEnums;
+            CorpusName = corpusFilePath;
 
             m_srcFileList = new List<string>();
             m_tgtFileList = new List<string>();
