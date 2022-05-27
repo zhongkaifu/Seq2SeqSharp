@@ -32,7 +32,7 @@ namespace Seq2SeqSharp.Applications
             {
                 decoder = new MultiProcessorNetworkWrapper<IDecoder>(
                     new TransformerDecoder("TransformerDecoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.DecoderEmbeddingDim, modelMetaData.DecoderLayerDepth, options.DropoutRatio, raDeviceIds.GetNextItem(),
-                    isTrainable: options.IsDecoderTrainable, learningRateFactor: options.DecoderStartLearningRateFactor), raDeviceIds.ToArray());
+                    isTrainable: options.IsDecoderTrainable, learningRateFactor: options.DecoderStartLearningRateFactor, activateFunc: options.ActivateFunc), raDeviceIds.ToArray());
             }
 
             return decoder;

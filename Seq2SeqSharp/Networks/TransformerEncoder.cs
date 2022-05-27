@@ -10,6 +10,7 @@
 
 using AdvUtils;
 using Seq2SeqSharp.Tools;
+using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
 
@@ -30,8 +31,9 @@ namespace Seq2SeqSharp
         private readonly bool m_isTrainable;
         private readonly float m_learningRateFactor;
         private readonly LayerNormalization layerNorm;
+        private readonly ActivateFuncEnums m_activateFunc;
 
-        public TransformerEncoder(string name, int multiHeadNum, int hiddenDim, int inputDim, int depth, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f)
+        public TransformerEncoder(string name, int multiHeadNum, int hiddenDim, int inputDim, int depth, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.Relu)
         {
             Logger.WriteLine($"Creating transformer encoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', InputDim = '{inputDim}', Depth = '{depth}', MultiHeadNum = '{multiHeadNum}'");
 
@@ -44,6 +46,7 @@ namespace Seq2SeqSharp
             m_deviceId = deviceId;
             m_isTrainable = isTrainable;
             m_learningRateFactor = learningRateFactor;
+            m_activateFunc = activateFunc;
 
             if (hiddenDim != inputDim)
             {
@@ -58,7 +61,7 @@ namespace Seq2SeqSharp
 
             for (int i = 0; i < depth; i++)
             {
-                m_posFFNs.Add(new PositionwiseFeedForward($"{name}.PosFFN_{i}", hiddenDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor));
+                m_posFFNs.Add(new PositionwiseFeedForward($"{name}.PosFFN_{i}", hiddenDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, activateFunc: activateFunc));
             }
 
             layerNorm = new LayerNormalization($"{name}.{nameof(layerNorm)}", hiddenDim, deviceId, isTrainable, learningRateFactor: learningRateFactor);
@@ -118,7 +121,7 @@ namespace Seq2SeqSharp
 
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
-            return new TransformerEncoder(m_name, m_multiHeadNum, m_hiddenDim, m_inputDim, m_depth, m_dropoutRatio, deviceId, m_isTrainable, learningRateFactor: m_learningRateFactor);
+            return new TransformerEncoder(m_name, m_multiHeadNum, m_hiddenDim, m_inputDim, m_depth, m_dropoutRatio, deviceId, m_isTrainable, learningRateFactor: m_learningRateFactor, activateFunc: m_activateFunc);
         }
 
         public List<IWeightTensor> GetParams()

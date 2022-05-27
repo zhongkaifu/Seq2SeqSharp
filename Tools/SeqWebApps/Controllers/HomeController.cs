@@ -19,7 +19,9 @@ namespace SeqWebApps.Controllers
 {
     public class HomeController : Controller
     {
-        static HashSet<string> setInputSents = new HashSet<string>();
+        static Dictionary<string, string> dictInputSents = new Dictionary<string, string>();
+        private static DateTime m_dtLastDumpLogs = DateTime.Now;
+        private static object locker = new object();
 
         private readonly ILogger<HomeController> _logger;
 
@@ -73,22 +75,43 @@ namespace SeqWebApps.Controllers
 
             }
 
-            Stopwatch stopwatch = Stopwatch.StartNew();
-
-            string logStr = $"Client = '{clientIP}', SrcInput Text = '{srcInputText}', Repeat Penalty = '{repeatPenalty}', Target Context Size = '{tgtContextSize}'";
-            if (setInputSents.Contains(logStr) == false)
-            {
-                Logger.WriteLine(logStr);
-                setInputSents.Add(logStr);
-            }
-
             string outputText = Seq2SeqInstance.Call(tgtInputText, tgtInputText, tokenNumToGenerate, random, repeatPenalty);
-
-            stopwatch.Stop();
-
             outputText = prefixTgtLine.Trim() + outputText.Trim();
-
             outputText = outputText.Trim();
+
+            // Update logs and dump it every 1 hour when a call comes in.
+            string logStr = $"Client = '{clientIP}', SrcInput Text = '{srcInputText}', Repeat Penalty = '{repeatPenalty}', Target Context Size = '{tgtContextSize}'";
+            lock (locker)
+            {
+                if (dictInputSents.ContainsKey(logStr) == false)
+                {
+                    Logger.WriteLine(logStr);
+                    dictInputSents.Add(logStr, outputText);
+                }
+                else
+                {
+                    dictInputSents[logStr] = outputText;
+                }
+                if (DateTime.Now - m_dtLastDumpLogs >= TimeSpan.FromHours(1.0))
+                {
+                    string dumpFilePath = Path.Combine(Directory.GetCurrentDirectory(), "dump_generated_text.log");
+                    List<string> dumpList = new List<string>();
+                    foreach (var pair in dictInputSents)
+                    {
+                        Logger.WriteLine($"Key = '{pair.Key}', Value = '{pair.Value}'");
+
+                        dumpList.Add($"Source = '{pair.Key}'");
+                        dumpList.Add($"Generated text = '{pair.Value}'");
+                        dumpList.Add("");
+                    }
+
+                    System.IO.File.AppendAllLines(dumpFilePath, dumpList);
+
+                    dictInputSents.Clear();
+
+                    m_dtLastDumpLogs = DateTime.Now;
+                }
+            }
 
             var outputSents = SplitSents(outputText);
 

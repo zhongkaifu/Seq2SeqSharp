@@ -207,6 +207,7 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
   "ValidIntervalHours": 1.0,
   "SrcVocabSize": 45000,
   "TgtVocabSize": 45000,
+  "ActivateFunc": "Relu",
   "EnableTagEmbeddings": false           
 }
 ```

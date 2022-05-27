@@ -10,6 +10,7 @@
 
 using AdvUtils;
 using Seq2SeqSharp.Tools;
+using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
 
@@ -31,8 +32,9 @@ namespace Seq2SeqSharp
         private readonly bool m_isTrainable;
         private readonly float m_learningRateFactor;
         private readonly LayerNormalization layerNorm;
+        private readonly ActivateFuncEnums m_activateFunc;
 
-        public TransformerDecoder(string name, int multiHeadNum, int hiddenDim, int inputDim, int depth, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f)
+        public TransformerDecoder(string name, int multiHeadNum, int hiddenDim, int inputDim, int depth, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.Relu)
         {
             Logger.WriteLine($"Creating transformer decoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', InputDim = '{inputDim}', Depth = '{depth}', MultiHeadNum = '{multiHeadNum}'");
 
@@ -45,6 +47,7 @@ namespace Seq2SeqSharp
             m_deviceId = deviceId;
             m_isTrainable = isTrainable;
             m_learningRateFactor = learningRateFactor;
+            m_activateFunc = activateFunc;
 
             if (hiddenDim != inputDim)
             {
@@ -65,7 +68,7 @@ namespace Seq2SeqSharp
 
             for (int i = 0; i < depth; i++)
             {
-                m_posFFNs.Add(new PositionwiseFeedForward($"{name}.PosFFN_{i}", hiddenDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor));
+                m_posFFNs.Add(new PositionwiseFeedForward($"{name}.PosFFN_{i}", hiddenDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, activateFunc: activateFunc));
             }
 
 
@@ -138,15 +141,12 @@ namespace Seq2SeqSharp
                 }
             }
             
-
-       //     tgtInputs = m_decoderFFLayer.Process(tgtInputs, batchSize, g);
-
             return (tgtInputs, attnProbs);
         }
 
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
-            return new TransformerDecoder(m_name, m_multiHeadNum, m_hiddenDim, m_inputDim, m_depth, m_dropoutRatio, deviceId, m_isTrainable, learningRateFactor: m_learningRateFactor);
+            return new TransformerDecoder(m_name, m_multiHeadNum, m_hiddenDim, m_inputDim, m_depth, m_dropoutRatio, deviceId, m_isTrainable, learningRateFactor: m_learningRateFactor, activateFunc: m_activateFunc);
         }
 
         public List<IWeightTensor> GetParams()
@@ -169,7 +169,6 @@ namespace Seq2SeqSharp
             }
 
             response.AddRange(layerNorm.GetParams());
-          //  response.AddRange(m_decoderFFLayer.GetParams());
 
             return response;
         }
@@ -193,7 +192,6 @@ namespace Seq2SeqSharp
 
 
             layerNorm.Save(stream);
-       //     m_decoderFFLayer.Save(stream);
         }
 
         public void Load(IModel stream)
@@ -214,7 +212,6 @@ namespace Seq2SeqSharp
             }
 
             layerNorm.Load(stream);
-      //      m_decoderFFLayer.Load(stream);
         }
     }
 }
