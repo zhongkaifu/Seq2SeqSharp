@@ -801,6 +801,17 @@ namespace TensorSharp
 			Apply3(result, srcW, srcG, func);
 		}
 
+		unsafe static public void AddReluD(Tensor result, Tensor srcX, Tensor srcW, Tensor srcG)
+		{
+			unsafe void func(float* r, float*x, float* w, float* g)
+			{
+				*r = addrelud(*x, *w, *g);
+			}
+
+			Apply4(result, srcX, srcW, srcG, func);
+		}
+
+
 		unsafe static public void AddMulV(Tensor result, Tensor srcX, Tensor srcY, float val)
 		{
 			unsafe void func(float* r, float* x, float* y)
@@ -1376,6 +1387,15 @@ namespace TensorSharp
 				return g;
 			return 0.0f;
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float addrelud(float t, float w, float g)
+		{
+			if (w > 0.0f)
+				return t + g;
+			return t;
+		}
+
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		static float add(float x, float y)

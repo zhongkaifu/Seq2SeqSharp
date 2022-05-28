@@ -1,4 +1,14 @@
-﻿using AdvUtils;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using AdvUtils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Corpus;
@@ -66,14 +76,14 @@ public class Seq2Seq_Tests
         var nrs = seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, null, decodingOptions);
         var out_tokens = nrs[0].Output[0][0];
         var output = string.Join(" ", out_tokens);
-        Assert.IsTrue(output == "<s> ▁是的 , 解决方案 存在 。 </s>");
+        Assert.IsTrue(output == "<s> ▁是的 , 解决方案 是 。 </s>");
 
 
         groupBatchTokens = BuildInputGroupBatchTokens("▁a ▁question ▁of ▁climate .");
         nrs = seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, null, decodingOptions);
         out_tokens = nrs[0].Output[0][0];
         output = string.Join(" ", out_tokens);
-        Assert.IsTrue(output == "<s> ▁ 气候 问题 。 </s>");
+        Assert.IsTrue(output == "<s> ▁ 气候变化 问题 。 </s>");
 
     }
 

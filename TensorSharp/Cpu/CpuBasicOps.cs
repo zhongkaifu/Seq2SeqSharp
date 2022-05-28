@@ -526,10 +526,14 @@ namespace TensorSharp.Cpu
             return writeTarget;
         }
 
-
-        private readonly MethodInfo addreluD_func = NativeWrapper.GetMethod("TS_AddReluD");
         [RegisterOpStorageType("addrelud", typeof(CpuStorage))]
-        public Tensor AddReluD(Tensor result, Tensor srcX, Tensor srcY, Tensor srcZ) { return NativeWrapper.InvokeNullableResultElementwise(addreluD_func, result, srcX, srcY, srcZ); }
+        public Tensor AddReluD(Tensor result, Tensor src, Tensor w, Tensor g) 
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, w, false, w.Sizes);
+            TensorApplyCPU.AddReluD(result, src, w, g);
+
+            return writeTarget;
+        }
 
         [RegisterOpStorageType("relud", typeof(CpuStorage))]
         public Tensor ReluD(Tensor result, Tensor w, Tensor g)
