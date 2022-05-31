@@ -152,20 +152,19 @@ namespace SeqLabelConsole
             }
             else if ( opts.Task == ModeEnums.Test )
             {
-                Logger.WriteLine($"Test model '{opts.ModelFilePath}' by input corpus '{opts.InputTestFile}'");
+                Logger.WriteLine($"Test model '{opts.ModelFilePath}' using input data set '{opts.InputTestFile}'");
 
                 //Test trained model
                 sl = new SeqLabel(opts);
-
-                List<string> outputLines = new List<string>();
-                string[] data_sents_raw1 = File.ReadAllLines(opts.InputTestFile);
-                foreach (string line in data_sents_raw1)
+                using (StreamWriter sw = new StreamWriter(opts.OutputFile))
                 {
-                    var nrs = sl.Test<SeqLabelingCorpusBatch>(ConstructInputTokens(line.Trim().Split(' ').ToList()), null, decodingOptions: decodingOptions);
-                    outputLines.AddRange(nrs[0].Output[0].Select(x => string.Join(" ", x)));
+                    foreach (string line in File.ReadLines(opts.InputTestFile))
+                    {
+                        var nrs = sl.Test<SeqLabelingCorpusBatch>(ConstructInputTokens(line.Trim().Split(' ').ToList()), null, decodingOptions: decodingOptions);
+                        var outputLine = nrs[0].Output[0].Select(x => string.Join(" ", x));
+                        sw.WriteLine(outputLine);
+                    }
                 }
-
-                File.WriteAllLines(opts.OutputFile, outputLines);
             }
             else
             {
