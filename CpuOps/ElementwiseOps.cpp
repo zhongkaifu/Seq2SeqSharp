@@ -115,12 +115,6 @@ DECLARE_UNARY_FLOAT_TYPES(TS_Cosh, cosh)
 
 
 
-template <typename T> INLINE_FUNC T AddReluD(T t, T w, T g) {
-	if (w > T(0))
-		return t + g;
-	return t + T(0);
-}
-
 template<typename T>
 INLINE_FUNC void Atan2_Apply(TensorRef* result, TensorRef* srcY, TensorRef* srcX)
 {
@@ -175,21 +169,6 @@ int TS_AddTanh3(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* 
 {
 	API_BEGIN()
 		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, AddTanh3_Apply, result, srcX, srcY, srcZ)
-		API_END()
-}
-
-
-template<typename T>
-INLINE_FUNC void AddReluD_Apply(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
-{
-	auto func = [](T *r, T *x, T *y, T *z) { *r = AddReluD(*x, *y, *z); };
-	Apply4<T, T, T, T>(result, srcX, srcY, srcZ, func);
-}
-
-int TS_AddReluD(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ)
-{
-	API_BEGIN()
-		SWITCH_TENSOR_TYPE_FLOAT(result->elementType, AddReluD_Apply, result, srcX, srcY, srcZ)
 		API_END()
 }
 

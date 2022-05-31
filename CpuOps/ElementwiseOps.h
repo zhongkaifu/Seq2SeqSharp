@@ -33,7 +33,6 @@ OPS_API int TS_Lerp(TensorRef* result, TensorRef* srcA, TensorRef* srcB, float w
 //OPS_API int TS_Clamp(TensorRef* result, TensorRef* src, float min, float max);
 
 OPS_API int TS_AddTanh3(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ);
-OPS_API int TS_AddReluD(TensorRef* result, TensorRef* srcX, TensorRef* srcY, TensorRef* srcZ);
 
 
 OPS_API int TS_MaskFill(TensorRef* result, TensorRef* t, TensorRef* mask, float defValue);

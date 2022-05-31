@@ -75,17 +75,25 @@ namespace SeqWebApps.Controllers
 
             }
 
-            string outputText = Seq2SeqInstance.Call(tgtInputText, tgtInputText, tokenNumToGenerate, random, repeatPenalty);
-            outputText = prefixTgtLine.Trim() + outputText.Trim();
-            outputText = outputText.Trim();
-
-            // Update logs and dump it every 1 hour when a call comes in.
             string logStr = $"Client = '{clientIP}', SrcInput Text = '{srcInputText}', Repeat Penalty = '{repeatPenalty}', Target Context Size = '{tgtContextSize}'";
             lock (locker)
             {
                 if (dictInputSents.ContainsKey(logStr) == false)
                 {
                     Logger.WriteLine(logStr);
+                }
+            }
+
+            string outputText = Seq2SeqInstance.Call(tgtInputText, tgtInputText, tokenNumToGenerate, random, repeatPenalty);
+            outputText = prefixTgtLine.Trim() + outputText.Trim();
+            outputText = outputText.Trim();
+
+            // Update logs and dump it every 1 hour when a call comes in.
+
+            lock (locker)
+            {
+                if (dictInputSents.ContainsKey(logStr) == false)
+                {
                     dictInputSents.Add(logStr, outputText);
                 }
                 else
