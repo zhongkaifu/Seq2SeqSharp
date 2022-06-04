@@ -161,43 +161,51 @@ __global__ void scatterFill_kernel(
 
         public Tensor Gather(Tensor result, Tensor src, int dim, Tensor indices)
         {
-            TSCudaContext context = CudaHelpers.TSContextForTensor(src);
-            CudaContext cudaContext = context.CudaContextForTensor(src);
-
-            if (result != null && result.DimensionCount != src.DimensionCount)
+            try
             {
-                throw new InvalidOperationException("result and src must have same number of dimensions");
-            }
+                TSCudaContext context = CudaHelpers.TSContextForTensor(src);
+                CudaContext cudaContext = context.CudaContextForTensor(src);
 
-            if (result != null && dim < 0 && dim >= result.DimensionCount)
+                if (result != null && result.DimensionCount != src.DimensionCount)
+                {
+                    throw new InvalidOperationException("result and src must have same number of dimensions");
+                }
+
+                if (result != null && dim < 0 && dim >= result.DimensionCount)
+                {
+                    throw new ArgumentOutOfRangeException("dim");
+                }
+
+                if (indices.DimensionCount != src.DimensionCount)
+                {
+                    throw new InvalidOperationException("src and indices must have same number of dimensions");
+                }
+
+                if (result != null && !result.IsSameSizeAs(indices))
+                {
+                    throw new InvalidOperationException("result and indices must be the same size");
+                }
+
+                if (result != null && !TensorResultBuilder.ArrayEqualExcept(src.Sizes, result.Sizes, dim))
+                {
+                    throw new InvalidOperationException("result and src must be the same size except in dimension dim");
+                }
+
+                Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, indices.Allocator, src.ElementType, false, indices.Sizes);
+
+                long nElement = indices.ElementCount();
+                dim3 block = ApplyUtils.GetApplyBlock();
+                dim3 grid = ApplyUtils.GetApplyGrid(context.DeviceInfoForContext(cudaContext), nElement);
+
+                Invoke(context, cudaContext, "gather_kernel", grid, block, 0, CUstream.NullStream, false, writeTarget, src, indices, dim, nElement);
+
+                return writeTarget;
+            }
+            catch (Exception err)
             {
-                throw new ArgumentOutOfRangeException("dim");
+                Logger.WriteLine($"Error = '{err.Message}', Call stack = '{err.StackTrace}'");
+                throw;
             }
-
-            if (indices.DimensionCount != src.DimensionCount)
-            {
-                throw new InvalidOperationException("src and indices must have same number of dimensions");
-            }
-
-            if (result != null && !result.IsSameSizeAs(indices))
-            {
-                throw new InvalidOperationException("result and indices must be the same size");
-            }
-
-            if (result != null && !TensorResultBuilder.ArrayEqualExcept(src.Sizes, result.Sizes, dim))
-            {
-                throw new InvalidOperationException("result and src must be the same size except in dimension dim");
-            }
-
-            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, indices.Allocator, src.ElementType, false, indices.Sizes);
-
-            long nElement = indices.ElementCount();
-            dim3 block = ApplyUtils.GetApplyBlock();
-            dim3 grid = ApplyUtils.GetApplyGrid(context.DeviceInfoForContext(cudaContext), nElement);
-
-            Invoke(context, cudaContext, "gather_kernel", grid, block, 0, CUstream.NullStream, false, writeTarget, src, indices, dim, nElement);
-
-            return writeTarget;
         }
 
         public Tensor Scatter(Tensor result, Tensor src, int dim, Tensor indices)

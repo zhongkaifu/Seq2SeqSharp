@@ -115,8 +115,10 @@ namespace Seq2SeqSharp.Tools
         private DateTime m_lastCheckPointDateTime = DateTime.Now;
         private readonly float m_validIntervalHours = 1.0f;
         private int m_updateFreq = 1;
+        private int m_startToRunValidAfterUpdates = 20000;
 
-        public BaseSeq2SeqFramework(string deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, string compilerOptions = null, float validIntervalHours = 1.0f, int primaryTaskId = 0, int updateFreq = 1)
+        public BaseSeq2SeqFramework(string deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, 
+            string compilerOptions = null, float validIntervalHours = 1.0f, int primaryTaskId = 0, int updateFreq = 1, int startToRunValidAfterUpdates = 0)
         {
             m_deviceIds = deviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
             string[] cudaCompilerOptions = compilerOptions.IsNullOrEmpty() ? null : compilerOptions.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -127,17 +129,20 @@ namespace Seq2SeqSharp.Tools
             m_validIntervalHours = validIntervalHours;
             m_primaryTaskId = primaryTaskId;
             m_updateFreq = updateFreq;
+            m_startToRunValidAfterUpdates = startToRunValidAfterUpdates;
         }
 
-        public BaseSeq2SeqFramework(int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, float validIntervalHours = 1.0f, int primaryTaskId = 0, int updateFreq = 1)
-        {
-            m_deviceIds = deviceIds;
-            m_modelFilePath = modelFilePath;
-            m_validIntervalHours = validIntervalHours;
-            m_primaryTaskId = primaryTaskId;
-            m_updateFreq = updateFreq;
-            TensorAllocator.InitDevices(processorType, m_deviceIds, memoryUsageRatio, compilerOptions);
-        }
+        //public BaseSeq2SeqFramework(int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, 
+        //    string[] compilerOptions = null, float validIntervalHours = 1.0f, int primaryTaskId = 0, int updateFreq = 1, int startToRunValidAfterUpdates = 0)
+        //{
+        //    m_deviceIds = deviceIds;
+        //    m_modelFilePath = modelFilePath;
+        //    m_validIntervalHours = validIntervalHours;
+        //    m_primaryTaskId = primaryTaskId;
+        //    m_updateFreq = updateFreq;
+        //    m_startToRunValidAfterUpdates = startToRunValidAfterUpdates;
+        //    TensorAllocator.InitDevices(processorType, m_deviceIds, memoryUsageRatio, compilerOptions);
+        //}
 
         public virtual List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, int deviceIdIdx, bool isTraining, DecodingOptions decodingOptions)
             => throw new NotImplementedException("RunForwardOnSingleDevice is not implemented.");
@@ -466,7 +471,7 @@ namespace Seq2SeqSharp.Tools
 
                     // Evaluate model every hour and save it if we could get a better one.
                     TimeSpan ts = DateTime.Now - m_lastCheckPointDateTime;
-                    if (ts.TotalHours > m_validIntervalHours)
+                    if (ts.TotalHours > m_validIntervalHours && m_weightsUpdateCount >= m_startToRunValidAfterUpdates)
                     {
                         CreateCheckPoint(validCorpusList, taskId2metrics, decodingOptions, forwardOnSingleDevice, avgCostPerWordInTotal);
                         m_lastCheckPointDateTime = DateTime.Now;

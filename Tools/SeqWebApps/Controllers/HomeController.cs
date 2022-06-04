@@ -82,8 +82,8 @@ namespace SeqWebApps.Controllers
                 {
                     Logger.WriteLine(logStr);
                 }
-            }
 
+            }
             string outputText = Seq2SeqInstance.Call(tgtInputText, tgtInputText, tokenNumToGenerate, random, repeatPenalty);
             outputText = prefixTgtLine.Trim() + outputText.Trim();
             outputText = outputText.Trim();
@@ -92,13 +92,14 @@ namespace SeqWebApps.Controllers
 
             lock (locker)
             {
+                string truncatedOutput = outputText.Replace(srcInputText, "");
                 if (dictInputSents.ContainsKey(logStr) == false)
                 {
-                    dictInputSents.Add(logStr, outputText);
+                    dictInputSents.Add(logStr, truncatedOutput);
                 }
                 else
                 {
-                    dictInputSents[logStr] = outputText;
+                    dictInputSents[logStr] = truncatedOutput;
                 }
                 if (DateTime.Now - m_dtLastDumpLogs >= TimeSpan.FromHours(1.0))
                 {
@@ -121,8 +122,8 @@ namespace SeqWebApps.Controllers
                 }
             }
 
-            var outputSents = SplitSents(outputText);
 
+            var outputSents = SplitSents(outputText);
             return String.Join("<br />", outputSents);
 
         }

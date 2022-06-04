@@ -142,6 +142,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("The batch size during validation", nameof(ValBatchSize))]
         public int ValBatchSize = 1;
 
+        [Arg("Start to run validation after N updates. Default is 20,000", nameof(StartValidAfterUpdates))]
+        public int StartValidAfterUpdates = 20000;
+
         [Arg("Valid corpus folder path", nameof(ValidCorpusPaths))]
         public string ValidCorpusPaths = null;
 

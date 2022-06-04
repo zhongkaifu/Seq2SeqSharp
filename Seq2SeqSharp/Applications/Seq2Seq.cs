@@ -43,7 +43,9 @@ namespace Seq2SeqSharp
         private MemoryCache m_memoryCache;
 
         public Seq2Seq(Seq2SeqOptions options, Vocab srcVocab = null, Vocab tgtVocab = null)
-            : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions, options.ValidIntervalHours, updateFreq: options.UpdateFreq)
+            : base(deviceIds: options.DeviceIds, processorType: options.ProcessorType, modelFilePath: options.ModelFilePath, memoryUsageRatio: options.MemoryUsageRatio, 
+                  compilerOptions: options.CompilerOptions, validIntervalHours: options.ValidIntervalHours, updateFreq: options.UpdateFreq, 
+                  startToRunValidAfterUpdates: options.StartValidAfterUpdates)
         {
             m_shuffleType = options.ShuffleType;
             m_options = options;
