@@ -55,6 +55,17 @@ namespace SeqWebApps.Controllers
 
         private string CallBackend(string srcInputText, string tgtInputText, int tokenNumToGenerate, bool random, float repeatPenalty, int tgtContextSize, string clientIP)
         {
+            if (String.IsNullOrEmpty(srcInputText))
+            {
+                srcInputText = "";
+            }
+
+            if (String.IsNullOrEmpty(tgtInputText))
+            {
+                tgtInputText = "";
+            }
+
+
             srcInputText = srcInputText.Replace("<br />", "");
             tgtInputText = tgtInputText.Replace("<br />", "");
 
