@@ -471,7 +471,7 @@ namespace Seq2SeqSharp.Tools
 
                     // Evaluate model every hour and save it if we could get a better one.
                     TimeSpan ts = DateTime.Now - m_lastCheckPointDateTime;
-                    if (ts.TotalHours > m_validIntervalHours && m_weightsUpdateCount >= m_startToRunValidAfterUpdates)
+                    if (ts.TotalHours > m_validIntervalHours)
                     {
                         CreateCheckPoint(validCorpusList, taskId2metrics, decodingOptions, forwardOnSingleDevice, avgCostPerWordInTotal);
                         m_lastCheckPointDateTime = DateTime.Now;
@@ -634,28 +634,32 @@ namespace Seq2SeqSharp.Tools
 
         private void CreateCheckPoint(IParallelCorpus<ISntPairBatch>[] validCorpusList, Dictionary<int, List<IMetric>> taskId2metrics, DecodingOptions decodingOptions, Func<IComputeGraph, ISntPairBatch, int, bool, DecodingOptions, List<NetworkResult>> forwardOnSingleDevice, double avgCostPerWordInTotal)
         {
-            if (validCorpusList != null && validCorpusList.Length > 0)
+            // We start to run validation after {startToRunValidAfterUpdates}
+            if (m_weightsUpdateCount >= m_startToRunValidAfterUpdates)
             {
-                ReleaseGradientOnAllDevices();
-
-                // The valid corpus is provided, so evaluate the model.
-                for (int i = 0; i < validCorpusList.Length; i++)
+                if (validCorpusList != null && validCorpusList.Length > 0)
                 {
-                    var validCorpus = validCorpusList[i];
-                    var betterResult = RunValid(validCorpus, forwardOnSingleDevice, taskId2metrics, decodingOptions, outputToFile: true, prefixName: validCorpus.CorpusName);
+                    ReleaseGradientOnAllDevices();
 
-                    if ((i == 0 && betterResult == true) || File.Exists(m_modelFilePath) == false)
+                    // The valid corpus is provided, so evaluate the model.
+                    for (int i = 0; i < validCorpusList.Length; i++)
                     {
-                        //---SaveModel_As_BinaryFormatter();
-                        SaveModel(createBackupPrevious: true);
+                        var validCorpus = validCorpusList[i];
+                        var betterResult = RunValid(validCorpus, forwardOnSingleDevice, taskId2metrics, decodingOptions, outputToFile: true, prefixName: validCorpus.CorpusName);
+
+                        if ((i == 0 && betterResult == true) || File.Exists(m_modelFilePath) == false)
+                        {
+                            //---SaveModel_As_BinaryFormatter();
+                            SaveModel(createBackupPrevious: true);
+                        }
                     }
                 }
-            }
-            else if (m_avgCostPerWordInTotalInLastEpoch > avgCostPerWordInTotal || File.Exists(m_modelFilePath) == false)
-            {
-                // We don't have valid corpus, so if we could have lower cost, save the model
-                //---SaveModel_As_BinaryFormatter();
-                SaveModel(createBackupPrevious: true);
+                else if (m_avgCostPerWordInTotalInLastEpoch > avgCostPerWordInTotal || File.Exists(m_modelFilePath) == false)
+                {
+                    // We don't have valid corpus, so if we could have lower cost, save the model
+                    //---SaveModel_As_BinaryFormatter();
+                    SaveModel(createBackupPrevious: true);
+                }
             }
 
             SaveModel(createBackupPrevious: false, suffix: ".latest");
@@ -869,10 +873,6 @@ namespace Seq2SeqSharp.Tools
         /// <returns>true if we get a better result on primary metric, otherwise, false</returns>
         internal bool RunValid(IParallelCorpus<ISntPairBatch> validCorpus, Func<IComputeGraph, ISntPairBatch, int, bool, DecodingOptions, List<NetworkResult>> RunNetwork, Dictionary<int, List<IMetric>> taskId2metrics, DecodingOptions decodingOptions, bool outputToFile = false, string prefixName = "valid")
         {
-            List<string> srcSents = new List<string>();
-            List<string> refSents = new List<string>();
-            List<string> hypSents = new List<string>();
-
             double bestPrimaryScore = 0.0;
             if (m_bestPrimaryScoreDict.ContainsKey(prefixName) == false)
             {
@@ -892,6 +892,27 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
+            string srcFileName = $"{prefixName}_src.txt";
+            string refFileName = $"{prefixName}_ref.txt";
+            string hypFileName = $"{prefixName}_hyp.txt";
+            if (outputToFile)
+            {
+                if (File.Exists(srcFileName))
+                {
+                    File.Delete(srcFileName);
+                }
+
+                if (File.Exists(refFileName))
+                {
+                    File.Delete(refFileName);
+                }
+
+                if (File.Exists(hypFileName))
+                {
+                    File.Delete(hypFileName);
+                }
+            }
+
             CopyWeightsFromDefaultDeviceToAllOtherDevices();
 
             List<ISntPairBatch> sntPairBatchs = new List<ISntPairBatch>();
@@ -900,14 +921,14 @@ namespace Seq2SeqSharp.Tools
                 sntPairBatchs.Add(item);
                 if (sntPairBatchs.Count == DeviceIds.Length)
                 {
-                    RunValidParallel(RunNetwork, taskId2metrics, decodingOptions, outputToFile, srcSents, refSents, hypSents, sntPairBatchs);
+                    RunValidParallel(RunNetwork, taskId2metrics, decodingOptions, prefixName, outputToFile, sntPairBatchs);
                     sntPairBatchs.Clear();
                 }
             }
 
             if (sntPairBatchs.Count > 0)
             {
-                RunValidParallel(RunNetwork, taskId2metrics, decodingOptions, outputToFile, srcSents, refSents, hypSents, sntPairBatchs);
+                RunValidParallel(RunNetwork, taskId2metrics, decodingOptions, prefixName, outputToFile, sntPairBatchs);
             }
 
             bool betterModel = false;
@@ -955,18 +976,15 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
-            if (outputToFile)
-            {
-                File.WriteAllLines($"{prefixName}_src.txt", srcSents);
-                File.WriteAllLines($"{prefixName}_ref.txt", refSents);
-                File.WriteAllLines($"{prefixName}_hyp.txt", hypSents);
-            }
-
             return betterModel;
         }
 
-        private void RunValidParallel(Func<IComputeGraph, ISntPairBatch, int, bool, DecodingOptions, List<NetworkResult>> runNetwork, Dictionary<int, List<IMetric>> metrics, DecodingOptions decodingOptions, bool outputToFile, List<string> srcSents, List<string> refSents, List<string> hypSents, List<ISntPairBatch> sntPairBatchs)
+        private void RunValidParallel(Func<IComputeGraph, ISntPairBatch, int, bool, DecodingOptions, List<NetworkResult>> runNetwork, Dictionary<int, List<IMetric>> metrics, DecodingOptions decodingOptions, string taskPrefixName, bool outputToFile, List<ISntPairBatch> sntPairBatchs)
         {
+            string srcFileName = $"{taskPrefixName}_src.txt";
+            string refFileName = $"{taskPrefixName}_ref.txt";
+            string hypFileName = $"{taskPrefixName}_hyp.txt";
+
             // Run forward on all available processors
             Parallel.For(0, m_deviceIds.Length, i =>
             {
@@ -1044,9 +1062,9 @@ namespace Seq2SeqSharp.Tools
 
                         if (outputToFile)
                         {
-                            srcSents.AddRange(newSrcSnts);
-                            refSents.AddRange(newRefSnts);
-                            hypSents.AddRange(newHypSnts);
+                            File.AppendAllLines($"{taskPrefixName}_src.txt", newSrcSnts);
+                            File.AppendAllLines($"{taskPrefixName}_ref.txt", newRefSnts);
+                            File.AppendAllLines($"{taskPrefixName}_hyp.txt", newHypSnts);
                         }
 
                     }
