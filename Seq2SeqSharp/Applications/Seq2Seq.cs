@@ -44,7 +44,7 @@ namespace Seq2SeqSharp
 
         public Seq2Seq(Seq2SeqOptions options, Vocab srcVocab = null, Vocab tgtVocab = null)
             : base(deviceIds: options.DeviceIds, processorType: options.ProcessorType, modelFilePath: options.ModelFilePath, memoryUsageRatio: options.MemoryUsageRatio, 
-                  compilerOptions: options.CompilerOptions, validIntervalHours: options.ValidIntervalHours, updateFreq: options.UpdateFreq, 
+                  compilerOptions: options.CompilerOptions, runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq, 
                   startToRunValidAfterUpdates: options.StartValidAfterUpdates)
         {
             m_shuffleType = options.ShuffleType;
@@ -70,8 +70,6 @@ namespace Seq2SeqSharp
 
                 // Model file exists, so we load it from file.
                 m_modelMetaData = LoadModelImpl_WITH_CONVERT(CreateTrainableParameters);
-                //m_modelMetaData = LoadModelImpl();
-                //---LoadModel_As_BinaryFormatter( CreateTrainableParameters );
             }
             else
             {

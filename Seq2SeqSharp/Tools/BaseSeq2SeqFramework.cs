@@ -112,13 +112,12 @@ namespace Seq2SeqSharp.Tools
         private readonly int m_primaryTaskId = 0;
         private readonly object locker = new object();
         private SortedList<string, IMultiProcessorNetworkWrapper> m_name2network;
-        private DateTime m_lastCheckPointDateTime = DateTime.Now;
-        private readonly float m_validIntervalHours = 1.0f;
         private int m_updateFreq = 1;
         private int m_startToRunValidAfterUpdates = 20000;
+        private int m_runValidEveryUpdates = 10000;
 
         public BaseSeq2SeqFramework(string deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, 
-            string compilerOptions = null, float validIntervalHours = 1.0f, int primaryTaskId = 0, int updateFreq = 1, int startToRunValidAfterUpdates = 0)
+            string compilerOptions = null, int runValidEveryUpdates = 10000, int primaryTaskId = 0, int updateFreq = 1, int startToRunValidAfterUpdates = 0)
         {
             m_deviceIds = deviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
             string[] cudaCompilerOptions = compilerOptions.IsNullOrEmpty() ? null : compilerOptions.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -126,23 +125,11 @@ namespace Seq2SeqSharp.Tools
             m_modelFilePath = modelFilePath;
             TensorAllocator.InitDevices(processorType, m_deviceIds, memoryUsageRatio, cudaCompilerOptions);
 
-            m_validIntervalHours = validIntervalHours;
             m_primaryTaskId = primaryTaskId;
             m_updateFreq = updateFreq;
             m_startToRunValidAfterUpdates = startToRunValidAfterUpdates;
+            m_runValidEveryUpdates = runValidEveryUpdates;
         }
-
-        //public BaseSeq2SeqFramework(int[] deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, 
-        //    string[] compilerOptions = null, float validIntervalHours = 1.0f, int primaryTaskId = 0, int updateFreq = 1, int startToRunValidAfterUpdates = 0)
-        //{
-        //    m_deviceIds = deviceIds;
-        //    m_modelFilePath = modelFilePath;
-        //    m_validIntervalHours = validIntervalHours;
-        //    m_primaryTaskId = primaryTaskId;
-        //    m_updateFreq = updateFreq;
-        //    m_startToRunValidAfterUpdates = startToRunValidAfterUpdates;
-        //    TensorAllocator.InitDevices(processorType, m_deviceIds, memoryUsageRatio, compilerOptions);
-        //}
 
         public virtual List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, int deviceIdIdx, bool isTraining, DecodingOptions decodingOptions)
             => throw new NotImplementedException("RunForwardOnSingleDevice is not implemented.");
@@ -157,70 +144,10 @@ namespace Seq2SeqSharp.Tools
             // Create computing graph instance and return it
             return new ComputeGraphTensor(new WeightTensorFactory(), DeviceIds[deviceIdIdx], needBack);
         }
-
-        //public bool SaveModel_As_BinaryFormatter()
-        //{
-        //    try
-        //    {
-        //        Logger.WriteLine($"Saving model to '{m_modelFilePath}'");
-
-        //        if (File.Exists(m_modelFilePath))
-        //        {
-        //            File.Copy(m_modelFilePath, $"{m_modelFilePath}.bak", true);
-        //        }
-
-        //        BinaryFormatter bf = new BinaryFormatter();
-        //        using (FileStream fs = new FileStream(m_modelFilePath, FileMode.Create, FileAccess.Write))
-        //        {
-        //            SaveParameters();
-        //            // Save model meta data to the stream
-        //            bf.Serialize(fs, m_modelMetaData);
-        //            // All networks and tensors which are MultiProcessorNetworkWrapper<T> will be saved to given stream
-
-        //        }
-
-        //        return true;
-        //    }
-        //    catch (Exception err)
-        //    {
-        //        Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Failed to save model to file. Exception = '{err.Message}', Callstack = '{err.StackTrace}'");
-        //        return false;
-        //    }
-        //}
-        //public void LoadModel_As_BinaryFormatter(Func<T, bool> InitializeParameters)
-        //{
-        //    Logger.WriteLine($"Loading model from '{m_modelFilePath}'...");
-        //    BinaryFormatter bf = new BinaryFormatter();
-        //    using (FileStream fs = new FileStream(m_modelFilePath, FileMode.Open, FileAccess.Read))
-        //    {
-        //        m_modelMetaData = bf.Deserialize(fs) as T;
-
-        //        //Initialize parameters on devices
-        //        InitializeParameters(m_modelMetaData);
-
-        //        // Load embedding and weights from given model
-        //        // All networks and tensors which are MultiProcessorNetworkWrapper<T> will be loaded from given stream
-        //        LoadParameters();
-        //    }
-
-        //    //For multi-GPUs, copying weights from default device to other all devices
-        //    CopyWeightsFromDefaultDeviceToAllOtherDevices();
-        //}
-
+      
         protected T LoadModelImpl_WITH_CONVERT(Func<T, bool> initializeParametersFunc)
         {
-            //try
-            //{
                 return (LoadModelImpl());
-            //}
-            //catch (ProtoBuf.ProtoException ex)
-            //{
-            //    System.Diagnostics.Debug.WriteLine(ex);
-
-            //    LoadModel_As_BinaryFormatter(initializeParametersFunc);
-            //    SaveModel(createBackupPrevious: true);
-            //    return (m_modelMetaData);
-            //}
         }
 
         public bool SaveModel(bool createBackupPrevious = false, string suffix = "") => SaveModelImpl(m_modelMetaData, createBackupPrevious, suffix);
@@ -469,14 +396,7 @@ namespace Seq2SeqSharp.Tools
                         }
                     }
 
-                    // Evaluate model every hour and save it if we could get a better one.
-                    TimeSpan ts = DateTime.Now - m_lastCheckPointDateTime;
-                    if (ts.TotalHours > m_validIntervalHours)
-                    {
-                        CreateCheckPoint(validCorpusList, taskId2metrics, decodingOptions, forwardOnSingleDevice, avgCostPerWordInTotal);
-                        m_lastCheckPointDateTime = DateTime.Now;
-                    }
-
+                    CreateCheckPoint(validCorpusList, taskId2metrics, decodingOptions, forwardOnSingleDevice, avgCostPerWordInTotal);
                     sntPairBatchs.Clear();
                 }
             }
@@ -635,7 +555,7 @@ namespace Seq2SeqSharp.Tools
         private void CreateCheckPoint(IParallelCorpus<ISntPairBatch>[] validCorpusList, Dictionary<int, List<IMetric>> taskId2metrics, DecodingOptions decodingOptions, Func<IComputeGraph, ISntPairBatch, int, bool, DecodingOptions, List<NetworkResult>> forwardOnSingleDevice, double avgCostPerWordInTotal)
         {
             // We start to run validation after {startToRunValidAfterUpdates}
-            if (m_weightsUpdateCount >= m_startToRunValidAfterUpdates)
+            if (m_weightsUpdateCount >= m_startToRunValidAfterUpdates && m_weightsUpdateCount % m_runValidEveryUpdates == 0)
             {
                 if (validCorpusList != null && validCorpusList.Length > 0)
                 {

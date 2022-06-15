@@ -33,7 +33,8 @@ namespace Seq2SeqSharp
         private readonly SeqLabelOptions m_options;
 
         public SeqLabel(SeqLabelOptions options, Vocab srcVocab = null, Vocab clsVocab = null)
-            : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions, options.ValidIntervalHours, updateFreq: options.UpdateFreq)
+            : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions,
+                  runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq)
         {
             m_shuffleType = options.ShuffleType;
             m_options = options;

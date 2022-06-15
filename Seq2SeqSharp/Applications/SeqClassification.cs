@@ -36,7 +36,8 @@ namespace Seq2SeqSharp.Applications
         private readonly SeqClassificationOptions m_options;
 
         public SeqClassification(SeqClassificationOptions options, Vocab srcVocab = null, List<Vocab> clsVocabs = null)
-           : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions, options.ValidIntervalHours, updateFreq: options.UpdateFreq)
+           : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions,
+                 runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq)
         {
             m_shuffleType = options.ShuffleType;
             m_options = options;

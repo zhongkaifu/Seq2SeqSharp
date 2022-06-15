@@ -42,7 +42,9 @@ namespace Seq2SeqSharp.Applications
         public Vocab ClsVocab => m_modelMetaData.ClsVocab;
 
         public Seq2SeqClassification(Seq2SeqClassificationOptions options, Vocab srcVocab = null, Vocab tgtVocab = null, Vocab clsVocab = null)
-            : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions, options.ValidIntervalHours, options.PrimaryTaskId, updateFreq: options.UpdateFreq)
+            : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions, 
+                  runValidEveryUpdates: options.RunValidEveryUpdates, primaryTaskId: options.PrimaryTaskId, updateFreq: options.UpdateFreq, 
+                  startToRunValidAfterUpdates: options.StartValidAfterUpdates)
         {
             m_shuffleType = options.ShuffleType;
             m_options = options;

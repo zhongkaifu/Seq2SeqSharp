@@ -145,6 +145,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("Start to run validation after N updates. Default is 20,000", nameof(StartValidAfterUpdates))]
         public int StartValidAfterUpdates = 20000;
 
+        [Arg("Run validation every certain updates", nameof(RunValidEveryUpdates))]
+        public int RunValidEveryUpdates = 10000;
+
         [Arg("Valid corpus folder path", nameof(ValidCorpusPaths))]
         public string ValidCorpusPaths = null;
 
@@ -153,9 +156,6 @@ namespace Seq2SeqSharp.Applications
 
         [Arg("The number of updates for weights", nameof(WeightsUpdateCount))]
         public int WeightsUpdateCount = 0;
-
-        [Arg("The interval hours to run model validation", nameof(ValidIntervalHours))]
-        public float ValidIntervalHours = 1.0f;
 
         [Arg("The size of vocabulary in source side", nameof(SrcVocabSize))]
         public int SrcVocabSize = 45000;

@@ -39,7 +39,8 @@ namespace Seq2SeqSharp.Applications
         private MemoryCache m_memoryCache;
 
         public SeqSimilarity(SeqSimilarityOptions options, Vocab srcVocab = null, Vocab clsVocab = null)
-           : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions, options.ValidIntervalHours, updateFreq: options.UpdateFreq)
+           : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions,
+                 runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq)
         {
             m_shuffleType = options.ShuffleType;
             m_options = options;
