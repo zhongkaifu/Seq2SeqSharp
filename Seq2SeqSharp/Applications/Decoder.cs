@@ -239,7 +239,7 @@ namespace Seq2SeqSharp.Applications
         public static (float, List<List<BeamSearchStatus>>) DecodeTransformer(List<List<int>> tgtSeqs, IComputeGraph g, IWeightTensor encOutputs, TransformerDecoder decoder, IFeedForwardLayer decoderFFLayer,
             IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, float[] srcOriginalLenghts, Vocab tgtVocab, ShuffleEnums shuffleType, float dropoutRatio, DecodingOptions decodingOptions, bool isTraining = true,
             bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, IFeedForwardLayer pointerGenerator = null, List<List<int>> srcSeqs = null, Dictionary<string, IWeightTensor> cachedTensors = null, 
-            List<List<int>> alignmentsToSrc = null, List<List<float>> alignmentScoresToSrc = null)
+            List<List<int>> alignmentsToSrc = null, List<List<float>> alignmentScoresToSrc = null, bool teacherForcedAlignment = false)
         {
             int eosTokenId = tgtVocab.GetWordIndex(BuildInTokens.EOS, logUnk: true);
             int batchSize = tgtSeqs.Count;
@@ -271,7 +271,7 @@ namespace Seq2SeqSharp.Applications
             IWeightTensor decEncAttnProbs;
             (decOutput, decEncAttnProbs) = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g, outputAttnWeights: pointerGenerator != null, cachedTensors: cachedTensors);
 
-            if (isTraining == false)
+            if (isTraining == false && teacherForcedAlignment == false)
             {
                 // For inference, we only process last token of each sequence in order to speed up
                 float[] decOutputIdx = new float[batchSize];
@@ -351,11 +351,12 @@ namespace Seq2SeqSharp.Applications
 
                     float[] alignmentsIdx = null;
                     float[] alignmentScores = null;
-                    if (alignmentsToSrc != null)
+                    if (alignmentsToSrc != null || teacherForcedAlignment)
                     {
                         using var alignmentsIdxTensor = g.Argmax(decEncAttnProbs, 1);
                         alignmentsIdx = alignmentsIdxTensor.ToWeightArray();
 
+                        
                         using var alignmentScoresIdxTensor = g.Gather(probsCopy, alignmentsIdxTensor, 1);
                         alignmentScores = alignmentScoresIdxTensor.ToWeightArray();
                     }
@@ -365,22 +366,37 @@ namespace Seq2SeqSharp.Applications
                     for (int i = 0; i < batchSize; i++)
                     {
                         BeamSearchStatus bss = new BeamSearchStatus();
-                        bss.OutputIds.AddRange(tgtSeqs[i]);
-                        bss.OutputIds.Add((int)(targetIdx[i]));
-
-                        if (alignmentsIdx != null)
+                        if (teacherForcedAlignment)
                         {
-                            bss.AlignmentsToSrc.AddRange(alignmentsToSrc[i]);
-                            bss.AlignmentsToSrc.Add((int)(alignmentsIdx[i]));
+                            for (int j = 0; j < tgtSeqLen; j++)
+                            {
+                                bss.OutputIds.Add((int)targetIdx[i * tgtSeqLen + j]);
+                                bss.AlignmentsToSrc.Add((int)(alignmentsIdx[i * tgtSeqLen + j]));
+                                bss.AlignmentScores.Add(alignmentScores[i * tgtSeqLen + j]);
+                            }
+                        }
+                        else
+                        {
+                            bss.OutputIds.AddRange(tgtSeqs[i]);
+                            bss.OutputIds.Add((int)(targetIdx[i]));
 
-                            bss.AlignmentScores.AddRange(alignmentScoresToSrc[i]);
-                            bss.AlignmentScores.Add(alignmentScores[i]);
+                            if (alignmentsIdx != null)
+                            {
+                                bss.AlignmentsToSrc.AddRange(alignmentsToSrc[i]);
+                                bss.AlignmentsToSrc.Add((int)(alignmentsIdx[i]));
+
+                                bss.AlignmentScores.AddRange(alignmentScoresToSrc[i]);
+                                bss.AlignmentScores.Add(alignmentScores[i]);
+                            }
+
+                            if (outputSentScore)
+                            {
+                                bss.Score = previousBeamSearchResults[i].Score + -1.0f * gatherTensor.GetWeightAt(new long[] { i, 0 });
+                            }
                         }
 
-                        if (outputSentScore)
-                        {
-                            bss.Score = previousBeamSearchResults[i].Score + -1.0f * gatherTensor.GetWeightAt(new long[] { i, 0 });
-                        }
+
+
                         outputTgtSeqs.Add(bss);
                     }
 

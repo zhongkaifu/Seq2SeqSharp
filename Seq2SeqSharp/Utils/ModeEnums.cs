@@ -5,6 +5,7 @@
         Train,
         Valid,
         Test,
+        Alignment,
         DumpVocab,
         Help
     }

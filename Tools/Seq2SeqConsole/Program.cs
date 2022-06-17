@@ -130,7 +130,7 @@ namespace Seq2SeqConsole
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;
                     ss.Valid(validCorpus: validCorpus, metrics: metrics, decodingOptions: decodingOptions);
                 }
-                else if ( opts.Task == ModeEnums.Test )
+                else if ( opts.Task == ModeEnums.Test || opts.Task == ModeEnums.Alignment )
                 {
                     if (File.Exists(opts.OutputFile))
                     {
