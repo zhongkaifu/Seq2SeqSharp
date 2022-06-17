@@ -1,4 +1,14 @@
-﻿using AdvUtils;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using AdvUtils;
 using System;
 using TensorSharp.Core;
 using TensorSharp.CUDA.DeviceCode;
@@ -227,58 +237,66 @@ namespace TensorSharp.CUDA
         [RegisterOpStorageType("addmmbatch", typeof(CudaStorage))]
         public static Tensor AddmmBatch(Tensor result, float beta, Tensor src, float alpha, Tensor m1, Tensor m2)
         {
-            TSCudaContext context = CudaHelpers.TSContextForTensor(src);
-            if (src.ElementType != m1.ElementType || src.ElementType != m2.ElementType || (result != null && result.ElementType != src.ElementType))
+            try
             {
-                throw new InvalidOperationException("All tensors must have the same element type");
-            }
+                TSCudaContext context = CudaHelpers.TSContextForTensor(src);
+                if (src.ElementType != m1.ElementType || src.ElementType != m2.ElementType || (result != null && result.ElementType != src.ElementType))
+                {
+                    throw new InvalidOperationException("All tensors must have the same element type");
+                }
 
-            if (result != null && !(result.Storage is CudaStorage))
+                if (result != null && !(result.Storage is CudaStorage))
+                {
+                    throw new ArgumentException("result must be a CUDA tensor", nameof(result));
+                }
+
+                if (!(m1.Storage is CudaStorage))
+                {
+                    throw new ArgumentException("m1 must be a CUDA tensor", nameof(m1));
+                }
+
+                if (!(m2.Storage is CudaStorage))
+                {
+                    throw new ArgumentException("m2 must be a CUDA tensor", nameof(m2));
+                }
+
+                if (src.DimensionCount != 3)
+                {
+                    throw new ArgumentException("src must be a matrix", nameof(src));
+                }
+
+                if (m1.DimensionCount != 3)
+                {
+                    throw new ArgumentException("m1 must be a matrix", nameof(m1));
+                }
+
+                if (m2.DimensionCount != 3)
+                {
+                    throw new ArgumentException("m2 must be a matrix", nameof(m2));
+                }
+
+                if (src.Sizes[1] != m1.Sizes[1] || src.Sizes[2] != m2.Sizes[2] || m1.Sizes[2] != m2.Sizes[1])
+                {
+                    throw new InvalidOperationException($"Size mismatch, srcSize0 = {src.Sizes[0]}, m1Size0 = {m1.Sizes[0]}, srcSize1 = {src.Sizes[1]}, m2Size1 = {m2.Sizes[1]}, m1Size1 = '{m1.Sizes[1]}', m2Size0 = '{m2.Sizes[0]}'");
+                }
+
+                Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
+
+                if (writeTarget != src)
+                {
+                    Ops.Copy(writeTarget, src);
+                }
+
+                CudaMatrixMulMM.GemmBatch(context, alpha, m1, m2, beta, writeTarget);
+
+
+                return writeTarget;
+            }
+            catch (Exception err)
             {
-                throw new ArgumentException("result must be a CUDA tensor", nameof(result));
+                Logger.WriteLine(Logger.Level.err, $"Failed to run AddmmBatch on GPU. Error message = '{err.Message}', Call stack = '{err.StackTrace}'");
+                throw;
             }
-
-            if (!(m1.Storage is CudaStorage))
-            {
-                throw new ArgumentException("m1 must be a CUDA tensor", nameof(m1));
-            }
-
-            if (!(m2.Storage is CudaStorage))
-            {
-                throw new ArgumentException("m2 must be a CUDA tensor", nameof(m2));
-            }
-
-            if (src.DimensionCount != 3)
-            {
-                throw new ArgumentException("src must be a matrix", nameof(src));
-            }
-
-            if (m1.DimensionCount != 3)
-            {
-                throw new ArgumentException("m1 must be a matrix", nameof(m1));
-            }
-
-            if (m2.DimensionCount != 3)
-            {
-                throw new ArgumentException("m2 must be a matrix", nameof(m2));
-            }
-
-            if (src.Sizes[1] != m1.Sizes[1] || src.Sizes[2] != m2.Sizes[2] || m1.Sizes[2] != m2.Sizes[1])
-            {
-                throw new InvalidOperationException($"Size mismatch, srcSize0 = {src.Sizes[0]}, m1Size0 = {m1.Sizes[0]}, srcSize1 = {src.Sizes[1]}, m2Size1 = {m2.Sizes[1]}, m1Size1 = '{m1.Sizes[1]}', m2Size0 = '{m2.Sizes[0]}'");
-            }
-
-            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
-
-            if (writeTarget != src)
-            {
-                Ops.Copy(writeTarget, src);
-            }
-
-            CudaMatrixMulMM.GemmBatch(context, alpha, m1, m2, beta, writeTarget);
-
-
-            return writeTarget;
         }
 
         [RegisterOpStorageType("abs", typeof(CudaStorage))]

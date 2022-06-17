@@ -136,6 +136,10 @@ namespace Seq2SeqSharp.Applications
         [Arg("Training corpus folder path", nameof(TrainCorpusPath))]
         public string TrainCorpusPath = null;
 
+
+        [Arg("The max degress of parallelism in task. Default is 1", nameof(TaskParallelism))]
+        public int TaskParallelism = 1;
+
         [Arg("Update parameters every N batches. Default is 1", nameof(UpdateFreq))]
         public int UpdateFreq = 1;
 

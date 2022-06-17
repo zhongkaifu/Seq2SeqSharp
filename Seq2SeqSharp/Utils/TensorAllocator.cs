@@ -1,4 +1,14 @@
-﻿using AdvUtils;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using AdvUtils;
 using System;
 using TensorSharp;
 using TensorSharp.Cpu;
@@ -21,39 +31,35 @@ namespace Seq2SeqSharp
 
             if (m_archType == ProcessorTypeEnums.GPU)
             {
-                foreach (int id in m_deviceIds)
-                {
-                    Logger.WriteLine($"Initialize device '{id}'");
-                }
-
                 m_cudaContext = new TSCudaContext(m_deviceIds, memoryUsageRatio, compilerOptions);
                 m_cudaContext.Precompile(Console.Write);
                 m_cudaContext.CleanUnusedPTX();
+
+                foreach (int deviceId in m_deviceIds)
+                {
+                    Logger.WriteLine($"Initialize CUDA device '{deviceId}'");
+                    int idx = GetDeviceIdIndex(deviceId);
+                    m_allocator[idx] = new CudaAllocator(m_cudaContext, deviceId);
+                }
+
+            }
+            else
+            {
+                foreach (int deviceId in m_deviceIds)
+                {
+                    int idx = GetDeviceIdIndex(deviceId);
+                    m_allocator[idx] = new CpuAllocator();
+                }
             }
         }
 
         public static IAllocator Allocator(int deviceId)
         {
             int idx = GetDeviceIdIndex(deviceId);
-            if (m_archType == ProcessorTypeEnums.GPU)
-            {
-                if (m_allocator[idx] == null)
-                {
-                    m_allocator[idx] = new CudaAllocator(m_cudaContext, deviceId);
-                }
-            }
-            else
-            {
-                if (m_allocator[idx] == null)
-                {
-                    m_allocator[idx] = new CpuAllocator();
-                }
-            }
-
             return m_allocator[idx];
         }
 
-        private static int GetDeviceIdIndex(int id)
+        public static int GetDeviceIdIndex(int id)
         {
             for (int i = 0; i < m_deviceIds.Length; i++)
             {

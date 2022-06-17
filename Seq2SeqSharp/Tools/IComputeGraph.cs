@@ -16,6 +16,7 @@ namespace Seq2SeqSharp
 {
     public interface IComputeGraph : IDisposable
     {
+        int DeviceId { get; }
         IComputeGraph CreateSubGraph(string name);
         IWeightTensor Transpose(IWeightTensor w, int dim1, int dim2);
         IWeightTensor MulBatch(IWeightTensor m1, IWeightTensor m2, float alpha = 1.0f);

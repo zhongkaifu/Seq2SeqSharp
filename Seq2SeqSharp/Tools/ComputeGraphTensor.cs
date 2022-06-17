@@ -74,17 +74,11 @@ namespace Seq2SeqSharp.Tools
         private readonly WeightTensorFactory m_weightTensorFactory;
         private readonly ConcurrentList<Action> m_backprop;
         private readonly bool m_needsBackprop;
-      //  private readonly bool m_visNeuralNetwork;
         private readonly int m_deviceId;
         private readonly bool m_isSubGraph;
-
-        // Visualization for neural network
-       // private Microsoft.Msagl.Drawing.Graph m_opsViz;
-       // private HashSet<string> m_setEdges;
-        //private Microsoft.Msagl.Drawing.Subgraph m_subGraph = null;
-       // private Dictionary<string, Microsoft.Msagl.Drawing.Subgraph> m_name2SubGraph = null;
-
         private readonly List<IWeightTensor> m_tensorsBindToCurrentGraph;
+        public int DeviceId => m_deviceId;
+
 
         public ComputeGraphTensor(IWeightFactory weightFactory, int deviceId, bool needBack = true, ConcurrentList<Action> backprop = null, bool isSubGraph = false)
         {
@@ -92,16 +86,7 @@ namespace Seq2SeqSharp.Tools
             m_weightTensorFactory = weightFactory as WeightTensorFactory;
             m_needsBackprop = needBack;
             m_deviceId = deviceId;
-            //m_visNeuralNetwork = visNetwork;
             m_isSubGraph = isSubGraph;
-
-            //m_name2SubGraph = new Dictionary<string, Subgraph>();
-            //if (m_visNeuralNetwork)
-            //{
-            //    // Initialize parameters for neural network visualization
-            //    m_opsViz = new Microsoft.Msagl.Drawing.Graph();
-            //    m_setEdges = new HashSet<string>();
-            //}
 
             m_tensorsBindToCurrentGraph = new List<IWeightTensor>();
         }
@@ -114,37 +99,6 @@ namespace Seq2SeqSharp.Tools
         public IComputeGraph CreateSubGraph(string name)
         {
             ComputeGraphTensor subGraph = new ComputeGraphTensor(m_weightTensorFactory, m_deviceId, m_needsBackprop, m_backprop, isSubGraph: true);
-            //if (m_visNeuralNetwork)
-            //{
-            //    // Create parameters for neural network visualization
-            //    subGraph.m_opsViz = m_opsViz;
-            //    subGraph.m_setEdges = m_setEdges;
-            //    subGraph.m_name2SubGraph = m_name2SubGraph;
-            //    if (m_name2SubGraph.ContainsKey(name) == false)
-            //    {
-            //        int index = name.LastIndexOf(".");
-            //        subGraph.m_subGraph = new Subgraph(name)
-            //        {
-            //            LabelText = name.Substring(index + 1)
-            //        };
-
-            //        m_name2SubGraph.Add(name, subGraph.m_subGraph);
-
-            //        if (m_subGraph == null)
-            //        {
-            //            m_opsViz.RootSubgraph.AddSubgraph(subGraph.m_subGraph);
-            //        }
-            //        else
-            //        {
-            //            m_subGraph.AddSubgraph(subGraph.m_subGraph);
-            //        }
-            //    }
-            //    else
-            //    {
-            //        subGraph.m_subGraph = m_name2SubGraph[name];
-            //    }
-            //}
-
             return subGraph;
         }
 
