@@ -17,8 +17,9 @@ namespace Seq2SeqSharp.Corpus
         int currentIdx;
         int maxSentLength;
         int batchSize;
-        string[] srcLines;
-        string[] tgtLines;
+        IEnumerator<string> srcReader = null;
+        IEnumerator<string> tgtReader = null;
+
         SentencePiece srcSP = null;
         SentencePiece tgtSP = null;
 
@@ -29,15 +30,10 @@ namespace Seq2SeqSharp.Corpus
             this.batchSize = batchSize;
 
             Logger.WriteLine($"Loading lines from '{srcFilePath}'");
-            srcLines = File.ReadAllLines(srcFilePath);
+            srcReader = File.ReadLines(srcFilePath).GetEnumerator();
 
             Logger.WriteLine($"Loading lines from '{tgtFilePath}'");
-            tgtLines = File.ReadAllLines(tgtFilePath);
-
-            if (srcLines.Length != tgtLines.Length)
-            {
-                throw new DataMisalignedException($"The number of lines between source file '{srcFilePath}' (line# '{srcLines.Length}') and target file '{tgtFilePath}' (line# '{tgtLines.Length}') are different.");
-            }
+            tgtReader = File.ReadLines(tgtFilePath).GetEnumerator();
 
             if (String.IsNullOrEmpty(srcSPMPath) == false)
             {
@@ -62,9 +58,9 @@ namespace Seq2SeqSharp.Corpus
             {
                 int oldIdx = currentIdx;
 
-                for (int i = 0; i < batchSize && currentIdx < srcLines.Length; i++, currentIdx++)
+                for (int i = 0; i < batchSize && srcReader.MoveNext() && tgtReader.MoveNext(); i++, currentIdx++)
                 {
-                    string line = srcLines[currentIdx];
+                    string line = srcReader.Current;
                     if (srcSP != null)
                     {
                         line = srcSP.Encode(line);
@@ -72,7 +68,7 @@ namespace Seq2SeqSharp.Corpus
                     Misc.AppendNewBatch(inputBatchs, line, maxSentLength);
 
 
-                    line = tgtLines[currentIdx];
+                    line = tgtReader.Current;
                     if (tgtSP != null)
                     {
                         line = tgtSP.Encode(line);
