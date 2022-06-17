@@ -17,15 +17,16 @@ namespace Seq2SeqSharp.Corpus
         int currentIdx;
         int maxSentLength;
         int batchSize;
-        string[] lines;
         SentencePiece sp = null;
+        IEnumerator<string> reader = null;
 
         public SntBatchStreamReader(string filePath, int batchSize, int maxSentLength, string sentencePieceModelPath = null)
         {
             currentIdx = 0;
             this.maxSentLength = maxSentLength;
             this.batchSize = batchSize;
-            lines = File.ReadAllLines(filePath);
+            reader = File.ReadLines(filePath).GetEnumerator();
+
 
             if (String.IsNullOrEmpty(sentencePieceModelPath) == false)
             {
@@ -43,9 +44,9 @@ namespace Seq2SeqSharp.Corpus
             {
                 int oldIdx = currentIdx;
 
-                for (int i = 0; i < batchSize && currentIdx < lines.Length; i++, currentIdx++)
+                for (int i = 0; i < batchSize && reader.MoveNext(); i++, currentIdx++)
                 {
-                    string line = lines[currentIdx];
+                    string line = reader.Current;                                    
                     if (sp != null)
                     {
                         line = sp.Encode(line);
