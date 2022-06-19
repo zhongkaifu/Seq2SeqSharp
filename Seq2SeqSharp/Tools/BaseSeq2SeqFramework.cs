@@ -584,9 +584,9 @@ namespace Seq2SeqSharp.Tools
                     //---SaveModel_As_BinaryFormatter();
                     SaveModel(createBackupPrevious: true);
                 }
-            }
 
-            SaveModel(createBackupPrevious: false, suffix: ".latest");
+                SaveModel(createBackupPrevious: false, suffix: $".{m_weightsUpdateCount}");
+            }
         }
 
 

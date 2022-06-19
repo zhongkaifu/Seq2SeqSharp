@@ -47,20 +47,20 @@ namespace Seq2SeqConsole
 
                 DecodingOptions decodingOptions = opts.CreateDecodingOptions();
                 Seq2Seq ss = null;
-                if ( opts.Task == ModeEnums.Train )
+                if (opts.Task == ModeEnums.Train)
                 {
                     // Load train corpus
                     var trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
-                        maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence );
+                        maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence);
 
                     // Load valid corpus
                     var validCorpusList = new List<Seq2SeqCorpus>();
-                    if (!opts.ValidCorpusPaths.IsNullOrEmpty() )
+                    if (!opts.ValidCorpusPaths.IsNullOrEmpty())
                     {
                         string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
                         foreach (var validCorpusPath in validCorpusPathList)
                         {
-                            validCorpusList.Add(new Seq2SeqCorpus(validCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxValidSrcSentLength, opts.MaxValidTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence ));
+                            validCorpusList.Add(new Seq2SeqCorpus(validCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxValidSrcSentLength, opts.MaxValidTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence));
                         }
 
                     }
@@ -85,7 +85,7 @@ namespace Seq2SeqConsole
                         // Load or build vocabulary
                         Vocab srcVocab = null;
                         Vocab tgtVocab = null;
-                        if (!opts.SrcVocab.IsNullOrEmpty() && !opts.TgtVocab.IsNullOrEmpty() )
+                        if (!opts.SrcVocab.IsNullOrEmpty() && !opts.TgtVocab.IsNullOrEmpty())
                         {
                             Logger.WriteLine($"Loading source vocabulary from '{opts.SrcVocab}' and target vocabulary from '{opts.TgtVocab}'. Shared vocabulary is '{opts.SharedEmbeddings}'");
                             if (opts.SharedEmbeddings == true && (opts.SrcVocab != opts.TgtVocab))
@@ -116,7 +116,7 @@ namespace Seq2SeqConsole
                     // Kick off training
                     ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: metrics, decodingOptions: decodingOptions);
                 }
-                else if ( opts.Task == ModeEnums.Valid )
+                else if (opts.Task == ModeEnums.Valid)
                 {
                     Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPaths}'");
 
@@ -124,13 +124,13 @@ namespace Seq2SeqConsole
                     List<IMetric> metrics = CreateMetrics();
 
                     // Load valid corpus
-                    Seq2SeqCorpus validCorpus = new Seq2SeqCorpus(opts.ValidCorpusPaths, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxValidSrcSentLength, opts.MaxValidTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence );
+                    Seq2SeqCorpus validCorpus = new Seq2SeqCorpus(opts.ValidCorpusPaths, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxValidSrcSentLength, opts.MaxValidTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence);
 
                     ss = new Seq2Seq(opts);
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;
                     ss.Valid(validCorpus: validCorpus, metrics: metrics, decodingOptions: decodingOptions);
                 }
-                else if ( opts.Task == ModeEnums.Test || opts.Task == ModeEnums.Alignment )
+                else if (opts.Task == ModeEnums.Test)
                 {
                     if (File.Exists(opts.OutputFile))
                     {
@@ -156,7 +156,32 @@ namespace Seq2SeqConsole
 
                     Logger.WriteLine($"Test mode execution time elapsed: '{stopwatch.Elapsed}'");
                 }
-                else if ( opts.Task == ModeEnums.DumpVocab )
+                else if (opts.Task == ModeEnums.Alignment)
+                {
+                    if (File.Exists(opts.OutputAlignmentsFile))
+                    {
+                        Logger.WriteLine(Logger.Level.err, ConsoleColor.Yellow, $"Output file '{opts.OutputAlignmentsFile}' exist. Delete it.");
+                        File.Delete(opts.OutputFile);
+                    }
+
+                    //Test trained model
+                    ss = new Seq2Seq(opts);
+                    Stopwatch stopwatch = Stopwatch.StartNew();
+
+                    if (String.IsNullOrEmpty(opts.OutputPromptFile))
+                    {
+                        Logger.WriteLine(Logger.Level.err, $"The prompt file for output is required for alignment task.");
+                        return;
+                    }
+
+                    Logger.WriteLine($"Test with prompt file '{opts.OutputPromptFile}'");
+                    ss.Test<Seq2SeqCorpusBatch>(opts.InputTestFile, opts.OutputPromptFile, null, opts.BatchSize, decodingOptions, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath, opts.OutputAlignmentsFile);
+
+                    stopwatch.Stop();
+
+                    Logger.WriteLine($"Alignment mode execution time elapsed: '{stopwatch.Elapsed}'");
+                }
+                else if (opts.Task == ModeEnums.DumpVocab)
                 {
                     ss = new Seq2Seq(opts);
                     ss.DumpVocabToFiles(opts.SrcVocab, opts.TgtVocab);
