@@ -73,8 +73,6 @@ Parameters:
 **-ModelFilePath**: The model file path for training and testing.  
 **-SrcVocab**: The vocabulary file path for source side.  
 **-TgtVocab**: The vocabulary file path for target side.  
-**-SrcEmbedding**: The external embedding model file path for source side. It is built by Txt2Vec project.  
-**-TgtEmbedding**: The external embedding model file path for target side. It is built by Txt2Vec project.  
 **-SrcLang**: Source language name.  
 **-TgtLang**: Target language name.  
 **-TrainCorpusPath**: training corpus folder path  
@@ -86,19 +84,18 @@ Parameters:
 **-Dropout**: Dropout ratio. Defaul is 0.1  
 **-ProcessorType**: Processor type: CPU or GPU(Cuda)  
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
+**-TaskParallelism**: The max degress of parallelism in task. Default is 1  
 **-MaxEpochNum**: Maxmium epoch number during training. Default is 100  
-**-MaxTrainSrcSentLength**: Maxmium source sentence length on training set. Default is 110 tokens  
-**-MaxTrainTgtSentLength**: Maxmium target sentence length on training set. Default is 110 tokens  
-**-MaxTestSrcSentLength**: Maxmium source sentence length on valid/test set. Default is 110 tokens  
-**-MaxTestTgtSentLength**: Maxmium target sentence length on valid/test set. Default is 110 tokens  
+**-MaxSrcSentLength**: Maxmium source sentence length on training and test set. Default is 110 tokens  
+**-MaxTgtSentLength**: Maxmium target sentence length on training and test set. Default is 110 tokens  
+**-MaxValidSrcSentLength**: Maxmium source sentence length on valid set. Default is 110 tokens  
+**-MaxValidTgtSentLength**: Maxmium target sentence length on valid set. Default is 110 tokens  
 **-WarmUpSteps**: The number of steps for warming up. Default is 8,000  
 **-EnableTagEmbeddings**: Enable tag embeddings in encoder. The tag embeddings will be added to token embeddings. Default is false  
 **-CompilerOptions**: The options for CUDA NVRTC compiler. Options are split by space. For example: "--use_fast_math --gpu-architecture=compute_60" means to use fast math libs and run on Pascal and above GPUs  
 **-Optimizer**: The weights optimizer during training. It supports Adam and RMSProp. Adam is default  
 
-Note that:  
-  1) if "-SrcVocab" and "-TgtVocab" are empty, vocabulary will be built from training corpus.  
-  2) Txt2Vec for external embedding model building can get downloaded from https://github.com/zhongkaifu/Txt2Vec  
+Note that if "-SrcVocab" and "-TgtVocab" are empty, vocabulary will be built from training corpus.  
 
 Example: Seq2SeqConsole.exe -Task Train -SrcEmbeddingDim 512 -TgtEmbeddingDim 512 -HiddenSize 512 -LearningRate 0.002 -ModelFilePath seq2seq.model -TrainCorpusPath .\corpus -ValidCorpusPath .\corpus_valid -SrcLang ENU -TgtLang CHS -BatchSize 256 -ProcessorType GPU -EncoderType Transformer -EncoderLayerDepth 6 -DecoderLayerDepth 2 -MultiHeadNum 8 -DeviceIds 0,1,2,3,4,5,6,7  
 
@@ -127,8 +124,8 @@ Parameters:
 **-ProcessorType**: Architecture type: CPU or GPU 
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
 **-BeamSearchSize**: Beam search size. Default is 1  
-**-MaxTestSrcSentLength**: Maxmium source sentence length on valid/test set. Default is 110 tokens  
-**-MaxTestTgtSentLength**: Maxmium target sentence length on valid/test set. Default is 110 tokens  
+**-MaxSrcSentLength**: Maxmium source sentence length on valid/test set. Default is 110 tokens  
+**-MaxTgtSentLength**: Maxmium target sentence length on valid/test set. Default is 110 tokens  
 
 Example: Seq2SeqConsole.exe -Task Test -ModelFilePath seq2seq.model -InputTestFile test.txt -OutputFile result.txt -ProcessorType CPU -BeamSearchSize 5 -MaxSrcSentLength 100 -MaxTgtSentLength 100  
 
@@ -175,6 +172,7 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
   "DecodingRepeatPenalty": 2.0,
   "DecodingDistancePenalty": 5.0,
   "DeviceIds": "0,1",
+  "TaskParallelism": 2,
   "DropoutRatio": 0.0,
   "EnableSegmentEmbeddings": false,
   "MaxSegmentNum": 16,
@@ -204,7 +202,8 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
   "ValidCorpusPaths": "data_valid",
   "WarmUpSteps": 8000,
   "WeightsUpdateCount": 0,
-  "ValidIntervalHours": 1.0,
+  "StartValidAfterUpdates": 20000,
+  "RunValidEveryUpdates": 10000,
   "SrcVocabSize": 45000,
   "TgtVocabSize": 45000,
   "ActivateFunc": "Relu",
@@ -276,6 +275,7 @@ Here is the configuration file for model training.
 "EncoderType":"Transformer",
 "MultiHeadNum":8,
 "DeviceIds":"0,1",
+"TaskParallelism": 2,
 "MaxEpochNum":100,
 "MaxSentLength":5120,
 "WarmUpSteps":8000,
@@ -283,7 +283,8 @@ Here is the configuration file for model training.
 "Beta1":0.9,
 "Beta2":0.98,
 "EnableCoverageModel":false,
-"ValidIntervalHours":1.0,
+"StartValidAfterUpdates": 20000,
+"RunValidEveryUpdates": 10000,
 "VocabSize":45000,
 "ShuffleType": "NoPadding",
 "CompilerOptions":"--use_fast_math --gpu-architecture=compute_70"
@@ -365,6 +366,7 @@ Here is the configuration file for model training.
     "EncoderType":"Transformer",
     "MultiHeadNum":8,
     "DeviceIds":"0",
+    "TaskParallelism": 1,
     "BeamSearchSize":1,
     "MaxEpochNum":100,
     "MaxSentLength":110,
@@ -372,7 +374,8 @@ Here is the configuration file for model training.
     "VisualizeNNFilePath":null,
     "Beta1":0.9,
     "Beta2":0.98,
-    "ValidIntervalHours":1.0,
+    "StartValidAfterUpdates": 20000,
+    "RunValidEveryUpdates": 10000,
     "EnableCoverageModel":false,
     "CompilerOptions":"--use_fast_math --gpu-architecture=compute_70",
     "Optimizer":"Adam"
