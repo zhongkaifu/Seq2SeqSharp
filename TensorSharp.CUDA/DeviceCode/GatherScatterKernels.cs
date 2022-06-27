@@ -188,7 +188,7 @@ __global__ void scatterFill_kernel(
 
                 if (result != null && !TensorResultBuilder.ArrayEqualExcept(src.Sizes, result.Sizes, dim))
                 {
-                    throw new InvalidOperationException($"result and src must be the same size except in dimension dim. src = '{src.ToString()}', result = '{result.ToString}', dim = '{dim}'");
+                    throw new InvalidOperationException($"result and src must be the same size except in dimension dim. src = '{src.ToString()}', result = '{result.ToString()}', dim = '{dim}'");
                 }
 
                 Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, indices.Allocator, src.ElementType, false, indices.Sizes);
