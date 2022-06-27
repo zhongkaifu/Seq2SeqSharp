@@ -122,19 +122,22 @@ namespace Seq2SeqSharp
             var srcTokensList = m_modelMetaData.SrcVocab.GetWordIndex(srcSnts);
 
             BuildInTokens.PadSentences(tgtSnts);
-            var tgtTokensLists = m_modelMetaData.ClsVocab.GetWordIndex(tgtSnts);
+            var tgtTokensList = m_modelMetaData.ClsVocab.GetWordIndex(tgtSnts);
 
 
-            if (srcTokensList.Count != tgtTokensLists.Count)
+            if (srcTokensList.Count != tgtTokensList.Count)
             {
-                throw new InvalidDataException($"Inconsistent batch size between source and target. source batch size = '{srcTokensList.Count}', target batch size = '{tgtTokensLists.Count}'");
+                throw new InvalidDataException($"Inconsistent batch size between source and target. source batch size = '{srcTokensList.Count}', target batch size = '{tgtTokensList.Count}'");
             }
 
             for (int i = 0; i < srcTokensList.Count; i++)
             {
-                if (srcTokensList[i].Count != tgtTokensLists[i].Count)
+                if (srcTokensList[i].Count != tgtTokensList[i].Count)
                 {
-                    throw new InvalidDataException($"Inconsistent sequence length between source and target at batch '{i}'. source sequence length = '{srcTokensList[i].Count}', target sequence length = '{tgtTokensLists[i].Count}'");
+                    var srcWords = m_modelMetaData.SrcVocab.ConvertIdsToString(srcTokensList[i]);
+                    var tgtWords = m_modelMetaData.ClsVocab.ConvertIdsToString(tgtTokensList[i]);
+
+                    throw new InvalidDataException($"Inconsistent sequence length between source and target at batch '{i}'. source sequence length = '{srcTokensList[i].Count}', target sequence length = '{tgtTokensList[i].Count}' src sequence = '{String.Join(" ", srcWords)}', tgt sequence = '{String.Join(" ", tgtWords)}'");
                 }
             }
 
@@ -166,7 +169,7 @@ namespace Seq2SeqSharp
 
             if (isTraining)
             {
-                var tgtTokensTensor = g.CreateTokensTensor(tgtTokensLists);
+                var tgtTokensTensor = g.CreateTokensTensor(tgtTokensList);
                 cost = g.CrossEntropyLoss(probs, tgtTokensTensor);
             }
             else

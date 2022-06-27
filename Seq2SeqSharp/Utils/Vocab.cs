@@ -200,6 +200,25 @@ namespace Seq2SeqSharp.Utils
             }
         }
 
+        public List<string> ConvertIdsToString(List<int> idxs)
+        {
+            lock (locker)
+            {
+                List<string> result = new List<string>();
+                foreach (int idx in idxs)
+                {
+                    string letter = BuildInTokens.UNK;
+                    if (IndexToWord.ContainsKey(idx))
+                    {
+                        letter = IndexToWord[idx];
+                    }
+                    result.Add(letter);
+                }
+
+                return result;
+            }
+        }
+
         public List<List<string>> ConvertIdsToString(List<List<int>> seqs)
         {
             List<List<string>> result = new List<List<string>>();
