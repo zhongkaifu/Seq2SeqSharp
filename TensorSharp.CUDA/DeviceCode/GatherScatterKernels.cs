@@ -168,7 +168,7 @@ __global__ void scatterFill_kernel(
 
                 if (result != null && result.DimensionCount != src.DimensionCount)
                 {
-                    throw new InvalidOperationException("result and src must have same number of dimensions");
+                    throw new InvalidOperationException($"result and src must have same number of dimensions. result dim count = '{result.DimensionCount}', src dim count = '{src.DimensionCount}'");
                 }
 
                 if (result != null && dim < 0 && dim >= result.DimensionCount)
@@ -178,17 +178,17 @@ __global__ void scatterFill_kernel(
 
                 if (indices.DimensionCount != src.DimensionCount)
                 {
-                    throw new InvalidOperationException("src and indices must have same number of dimensions");
+                    throw new InvalidOperationException($"src and indices must have same number of dimensions. indices dim count = '{indices.DimensionCount}', src dim count = '{src.DimensionCount}'");
                 }
 
                 if (result != null && !result.IsSameSizeAs(indices))
                 {
-                    throw new InvalidOperationException("result and indices must be the same size");
+                    throw new InvalidOperationException($"result and indices must be the same size. result = '{result.ToString()}', indices = '{indices.ToString()}'");
                 }
 
                 if (result != null && !TensorResultBuilder.ArrayEqualExcept(src.Sizes, result.Sizes, dim))
                 {
-                    throw new InvalidOperationException("result and src must be the same size except in dimension dim");
+                    throw new InvalidOperationException($"result and src must be the same size except in dimension dim. src = '{src.ToString()}', result = '{result.ToString}', dim = '{dim}'");
                 }
 
                 Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, indices.Allocator, src.ElementType, false, indices.Sizes);
@@ -203,7 +203,7 @@ __global__ void scatterFill_kernel(
             }
             catch (Exception err)
             {
-                Logger.WriteLine($"Error = '{err.Message}', Call stack = '{err.StackTrace}'");
+                Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Error = '{err.Message}', Call stack = '{err.StackTrace}'");
                 throw;
             }
         }
