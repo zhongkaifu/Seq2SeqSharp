@@ -28,6 +28,7 @@ namespace Seq2SeqSharp
         private MultiProcessorNetworkWrapper<IEncoder> m_encoder; //The encoders over devices. It can be LSTM, BiLSTM or Transformer
         private MultiProcessorNetworkWrapper<FeedForwardLayer> m_ffLayer; //The feed forward layers over over devices.
         private MultiProcessorNetworkWrapper<IWeightTensor> m_posEmbedding;
+        private MultiProcessorNetworkWrapper<IWeightTensor> m_segmentEmbedding;
 
         private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
         private readonly SeqLabelOptions m_options;
@@ -60,7 +61,7 @@ namespace Seq2SeqSharp
             else
             {
                 // Model doesn't exist, we create it and initlaize parameters
-                m_modelMetaData = new SeqLabelModel(options.HiddenSize, options.EmbeddingDim, options.EncoderLayerDepth, options.MultiHeadNum, options.EncoderType, srcVocab, clsVocab, options.MaxSegmentNum);
+                m_modelMetaData = new SeqLabelModel(options.HiddenSize, options.EmbeddingDim, options.EncoderLayerDepth, options.MultiHeadNum, options.EncoderType, srcVocab, clsVocab, options.EnableSegmentEmbeddings, options.MaxSegmentNum);
 
                 //Initializng weights in encoders and decoders
                 CreateTrainableParameters(m_modelMetaData);
@@ -80,15 +81,7 @@ namespace Seq2SeqSharp
             m_ffLayer = new MultiProcessorNetworkWrapper<FeedForwardLayer>(new FeedForwardLayer("FeedForward", contextDim, model.ClsVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
 
             m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { model.SrcVocab.Count, model.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, name: "SrcEmbeddings", isTrainable: true), DeviceIds);
-
-            if (model.EncoderType == EncoderTypeEnums.Transformer)
-            {
-                m_posEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(PositionEmbedding.BuildPositionWeightTensor(m_options.MaxSentLength + 2, model.EncoderEmbeddingDim, raDeviceIds.GetNextItem(), "PosEmbedding", false), DeviceIds, true);
-            }
-            else
-            {
-                m_posEmbedding = null;
-            }
+            (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, contextDim, m_options.MaxSentLength, model);
 
             return true;
         }
@@ -96,12 +89,12 @@ namespace Seq2SeqSharp
         /// <summary>
         /// Get networks on specific devices
         /// </summary>
-        private (IEncoder, IWeightTensor, IWeightTensor, FeedForwardLayer) GetNetworksOnDeviceAt(int deviceId)
+        private (IEncoder, IWeightTensor, IWeightTensor, IWeightTensor, FeedForwardLayer) GetNetworksOnDeviceAt(int deviceId)
         {
             var deviceIdIdx = TensorAllocator.GetDeviceIdIndex(deviceId);
 
             return (m_encoder.GetNetworkOnDevice(deviceIdIdx), m_srcEmbedding.GetNetworkOnDevice(deviceIdIdx),
-                m_posEmbedding?.GetNetworkOnDevice(deviceIdIdx), m_ffLayer.GetNetworkOnDevice(deviceIdIdx));
+                m_posEmbedding?.GetNetworkOnDevice(deviceIdIdx), m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx), m_ffLayer.GetNetworkOnDevice(deviceIdIdx));
         }
 
         /// <summary>
@@ -120,7 +113,7 @@ namespace Seq2SeqSharp
             var srcSnts = sntPairBatch.GetSrcTokens(0);
             var tgtSnts = sntPairBatch.GetTgtTokens(0);
 
-            (IEncoder encoder, IWeightTensor srcEmbedding, IWeightTensor posEmbedding, FeedForwardLayer decoderFFLayer) = GetNetworksOnDeviceAt(g.DeviceId);
+            (var encoder, var srcEmbedding, var posEmbedding, var segmentEmbedding, var decoderFFLayer) = GetNetworksOnDeviceAt(g.DeviceId);
 
             // Reset networks
             encoder.Reset(g.GetWeightFactory(), srcSnts.Count);
@@ -135,7 +128,7 @@ namespace Seq2SeqSharp
             int batchSize = srcSnts.Count;
 
             // Encoding input source sentences
-            IWeightTensor encOutput = Encoder.Run(g, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, null, srcTokensList, originalSrcLengths);
+            IWeightTensor encOutput = Encoder.Run(g, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcTokensList, originalSrcLengths);
             IWeightTensor ffLayer = decoderFFLayer.Process(encOutput, batchSize, g);
 
             float cost = 0.0f;

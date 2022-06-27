@@ -9,8 +9,8 @@ namespace Seq2SeqSharp
     public class SeqLabelModel : Model
     {
         public SeqLabelModel() { }
-        public SeqLabelModel( int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, Vocab clsVocab, int maxSegmentNum)
-            : base( hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, false, false, maxSegmentNum, false )
+        public SeqLabelModel( int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, Vocab clsVocab, bool enableSegmentEmbeddings, int maxSegmentNum)
+            : base( hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, false, maxSegmentNum, false )
         {
             ClsVocab = clsVocab;
         }
