@@ -124,15 +124,45 @@ namespace Seq2SeqSharp
             BuildInTokens.PadSentences(tgtSnts);
             var tgtTokensLists = m_modelMetaData.ClsVocab.GetWordIndex(tgtSnts);
 
+
+            if (srcTokensList.Count != tgtTokensLists.Count)
+            {
+                throw new InvalidDataException($"Inconsistent batch size between source and target. source batch size = '{srcTokensList.Count}', target batch size = '{tgtTokensLists.Count}'");
+            }
+
+            for (int i = 0; i < srcTokensList.Count; i++)
+            {
+                if (srcTokensList[i].Count != tgtTokensLists[i].Count)
+                {
+                    throw new InvalidDataException($"Inconsistent sequence length between source and target at batch '{i}'. source sequence length = '{srcTokensList[i].Count}', target sequence length = '{tgtTokensLists[i].Count}'");
+                }
+            }
+
             int seqLen = srcSnts[0].Count;
             int batchSize = srcSnts.Count;
 
             // Encoding input source sentences
             IWeightTensor encOutput = Encoder.Run(g, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcTokensList, originalSrcLengths);
+            if (encOutput.Sizes[0] != seqLen * batchSize)
+            {
+                throw new Exception($"Invalid encOutput size. probs = '{encOutput.ToString()}', seqLen * batchSize = '{seqLen * batchSize}'");
+
+            }
+
             IWeightTensor ffLayer = decoderFFLayer.Process(encOutput, batchSize, g);
+            if (ffLayer.Sizes[0] != seqLen * batchSize)
+            {
+                throw new Exception($"Invalid ffLayer size. probs = '{ffLayer.ToString()}', seqLen * batchSize = '{seqLen * batchSize}'");
+
+            }
 
             float cost = 0.0f;
             IWeightTensor probs = g.Softmax(ffLayer, inPlace: true);
+            if (probs.Sizes[0] != seqLen * batchSize)
+            {
+                throw new Exception($"Invalid probs size. probs = '{probs.ToString()}', seqLen * batchSize = '{seqLen * batchSize}'");
+
+            }
 
             if (isTraining)
             {
