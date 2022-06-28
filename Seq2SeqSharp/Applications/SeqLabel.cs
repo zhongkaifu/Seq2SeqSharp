@@ -34,7 +34,7 @@ namespace Seq2SeqSharp
         private readonly SeqLabelOptions m_options;
 
         public SeqLabel(SeqLabelOptions options, Vocab srcVocab = null, Vocab clsVocab = null)
-            : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions,
+            : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions, startToRunValidAfterUpdates: options.StartValidAfterUpdates,
                   runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq, maxDegressOfParallelism: options.TaskParallelism)
         {
             m_shuffleType = options.ShuffleType;
@@ -125,19 +125,22 @@ namespace Seq2SeqSharp
             var tgtTokensList = m_modelMetaData.ClsVocab.GetWordIndex(tgtSnts);
 
 
-            if (srcTokensList.Count != tgtTokensList.Count)
+            if (isTraining)
             {
-                throw new InvalidDataException($"Inconsistent batch size between source and target. source batch size = '{srcTokensList.Count}', target batch size = '{tgtTokensList.Count}'");
-            }
-
-            for (int i = 0; i < srcTokensList.Count; i++)
-            {
-                if (srcTokensList[i].Count != tgtTokensList[i].Count)
+                if (srcTokensList.Count != tgtTokensList.Count)
                 {
-                    var srcWords = m_modelMetaData.SrcVocab.ConvertIdsToString(srcTokensList[i]);
-                    var tgtWords = m_modelMetaData.ClsVocab.ConvertIdsToString(tgtTokensList[i]);
+                    throw new InvalidDataException($"Inconsistent batch size between source and target. source batch size = '{srcTokensList.Count}', target batch size = '{tgtTokensList.Count}'");
+                }
 
-                    throw new InvalidDataException($"Inconsistent sequence length between source and target at batch '{i}'. source sequence length = '{srcTokensList[i].Count}', target sequence length = '{tgtTokensList[i].Count}' src sequence = '{String.Join(" ", srcWords)}', tgt sequence = '{String.Join(" ", tgtWords)}'");
+                for (int i = 0; i < srcTokensList.Count; i++)
+                {
+                    if (srcTokensList[i].Count != tgtTokensList[i].Count)
+                    {
+                        var srcWords = m_modelMetaData.SrcVocab.ConvertIdsToString(srcTokensList[i]);
+                        var tgtWords = m_modelMetaData.ClsVocab.ConvertIdsToString(tgtTokensList[i]);
+
+                        throw new InvalidDataException($"Inconsistent sequence length between source and target at batch '{i}'. source sequence length = '{srcTokensList[i].Count}', target sequence length = '{tgtTokensList[i].Count}' src sequence = '{String.Join(" ", srcWords)}', tgt sequence = '{String.Join(" ", tgtWords)}'");
+                    }
                 }
             }
 
@@ -146,26 +149,10 @@ namespace Seq2SeqSharp
 
             // Encoding input source sentences
             IWeightTensor encOutput = Encoder.Run(g, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcTokensList, originalSrcLengths);
-            if (encOutput.Sizes[0] != seqLen * batchSize)
-            {
-                throw new Exception($"Invalid encOutput size. probs = '{encOutput.ToString()}', seqLen * batchSize = '{seqLen * batchSize}'");
-
-            }
-
             IWeightTensor ffLayer = decoderFFLayer.Process(encOutput, batchSize, g);
-            if (ffLayer.Sizes[0] != seqLen * batchSize)
-            {
-                throw new Exception($"Invalid ffLayer size. probs = '{ffLayer.ToString()}', seqLen * batchSize = '{seqLen * batchSize}'");
-
-            }
 
             float cost = 0.0f;
             IWeightTensor probs = g.Softmax(ffLayer, inPlace: true);
-            if (probs.Sizes[0] != seqLen * batchSize)
-            {
-                throw new Exception($"Invalid probs size. probs = '{probs.ToString()}', seqLen * batchSize = '{seqLen * batchSize}'");
-
-            }
 
             if (isTraining)
             {

@@ -24,7 +24,9 @@ namespace Seq2SeqSharp.Utils
     {
         END = 0,
         START,
-        UNK
+        UNK,
+        SEP,
+        CLS
     }
 
     /// <summary>
@@ -89,16 +91,23 @@ namespace Seq2SeqSharp.Utils
             {
                 BuildInTokens.EOS,
                 BuildInTokens.BOS,
-                BuildInTokens.UNK
+                BuildInTokens.UNK,
+                BuildInTokens.SEP,
+                BuildInTokens.CLS
             };
 
             WordToIndex[BuildInTokens.EOS] = (int)SENTTAGS.END;
             WordToIndex[BuildInTokens.BOS] = (int)SENTTAGS.START;
             WordToIndex[BuildInTokens.UNK] = (int)SENTTAGS.UNK;
+            WordToIndex[BuildInTokens.SEP] = (int)SENTTAGS.SEP;
+            WordToIndex[BuildInTokens.CLS] = (int)SENTTAGS.CLS;
 
             IndexToWord[(int)SENTTAGS.END] = BuildInTokens.EOS;
             IndexToWord[(int)SENTTAGS.START] = BuildInTokens.BOS;
             IndexToWord[(int)SENTTAGS.UNK] = BuildInTokens.UNK;
+            IndexToWord[(int)SENTTAGS.SEP] = BuildInTokens.SEP;
+            IndexToWord[(int)SENTTAGS.CLS] = BuildInTokens.CLS;
+
         }
 
         /// <summary>
