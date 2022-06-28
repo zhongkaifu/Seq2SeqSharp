@@ -134,7 +134,7 @@ namespace Seq2SeqSharp.Tools
             m_maxDegressOfParallelism = maxDegressOfParallelism;
         }
 
-        public virtual List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, DecodingOptions decodingOptions)
+        public virtual List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, DecodingOptions decodingOptions, bool isTraining)
             => throw new NotImplementedException("RunForwardOnSingleDevice is not implemented.");
 
         public IComputeGraph CreateComputGraph(int deviceIdIdx, bool needBack = true)
@@ -265,7 +265,7 @@ namespace Seq2SeqSharp.Tools
         }
 
         internal void TrainOneEpoch(int ep, IParallelCorpus<ISntPairBatch> trainCorpus, IParallelCorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, IOptimizer solver, Dictionary<int, List<IMetric>> taskId2metrics, DecodingOptions decodingOptions,
-            Func<IComputeGraph, ISntPairBatch, DecodingOptions, List<NetworkResult>> forwardOnSingleDevice)
+            Func<IComputeGraph, ISntPairBatch, DecodingOptions, bool, List<NetworkResult>> forwardOnSingleDevice)
         {
             int processedLineInTotal = 0;
             DateTime startDateTime = DateTime.Now;
@@ -294,7 +294,7 @@ namespace Seq2SeqSharp.Tools
                     {
                         try
                         {
-                            (float cost, int sWordCnt, int tWordCnt, int processedLine) = RunNetwork(forwardOnSingleDevice, sntPairBatchs, batchSplitFactor, decodingOptions);
+                            (float cost, int sWordCnt, int tWordCnt, int processedLine) = RunNetwork(forwardOnSingleDevice, sntPairBatchs, batchSplitFactor, decodingOptions, true);
                             processedLineInTotal += processedLine;
                             srcWordCntsInTotal += sWordCnt;
                             tgtWordCntsInTotal += tWordCnt;
@@ -453,7 +453,7 @@ namespace Seq2SeqSharp.Tools
             return batchSplitFactor;
         }
 
-        private (float, int, int, int) RunNetwork(Func<IComputeGraph, ISntPairBatch, DecodingOptions, List<NetworkResult>> ForwardOnSingleDevice, List<ISntPairBatch> sntPairBatchs, int batchSplitFactor, DecodingOptions decodingOptions)
+        private (float, int, int, int) RunNetwork(Func<IComputeGraph, ISntPairBatch, DecodingOptions, bool, List<NetworkResult>> ForwardOnSingleDevice, List<ISntPairBatch> sntPairBatchs, int batchSplitFactor, DecodingOptions decodingOptions, bool isTraining)
         {
             float cost = 0.0f;
             int processedLine = 0;
@@ -488,7 +488,7 @@ namespace Seq2SeqSharp.Tools
                                  using (IComputeGraph computeGraph_deviceIdx = CreateComputGraph(deviceIdx))
                                 {
                                      // Run forward part
-                                     nrs = ForwardOnSingleDevice(computeGraph_deviceIdx, sntPairBatch, decodingOptions);
+                                     nrs = ForwardOnSingleDevice(computeGraph_deviceIdx, sntPairBatch, decodingOptions, isTraining);
                                      // Run backward part and compute gradients
                                      computeGraph_deviceIdx.Backward();
                                 }
@@ -517,7 +517,7 @@ namespace Seq2SeqSharp.Tools
                              using (IComputeGraph computeGraph_deviceIdx = CreateComputGraph(deviceIdx))
                             {
                                  // Run forward part
-                                 nrs = ForwardOnSingleDevice(computeGraph_deviceIdx, sntPairBatch, decodingOptions);
+                                 nrs = ForwardOnSingleDevice(computeGraph_deviceIdx, sntPairBatch, decodingOptions, isTraining);
                                  // Run backward part and compute gradients
                                  computeGraph_deviceIdx.Backward();
                             }
@@ -556,7 +556,7 @@ namespace Seq2SeqSharp.Tools
             return (cost / processedLine, srcWordCnts, tgtWordCnts, processedLine);
         }
 
-        private void CreateCheckPoint(IParallelCorpus<ISntPairBatch>[] validCorpusList, Dictionary<int, List<IMetric>> taskId2metrics, DecodingOptions decodingOptions, Func<IComputeGraph, ISntPairBatch, DecodingOptions, List<NetworkResult>> forwardOnSingleDevice, double avgCostPerWordInTotal)
+        private void CreateCheckPoint(IParallelCorpus<ISntPairBatch>[] validCorpusList, Dictionary<int, List<IMetric>> taskId2metrics, DecodingOptions decodingOptions, Func<IComputeGraph, ISntPairBatch, DecodingOptions, bool, List<NetworkResult>> forwardOnSingleDevice, double avgCostPerWordInTotal)
         {
             // We start to run validation after {startToRunValidAfterUpdates}
             if (m_weightsUpdateCount >= m_startToRunValidAfterUpdates && m_weightsUpdateCount % m_runValidEveryUpdates == 0)
@@ -621,7 +621,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        internal List<NetworkResult> RunTest(ISntPairBatch sntPairBatch, DecodingOptions decodingOptions, Func<IComputeGraph, ISntPairBatch, DecodingOptions, List<NetworkResult>> ForwardOnSingleDevice)
+        internal List<NetworkResult> RunTest(ISntPairBatch sntPairBatch, DecodingOptions decodingOptions, Func<IComputeGraph, ISntPairBatch, DecodingOptions, bool, List<NetworkResult>> ForwardOnSingleDevice)
         {
             if (sntPairBatch is null)
             {
@@ -654,7 +654,7 @@ namespace Seq2SeqSharp.Tools
                              using (IComputeGraph computeGraph = CreateComputGraph(deviceIdx, needBack: false))
                             {
                                  // Run forward part
-                                 nrs = ForwardOnSingleDevice(computeGraph, spb, decodingOptions);
+                                 nrs = ForwardOnSingleDevice(computeGraph, spb, decodingOptions, false);
                             }
 
                             lock (locker)
@@ -680,7 +680,7 @@ namespace Seq2SeqSharp.Tools
                     using (IComputeGraph computeGraph = CreateComputGraph(0, needBack: false))
                     {
                         // Run forward part
-                        nrs2 = ForwardOnSingleDevice(computeGraph, spb, decodingOptions);
+                        nrs2 = ForwardOnSingleDevice(computeGraph, spb, decodingOptions, false);
                     }
 
                     lock (locker)
@@ -726,7 +726,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        internal void RunTest<X>(IBatchStreamReader<X> reader, SntBatchStreamWriter writer, DecodingOptions decodingOptions, Func<IComputeGraph, ISntPairBatch, DecodingOptions, List<NetworkResult>> ForwardOnSingleDevice) where X : ISntPairBatch, new()
+        internal void RunTest<X>(IBatchStreamReader<X> reader, SntBatchStreamWriter writer, DecodingOptions decodingOptions, Func<IComputeGraph, ISntPairBatch, DecodingOptions, bool, List<NetworkResult>> ForwardOnSingleDevice) where X : ISntPairBatch, new()
         {
             if (ForwardOnSingleDevice is null)
             {
@@ -754,7 +754,7 @@ namespace Seq2SeqSharp.Tools
                              using (IComputeGraph computeGraph = CreateComputGraph(deviceIdx, needBack: false))
                             {
                                  // Run forward part
-                                 nrs = ForwardOnSingleDevice(computeGraph, spb, decodingOptions);
+                                 nrs = ForwardOnSingleDevice(computeGraph, spb, decodingOptions, false);
                             }
 
                             writer.WriteResults(idx, nrs);
@@ -797,7 +797,7 @@ namespace Seq2SeqSharp.Tools
         /// <param name="metrics">A set of metrics. The first one is the primary metric</param>
         /// <param name="outputToFile">It indicates if valid corpus and results should be dumped to files</param>
         /// <returns>true if we get a better result on primary metric, otherwise, false</returns>
-        internal bool RunValid(IParallelCorpus<ISntPairBatch> validCorpus, Func<IComputeGraph, ISntPairBatch, DecodingOptions, List<NetworkResult>> RunNetwork, Dictionary<int, List<IMetric>> taskId2metrics, DecodingOptions decodingOptions, bool outputToFile = false, string prefixName = "valid")
+        internal bool RunValid(IParallelCorpus<ISntPairBatch> validCorpus, Func<IComputeGraph, ISntPairBatch, DecodingOptions, bool, List<NetworkResult>> RunNetwork, Dictionary<int, List<IMetric>> taskId2metrics, DecodingOptions decodingOptions, bool outputToFile = false, string prefixName = "valid")
         {
             double bestPrimaryScore = 0.0;
             if (m_bestPrimaryScoreDict.ContainsKey(prefixName) == false)
@@ -905,7 +905,7 @@ namespace Seq2SeqSharp.Tools
             return betterModel;
         }
 
-        private void RunValidParallel(Func<IComputeGraph, ISntPairBatch, DecodingOptions, List<NetworkResult>> runNetwork, Dictionary<int, List<IMetric>> metrics, DecodingOptions decodingOptions, string taskPrefixName, bool outputToFile, List<ISntPairBatch> sntPairBatchs)
+        private void RunValidParallel(Func<IComputeGraph, ISntPairBatch, DecodingOptions, bool, List<NetworkResult>> runNetwork, Dictionary<int, List<IMetric>> metrics, DecodingOptions decodingOptions, string taskPrefixName, bool outputToFile, List<ISntPairBatch> sntPairBatchs)
         {
             string srcFileName = $"{taskPrefixName}_src.txt";
             string refFileName = $"{taskPrefixName}_ref.txt";
@@ -930,7 +930,7 @@ namespace Seq2SeqSharp.Tools
                     using (IComputeGraph computeGraph = CreateComputGraph(deviceIdx, needBack: false))
                     {
                         // Run forward part
-                        nrs = runNetwork(computeGraph, sntPairBatchForValid, decodingOptions);
+                        nrs = runNetwork(computeGraph, sntPairBatchForValid, decodingOptions, false);
                     }
 
                     lock (locker)

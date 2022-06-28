@@ -128,9 +128,8 @@ namespace Seq2SeqSharp.Applications
         /// <param name="tgtSnts">A batch of output tokenized sentences in target side</param>
         /// <param name="deviceIdIdx">The index of current device</param>
         /// <returns>The cost of forward part</returns>
-        public override List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, DecodingOptions decodingOptions)
+        public override List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, DecodingOptions decodingOptions, bool isTraining)
         {
-            var isTraining = (m_options.Task == ModeEnums.Train);
             int batchSize = sntPairBatch.BatchSize;
 
             float cost = 0.0f;
