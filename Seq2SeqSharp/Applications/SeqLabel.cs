@@ -120,28 +120,25 @@ namespace Seq2SeqSharp
             var originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
             var srcTokensList = m_modelMetaData.SrcVocab.GetWordIndex(srcSnts);
 
-            BuildInTokens.PadSentences(tgtSnts);
-            var tgtTokensList = m_modelMetaData.ClsVocab.GetWordIndex(tgtSnts);
 
+            //if (isTraining)
+            //{
+            //    if (srcTokensList.Count != tgtTokensList.Count)
+            //    {
+            //        throw new InvalidDataException($"Inconsistent batch size between source and target. source batch size = '{srcTokensList.Count}', target batch size = '{tgtTokensList.Count}'");
+            //    }
 
-            if (isTraining)
-            {
-                if (srcTokensList.Count != tgtTokensList.Count)
-                {
-                    throw new InvalidDataException($"Inconsistent batch size between source and target. source batch size = '{srcTokensList.Count}', target batch size = '{tgtTokensList.Count}'");
-                }
+            //    for (int i = 0; i < srcTokensList.Count; i++)
+            //    {
+            //        if (srcTokensList[i].Count != tgtTokensList[i].Count)
+            //        {
+            //            var srcWords = m_modelMetaData.SrcVocab.ConvertIdsToString(srcTokensList[i]);
+            //            var tgtWords = m_modelMetaData.ClsVocab.ConvertIdsToString(tgtTokensList[i]);
 
-                for (int i = 0; i < srcTokensList.Count; i++)
-                {
-                    if (srcTokensList[i].Count != tgtTokensList[i].Count)
-                    {
-                        var srcWords = m_modelMetaData.SrcVocab.ConvertIdsToString(srcTokensList[i]);
-                        var tgtWords = m_modelMetaData.ClsVocab.ConvertIdsToString(tgtTokensList[i]);
-
-                        throw new InvalidDataException($"Inconsistent sequence length between source and target at batch '{i}'. source sequence length = '{srcTokensList[i].Count}', target sequence length = '{tgtTokensList[i].Count}' src sequence = '{String.Join(" ", srcWords)}', tgt sequence = '{String.Join(" ", tgtWords)}'");
-                    }
-                }
-            }
+            //            throw new InvalidDataException($"Inconsistent sequence length between source and target at batch '{i}'. source sequence length = '{srcTokensList[i].Count}', target sequence length = '{tgtTokensList[i].Count}' src sequence = '{String.Join(" ", srcWords)}', tgt sequence = '{String.Join(" ", tgtWords)}'");
+            //        }
+            //    }
+            //}
 
             int seqLen = srcSnts[0].Count;
             int batchSize = srcSnts.Count;
@@ -155,6 +152,9 @@ namespace Seq2SeqSharp
 
             if (isTraining)
             {
+                BuildInTokens.PadSentences(tgtSnts);
+                var tgtTokensList = m_modelMetaData.ClsVocab.GetWordIndex(tgtSnts);
+
                 var tgtTokensTensor = g.CreateTokensTensor(tgtTokensList);
                 cost = g.CrossEntropyLoss(probs, tgtTokensTensor);
             }
