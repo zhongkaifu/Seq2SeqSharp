@@ -169,6 +169,11 @@ namespace SeqLabelConsole
                     }
                 }
             }
+            else if (opts.Task == ModeEnums.DumpVocab)
+            {
+                sl = new SeqLabel(opts);
+                sl.DumpVocabToFiles(opts.SrcVocab, opts.TgtVocab);
+            }
             else
             {
                 argParser.Usage();

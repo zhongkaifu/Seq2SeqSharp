@@ -182,5 +182,11 @@ namespace Seq2SeqSharp
 
             return nrs;
         }
+
+        public void DumpVocabToFiles(string outputSrcVocab, string outputTgtVocab)
+        {
+            m_modelMetaData.SrcVocab.DumpVocab(outputSrcVocab);
+            m_modelMetaData.ClsVocab.DumpVocab(outputTgtVocab);
+        }
     }
 }
