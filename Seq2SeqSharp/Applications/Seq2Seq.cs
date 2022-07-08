@@ -211,7 +211,7 @@ namespace Seq2SeqSharp
                 if (m_options.Task == ModeEnums.Train)
                 {
                     (var c, _) = Decoder.DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding, originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType,
-                        m_options.DropoutRatio, null, isTraining, pointerGenerator: pointerGenerator, srcSeqs: srcTokensList);
+                        m_options.DropoutRatio, decodingOptions, isTraining, pointerGenerator: pointerGenerator, srcSeqs: srcTokensList);
                     nr.Cost = c;
                     nr.Output = null;
                 }
