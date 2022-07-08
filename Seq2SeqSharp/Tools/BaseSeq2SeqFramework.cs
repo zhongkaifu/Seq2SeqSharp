@@ -444,7 +444,7 @@ namespace Seq2SeqSharp.Tools
             batchSplitFactor *= 2;
             Logger.WriteLine($" {message} Retrying with batch split factor '{batchSplitFactor}'. Max batch size '{maxBatchSize}', Max token size '{maxTokenSize}'");
 
-            if (batchSplitFactor >= maxBatchSize)
+            if (batchSplitFactor > maxBatchSize)
             {
                 Logger.WriteLine($"Batch split factor is larger than batch size, so ignore current mini-batch.");
                 batchSplitFactor = -1;
