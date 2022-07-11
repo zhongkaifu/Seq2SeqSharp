@@ -161,7 +161,7 @@ namespace Seq2SeqConsole
                     if (File.Exists(opts.OutputAlignmentsFile))
                     {
                         Logger.WriteLine(Logger.Level.err, ConsoleColor.Yellow, $"Output file '{opts.OutputAlignmentsFile}' exist. Delete it.");
-                        File.Delete(opts.OutputFile);
+                        File.Delete(opts.OutputAlignmentsFile);
                     }
 
                     //Test trained model
