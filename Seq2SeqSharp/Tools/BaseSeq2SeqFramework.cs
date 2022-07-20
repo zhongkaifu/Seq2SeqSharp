@@ -930,7 +930,7 @@ namespace Seq2SeqSharp.Tools
                     using (IComputeGraph computeGraph = CreateComputGraph(deviceIdx, needBack: false))
                     {
                         // Run forward part
-                        nrs = runNetwork(computeGraph, sntPairBatchForValid, decodingOptions, false);
+                        nrs = runNetwork(computeGraph, sntPairBatchForValid, decodingOptions, true);
                     }
 
                     lock (locker)
