@@ -130,26 +130,30 @@ namespace Seq2SeqSharp
         }
 
         /// <summary>
-        /// Save weights of the network on default device to given stream
+        /// Save weights of the network on default device to given model
         /// </summary>
-        /// <param name="stream"></param>
-        public void Save(IModel stream)
+        /// <param name="model"></param>
+        public void Save(IModel model)
         {
             if (m_isStaticWeights == false)
             {
-                m_networkOnDefaultDevice.Save(stream);
+                m_networkOnDefaultDevice.Save(model);
             }
         }
 
         /// <summary>
-        /// Load weights from given stream to the network on default device
+        /// Load weights from given model to networks on all devices
         /// </summary>
-        /// <param name="stream"></param>
-        public void Load(IModel stream)
+        /// <param name="model"></param>
+        public void Load(IModel model)
         {
             if (m_isStaticWeights == false)
             {
-                m_networkOnDefaultDevice.Load(stream);
+                for (int i = 0; i < m_networks.Length; i++)
+                {
+                    m_networks[i].Load(model);
+                }
+                m_weightsSynced = true;
             }
         }
 

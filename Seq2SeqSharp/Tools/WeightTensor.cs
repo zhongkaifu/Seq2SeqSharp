@@ -505,7 +505,7 @@ namespace Seq2SeqSharp.Tools
 
         public void Load(IModel model)
         {
-            Logger.WriteLine($"Loading weights '{Name}' from the model...");
+            Logger.WriteLine($"Loading weights '{Name}' from the model to device '{DeviceId}'...");
 
             var weights = model.GetWeights(Name);
             if (weights != null)
