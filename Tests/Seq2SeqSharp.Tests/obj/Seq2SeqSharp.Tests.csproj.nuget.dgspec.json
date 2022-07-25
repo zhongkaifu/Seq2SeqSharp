@@ -1,24 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Seq2SeqSharp\\Tests\\Seq2SeqSharp.Tests\\Seq2SeqSharp.Tests.csproj": {}
+    "C:\\Works\\Projects\\Seq2SeqSharp\\Tests\\Seq2SeqSharp.Tests\\Seq2SeqSharp.Tests.csproj": {}
   },
   "projects": {
-    "C:\\Seq2SeqSharp\\AdvUtils\\AdvUtils.csproj": {
-      "version": "1.0.0",
+    "C:\\Works\\Projects\\Seq2SeqSharp\\AdvUtils\\AdvUtils.csproj": {
+      "version": "2.5.0",
       "restore": {
-        "projectUniqueName": "C:\\Seq2SeqSharp\\AdvUtils\\AdvUtils.csproj",
+        "projectUniqueName": "C:\\Works\\Projects\\Seq2SeqSharp\\AdvUtils\\AdvUtils.csproj",
         "projectName": "AdvUtils",
-        "projectPath": "C:\\Seq2SeqSharp\\AdvUtils\\AdvUtils.csproj",
-        "packagesPath": "C:\\Users\\zhongfu\\.nuget\\packages\\",
-        "outputPath": "C:\\Seq2SeqSharp\\AdvUtils\\obj\\",
+        "projectPath": "C:\\Works\\Projects\\Seq2SeqSharp\\AdvUtils\\AdvUtils.csproj",
+        "packagesPath": "C:\\Users\\monke\\.nuget\\packages\\",
+        "outputPath": "C:\\Works\\Projects\\Seq2SeqSharp\\AdvUtils\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\zhongfu\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Users\\monke\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -58,25 +54,21 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.100\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.301\\RuntimeIdentifierGraph.json"
         }
       }
     },
-    "C:\\Seq2SeqSharp\\Seq2SeqSharp\\Seq2SeqSharp.csproj": {
-      "version": "1.0.0",
+    "C:\\Works\\Projects\\Seq2SeqSharp\\Seq2SeqSharp\\Seq2SeqSharp.csproj": {
+      "version": "2.5.0",
       "restore": {
-        "projectUniqueName": "C:\\Seq2SeqSharp\\Seq2SeqSharp\\Seq2SeqSharp.csproj",
+        "projectUniqueName": "C:\\Works\\Projects\\Seq2SeqSharp\\Seq2SeqSharp\\Seq2SeqSharp.csproj",
         "projectName": "Seq2SeqSharp",
-        "projectPath": "C:\\Seq2SeqSharp\\Seq2SeqSharp\\Seq2SeqSharp.csproj",
-        "packagesPath": "C:\\Users\\zhongfu\\.nuget\\packages\\",
-        "outputPath": "C:\\Seq2SeqSharp\\Seq2SeqSharp\\obj\\",
+        "projectPath": "C:\\Works\\Projects\\Seq2SeqSharp\\Seq2SeqSharp\\Seq2SeqSharp.csproj",
+        "packagesPath": "C:\\Users\\monke\\.nuget\\packages\\",
+        "outputPath": "C:\\Works\\Projects\\Seq2SeqSharp\\Seq2SeqSharp\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\zhongfu\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Users\\monke\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -90,14 +82,14 @@
           "net6.0": {
             "targetAlias": "net6.0",
             "projectReferences": {
-              "C:\\Seq2SeqSharp\\AdvUtils\\AdvUtils.csproj": {
-                "projectPath": "C:\\Seq2SeqSharp\\AdvUtils\\AdvUtils.csproj"
+              "C:\\Works\\Projects\\Seq2SeqSharp\\AdvUtils\\AdvUtils.csproj": {
+                "projectPath": "C:\\Works\\Projects\\Seq2SeqSharp\\AdvUtils\\AdvUtils.csproj"
               },
-              "C:\\Seq2SeqSharp\\TensorSharp.CUDA\\TensorSharp.CUDA.csproj": {
-                "projectPath": "C:\\Seq2SeqSharp\\TensorSharp.CUDA\\TensorSharp.CUDA.csproj"
+              "C:\\Works\\Projects\\Seq2SeqSharp\\TensorSharp.CUDA\\TensorSharp.CUDA.csproj": {
+                "projectPath": "C:\\Works\\Projects\\Seq2SeqSharp\\TensorSharp.CUDA\\TensorSharp.CUDA.csproj"
               },
-              "C:\\Seq2SeqSharp\\TensorSharp\\TensorSharp.csproj": {
-                "projectPath": "C:\\Seq2SeqSharp\\TensorSharp\\TensorSharp.csproj"
+              "C:\\Works\\Projects\\Seq2SeqSharp\\TensorSharp\\TensorSharp.csproj": {
+                "projectPath": "C:\\Works\\Projects\\Seq2SeqSharp\\TensorSharp\\TensorSharp.csproj"
               }
             }
           }
@@ -148,25 +140,21 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.100\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.301\\RuntimeIdentifierGraph.json"
         }
       }
     },
-    "C:\\Seq2SeqSharp\\TensorSharp.CUDA\\TensorSharp.CUDA.csproj": {
-      "version": "1.0.0",
+    "C:\\Works\\Projects\\Seq2SeqSharp\\TensorSharp.CUDA\\TensorSharp.CUDA.csproj": {
+      "version": "2.5.0",
       "restore": {
-        "projectUniqueName": "C:\\Seq2SeqSharp\\TensorSharp.CUDA\\TensorSharp.CUDA.csproj",
+        "projectUniqueName": "C:\\Works\\Projects\\Seq2SeqSharp\\TensorSharp.CUDA\\TensorSharp.CUDA.csproj",
         "projectName": "TensorSharp.CUDA",
-        "projectPath": "C:\\Seq2SeqSharp\\TensorSharp.CUDA\\TensorSharp.CUDA.csproj",
-        "packagesPath": "C:\\Users\\zhongfu\\.nuget\\packages\\",
-        "outputPath": "C:\\Seq2SeqSharp\\TensorSharp.CUDA\\obj\\",
+        "projectPath": "C:\\Works\\Projects\\Seq2SeqSharp\\TensorSharp.CUDA\\TensorSharp.CUDA.csproj",
+        "packagesPath": "C:\\Users\\monke\\.nuget\\packages\\",
+        "outputPath": "C:\\Works\\Projects\\Seq2SeqSharp\\TensorSharp.CUDA\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\zhongfu\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Users\\monke\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -180,11 +168,11 @@
           "net6.0": {
             "targetAlias": "net6.0",
             "projectReferences": {
-              "C:\\Seq2SeqSharp\\AdvUtils\\AdvUtils.csproj": {
-                "projectPath": "C:\\Seq2SeqSharp\\AdvUtils\\AdvUtils.csproj"
+              "C:\\Works\\Projects\\Seq2SeqSharp\\AdvUtils\\AdvUtils.csproj": {
+                "projectPath": "C:\\Works\\Projects\\Seq2SeqSharp\\AdvUtils\\AdvUtils.csproj"
               },
-              "C:\\Seq2SeqSharp\\TensorSharp\\TensorSharp.csproj": {
-                "projectPath": "C:\\Seq2SeqSharp\\TensorSharp\\TensorSharp.csproj"
+              "C:\\Works\\Projects\\Seq2SeqSharp\\TensorSharp\\TensorSharp.csproj": {
+                "projectPath": "C:\\Works\\Projects\\Seq2SeqSharp\\TensorSharp\\TensorSharp.csproj"
               }
             }
           }
@@ -239,25 +227,21 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.100\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.301\\RuntimeIdentifierGraph.json"
         }
       }
     },
-    "C:\\Seq2SeqSharp\\TensorSharp\\TensorSharp.csproj": {
-      "version": "1.0.0",
+    "C:\\Works\\Projects\\Seq2SeqSharp\\TensorSharp\\TensorSharp.csproj": {
+      "version": "2.5.0",
       "restore": {
-        "projectUniqueName": "C:\\Seq2SeqSharp\\TensorSharp\\TensorSharp.csproj",
+        "projectUniqueName": "C:\\Works\\Projects\\Seq2SeqSharp\\TensorSharp\\TensorSharp.csproj",
         "projectName": "TensorSharp",
-        "projectPath": "C:\\Seq2SeqSharp\\TensorSharp\\TensorSharp.csproj",
-        "packagesPath": "C:\\Users\\zhongfu\\.nuget\\packages\\",
-        "outputPath": "C:\\Seq2SeqSharp\\TensorSharp\\obj\\",
+        "projectPath": "C:\\Works\\Projects\\Seq2SeqSharp\\TensorSharp\\TensorSharp.csproj",
+        "packagesPath": "C:\\Users\\monke\\.nuget\\packages\\",
+        "outputPath": "C:\\Works\\Projects\\Seq2SeqSharp\\TensorSharp\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\zhongfu\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Users\\monke\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -271,8 +255,8 @@
           "net6.0": {
             "targetAlias": "net6.0",
             "projectReferences": {
-              "C:\\Seq2SeqSharp\\AdvUtils\\AdvUtils.csproj": {
-                "projectPath": "C:\\Seq2SeqSharp\\AdvUtils\\AdvUtils.csproj"
+              "C:\\Works\\Projects\\Seq2SeqSharp\\AdvUtils\\AdvUtils.csproj": {
+                "projectPath": "C:\\Works\\Projects\\Seq2SeqSharp\\AdvUtils\\AdvUtils.csproj"
               }
             }
           }
@@ -315,25 +299,21 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.100\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.301\\RuntimeIdentifierGraph.json"
         }
       }
     },
-    "C:\\Seq2SeqSharp\\Tests\\Seq2SeqSharp.Tests\\Seq2SeqSharp.Tests.csproj": {
+    "C:\\Works\\Projects\\Seq2SeqSharp\\Tests\\Seq2SeqSharp.Tests\\Seq2SeqSharp.Tests.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Seq2SeqSharp\\Tests\\Seq2SeqSharp.Tests\\Seq2SeqSharp.Tests.csproj",
+        "projectUniqueName": "C:\\Works\\Projects\\Seq2SeqSharp\\Tests\\Seq2SeqSharp.Tests\\Seq2SeqSharp.Tests.csproj",
         "projectName": "Seq2SeqSharp.Tests",
-        "projectPath": "C:\\Seq2SeqSharp\\Tests\\Seq2SeqSharp.Tests\\Seq2SeqSharp.Tests.csproj",
-        "packagesPath": "C:\\Users\\zhongfu\\.nuget\\packages\\",
-        "outputPath": "C:\\Seq2SeqSharp\\Tests\\Seq2SeqSharp.Tests\\obj\\",
+        "projectPath": "C:\\Works\\Projects\\Seq2SeqSharp\\Tests\\Seq2SeqSharp.Tests\\Seq2SeqSharp.Tests.csproj",
+        "packagesPath": "C:\\Users\\monke\\.nuget\\packages\\",
+        "outputPath": "C:\\Works\\Projects\\Seq2SeqSharp\\Tests\\Seq2SeqSharp.Tests\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\zhongfu\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Users\\monke\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -347,8 +327,8 @@
           "net6.0": {
             "targetAlias": "net6.0",
             "projectReferences": {
-              "C:\\Seq2SeqSharp\\Seq2SeqSharp\\Seq2SeqSharp.csproj": {
-                "projectPath": "C:\\Seq2SeqSharp\\Seq2SeqSharp\\Seq2SeqSharp.csproj"
+              "C:\\Works\\Projects\\Seq2SeqSharp\\Seq2SeqSharp\\Seq2SeqSharp.csproj": {
+                "projectPath": "C:\\Works\\Projects\\Seq2SeqSharp\\Seq2SeqSharp\\Seq2SeqSharp.csproj"
               }
             }
           }
@@ -395,7 +375,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.100\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.301\\RuntimeIdentifierGraph.json"
         }
       }
     }

@@ -1810,7 +1810,7 @@
           "lib/netstandard1.3/System.Xml.XDocument.dll": {}
         }
       },
-      "AdvUtils/1.0.0": {
+      "AdvUtils/2.5.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v6.0",
         "compile": {
@@ -1820,17 +1820,17 @@
           "bin/placeholder/AdvUtils.dll": {}
         }
       },
-      "Seq2SeqSharp/1.0.0": {
+      "Seq2SeqSharp/2.5.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v6.0",
         "dependencies": {
-          "AdvUtils": "1.0.0",
+          "AdvUtils": "2.5.0",
           "ManagedCuda-11": "11.4.47",
           "Microsoft.CSharp": "4.7.0",
           "Microsoft.Extensions.Caching.Memory": "6.0.0",
           "System.Data.DataSetExtensions": "4.5.0",
-          "TensorSharp": "1.0.0",
-          "TensorSharp.CUDA": "1.0.0",
+          "TensorSharp": "2.5.0",
+          "TensorSharp.CUDA": "2.5.0",
           "protobuf-net": "3.0.101"
         },
         "compile": {
@@ -1840,11 +1840,11 @@
           "bin/placeholder/Seq2SeqSharp.dll": {}
         }
       },
-      "TensorSharp/1.0.0": {
+      "TensorSharp/2.5.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v6.0",
         "dependencies": {
-          "AdvUtils": "1.0.0",
+          "AdvUtils": "2.5.0",
           "Microsoft.CSharp": "4.7.0",
           "System.Data.DataSetExtensions": "4.5.0",
           "System.Numerics.Vectors": "4.5.0"
@@ -1856,18 +1856,18 @@
           "bin/placeholder/TensorSharp.dll": {}
         }
       },
-      "TensorSharp.CUDA/1.0.0": {
+      "TensorSharp.CUDA/2.5.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v6.0",
         "dependencies": {
-          "AdvUtils": "1.0.0",
+          "AdvUtils": "2.5.0",
           "ManagedCuda-11": "11.4.47",
           "ManagedCuda-CUBLAS": "11.4.47",
           "ManagedCuda-CURAND": "11.4.47",
           "ManagedCuda-NVRTC": "11.4.47",
           "Microsoft.CSharp": "4.7.0",
           "System.Data.DataSetExtensions": "4.5.0",
-          "TensorSharp": "1.0.0"
+          "TensorSharp": "2.5.0"
         },
         "compile": {
           "bin/placeholder/TensorSharp.CUDA.dll": {}
@@ -6784,22 +6784,22 @@
         "system.xml.xdocument.nuspec"
       ]
     },
-    "AdvUtils/1.0.0": {
+    "AdvUtils/2.5.0": {
       "type": "project",
       "path": "../../AdvUtils/AdvUtils.csproj",
       "msbuildProject": "../../AdvUtils/AdvUtils.csproj"
     },
-    "Seq2SeqSharp/1.0.0": {
+    "Seq2SeqSharp/2.5.0": {
       "type": "project",
       "path": "../../Seq2SeqSharp/Seq2SeqSharp.csproj",
       "msbuildProject": "../../Seq2SeqSharp/Seq2SeqSharp.csproj"
     },
-    "TensorSharp/1.0.0": {
+    "TensorSharp/2.5.0": {
       "type": "project",
       "path": "../../TensorSharp/TensorSharp.csproj",
       "msbuildProject": "../../TensorSharp/TensorSharp.csproj"
     },
-    "TensorSharp.CUDA/1.0.0": {
+    "TensorSharp.CUDA/2.5.0": {
       "type": "project",
       "path": "../../TensorSharp.CUDA/TensorSharp.CUDA.csproj",
       "msbuildProject": "../../TensorSharp.CUDA/TensorSharp.CUDA.csproj"
@@ -6810,29 +6810,24 @@
       "MSTest.TestAdapter >= 2.2.7",
       "MSTest.TestFramework >= 2.2.7",
       "Microsoft.NET.Test.Sdk >= 16.11.0",
-      "Seq2SeqSharp >= 1.0.0",
+      "Seq2SeqSharp >= 2.5.0",
       "coverlet.collector >= 3.1.0"
     ]
   },
   "packageFolders": {
-    "C:\\Users\\zhongfu\\.nuget\\packages\\": {},
-    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+    "C:\\Users\\monke\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Seq2SeqSharp\\Tests\\Seq2SeqSharp.Tests\\Seq2SeqSharp.Tests.csproj",
+      "projectUniqueName": "C:\\Works\\Projects\\Seq2SeqSharp\\Tests\\Seq2SeqSharp.Tests\\Seq2SeqSharp.Tests.csproj",
       "projectName": "Seq2SeqSharp.Tests",
-      "projectPath": "C:\\Seq2SeqSharp\\Tests\\Seq2SeqSharp.Tests\\Seq2SeqSharp.Tests.csproj",
-      "packagesPath": "C:\\Users\\zhongfu\\.nuget\\packages\\",
-      "outputPath": "C:\\Seq2SeqSharp\\Tests\\Seq2SeqSharp.Tests\\obj\\",
+      "projectPath": "C:\\Works\\Projects\\Seq2SeqSharp\\Tests\\Seq2SeqSharp.Tests\\Seq2SeqSharp.Tests.csproj",
+      "packagesPath": "C:\\Users\\monke\\.nuget\\packages\\",
+      "outputPath": "C:\\Works\\Projects\\Seq2SeqSharp\\Tests\\Seq2SeqSharp.Tests\\obj\\",
       "projectStyle": "PackageReference",
-      "fallbackFolders": [
-        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-      ],
       "configFilePaths": [
-        "C:\\Users\\zhongfu\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Users\\monke\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
@@ -6846,8 +6841,8 @@
         "net6.0": {
           "targetAlias": "net6.0",
           "projectReferences": {
-            "C:\\Seq2SeqSharp\\Seq2SeqSharp\\Seq2SeqSharp.csproj": {
-              "projectPath": "C:\\Seq2SeqSharp\\Seq2SeqSharp\\Seq2SeqSharp.csproj"
+            "C:\\Works\\Projects\\Seq2SeqSharp\\Seq2SeqSharp\\Seq2SeqSharp.csproj": {
+              "projectPath": "C:\\Works\\Projects\\Seq2SeqSharp\\Seq2SeqSharp\\Seq2SeqSharp.csproj"
             }
           }
         }
@@ -6894,7 +6889,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.100\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.301\\RuntimeIdentifierGraph.json"
       }
     }
   }

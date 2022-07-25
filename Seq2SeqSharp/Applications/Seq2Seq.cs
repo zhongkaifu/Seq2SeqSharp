@@ -208,7 +208,7 @@ namespace Seq2SeqSharp
             }
             else
             {
-                if (m_options.Task == ModeEnums.Train)
+                if (isTraining)
                 {
                     (var c, _) = Decoder.DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding, originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType,
                         m_options.DropoutRatio, decodingOptions, isTraining, pointerGenerator: pointerGenerator, srcSeqs: srcTokensList);
@@ -238,7 +238,7 @@ namespace Seq2SeqSharp
                     }
                 }
                 else
-                {
+                {   // Test mode or running validation in Training mode
                     Dictionary<string, IWeightTensor> cachedTensors = new Dictionary<string, IWeightTensor>();
                     List<List<BeamSearchStatus>> beam2batchStatus = Decoder.InitBeamSearchStatusListList(batchSize, tgtTokensList);
                     for (int i = tgtTokensList[0].Count; i < decodingOptions.MaxTgtSentLength; i++)

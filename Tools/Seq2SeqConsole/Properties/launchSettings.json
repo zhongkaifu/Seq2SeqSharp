@@ -2,8 +2,8 @@
   "profiles": {
     "Seq2SeqConsole": {
       "commandName": "Project",
-      "commandLineArgs": "-Task Test -ModelFilePath .\\model\\seq2seq_yb_pt.model -InputTestFile .\\data\\test\\test_yb.txt -OutputFile out_yb.txt -MaxTestSrcSentLength 256 -MaxTestTgtSentLength 256 -ProcessorType CPU -SrcSentencePieceModelPath .\\spm\\chsYBspm.model -TgtSentencePieceModelPath .\\spm\\chsYBspm.model -BeamSearchSize 1 -DeviceIds 0,1,2,3 -DecodingStrategy Sampling",
-      "workingDirectory": "C:\\ReleasePackage"
+      "commandLineArgs": "-Task Test -ModelFilePath .\\mt_enu_chs_large2.model.50000 -InputTestFile .\\test.txt -OutputFile a.out -ProcessorType CPU -DeviceIds 0,1,2,3,4,5,6,7 -TaskParallelism 8 -MaxSrcSentLength 110 -MaxTgtSentLength 32",
+      "workingDirectory": "C:\\Works\\Workspace\\MT\\ENU_CHS"
     },
     "Seq2SeqConsole-v0": {
       "commandName": "Project",
