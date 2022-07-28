@@ -251,6 +251,8 @@ namespace Seq2SeqSharp.Tools
                 // backward, weights updates and other parts are implemented in the framework. You can see them in BaseSeq2SeqFramework.cs
                 TrainOneEpoch(i, trainCorpus, validCorpusList, learningRate, optimizer, taskId2metrics, decodingOptions, RunForwardOnSingleDevice);
             }
+
+            SaveModel(createBackupPrevious: false, suffix: $".{m_weightsUpdateCount}");
         }
 
         public void Train(int maxTrainingEpoch, IParallelCorpus<ISntPairBatch> trainCorpus, IParallelCorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, List<IMetric> metrics, IOptimizer optimizer, DecodingOptions decodingOptions)
