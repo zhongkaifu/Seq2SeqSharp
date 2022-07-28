@@ -22,7 +22,7 @@ namespace Seq2SeqWebApps
         static private SentencePiece? m_srcSpm = null;
         static private SentencePiece? m_tgtSpm = null;
         static private Seq2SeqOptions? opts;
-        static Semaphore sm = null;
+        static Semaphore? sm = null;
 
         static public void Initialization(string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, ProcessorTypeEnums processorType, string deviceIds, SentencePiece? srcSpm, SentencePiece? tgtSpm,
             Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum, float topPSampling, float repeatPenalty, float memoryUsageRatio)
@@ -106,7 +106,7 @@ namespace Seq2SeqWebApps
 
             try
             {
-                sm.WaitOne();
+                sm?.WaitOne();
 
                 var nrs = m_seq2seq.Test<Seq2SeqCorpusBatch>(srcGroupBatchTokens, tgtGroupBatchTokens, decodingOptions);
                 string rst = String.Join(" ", nrs[0].Output[0][0].ToArray(), 0, nrs[0].Output[0][0].Count);
@@ -129,7 +129,7 @@ namespace Seq2SeqWebApps
             }
             finally
             {
-                sm.Release();
+                sm?.Release();
             }
         }
     }

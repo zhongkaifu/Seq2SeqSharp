@@ -51,23 +51,9 @@ namespace Seq2SeqSharp.Tools
 
         private TooLongSequence m_tooLongSequence = TooLongSequence.Ignore;
 
-        private void Shuffle(List<RawSntPair> rawSntPairs)
+        private Dictionary<long, List<RawSntPair>> Shuffle(List<RawSntPair> rawSntPairs)
         {
             Logger.WriteLine($"Starting shuffle {rawSntPairs.Count} sentence pairs.");
-
-            if (m_shuffleEnums == ShuffleEnums.Random)
-            {
-                for (int i = 0; i < rawSntPairs.Count; i++)
-                {
-                    int idx = rnd.Next(0, rawSntPairs.Count);
-                    RawSntPair tmp = rawSntPairs[i];
-                    rawSntPairs[i] = rawSntPairs[idx];
-                    rawSntPairs[idx] = tmp;
-                }
-
-                return;
-            }
-
 
             //Put sentence pair with same source length into the bucket
             Dictionary<long, List<RawSntPair>> dict = new Dictionary<long, List<RawSntPair>>(); //<source sentence length, sentence pair set>
@@ -112,56 +98,7 @@ namespace Seq2SeqSharp.Tools
                 }
             });
 
-
-            //Split large bucket to smaller buckets
-            Dictionary<long, List<RawSntPair>> dictSB = new Dictionary<long, List<RawSntPair>>();
-
-            foreach (var pair in dict)
-            {
-                if (pair.Value.Count <= m_batchSize)
-                {
-                    if (dictSB.ContainsKey(pair.Key) == false)
-                    {
-                        dictSB.Add(pair.Key, pair.Value);
-                    }
-                    else
-                    {
-                        dictSB[pair.Key].AddRange(pair.Value);
-                    }
-                }
-                else
-                {
-                    int N = pair.Value.Count / m_batchSize;
-
-                    for (int i = 0; i < N; i++)
-                    {
-                        var pairs = pair.Value.GetRange(i * m_batchSize, m_batchSize);
-                        dictSB.Add(pair.Key + 100000000000000 * m_maxSrcSentLength * i, pairs);
-                    }
-
-                    if (pair.Value.Count % m_batchSize != 0)
-                    {
-                        dictSB.Add(pair.Key + 100000000000000 * m_maxSrcSentLength * N, pair.Value.GetRange(m_batchSize * N, pair.Value.Count % m_batchSize));
-                    }
-                }
-            }
-
-            rawSntPairs.Clear();
-
-            long[] keys = dictSB.Keys.ToArray();
-            for (int i = 0; i < keys.Length; i++)
-            {
-                int idx = rnd.Next(0, keys.Length);
-                long  tmp = keys[i];
-                keys[i] = keys[idx];
-                keys[idx] = tmp;
-            }
-
-            foreach (long key in keys)
-            {
-                rawSntPairs.AddRange(dictSB[key]);
-            }
-
+            return dict;
         }
 
         private (string, string) ShuffleAll()
@@ -171,15 +108,11 @@ namespace Seq2SeqSharp.Tools
 
             SortedDictionary<int, int> dictSrcLenDist = new SortedDictionary<int, int>();
             SortedDictionary<int, int> dictTgtLenDist = new SortedDictionary<int, int>();
-
-            string srcShuffledFilePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName() + ".tmp");
-            string tgtShuffledFilePath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetRandomFileName() + ".tmp");
-
+            string randomFileName = Path.GetRandomFileName();
             Logger.WriteLine($"Loading and shuffling corpus from '{m_srcFileList.Count}' files.");
 
-            StreamWriter swSrc = new StreamWriter(srcShuffledFilePath, false);
-            StreamWriter swTgt = new StreamWriter(tgtShuffledFilePath, false);
-            
+            HashSet<long> setSequenceLength = new HashSet<long>();
+
             int corpusSize = 0;
             int tooLongSrcSntCnt = 0;
             int tooLongTgtSntCnt = 0;
@@ -251,17 +184,24 @@ namespace Seq2SeqSharp.Tools
 
                         if (m_blockSize > 0 && sntPairs.Count >= m_blockSize)
                         {
-                            Shuffle(sntPairs);
-
-                            lock (lockerForShuffle)
+                            var shuffledSntPairsDict = Shuffle(sntPairs);
+                            foreach (var pair in shuffledSntPairsDict)
                             {
-                                foreach (RawSntPair item in sntPairs)
+                                var seqLength = pair.Key;
+                                lock (lockerForShuffle)
                                 {
-                                    swSrc.WriteLine(item.SrcSnt);
-                                    swTgt.WriteLine(item.TgtSnt);
+                                    setSequenceLength.Add(seqLength);
+                                    StreamWriter swSrcBucket = new StreamWriter(randomFileName + $"_{seqLength}_src.tmp", append: true);
+                                    StreamWriter swTgtBucket = new StreamWriter(randomFileName + $"_{seqLength}_tgt.tmp", append: true);
+                                    foreach (RawSntPair item in pair.Value)
+                                    {
+                                        swSrcBucket.WriteLine(item.SrcSnt);
+                                        swTgtBucket.WriteLine(item.TgtSnt);
+                                    }
+                                    swSrcBucket.Close();
+                                    swTgtBucket.Close();
                                 }
                             }
-
                             sntPairs.Clear();
                         }
                     }
@@ -271,16 +211,24 @@ namespace Seq2SeqSharp.Tools
 
                     if (sntPairs.Count > 0)
                     {
-                        Shuffle(sntPairs);
-                        lock (lockerForShuffle)
+                        var shuffledSntPairsDict = Shuffle(sntPairs);
+                        foreach (var pair in shuffledSntPairsDict)
                         {
-                            foreach (RawSntPair item in sntPairs)
+                            var seqLength = pair.Key;
+                            lock (lockerForShuffle)
                             {
-                                swSrc.WriteLine(item.SrcSnt);
-                                swTgt.WriteLine(item.TgtSnt);
+                                setSequenceLength.Add(seqLength);
+                                StreamWriter swSrcBucket = new StreamWriter(randomFileName + $"_{seqLength}_src.tmp", append: true);
+                                StreamWriter swTgtBucket = new StreamWriter(randomFileName + $"_{seqLength}_tgt.tmp", append: true);
+                                foreach (RawSntPair item in pair.Value)
+                                {
+                                    swSrcBucket.WriteLine(item.SrcSnt);
+                                    swTgtBucket.WriteLine(item.TgtSnt);
+                                }
+                                swSrcBucket.Close();
+                                swTgtBucket.Close();
                             }
                         }
-
                         sntPairs.Clear();
                     }
                 }
@@ -291,6 +239,79 @@ namespace Seq2SeqSharp.Tools
 
                     throw;
                 }
+            });
+
+            Logger.WriteLine($"Finished writing data set to bucket files, and then start to merge them.");
+
+            string srcShuffledFilePath = Path.Combine(Directory.GetCurrentDirectory(), randomFileName + "_src.tmp");
+            string tgtShuffledFilePath = Path.Combine(Directory.GetCurrentDirectory(), randomFileName + "_tgt.tmp");
+            StreamWriter swSrc = new StreamWriter(srcShuffledFilePath, false);
+            StreamWriter swTgt = new StreamWriter(tgtShuffledFilePath, false);
+
+            var sequenceLengthArray = setSequenceLength.ToArray();
+
+            Parallel.For(0, sequenceLengthArray.Length, i =>
+            {
+                var seqLength = sequenceLengthArray[i];
+
+                string srcBucketFileName = randomFileName + $"_{seqLength}_src.tmp";
+                string tgtBucketFileName = randomFileName + $"_{seqLength}_tgt.tmp";
+                StreamReader srSrcBucket = new StreamReader(srcBucketFileName);
+                StreamReader srTgtBucket = new StreamReader(tgtBucketFileName);
+
+                List<string> srcLines = new List<string>();
+                List<string> tgtLines = new List<string>();
+                while (true)
+                {
+                    if (srSrcBucket.EndOfStream && srTgtBucket.EndOfStream)
+                    {
+                        break;
+                    }
+                    string srcLine = srSrcBucket.ReadLine();
+                    string tgtLine = srTgtBucket.ReadLine();
+                    if (srcLine.IsNullOrEmpty() && tgtLine.IsNullOrEmpty())
+                    {
+                        break;
+                    }
+
+                    srcLines.Add(srcLine);
+                    tgtLines.Add(tgtLine);
+
+                    if (srcLines.Count >= BatchSize)
+                    {
+                        lock (locker)
+                        {
+                            for (int j = 0; j < srcLines.Count; j++)
+                            {
+                                swSrc.WriteLine(srcLines[j]);
+                                swTgt.WriteLine(tgtLines[j]);
+                            }
+                        }
+                        srcLines.Clear();
+                        tgtLines.Clear();
+                    }
+                }
+
+                if (srcLines.Count > 0)
+                {
+                    lock (locker)
+                    {
+                        for (int j = 0; j < srcLines.Count; j++)
+                        {
+                            swSrc.WriteLine(srcLines[j]);
+                            swTgt.WriteLine(tgtLines[j]);
+                        }
+                    }
+                    srcLines.Clear();
+                    tgtLines.Clear();
+                }
+
+                srSrcBucket.Close();
+                srTgtBucket.Close();
+
+                File.Delete(srcBucketFileName);
+                File.Delete(tgtBucketFileName);
+
             });
 
             swSrc.Close();

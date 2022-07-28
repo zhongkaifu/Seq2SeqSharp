@@ -139,6 +139,11 @@ namespace AdvUtils
                 bw.Write(item.backsepos);
                 bw.Write(item.hashsize);
 
+                if (item.hashList == null)
+                {
+                    throw new NullReferenceException($"Null hash list in the item.");
+                }
+
                 foreach (int id in item.hashList)
                 {
                     bw.Write(id);
@@ -181,6 +186,11 @@ namespace AdvUtils
             while (sr.EndOfStream == false)
             {
                 string? strLine = sr.ReadLine();
+                if (strLine == null)
+                {
+                    break;
+                }
+
                 string[]? items = strLine.Split(new char[] { '\t' });
 
                 string strTerm;
@@ -313,6 +323,12 @@ namespace AdvUtils
             {
                 return DM_DENTRY_NULL;
             }
+
+            if (seinfo == null)
+            {
+                throw new NullReferenceException("seinfo is null.");
+            }
+
             hsize = seinfo[sufpos].hashsize;
             hpos = value % hsize;
             if (((nde = seinfo[sufpos].hashList[hpos]) == DM_DENTRY_NULL)
@@ -447,11 +463,23 @@ namespace AdvUtils
                         for (int i = 0; i < hsize; i++)
                         {
                             int others;
+
+                            if (seinfo == null || seinfo[sufpos].hashList == null)
+                            {
+                                throw new NullReferenceException("s.hashList is null");
+                            }
+
                             others = seinfo[sufpos].hashList[i];
                             if (others != DM_DENTRY_NULL)
                             {
                                 int tmphpos;
                                 tmphpos = dentry[others].value % newhash;
+
+                                if (s.hashList == null)
+                                {
+                                    throw new NullReferenceException("s.hashList is null");
+                                }
+
                                 if (s.hashList[tmphpos] == DM_DENTRY_NULL)
                                 {
                                     s.hashList[tmphpos] = others;
@@ -467,6 +495,12 @@ namespace AdvUtils
                         {
                             int tmphpos;
                             tmphpos = dentry[curdepos].value % newhash;
+
+                            if (s.hashList == null)
+                            {
+                                throw new NullReferenceException("s.hashList is null");
+                            }
+
                             if (s.hashList[tmphpos] == DM_DENTRY_NULL)
                             {
                                 s.hashList[tmphpos] = curdepos;
@@ -565,6 +599,12 @@ namespace AdvUtils
 
                 hsize = seinfo[sufpos].hashsize;
                 hpos = value % hsize;
+
+                if (seinfo == null || seinfo[sufpos].hashList == null)
+                {
+                    throw new NullReferenceException("seinfo is null");
+                }
+
                 nde = seinfo[sufpos].hashList[hpos];
                 if ((nde == DM_DENTRY_NULL) || (dentry[nde].value != value))
                 {
