@@ -152,6 +152,57 @@ namespace Seq2SeqSharp.Tools
 
             bw.Close();
 
+            Logger.WriteLine($"Shuffled '{corpusSize}' sentence pairs.");
+
+            if (tooLongSrcSntCnt > 0)
+            {
+                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Found {tooLongSrcSntCnt} source sentences are longer than '{m_maxSrcSentLength}' tokens, ignore them.");
+            }
+
+            if (tooLongTgtSntCnt > 0)
+            {
+                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Found {tooLongTgtSntCnt} target sentences are longer than '{m_maxTgtSentLength}' tokens, ignore them.");
+            }
+
+            if (m_showTokenDist)
+            {
+                Logger.WriteLine($"AggregateSrcLength = '{m_shuffleEnums}'");
+                Logger.WriteLine($"Src token length distribution");
+
+                int srcTotalNum = 0;
+                foreach (var pair in dictSrcLenDist)
+                {
+                    srcTotalNum += pair.Value;
+                }
+
+                int srcAccNum = 0;
+                foreach (var pair in dictSrcLenDist)
+                {
+                    srcAccNum += pair.Value;
+
+                    Logger.WriteLine($"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value} (acc: {100.0f * (float)srcAccNum / (float)srcTotalNum:F}%)");
+                }
+
+                Logger.WriteLine($"Tgt token length distribution");
+
+                int tgtTotalNum = 0;
+                foreach (var pair in dictTgtLenDist)
+                {
+                    tgtTotalNum += pair.Value;
+                }
+
+                int tgtAccNum = 0;
+
+                foreach (var pair in dictTgtLenDist)
+                {
+                    tgtAccNum += pair.Value;
+
+                    Logger.WriteLine($"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value}  (acc: {100.0f * (float)tgtAccNum / (float)tgtTotalNum:F}%)");
+                }
+
+                m_showTokenDist = false;
+            }
+
             return len2offsets;
         }
         
