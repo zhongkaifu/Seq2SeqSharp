@@ -53,6 +53,88 @@ namespace Seq2SeqSharp.Tools
 
         private string binaryDataSetFilePath = "";
 
+
+        public (List<Dictionary<string, int>>, List<Dictionary<string, int>>) CountTokenFreqs()
+        {
+            List<Dictionary<string, int>> sd = new List<Dictionary<string, int>>();
+            List<Dictionary<string, int>> td = new List<Dictionary<string, int>>();
+
+            for (int i = 0; i < m_srcFileList.Count; i++)
+            {
+                Logger.WriteLine($"Start to count token frequency in '{m_srcFileList[i]}' and '{m_tgtFileList[i]}'.");
+                StreamReader srSrc = new StreamReader(m_srcFileList[i]);
+                StreamReader srTgt = new StreamReader(m_tgtFileList[i]);
+
+                while (true)
+                {
+                    if (srSrc.EndOfStream && srTgt.EndOfStream)
+                    {
+                        break;
+                    }
+
+                    string srcLine = srSrc.ReadLine();
+                    string tgtLine = srTgt.ReadLine();
+
+                    if (srcLine.IsNullOrEmpty() && tgtLine.IsNullOrEmpty())
+                    {
+                        break;
+                    }
+
+                    string[] srcGroups = srcLine.Split('\t');
+                    string[] tgtGroups = tgtLine.Split('\t');
+
+                    if (srcGroups.Length != tgtGroups.Length)
+                    {
+                        throw new InvalidDataException("Inconsistent group size between source side and target side.");
+                    }
+
+                    if (sd.Count == 0)
+                    {
+                        for (int j = 0; j < srcGroups.Length; j++)
+                        {
+                            sd.Add(new Dictionary<string, int>());
+                            td.Add(new Dictionary<string, int>());
+                        }
+                    }
+
+                    for (int j = 0; j < srcGroups.Length; j++)
+                    {
+                        string[] srcTokens = srcGroups[j].Split(' ');
+                        string[] tgtTokens = tgtGroups[j].Split(' ');
+
+
+                        foreach (var srcToken in srcTokens)
+                        {
+                            if (sd[j].ContainsKey(srcToken) == false)
+                            {
+                                sd[j].Add(srcToken, 0);
+                            }
+                            sd[j][srcToken]++;
+                        }
+
+                        foreach (var tgtToken in tgtTokens)
+                        {
+                            if (td[j].ContainsKey(tgtToken) == false)
+                            {
+                                td[j].Add(tgtToken, 0);
+                            }
+                            td[j][tgtToken]++;
+                        }
+
+                    }
+                }
+            }
+
+
+            for (int j = 0; j < sd.Count; j++)
+            {
+                Logger.WriteLine($"Original token size at group '{j}' source = '{sd[j].Count}' target = '{td[j].Count}'");
+            }
+
+            return (sd, td);
+        }
+
+
         private Dictionary<long, LinkedList<long>> BuildIndex()
         {
             SortedDictionary<int, int> dictSrcLenDist = new SortedDictionary<int, int>();
@@ -213,33 +295,29 @@ namespace Seq2SeqSharp.Tools
             
             using(BinaryReader br = new BinaryReader(new FileStream(binaryDataSetFilePath, FileMode.Open)))
             {
-                int maxOutputsSize = m_batchSize * 10000;
+                int maxOutputsSize = m_batchSize * 10;
                 List<SntPair> outputs = new List<SntPair>();
 
                 int lengthRnd = rnd.Next(length2offsets.Count);
                 long length = length2offsets.Keys.ToArray()[lengthRnd];
                 LinkedList<long> offsets = length2offsets[length];
-                bool isAbort = false;
 
                 while (length2offsets.Count > 0)
                 {
                     bool lengthChanged = false;
-                    while (offsets.Count == 0)
+                    if (offsets.Count == 0)
                     {
                         length2offsets.Remove(length);
-                        if (length2offsets.Count == 0)
+                        if (length2offsets.Count > 0)
                         {
-                            isAbort = true;
-                            break;
+                            lengthRnd = rnd.Next(length2offsets.Count);
+                            length = length2offsets.Keys.ToArray()[lengthRnd];
+                            offsets = length2offsets[length];
+                            lengthChanged = true;
                         }
-
-                        lengthRnd = rnd.Next(length2offsets.Count);
-                        length = length2offsets.Keys.ToArray()[lengthRnd];
-                        offsets = length2offsets[length];
-                        lengthChanged = true;
                     }
 
-                    if (isAbort)
+                    if (offsets.Count == 0)
                     {
                         break;
                     }

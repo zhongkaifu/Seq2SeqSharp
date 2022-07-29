@@ -25,10 +25,7 @@ namespace Seq2SeqSharp.Corpus
         /// <param name="vocabSize"></param>
         public (Vocab, List<Vocab>) BuildVocabs(int srcVocabSize = 45000, int tgtVocabSize = 45000)
         {
-            foreach (var sntPairBatch in this)
-            {
-                CorpusBatch.CountSntPairTokens(sntPairBatch.SntPairs);
-            }
+            (CorpusBatch.s_ds, CorpusBatch.t_ds) = CountTokenFreqs();
 
             CorpusBatch.ReduceSrcTokensToSingleGroup();
 

@@ -190,8 +190,8 @@ namespace Seq2SeqSharp.Corpus
 
 
         // count up all words
-        static readonly List<Dictionary<string, int>> s_ds = new List<Dictionary<string, int>>();
-        static readonly List<Dictionary<string, int>> t_ds = new List<Dictionary<string, int>>();
+        public static List<Dictionary<string, int>> s_ds = new List<Dictionary<string, int>>();
+        public static List<Dictionary<string, int>> t_ds = new List<Dictionary<string, int>>();
 
 
 
@@ -238,75 +238,7 @@ namespace Seq2SeqSharp.Corpus
             s_ds.Clear();
             s_ds.Add(rst);
         }
-
-
-        /// <summary>
-        /// Build vocabulary from training corpus
-        /// </summary>
-        /// <param name="vocabSize"></param>
-        /// side and the second group in target side are shared vocabulary</param>
-        static public void CountSntPairTokens(List<SntPair> sntPairs)
-        {
-            foreach (SntPair sntPair in sntPairs)
-            {
-                if (s_ds.Count == 0)
-                {
-                    for (int i = 0; i < sntPair.SrcTokenGroups.Count; i++)
-                    {
-                        s_ds.Add(new Dictionary<string, int>());
-                    }
-                }
-
-                if (t_ds.Count == 0)
-                {
-                    for (int i = 0; i < sntPair.TgtTokenGroups.Count; i++)
-                    {
-                        t_ds.Add(new Dictionary<string, int>());
-                    }
-                }
-
-
-                for (int g = 0; g < sntPair.SrcTokenGroups.Count; g++)
-                {
-                    var tokens = sntPair.SrcTokenGroups[g];
-                    for (int i = 0; i < tokens.Count; i++)
-                    {
-                        var token = tokens[i];
-                        if (s_ds[g].ContainsKey(token) == true)
-                        {
-                            s_ds[g][token]++;
-                        }
-                        else
-                        {
-                            s_ds[g].Add(token, 1);
-                        }
-                    }
-
-                }
-
-
-                for (int g = 0; g < sntPair.TgtTokenGroups.Count; g++)
-                {
-                    var tokens = sntPair.TgtTokenGroups[g];
-                    for (int i = 0; i < tokens.Count; i++)
-                    {
-                        var token = tokens[i];
-                        if (t_ds[g].ContainsKey(token) == true)
-                        {
-                            t_ds[g][token]++;
-                        }
-                        else
-                        {
-                            t_ds[g].Add(token, 1);
-                        }
-                    }
-
-                }
-
-            }            
-        }
-
-
+       
         /// <summary>
         /// Build vocabulary from training corpus
         /// </summary>

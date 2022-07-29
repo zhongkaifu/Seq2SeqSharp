@@ -36,10 +36,7 @@ namespace Seq2SeqSharp.Corpus
                 throw new ArgumentException($"Vocab size must be equal if sharedVocab is true. Src Vocab Size = '{srcVocabSize}', Tgt Vocab Size = '{tgtVocabSize}'");
             }
 
-            foreach (var sntPairBatch in this)
-            {
-                CorpusBatch.CountSntPairTokens(sntPairBatch.SntPairs);
-            }
+            (CorpusBatch.s_ds, CorpusBatch.t_ds) = CountTokenFreqs();
 
             CorpusBatch.ReduceSrcTokensToSingleGroup();
             if (sharedVocab)
