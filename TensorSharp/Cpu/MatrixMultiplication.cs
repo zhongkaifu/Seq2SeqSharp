@@ -430,6 +430,123 @@ namespace TensorSharp.Cpu
             }
         }
 
+        public static void GemmBatch(float alpha, Tensor a, Tensor b, float beta, Tensor c)
+        {
+            if (a.Sizes[1] != c.Sizes[1] || b.Sizes[2] != c.Sizes[2] || a.Sizes[2] != b.Sizes[1])
+            {
+                throw new InvalidOperationException("Size mismatch");
+            }
+
+            BlasOp aOp = default(BlasOp);
+            BlasOp bOp = default(BlasOp);
+            bool copyC = false;
+
+            Tensor aClone = null;
+            Tensor bClone = null;
+            Tensor cClone = null;
+
+
+            if (c.Strides[1] == 1 &&
+                c.Strides[2] != 0 && c.Strides[2] != 1)
+            {
+                // If c is contiguous in dimension 0 (column-major)
+                aClone = a.CopyRef();
+                bClone = b.CopyRef();
+                cClone = c.CopyRef();
+            }
+            else if (c.Strides[2] == 1 &&
+                c.Strides[1] != 0 && c.Strides[1] != 1)
+            {
+                // If c is contiguous in dimension 1 (row-major)
+                // using (a * b)' == b' * a'
+                // we can pass row-major matrices to BLAS functions that expect column-major by swapping A and B,
+                // and transposing all 3 matrices
+
+                cClone = c.Transpose(1, 2);
+                aClone = b.Transpose(1, 2); // Note swap of a and b
+                bClone = a.Transpose(1, 2);
+            }
+            else
+            {
+                Tensor cNew = new Tensor(c.Allocator, c.ElementType, c.Sizes[0], c.Sizes[2], c.Sizes[1]);
+                cClone = cNew.Transpose(1, 2);
+                Ops.Copy(cClone, c);
+                cNew.Dispose();
+                copyC = true;
+
+                aClone = a.CopyRef();
+                bClone = b.CopyRef();
+            }
+
+            try
+            {
+                if (aClone.Strides[1] == 1 &&
+                    aClone.Strides[2] != 0 && aClone.Strides[2] != 1)
+                {
+                    // If a is contiguous in dimension 0 (column-major)
+                    aOp = BlasOp.NonTranspose;
+                }
+                else if (aClone.Strides[2] == 1 &&
+                    aClone.Strides[1] != 0 && aClone.Strides[1] != 1)
+                {
+                    aOp = BlasOp.Transpose;
+                    Tensor aNew = aClone.Transpose(1, 2);
+                    aClone.Dispose();
+                    aClone = aNew;
+                }
+                else
+                {
+                    Tensor aNew = new Tensor(aClone.Allocator, aClone.ElementType, aClone.Sizes[0], aClone.Sizes[2], aClone.Sizes[1]);
+                    Tensor aClone2 = aNew.Transpose(1, 2);
+                    Ops.Copy(aClone2, aClone);
+                    aClone.Dispose();
+                    aClone = aClone2;
+                    aNew.Dispose();
+
+                    aOp = BlasOp.NonTranspose;
+                }
+
+                if (bClone.Strides[1] == 1 &&
+                    bClone.Strides[2] != 0 && bClone.Strides[2] != 1)
+                {
+                    // If a is contiguous in dimension 0 (column-major)
+                    bOp = BlasOp.NonTranspose;
+                }
+                else if (bClone.Strides[2] == 1 &&
+                    bClone.Strides[1] != 0 && bClone.Strides[1] != 1)
+                {
+                    bOp = BlasOp.Transpose;
+                    Tensor bNew = bClone.Transpose(1, 2);
+                    bClone.Dispose();
+                    bClone = bNew;
+                }
+                else
+                {
+                    Tensor bNew = new Tensor(bClone.Allocator, bClone.ElementType, bClone.Sizes[0], bClone.Sizes[2], bClone.Sizes[1]);
+                    Tensor bClone2 = bNew.Transpose(1, 2);
+                    Ops.Copy(bClone2, bClone);
+                    bClone.Dispose();
+                    bClone = bClone2;
+                    bNew.Dispose();
+
+                    bOp = BlasOp.NonTranspose;
+                }
+
+                GemmOpBatch(aOp, bOp, alpha, aClone, bClone, beta, cClone);
+
+                if (copyC)
+                {
+                    Ops.Copy(c, cClone);
+                }
+            }
+            finally
+            {
+                aClone.Dispose();
+                bClone.Dispose();
+                cClone.Dispose();
+            }
+        }
+
         const string mklDllName = "mkl_rt.2.dll";
         [DllImport(mklDllName, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
         public static extern unsafe void cblas_sgemm(Order order, byte transa, byte transb, int m, int n, int k, float alpha, float* a, int lda, float* b, int ldb, float beta, float* c, int ldc);
@@ -499,6 +616,84 @@ namespace TensorSharp.Cpu
                     throw new NotSupportedException("CPU GEMM with element type " + c.ElementType + " not supported");
                 }
             }
-        }        
+        }
+
+        [DllImport(mklDllName, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
+        public static extern unsafe void cblas_sgemm_batch_strided(Order order, byte transa, byte transb, int m, int n, int k, float alpha, float* a, int lda, int stra, float* b, int ldb, int strb, float beta, float* c, int ldc, int stridec, int batch_size);
+
+        private static void GemmOpBatch(BlasOp transA, BlasOp transB, float alpha, Tensor a, Tensor b, float beta, Tensor c)
+        {
+            if (a.Strides[1] != 1)
+            {
+                throw new ArgumentException($"a must be contiguous in the first dimension (column major / fortran order). ({a.Strides[0]},{a.Strides[1]}) ({b.Strides[0]},{b.Strides[1]}) ({c.Strides[0]},{c.Strides[1]})");
+            }
+
+            if (b.Strides[1] != 1)
+            {
+                throw new ArgumentException("b must be contiguous in the first dimension (column major / fortran order)");
+            }
+
+            if (c.Strides[1] != 1)
+            {
+                throw new ArgumentException($"c must be contiguous in the first dimension (column major / fortran order) ({a.Strides[0]}, {a.Strides[1]}, {a.Strides[2]}) ({b.Strides[0]}, {b.Strides[1]}, {b.Strides[2]}) ({c.Strides[0]}, {c.Strides[1]}, {c.Strides[2]})");
+            }
+
+            unsafe
+            {
+                bool nta = transA == BlasOp.NonTranspose;
+                bool ntb = transB == BlasOp.NonTranspose;
+                byte transa = (byte)transA;
+                byte transb = (byte)transB;
+                int m = (int)a.Sizes[nta ? 1 : 2];
+                int k = (int)b.Sizes[ntb ? 1 : 2];
+                int n = (int)b.Sizes[ntb ? 2 : 1];
+                int lda = (int)a.Strides[2];
+                int ldb = (int)b.Strides[2];
+                int ldc = (int)c.Strides[2];
+
+                int stra = (int)a.Strides[0];
+                int strb = (int)b.Strides[0];
+                int strc = (int)c.Strides[0];
+                int batchSize = (int)c.Sizes[0];
+
+                if (c.ElementType == DType.Float32)
+                {
+                    float* aPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(a);
+                    float* bPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(b);
+                    float* cPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(c);
+
+                    //CublasStatus _statusF32 = CudaBlasNativeMethods.cublasSgemmStridedBatched(blas.Value.CublasHandle,
+                    //    transa, transb, m, n, k, ref alpha, aPtrSingle, lda, stra, bPtrSingle, ldb, strb, ref beta, cPtrSingle, ldc, strc, batchSize);
+                    //if (_statusF32 != CublasStatus.Success)
+                    //{
+                    //    throw new CudaBlasException(_statusF32);
+                    //}
+
+                    transa = (byte)ConvertBlasOp(transA);
+                    transb = (byte)ConvertBlasOp(transB);
+                    cblas_sgemm_batch_strided(Order.Column, transa, transb, m, n, k, alpha, aPtrSingle, lda, stra, bPtrSingle, ldb, strb, beta, cPtrSingle, ldc, strc, batchSize);
+
+                    //     transa, transb, m, n, k, ref alpha, aPtrSingle, lda, stra, bPtrSingle, ldb, strb, ref beta, cPtrSingle, ldc, strc, batchSize);
+                }
+                //else if (c.ElementType == DType.Float64)
+                //{
+                //    CUdeviceptr aPtrDouble = CpuNativeHelpers.GetBufferStart(a);
+                //    CUdeviceptr bPtrDouble = CpuNativeHelpers.GetBufferStart(b);
+                //    CUdeviceptr cPtrDouble = CpuNativeHelpers.GetBufferStart(c);
+                //    double alphaDouble = alpha;
+                //    double betaDouble = beta;
+                //    CublasStatus _statusF64 = CudaBlasNativeMethods.cublasDgemmStridedBatched(blas.Value.CublasHandle,
+                //        transa, transb, m, n, k, ref alphaDouble, aPtrDouble, lda, stra, bPtrDouble, ldb, strb, ref betaDouble, cPtrDouble, ldc, strc, batchSize);
+                //    if (_statusF64 != CublasStatus.Success)
+                //    {
+                //        throw new CudaBlasException(_statusF64);
+                //    }
+                //}
+                else
+                {
+                    throw new NotSupportedException("GEMM Batch with element type " + c.ElementType + " not supported");
+                }
+            }
+        }
     }
 }
