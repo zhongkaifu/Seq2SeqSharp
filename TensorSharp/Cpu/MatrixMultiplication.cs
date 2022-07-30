@@ -8,7 +8,9 @@
 // Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
+using AdvUtils;
 using System;
+using System.Runtime.InteropServices;
 using TensorSharp.Core;
 using TensorSharp.Cpu.LinearAlgebra;
 
@@ -17,13 +19,65 @@ namespace TensorSharp.Cpu
     public enum BlasOp : byte
     {
         NonTranspose = (byte)'n',
-        Transpose = (byte)'t',
-        ConjugateTranspose = (byte)'c',
+        Transpose = (byte)'T',
+        ConjugateTranspose = (byte)'C',
     }
 
 
-    public static class MatrixMultiplication
+    /// <summary>
+    /// The matrix data storage format.
+    /// </summary>
+    public enum Order
     {
+        /// <summary>
+        /// The matrix array uses a row-major layout.
+        /// </summary>
+        Row = 101,
+
+        /// <summary>
+        /// The matrix array uses a column-major layout.
+        /// </summary>
+        Column = 102
+    }
+
+    /// <summary>
+    /// Matrix transpose type.
+    /// </summary>
+    public enum Transpose
+    {
+        /// <summary>
+        /// Don't transpose the matrix.  Equivalent to trans='N'
+        /// </summary>
+        NoTrans = 111,
+
+        /// <summary>
+        /// Transpose the matrix.  Equivalent to trans='T'
+        /// </summary>
+        Trans = 112,
+
+        /// <summary>
+        /// Conjugate transpose the matrix. The only refers to complex matrices. Real matrices will just be transposed.  Equivalent to trans='C'
+        /// </summary>
+        ConjTrans = 113
+    }
+
+    unsafe public static class MatrixMultiplication
+    {
+        public static Transpose ConvertBlasOp(BlasOp op)
+        {
+            if (op == BlasOp.NonTranspose)
+            {
+                return Transpose.NoTrans;
+            }
+            else if (op == BlasOp.Transpose)
+            {
+                return Transpose.Trans;
+            }
+
+            return Transpose.ConjTrans;
+        }
+
+
         public static Tensor Dot(Tensor result, Tensor lhs, Tensor rhs)
         {
             if (lhs.ElementType != rhs.ElementType || (result != null && result.ElementType != lhs.ElementType))
@@ -376,6 +430,11 @@ namespace TensorSharp.Cpu
             }
         }
 
+        const string mklDllName = "mkl_rt.2.dll";
+        [DllImport(mklDllName, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
+        public static extern unsafe void cblas_sgemm(Order order, byte transa, byte transb, int m, int n, int k, float alpha, float* a, int lda, float* b, int ldb, float beta, float* c, int ldc);
+
+
 
         private static void GemmOp(BlasOp transA, BlasOp transB, float alpha, Tensor a, Tensor b, float beta, Tensor c)
         {
@@ -414,9 +473,17 @@ namespace TensorSharp.Cpu
                     float* bPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(b);
                     float* cPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(c);
 
-                    SGEMM sgemm = new SGEMM();
-                    sgemm.Run(System.Text.ASCIIEncoding.ASCII.GetString(&transa, 1), System.Text.ASCIIEncoding.ASCII.GetString(&transb, 1), m, n, k, alpha, aPtrSingle, lda, bPtrSingle, ldb, beta, cPtrSingle, ldc);
-
+                    if (a.Allocator.BlasEnum == BlasEnum.MKL || b.Allocator.BlasEnum == BlasEnum.MKL || c.Allocator.BlasEnum == BlasEnum.MKL)
+                    {
+                        transa = (byte)ConvertBlasOp(transA);
+                        transb = (byte)ConvertBlasOp(transB);
+                        cblas_sgemm(Order.Column, transa, transb, m, n, k, alpha, aPtrSingle, lda, bPtrSingle, ldb, beta, cPtrSingle, ldc);
+                    }
+                    else
+                    {
+                        SGEMM sgemm = new SGEMM();
+                        sgemm.Run(System.Text.ASCIIEncoding.ASCII.GetString(&transa, 1), System.Text.ASCIIEncoding.ASCII.GetString(&transb, 1), m, n, k, alpha, aPtrSingle, lda, bPtrSingle, ldb, beta, cPtrSingle, ldc);
+                    }
                 }
                 else if (c.ElementType == DType.Float64)
                 {

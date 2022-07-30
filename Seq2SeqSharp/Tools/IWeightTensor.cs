@@ -36,7 +36,7 @@ namespace Seq2SeqSharp.Tools
         void ZeroGradient();
         void CleanWeight();
 
-        WeightTensor CopyWeightsRef(string name, bool needGradient);
+        WeightTensor CopyWeightsRef(string name, bool needGradient, IComputeGraph graphToBind);
 
         void CopyWeightsFrom(IWeightTensor src);
         void AddGradientFrom(IWeightTensor src);

@@ -39,7 +39,7 @@ namespace TensorSharp
             {
                 //If the result is not on the CPU, it is much faster to build the tensor on the CPU and then copy
                 //An alternative to this would be building a specific GPU kernel for this operation
-                Cpu.CpuAllocator cpuAlloc = new Cpu.CpuAllocator();
+                Cpu.CpuAllocator cpuAlloc = new Cpu.CpuAllocator(BlasEnum.DotNet);
                 using (Tensor cpuResult = new Tensor(cpuAlloc, result.ElementType, result.Sizes))
                 {
                     DoFillOneHot(cpuResult, labelCount, labels);

@@ -48,7 +48,7 @@ namespace Seq2SeqSharp
                 foreach (int deviceId in m_deviceIds)
                 {
                     int idx = GetDeviceIdIndex(deviceId);
-                    m_allocator[idx] = new CpuAllocator();
+                    m_allocator[idx] = new CpuAllocator((archType == ProcessorTypeEnums.CPU_MKL) ? BlasEnum.MKL : BlasEnum.DotNet);
                 }
             }
         }

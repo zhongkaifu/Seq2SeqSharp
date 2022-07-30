@@ -63,3 +63,10 @@ Temporary Items
 /Tools/SeqWebApps/bin
 /Tools/SeqWebApps/obj
 /Tools/SeqDictMatchConsole/bin/Debug/net6.0
+/CpuOps/x64/Debug
+/Tests/Seq2SeqSharp.Tests/obj/Debug/net6.0
+/Tests/Seq2SeqSharp.Tests/obj/Seq2SeqSharp.Tests.csproj.nuget.g.targets
+/Tests/Seq2SeqSharp.Tests/obj/Seq2SeqSharp.Tests.csproj.nuget.g.props
+/Tests/Seq2SeqSharp.Tests/obj/Seq2SeqSharp.Tests.csproj.nuget.dgspec.json
+/Tests/Seq2SeqSharp.Tests/obj/project.nuget.cache
+/Tests/Seq2SeqSharp.Tests/obj/project.assets.json

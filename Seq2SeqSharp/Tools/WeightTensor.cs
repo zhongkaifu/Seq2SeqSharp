@@ -458,9 +458,9 @@ namespace Seq2SeqSharp.Tools
             TWeight.SetElementsAsFloat(v);
         }
 
-        public WeightTensor CopyWeightsRef(string name, bool needGradient)
+        public WeightTensor CopyWeightsRef(string name, bool needGradient, IComputeGraph graphToBind)
         {
-            WeightTensor result = new WeightTensor(Sizes, DeviceId, name, needGradient: needGradient)
+            WeightTensor result = new WeightTensor(Sizes, DeviceId, name, needGradient: needGradient, graphToBind: graphToBind)
             {
                 m_TWeight = m_TWeight.CopyRef()
             };

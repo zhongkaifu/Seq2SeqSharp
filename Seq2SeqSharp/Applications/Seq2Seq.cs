@@ -177,7 +177,7 @@ namespace Seq2SeqSharp
                     encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcTokensList, originalSrcLengths);
 
                     var cacheEntryOptions = new MemoryCacheEntryOptions().SetSize(1);
-                    m_memoryCache.Set(cacheKey, encOutput.CopyWeightsRef($"cache_{encOutput.Name}", false), cacheEntryOptions);
+                    m_memoryCache.Set(cacheKey, encOutput.CopyWeightsRef($"cache_{encOutput.Name}", false, graphToBind: null), cacheEntryOptions);
                 }
 
 

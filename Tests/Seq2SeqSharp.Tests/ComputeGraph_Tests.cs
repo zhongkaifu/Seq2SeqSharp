@@ -223,6 +223,35 @@ public class ComputeGraph_Tests
         Assert.IsTrue(r1 == r2);
     }
 
+    [TestMethod]
+    public void TestSigmoid()
+    {
+        int batchSize = 5;
+        int vocabSize = 20;
+        TensorAllocator.InitDevices(ProcessorTypeEnums.CPU, new int[] { 0 });
+        var graph = new ComputeGraphTensor(new WeightTensorFactory(), 0, true);
+
+        var tensorSrc = BuildRandomTensor(shape: new long[2] { batchSize, vocabSize }, name: "tensorSrc", isTrainable: true);
+        var tensorSrcWeights = tensorSrc.ToWeightArray();
+
+        var tensorRst = new WeightTensor(new long[2] { batchSize, vocabSize }, 1, 0, name: "tensorRst", isTrainable: true);
+
+        Ops.Sigmoid(tensorRst.TWeight, tensorSrc.TWeight);
+
+        var tensorTgtWeights = tensorRst.ToWeightArray();
+
+        for (int i = 0; i < tensorSrcWeights.Length; i++)
+        {
+            float r1 = (float)(1.0 / (1.0 + Math.Exp(-tensorSrcWeights[i])));
+            r1 = (float)Math.Round(r1, 4);
+
+            float r2 = tensorTgtWeights[i];
+            r2 = (float)Math.Round(r2, 4);
+
+            Assert.IsTrue(r1 == r2);
+        }
+    }
+
 
     [TestMethod]
     public void TestCrossEntropyLoss()

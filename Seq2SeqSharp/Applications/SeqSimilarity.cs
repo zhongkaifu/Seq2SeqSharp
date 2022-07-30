@@ -149,7 +149,7 @@ namespace Seq2SeqSharp.Applications
                     encOutput1 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, 0); // output shape: [batch_size, dim]
 
                     var cacheEntryOptions = new MemoryCacheEntryOptions().SetSize(1);
-                    m_memoryCache.Set(cacheKey1, encOutput1.CopyWeightsRef($"cache_{encOutput1.Name}", false), cacheEntryOptions);
+                    m_memoryCache.Set(cacheKey1, encOutput1.CopyWeightsRef($"cache_{encOutput1.Name}", false, graphToBind: null), cacheEntryOptions);
                 }
 
                 string cacheKey2 = GenerateCacheKey(sntPairBatch.GetSrcTokens(1));
@@ -158,7 +158,7 @@ namespace Seq2SeqSharp.Applications
                     encOutput2 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, posEmbedding, segmentEmbedding, 1); // output_shape: [batch_size, dim]
 
                     var cacheEntryOptions = new MemoryCacheEntryOptions().SetSize(1);
-                    m_memoryCache.Set(cacheKey2, encOutput2.CopyWeightsRef($"cache_{encOutput2.Name}", false), cacheEntryOptions);
+                    m_memoryCache.Set(cacheKey2, encOutput2.CopyWeightsRef($"cache_{encOutput2.Name}", false, graphToBind: null), cacheEntryOptions);
                 }
             }
             else

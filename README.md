@@ -18,7 +18,7 @@ Include console tools and web apis for built-in networks
 Graph based neural network  
 Automatic differentiation  
 Tensor based operations  
-Running on both CPUs and multi-GPUs (CUDA)  
+Running on both CPUs (Supported by Intel MKL) and multi-GPUs (CUDA)  
 Optimized CUDA memory management for higher performance  
 Different Text Generation Strategy: ArgMax, Beam Search, Top-P Sampling  
 RMSProp and Adam optmization  

@@ -6,7 +6,7 @@ namespace TensorSharp.CUDA.KernelOps
 {
     public class CopyOps
     {
-        private readonly Cpu.CpuAllocator cpuAllocator = new Cpu.CpuAllocator();
+        private readonly Cpu.CpuAllocator cpuAllocator = new Cpu.CpuAllocator(BlasEnum.DotNet);
         private readonly DeviceCode.FillCopyKernels fillCopyKernels;
 
 

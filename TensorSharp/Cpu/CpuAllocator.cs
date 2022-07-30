@@ -1,9 +1,20 @@
-﻿namespace TensorSharp.Cpu
+﻿using AdvUtils;
+using System;
+
+namespace TensorSharp.Cpu
 {
     public class CpuAllocator : IAllocator
     {
-        public CpuAllocator()
+        private BlasEnum m_blasEnum;
+        public BlasEnum BlasEnum => m_blasEnum;
+        public CpuAllocator(BlasEnum blasEnum)
         {
+            m_blasEnum = blasEnum;
+            if (m_blasEnum == BlasEnum.MKL)
+            {
+                Logger.WriteLine("Setting environment variable for MKL runtime.");
+                Environment.SetEnvironmentVariable("MKL_ENABLE_INSTRUCTIONS", "AVX2");
+            }
         }
 
         public Storage Allocate(DType elementType, long elementCount)

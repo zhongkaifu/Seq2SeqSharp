@@ -14,7 +14,7 @@ namespace TensorSharp.CUDA
 
         public CudaRandom()
         {
-            cpuAllocator = new CpuAllocator();
+            cpuAllocator = new CpuAllocator(BlasEnum.DotNet);
             cpuRandom = new CpuRandom();
         }
 

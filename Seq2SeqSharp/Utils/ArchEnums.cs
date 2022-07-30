@@ -3,6 +3,7 @@
     public enum ProcessorTypeEnums
     {
         GPU,
-        CPU
+        CPU,
+        CPU_MKL
     }
 }

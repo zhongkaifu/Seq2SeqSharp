@@ -321,7 +321,7 @@ namespace Seq2SeqSharp.Applications
                 var probsCopyScatter = g.ScatterAdd(probsCopy, seqSeqsIndex, 1, shape: new long[] { batchSize * tgtSeqLen, ffLayer.Sizes[^1] });
 
                 probs = g.EltMul(probs, p_gen);
-                probs = g.Add(probs, probsCopyScatter);
+                probs = g.Add(probs, probsCopyScatter, inPlace: true);
 
             }
 

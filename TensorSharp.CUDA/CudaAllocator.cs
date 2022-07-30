@@ -5,6 +5,9 @@ namespace TensorSharp.CUDA
     [Serializable]
     public class CudaAllocator : IAllocator
     {
+        private BlasEnum m_blasEnum;
+        public BlasEnum BlasEnum => m_blasEnum;
+
         private readonly TSCudaContext context;
         private readonly int deviceId;
 
@@ -12,6 +15,7 @@ namespace TensorSharp.CUDA
         {
             this.context = context;
             this.deviceId = deviceId;
+            m_blasEnum = BlasEnum.CUDA;
         }
 
         public TSCudaContext Context => context;

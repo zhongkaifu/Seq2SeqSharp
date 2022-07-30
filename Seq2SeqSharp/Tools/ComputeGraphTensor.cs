@@ -253,7 +253,7 @@ namespace Seq2SeqSharp.Tools
 
             if (inPlace)
             {
-                res = m.CopyWeightsRef($"{GetHashString(m.Name)}.MulV", m.NeedGradient);
+                res = m.CopyWeightsRef($"{GetHashString(m.Name)}.MulV", m.NeedGradient, graphToBind: this);
             }
             else
             {
@@ -299,7 +299,7 @@ namespace Seq2SeqSharp.Tools
 
             if (inPlace)
             {
-                res = m.CopyWeightsRef($"{GetHashString(m.Name)}.DivV", m.NeedGradient);
+                res = m.CopyWeightsRef($"{GetHashString(m.Name)}.DivV", m.NeedGradient, graphToBind: this);
             }
             else
             {
@@ -451,7 +451,7 @@ namespace Seq2SeqSharp.Tools
 
             if (inPlace)
             {
-                res = m1.CopyWeightsRef($"{GetHashString(w1.Name)}.Add", needGradient: (m1.NeedGradient || m2.NeedGradient));
+                res = m1.CopyWeightsRef($"{GetHashString(w1.Name)}.Add", needGradient: (m1.NeedGradient || m2.NeedGradient), graphToBind: this);
             }
             else
             {
@@ -686,7 +686,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor res = null;
             if (inPlace)
             {
-                res = m.CopyWeightsRef($"{GetHashString(w.Name)}.Relu", needGradient: m.NeedGradient);
+                res = m.CopyWeightsRef($"{GetHashString(w.Name)}.Relu", needGradient: m.NeedGradient, graphToBind: this);
             }
             else
             {
@@ -1127,7 +1127,7 @@ namespace Seq2SeqSharp.Tools
 
             if (inPlace)
             {
-                res = t.CopyWeightsRef($"{GetHashString(w.Name)}.Softmax", needGradient: runGradients && t.NeedGradient);
+                res = t.CopyWeightsRef($"{GetHashString(w.Name)}.Softmax", needGradient: runGradients && t.NeedGradient, graphToBind: this);
             }
             else
             {
@@ -1830,7 +1830,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor res = null;
             if (inPlace)
             {
-                res = w.CopyWeightsRef($"{GetHashString(V.Name)}.Dropout", needGradient: w.NeedGradient);
+                res = w.CopyWeightsRef($"{GetHashString(V.Name)}.Dropout", needGradient: w.NeedGradient, graphToBind: this);
             }
             else
             {
