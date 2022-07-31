@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 
 namespace Seq2SeqSharp.Tests;
 
@@ -36,8 +37,8 @@ public class Seq2Seq_Tests
     {
         // Prepare data set for training
         string rootPath = Directory.GetCurrentDirectory();
-        trainFolderPath = Path.Combine(rootPath, "train");
-        validFolderPath = Path.Combine(rootPath, "valid");
+        trainFolderPath = rootPath; // Path.Combine(rootPath, "train");
+        validFolderPath = rootPath; // Path.Combine(rootPath, "valid");
 
         if (Directory.Exists(trainFolderPath) == false)
         {
@@ -49,12 +50,12 @@ public class Seq2Seq_Tests
             Directory.CreateDirectory(validFolderPath);
         }
 
-        // Using same data set for both training and validation -- Just for testing.
-        File.Copy("train.enu.snt", Path.Combine(trainFolderPath, "train.enu.snt"), true);
-        File.Copy("train.chs.snt", Path.Combine(trainFolderPath, "train.chs.snt"), true);
+        //// Using same data set for both training and validation -- Just for testing.
+        //File.Copy("train.enu.snt", Path.Combine(trainFolderPath, "train.enu.snt"), true);
+        //File.Copy("train.chs.snt", Path.Combine(trainFolderPath, "train.chs.snt"), true);
 
-        File.Copy("train.enu.snt", Path.Combine(validFolderPath, "valid.enu.snt"), true);
-        File.Copy("train.chs.snt", Path.Combine(validFolderPath, "valid.chs.snt"), true);
+        //File.Copy("train.enu.snt", Path.Combine(validFolderPath, "valid.enu.snt"), true);
+        //File.Copy("train.chs.snt", Path.Combine(validFolderPath, "valid.chs.snt"), true);
 
     }
 
