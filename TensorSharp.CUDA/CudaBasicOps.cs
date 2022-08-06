@@ -387,6 +387,22 @@ namespace TensorSharp.CUDA
         [RegisterOpStorageType("addrelud", typeof(CudaStorage))]
         public Tensor AddReluD(Tensor result, Tensor t, Tensor w, Tensor g) { return ElementwiseTTTTOp.Invoke(elementwiseActKernels, "addrelud", result, t, w, g); }
 
+
+
+
+        [RegisterOpStorageType("Swish", typeof(CudaStorage))]
+        public Tensor Swish(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseActKernels, "Swish", result, src); }
+
+        [RegisterOpStorageType("SwishD", typeof(CudaStorage))]
+        public Tensor SwishD(Tensor result, Tensor srcW, Tensor resG) { return ElementwiseTTTOp.Invoke(elementwiseActKernels, "SwishD", result, srcW, resG); }
+
+        [RegisterOpStorageType("AddSwishD", typeof(CudaStorage))]
+        public Tensor AddSwishD(Tensor result, Tensor srcG, Tensor srcW, Tensor resG) { return ElementwiseTTTTOp.Invoke(elementwiseActKernels, "AddSwishD", result, srcG, srcW, resG); }
+
+
+
+
+
         [RegisterOpStorageType("mulmuladd", typeof(CudaStorage))]
         public Tensor MulMulAdd(Tensor result, Tensor x, Tensor y, Tensor z, Tensor w) { return ElementwiseTTTTTOp.Invoke(elementwiseKernels, "mulmuladd", result, x, y, z, w); }
 

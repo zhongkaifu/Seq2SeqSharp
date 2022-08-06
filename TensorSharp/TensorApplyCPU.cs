@@ -791,14 +791,14 @@ namespace TensorSharp
 			Apply4(result, srcX, srcY, srcZ, func);
 		}
 
-		unsafe static public void ReluD(Tensor result, Tensor srcW, Tensor srcG)
+		unsafe static public void ReluD(Tensor result, Tensor srcW, Tensor resG)
 		{
 			unsafe void func(float* r, float* y, float* x)
 			{
 				*r = relud(*y, *x);
 			}
 
-			Apply3(result, srcW, srcG, func);
+			Apply3(result, srcW, resG, func);
 		}
 
 		unsafe static public void AddReluD(Tensor result, Tensor srcX, Tensor srcW, Tensor srcG)
@@ -810,6 +810,38 @@ namespace TensorSharp
 
 			Apply4(result, srcX, srcW, srcG, func);
 		}
+
+		unsafe static public void Swish(Tensor result, Tensor src)
+		{
+			unsafe void func(float* r, float* s)
+			{
+				*r = Swish(*s);
+			};
+
+			Apply2(result, src, func);
+		}
+
+
+		unsafe static public void SwishD(Tensor result, Tensor srcW, Tensor resG)
+		{
+			unsafe void func(float* r, float* y, float* x)
+			{
+				*r = SwishD(*y, *x);
+			}
+
+			Apply3(result, srcW, resG, func);
+		}
+
+		unsafe static public void AddSwishD(Tensor result, Tensor srcG, Tensor srcW, Tensor resG)
+		{
+			unsafe void func(float* r, float* x, float* w, float* g)
+			{
+				*r = AddSwishD(*x, *w, *g);
+			}
+
+			Apply4(result, srcG, srcW, resG, func);
+		}
+
 
 
 		unsafe static public void AddMulV(Tensor result, Tensor srcX, Tensor srcY, float val)
@@ -1396,6 +1428,27 @@ namespace TensorSharp
 			return t;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float Swish(float w)
+		{
+			return w / (1.0f + (float)Math.Exp(-w));
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float SwishD(float w, float resG)
+		{
+			float sig = 1.0f / (1.0f + (float)Math.Exp(-w));
+			float grad = sig * (1.0f + w * (1.0f - sig));
+			return resG * grad;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float AddSwishD(float t, float w, float resG)
+		{
+			float sig = 1.0f / (1.0f + (float)Math.Exp(-w));
+			float grad = sig * (1.0f + w * (1.0f - sig));
+			return t + resG * grad;
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		static float add(float x, float y)

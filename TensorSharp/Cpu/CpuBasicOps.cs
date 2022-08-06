@@ -529,11 +529,41 @@ namespace TensorSharp.Cpu
             return writeTarget;
         }
 
+        [RegisterOpStorageType("Swish", typeof(CpuStorage))]
+        public Tensor Swish(Tensor result, Tensor srcW)
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, srcW, false, srcW.Sizes);
+            TensorApplyCPU.Swish(writeTarget, srcW);
+
+            return writeTarget;
+        }
+
+
+        [RegisterOpStorageType("AddSwishD", typeof(CpuStorage))]
+        public Tensor AddSwishD(Tensor result, Tensor srcG, Tensor srcW, Tensor resG)
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, srcW, false, srcW.Sizes);
+            TensorApplyCPU.AddSwishD(writeTarget, srcG, srcW, resG);
+
+            return writeTarget;
+        }
+
+        [RegisterOpStorageType("SwishD", typeof(CpuStorage))]
+        public Tensor SwishD(Tensor result, Tensor srcW, Tensor resG)
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, srcW, false, srcW.Sizes);
+            TensorApplyCPU.SwishD(writeTarget, srcW, resG);
+
+            return writeTarget;
+        }
+
+
+
         [RegisterOpStorageType("addrelud", typeof(CpuStorage))]
         public Tensor AddReluD(Tensor result, Tensor src, Tensor w, Tensor g) 
         {
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, w, false, w.Sizes);
-            TensorApplyCPU.AddReluD(result, src, w, g);
+            TensorApplyCPU.AddReluD(writeTarget, src, w, g);
 
             return writeTarget;
         }
@@ -542,7 +572,7 @@ namespace TensorSharp.Cpu
         public Tensor ReluD(Tensor result, Tensor w, Tensor g)
         {
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, w, false, w.Sizes);
-            TensorApplyCPU.ReluD(result, w, g);
+            TensorApplyCPU.ReluD(writeTarget, w, g);
 
             return writeTarget;
         }
@@ -640,7 +670,6 @@ namespace TensorSharp.Cpu
         public Tensor AtomicAdd(Tensor result, Tensor rhs)
         {
             TensorApplyCPU.Add(result, result, rhs);
-
             return result;
         }
 
@@ -649,27 +678,20 @@ namespace TensorSharp.Cpu
         {
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, lhs.Sizes);
             TensorApplyCPU.Sub(writeTarget, lhs, rhs);
-
             return writeTarget;
         }
-
-
 
         [RegisterOpStorageType("mult", typeof(CpuStorage))]
         public Tensor Mul(Tensor result, Tensor lhs, Tensor rhs)        
         {
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, lhs.Sizes);
             TensorApplyCPU.Mul(writeTarget, lhs, rhs);
-
             return writeTarget;
         }
 
-        //private readonly MethodInfo cdiv_func = NativeWrapper.GetMethod("TS_CDiv");
         [RegisterOpStorageType("divt", typeof(CpuStorage))]
         public Tensor Div(Tensor result, Tensor lhs, Tensor rhs)
         {
-            //return NativeWrapper.InvokeNullableResultElementwise(cdiv_func, result, lhs, rhs);
-
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, lhs, false, lhs.Sizes);
             TensorApplyCPU.Div(writeTarget, lhs, rhs);
 

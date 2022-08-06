@@ -48,7 +48,7 @@ namespace Seq2SeqSharp
             var ffnResult = feedForwardLayer1.Process(inputNorm, batchSize, g);
 
             // Activate function
-            var reluFFNResult = ((m_activateFunc == ActivateFuncEnums.Swish) ? g.Swish(ffnResult) : g.Relu(ffnResult));
+            var reluFFNResult = ((m_activateFunc == ActivateFuncEnums.Swish) ? g.Swish(ffnResult, inPlace: true) : g.Relu(ffnResult, inPlace: true));
 
             var ffn2Result = feedForwardLayer2.Process(reluFFNResult, batchSize, g);
 

@@ -497,6 +497,9 @@ For different .NET versions, you need to modify target framework in *.csproj fil
     </PropertyGroup>  
 ```
 
+# Using Intel MKL to speed up training and inference for CPUs  
+Seq2SeqSharp can use Intel MKL to speed up performance for training and inference. To use Intel MKL, set ProcessorType to CPU_MKL, and copy files in dll folder to your current working directory.  
+
 # Built-in Tags  
 Seq2SeqSharp has several built-in tokens and they are used for certain purposes.  
 | Token   | Comments                                                  |

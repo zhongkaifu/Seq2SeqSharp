@@ -21,6 +21,11 @@
             AppendTTTTFunc(result, "addrelud", "addrelud");
 
 
+            AppendTTFunc(result, "Swish", "Swish");
+            AppendTTTFunc(result, "SwishD", "SwishD");
+            AppendTTTTFunc(result, "AddSwishD", "AddSwishD");
+
+
             return result.ToString();
         }
 

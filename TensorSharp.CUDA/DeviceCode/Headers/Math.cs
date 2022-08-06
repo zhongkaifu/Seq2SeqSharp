@@ -56,6 +56,28 @@ template<typename T> INLINE_FUNC T Lerp(T a, T b, T weight) {
 	return a + weight * (b - a);
 }
 
+
+template<typename T> INLINE_FUNC T Swish(T w) {
+	return w / (T(1) + expf(-w));
+}
+
+template<typename T> INLINE_FUNC T SwishD(T w, T resG) {
+
+  T sig = T(1) / (T(1) + expf(-w));
+  T grad = sig * (T(1) + w * (T(1) - sig));
+  return resG * grad;
+
+}
+
+template<typename T> INLINE_FUNC T AddSwishD(T t, T w, T resG) {
+
+  T sig = T(1) / (T(1) + expf(-w));
+  T grad = sig * (T(1) + w * (T(1) - sig));
+  return t + resG * grad;
+
+}
+
+
 template<typename T> INLINE_FUNC T Sigmoid(T x) {
 	return T(1) / (T(1) + expf(-x));
 }

@@ -137,10 +137,46 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightTensor Swish(IWeightTensor w)
-        {         
-            var w1 = Sigmoid(w);
-            var res = EltMul(w, w1);
+        public IWeightTensor Swish(IWeightTensor w, bool inPlace = false)
+        {
+            WeightTensor m = w as WeightTensor;
+            WeightTensor res = null;
+            if (inPlace)
+            {
+                res = m.CopyWeightsRef($"{GetHashString(w.Name)}.Swish_InPlace", needGradient: m.NeedGradient, graphToBind: this);
+            }
+            else
+            {
+                res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Swish", graphToBind: this, needGradient: m.NeedGradient);
+            }
+            VisualizeNodes(w, res);
+
+
+            Ops.Swish(res.TWeight, m.TWeight);
+            if (m_needsBackprop)
+            {
+                void backward()
+                {
+                    if (m.NeedGradient)
+                    {
+                        res.ReleaseWeight();
+
+                        if (inPlace && m.IsGradientNull() && res.TGradient.IsOwnerExclusive())
+                        {
+                            m.TGradient = res.TGradient.CopyRef();
+                            Ops.SwishD(m.TGradient, m.TWeight, m.TGradient);
+                        }
+                        else
+                        {
+                            Ops.AddSwishD(m.TGradient, m.TGradient, m.TWeight, res.TGradient);
+                        }
+                    }
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+
+                m.UnbindFromComputeGraph();
+            }
 
             return res;
         }
