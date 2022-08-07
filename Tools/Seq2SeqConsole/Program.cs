@@ -42,7 +42,9 @@ namespace Seq2SeqConsole
                     opts = JsonConvert.DeserializeObject<Seq2SeqOptions>(File.ReadAllText(opts.ConfigFilePath));                
                 }
 
+                Logger.Verbose = opts.LogVerbose;
                 Logger.LogFile = $"{nameof(Seq2SeqConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log";
+
                 ShowOptions(args, opts);
 
                 DecodingOptions decodingOptions = opts.CreateDecodingOptions();

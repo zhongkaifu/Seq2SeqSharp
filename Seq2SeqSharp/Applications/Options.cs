@@ -127,6 +127,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("Activate function used in the model. It can be Relu or Swish", nameof(ActivateFunc))]
         public ActivateFuncEnums ActivateFunc = ActivateFuncEnums.Relu;
 
+        [Arg("The level of log to output", nameof(LogVerbose))]
+        public Logger.LogVerbose LogVerbose = Logger.LogVerbose.Normal;
+
         [Arg("Target language name.", nameof(TgtLang))]
         public string TgtLang;
 

@@ -9,14 +9,27 @@ namespace AdvUtils
     public class Logger
     {
         public enum Level { err, warn, info};
+        public enum LogVerbose {None, Normal, Details };
+
+        public static LogVerbose Verbose = LogVerbose.Normal;
 
         public static void WriteLine(string s, params object[] args)
         {
+            if (Verbose == LogVerbose.None)
+            {
+                return;
+            }
+
             WriteLine(Level.info, s, args);
         }
 
         public static void WriteLine(Level level, string s, params object[] args)
         {
+            if (Verbose == LogVerbose.None)
+            {
+                return;
+            }
+
             StringBuilder sb = new StringBuilder();
             sb.AppendFormat("{0},{1} ", level.ToString(), DateTime.Now.ToString());
 
@@ -39,6 +52,11 @@ namespace AdvUtils
 
         public static void WriteLine(Level level, ConsoleColor color, string s, params object[] args)
         {
+            if (Verbose == LogVerbose.None)
+            {
+                return;
+            }
+
             StringBuilder sb = new StringBuilder();
             sb.AppendFormat("{0},{1} ", level.ToString(), DateTime.Now.ToString());
 
