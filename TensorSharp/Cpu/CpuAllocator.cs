@@ -7,13 +7,13 @@ namespace TensorSharp.Cpu
     {
         private BlasEnum m_blasEnum;
         public BlasEnum BlasEnum => m_blasEnum;
-        public CpuAllocator(BlasEnum blasEnum)
+        public CpuAllocator(BlasEnum blasEnum, string mklInstructions = "AVX2")
         {
             m_blasEnum = blasEnum;
             if (m_blasEnum == BlasEnum.MKL)
             {
-                Logger.WriteLine("Setting environment variable for MKL runtime.");
-                Environment.SetEnvironmentVariable("MKL_ENABLE_INSTRUCTIONS", "AVX2");
+                Logger.WriteLine($"MKL Instrucation = '{mklInstructions}'");
+                Environment.SetEnvironmentVariable("MKL_ENABLE_INSTRUCTIONS", mklInstructions);
             }
         }
 

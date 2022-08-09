@@ -103,6 +103,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("Processor type: GPU, CPU, CPU_MKL", nameof(ProcessorType))]
         public ProcessorTypeEnums ProcessorType = ProcessorTypeEnums.GPU;
 
+        [Arg("The instructions used in CPU_MKL processor type", nameof(MKLInstructions))]
+        public string MKLInstructions = "AVX2";
+
         [Arg("Source language name.", nameof(SrcLang))]
         public string SrcLang;
 

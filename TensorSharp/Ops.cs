@@ -29,24 +29,24 @@ namespace TensorSharp
             return TensorConcatenation.Concat(result, dimension, inputs);
         }
 
-        public static void FillOneHot(Tensor result, int labelCount, int[] labels)
-        {
-            if (result.Storage is Cpu.CpuStorage)
-            {
-                DoFillOneHot(result, labelCount, labels);
-            }
-            else
-            {
-                //If the result is not on the CPU, it is much faster to build the tensor on the CPU and then copy
-                //An alternative to this would be building a specific GPU kernel for this operation
-                Cpu.CpuAllocator cpuAlloc = new Cpu.CpuAllocator(BlasEnum.DotNet);
-                using (Tensor cpuResult = new Tensor(cpuAlloc, result.ElementType, result.Sizes))
-                {
-                    DoFillOneHot(cpuResult, labelCount, labels);
-                    Ops.Copy(result, cpuResult);
-                }
-            }
-        }
+        //public static void FillOneHot(Tensor result, int labelCount, int[] labels)
+        //{
+        //    if (result.Storage is Cpu.CpuStorage)
+        //    {
+        //        DoFillOneHot(result, labelCount, labels);
+        //    }
+        //    else
+        //    {
+        //        //If the result is not on the CPU, it is much faster to build the tensor on the CPU and then copy
+        //        //An alternative to this would be building a specific GPU kernel for this operation
+        //        Cpu.CpuAllocator cpuAlloc = new Cpu.CpuAllocator(BlasEnum.DotNet);
+        //        using (Tensor cpuResult = new Tensor(cpuAlloc, result.ElementType, result.Sizes))
+        //        {
+        //            DoFillOneHot(cpuResult, labelCount, labels);
+        //            Ops.Copy(result, cpuResult);
+        //        }
+        //    }
+        //}
 
         private static void DoFillOneHot(Tensor result, int labelCount, int[] labels)
         {

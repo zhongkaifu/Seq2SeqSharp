@@ -23,7 +23,7 @@ namespace Seq2SeqSharp
         private static int[] m_deviceIds;
         private static ProcessorTypeEnums m_archType;
 
-        public static void InitDevices(ProcessorTypeEnums archType, int[] ids, float memoryUsageRatio = 0.9f, string[] compilerOptions = null)
+        public static void InitDevices(ProcessorTypeEnums archType, int[] ids, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, string mklInstructions = "AVX2")
         {
             m_archType = archType;
             m_deviceIds = ids;
@@ -48,7 +48,7 @@ namespace Seq2SeqSharp
                 foreach (int deviceId in m_deviceIds)
                 {
                     int idx = GetDeviceIdIndex(deviceId);
-                    m_allocator[idx] = new CpuAllocator((archType == ProcessorTypeEnums.CPU_MKL) ? BlasEnum.MKL : BlasEnum.DotNet);
+                    m_allocator[idx] = new CpuAllocator((archType == ProcessorTypeEnums.CPU_MKL) ? BlasEnum.MKL : BlasEnum.DotNet, mklInstructions: mklInstructions);
                 }
             }
         }

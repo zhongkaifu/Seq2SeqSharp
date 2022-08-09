@@ -119,13 +119,13 @@ namespace Seq2SeqSharp.Tools
 
         public BaseSeq2SeqFramework(string deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, 
             string compilerOptions = null, int runValidEveryUpdates = 10000, int primaryTaskId = 0, int updateFreq = 1, int startToRunValidAfterUpdates = 0,
-            int maxDegressOfParallelism = 1)
+            int maxDegressOfParallelism = 1, string mklInstructions = "AVX2")
         {
             m_deviceIds = deviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
             string[] cudaCompilerOptions = compilerOptions.IsNullOrEmpty() ? null : compilerOptions.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
             m_modelFilePath = modelFilePath;
-            TensorAllocator.InitDevices(processorType, m_deviceIds, memoryUsageRatio, cudaCompilerOptions);
+            TensorAllocator.InitDevices(processorType, m_deviceIds, memoryUsageRatio, cudaCompilerOptions, mklInstructions: mklInstructions);
 
             m_primaryTaskId = primaryTaskId;
             m_updateFreq = updateFreq;

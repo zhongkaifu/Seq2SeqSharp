@@ -22,6 +22,7 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
     var repeatPenalty = float.Parse(Configuration["Seq2Seq:RepeatPenalty"]);
     var topPSampling = float.Parse(Configuration["Seq2Seq:TopPSampling"]);
     var gpuMemoryUsageRatio = float.Parse(Configuration["Seq2Seq:GPUMemoryUsageRatio"]);
+    var mklInstructions = Configuration["Seq2Seq:MKLInstructions"];
 
     SentencePiece? srcSpm = null;
     if (String.IsNullOrEmpty(Configuration["SourceSpm:ModelFilePath"]) == false)
@@ -37,7 +38,7 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
 
     Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum = (Seq2SeqSharp.Utils.DecodingStrategyEnums)Enum.Parse(typeof(Seq2SeqSharp.Utils.DecodingStrategyEnums), tokenGenerationStrategy);
 
-    Seq2SeqInstance.Initialization(modelFilePath, maxTestSrcSentLength, maxTestTgtSentLength, processorType, deviceIds, srcSpm, tgtSpm, decodingStrategyEnum, topPSampling, repeatPenalty, memoryUsageRatio: gpuMemoryUsageRatio);
+    Seq2SeqInstance.Initialization(modelFilePath, maxTestSrcSentLength, maxTestTgtSentLength, processorType, deviceIds, srcSpm, tgtSpm, decodingStrategyEnum, topPSampling, repeatPenalty, memoryUsageRatio: gpuMemoryUsageRatio, mklInstructions: mklInstructions);
 }
 
 
