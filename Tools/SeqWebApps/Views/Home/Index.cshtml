@@ -113,6 +113,8 @@
 
 
     <script type="text/javascript">
+var rq = null;
+
         $(function () {
             $("#btnGet").click(function () {
 
@@ -120,7 +122,7 @@
            
                 $("#clientIP").load()
 
-                $.ajax({
+                rq = $.ajax({
                     type: "POST",
                     url: "/Home/GenerateText",
                     data: { "srcInput": $("#txtName").val(), "tgtInput": $("#txtName").val(), "num": $("#ddlOutputTokenNum").val(), 
@@ -161,7 +163,7 @@
                 $("#clientIP").load()
 
 
-                $.ajax({
+                rq = $.ajax({
                     type: "POST",
                     url: "/Home/GenerateText",
                     data: { "srcInput": $("#txtName").val(), "tgtInput": $("#outputText").text(), "num": $("#ddlOutputTokenNum").val(), 
@@ -197,10 +199,10 @@
                          }
                     },
                     failure: function (response) {
-                        alert(response.responseText);
+                      
                     },
                     error: function (response) {
-                        alert(response.responseText);
+                        
                     }
                 });
 
@@ -209,6 +211,11 @@
                 $("#statusText").html("Cancelled");
 
                 $("#btnGet").attr("disabled", false);
+
+                
+                        if (rq != null) {
+                            rq.abort();
+                        }
             });
             });
         });
