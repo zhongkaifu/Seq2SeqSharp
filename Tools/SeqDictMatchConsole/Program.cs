@@ -1,8 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 using System.Text;
-using System.IO;
 using AdvUtils;
 
 namespace SeqDictMatchConsole
@@ -49,7 +54,7 @@ namespace SeqDictMatchConsole
                 {
                     uint len = dm_r[i].len;
                     int offset = offsetList[i];
-                    string strProp = dm_r[i].strProp;
+                    string? strProp = dm_r[i].strProp;
                     string strTerm = line.Substring(offset, (int)len);
 
                     if (offset > currOffset)

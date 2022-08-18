@@ -18,9 +18,6 @@ namespace Seq2SeqSharp.Applications
 
         public int MaxTgtSentLength = 256;
 
-        // The top-P value for sampling decoding strategy. The value above 0.0 will cause non-deterministic results. Default is 0.0
-        public float TopPValue = 0.0f;
-
         // The penalty for decoded repeat tokens. Default is 5.0
         public float RepeatPenalty = 5.0f;
 

@@ -35,7 +35,6 @@ namespace Seq2SeqWebApps
             opts.DeviceIds = deviceIds;
             opts.DecodingStrategy = decodingStrategyEnum;
             opts.DecodingRepeatPenalty = repeatPenalty;
-            opts.DecodingTopPValue = topPSampling;
             opts.MemoryUsageRatio = memoryUsageRatio;
             opts.MKLInstructions = mklInstructions;
 
@@ -102,7 +101,6 @@ namespace Seq2SeqWebApps
 
             DecodingOptions decodingOptions = opts.CreateDecodingOptions();
             decodingOptions.MaxTgtSentLength = tokenNumToGenerate;
-            decodingOptions.TopPValue = random ? 0.5f : 0.0f;
             decodingOptions.RepeatPenalty = repeatPenalty;
 
             try

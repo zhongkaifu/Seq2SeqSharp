@@ -1026,6 +1026,55 @@ namespace TensorSharp
 		}
 
 
+		unsafe static public void replace_smaller(float* array, float* arrayIdx, int k, float data, float idx)
+		{
+			if (data < array[k - 1])
+				return;
+			for (int j = k - 2; j >= 0; j--)
+			{
+				if (data > array[j])
+				{
+					array[j + 1] = array[j];
+					arrayIdx[j + 1] = arrayIdx[j];
+				}
+				else
+				{
+					array[j + 1] = data;
+					arrayIdx[j + 1] = idx;
+					return;
+				}
+			}
+			array[0] = data;
+			arrayIdx[0] = idx;
+		}
+
+		unsafe static public void TopK(Tensor outVal, Tensor outIdx, Tensor inVal, int k, int rows, int cols)
+		{
+			float* pOutVal = (float*)CpuNativeHelpers.GetBufferStart(outVal);
+			float* pOutIdx = (float*)CpuNativeHelpers.GetBufferStart(outIdx);
+			float* pInVal = (float*)CpuNativeHelpers.GetBufferStart(inVal);
+
+
+			for (int j = 0; j < rows; ++j)
+			{
+				float* outputRow = pOutVal + j * k;
+				float* outputIdxRow = pOutIdx + j * k;
+				float* inputRow = pInVal + j * cols;
+
+				for (int i = 0; i < k; ++i)
+				{
+					outputRow[i] = -1.70141e+38f;
+					outputIdxRow[i] = -1.70141e+38f;
+
+				}
+
+				for (int i = 0; i < cols; i++)
+				{
+					replace_smaller(outputRow, outputIdxRow, k, inputRow[i], i);
+				}
+			}
+		}
+
 
 		unsafe static public void Softmax(Tensor tOut, Tensor tIn, int rows, int cols)
 		{

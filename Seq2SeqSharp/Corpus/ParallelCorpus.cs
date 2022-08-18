@@ -36,7 +36,6 @@ namespace Seq2SeqSharp.Tools
     {
         internal int m_maxSrcSentLength = 32;
         internal int m_maxTgtSentLength = 32;
-        internal int m_blockSize = 1000000;
         internal int m_batchSize = 1;
         internal List<string> m_srcFileList;
         internal List<string> m_tgtFileList;
@@ -378,7 +377,6 @@ namespace Seq2SeqSharp.Tools
         {
             Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSrcSentLength = '{maxSrcSentLength}',  MaxTgtSentLength = '{maxTgtSentLength}', aggregateSrcLengthForShuffle = '{shuffleEnums}', TooLongSequence = '{tooLongSequence}'");
             m_batchSize = batchSize;
-            m_blockSize = shuffleBlockSize;
             m_maxSrcSentLength = maxSrcSentLength;
             m_maxTgtSentLength = maxTgtSentLength;
 

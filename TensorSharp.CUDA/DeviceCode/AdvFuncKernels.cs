@@ -762,6 +762,71 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
     __syncthreads();
   }
 }
+
+
+
+
+
+
+
+__global__ void replace_smaller(float* array, float* arrayIdx, int k, float data, float idx)
+{
+    if(data < array[k-1])
+        return;
+    for(int j=k-2; j>=0; j--)
+    {
+        if(data > array[j])
+        {
+            array[j+1] = array[j];
+            arrayIdx[j+1] = arrayIdx[j];
+        }
+        else{
+            array[j+1] = data;
+            arrayIdx[j+1] = idx;
+            return;
+        }
+    }
+    array[0] = data;
+    arrayIdx[0] = idx;
+}
+
+__global__ void TopK(float* input, float* output, float *outputIdx, int k, unsigned rows, unsigned cols)
+{
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+
+      float* outputRow = output + j * k;
+      float* outputIdxRow = outputIdx + j * k;
+      const float* inputRow = input + j * cols;
+
+      for(int tid = 0; tid < k; tid += blockDim.x) {        
+        int i = tid + threadIdx.x;
+        if(i < k) {
+          outputRow[i] = -1.70141e+38;
+          outputIdxRow[i] = -1.70141e+38;
+        }
+      }
+
+      __syncthreads();  
+
+      if (threadIdx.x == 0)
+      {
+         for(int i = 0; i < cols; i++) {  
+             replace_smaller(outputRow, outputIdxRow, k, inputRow[i], i);
+         }
+      }
+  }
+}
+}
+
+
+
+
+
+
+
+
 }
 
 ";
@@ -775,6 +840,47 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
         {
             return Code;
         }
+
+
+
+        public Tensor TopK(Tensor outVal, Tensor outIdx, Tensor inVal, int k)
+        {
+            TSCudaContext context = CudaHelpers.TSContextForTensor(inVal);
+            TopK(context, outVal, outIdx, inVal, k);
+
+            return outVal;
+        }
+
+
+        private void TopK(TSCudaContext context, Tensor outVal, Tensor outIdx, Tensor inVal, int k)
+        {
+            CudaContext cudaContext = context.CudaContextForTensor(inVal);
+
+            cudaContext.SetCurrent();
+
+            int ndim = inVal.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(inVal.Sizes, inVal.Strides);
+            long cols = inVal.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+            dim3 block = new dim3((uint)Math.Min(512, cols));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
+
+            CUdeviceptr outValPtr = CudaHelpers.GetBufferStart(outVal);
+            CUdeviceptr outIdxPtr = CudaHelpers.GetBufferStart(outIdx);
+            CUdeviceptr inValPtr = CudaHelpers.GetBufferStart(inVal);
+
+
+            Invoke(context, cudaContext, "TopK", grid, block, block.x * sizeof(float) * 4, CUstream.NullStream, inValPtr, outValPtr, outIdxPtr, k, rows, cols);
+
+        }
+
 
         public Tensor LayerNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps = 1e-9f)
         {
@@ -803,8 +909,8 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
             long rows = storageSize / cols;
 
-            dim3 threads = new dim3((uint)Math.Min(512, rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+            dim3 block = new dim3((uint)Math.Min(512, cols));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
 
             CUdeviceptr outGradPtr = CudaHelpers.GetBufferStart(outGrad);
             CUdeviceptr alphaGradPtr = CudaHelpers.GetBufferStart(alphaGrad);
@@ -816,7 +922,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             CUdeviceptr betaPtr = CudaHelpers.GetBufferStart(beta);
 
 
-            Invoke(context, cudaContext, "gLayerNormalizationGrad", grid, threads, threads.x * sizeof(float) * 4, CUstream.NullStream, outGradPtr, alphaGradPtr, betaGradPtr, inGradPtr, yPtr, xPtr, alphaPtr, betaPtr, rows, cols, eps);
+            Invoke(context, cudaContext, "gLayerNormalizationGrad", grid, block, block.x * sizeof(float) * 4, CUstream.NullStream, outGradPtr, alphaGradPtr, betaGradPtr, inGradPtr, yPtr, xPtr, alphaPtr, betaPtr, rows, cols, eps);
 
         }
 
@@ -845,8 +951,8 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
             long rows = storageSize / cols;
 
-            dim3 threads = new dim3((uint)Math.Min(512, rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+            dim3 block = new dim3((uint)Math.Min(512, cols));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
 
             CUdeviceptr out1GradPtr = CudaHelpers.GetBufferStart(out1Grad);
             CUdeviceptr out2GradPtr = CudaHelpers.GetBufferStart(out2Grad);
@@ -860,7 +966,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             CUdeviceptr betaPtr = CudaHelpers.GetBufferStart(beta);
 
 
-            Invoke(context, cudaContext, "gAddLayerNormalizationGrad", grid, threads, threads.x * sizeof(float) * 4, CUstream.NullStream, out1GradPtr, out2GradPtr, alphaGradPtr, betaGradPtr, inGradPtr, yPtr, x1Ptr, x2Ptr, alphaPtr, betaPtr, rows, cols, eps);
+            Invoke(context, cudaContext, "gAddLayerNormalizationGrad", grid, block, block.x * sizeof(float) * 4, CUstream.NullStream, out1GradPtr, out2GradPtr, alphaGradPtr, betaGradPtr, inGradPtr, yPtr, x1Ptr, x2Ptr, alphaPtr, betaPtr, rows, cols, eps);
 
         }
 
@@ -893,8 +999,8 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             long rows = storageSize / cols;
 
 
-            dim3 threads = new dim3((uint)Math.Min(512, rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+            dim3 block = new dim3((uint)Math.Min(512, cols));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
 
             CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
             CUdeviceptr srcPtr = CudaHelpers.GetBufferStart(src);
@@ -902,7 +1008,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             CUdeviceptr betaPtr = CudaHelpers.GetBufferStart(beta);
 
 
-            Invoke(context, cudaContext, "gLNormalization", grid, threads, threads.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, alphaPtr, betaPtr, rows, cols, eps);
+            Invoke(context, cudaContext, "gLNormalization", grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, alphaPtr, betaPtr, rows, cols, eps);
 
         }
 
@@ -933,8 +1039,8 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             long rows = storageSize / cols;
 
 
-            dim3 threads = new dim3((uint)Math.Min(512, rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+            dim3 block = new dim3((uint)Math.Min(512, cols));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
 
             CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
             CUdeviceptr src1Ptr = CudaHelpers.GetBufferStart(src1);
@@ -943,7 +1049,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             CUdeviceptr betaPtr = CudaHelpers.GetBufferStart(beta);
 
 
-            Invoke(context, cudaContext, "gAddLNormalization", grid, threads, threads.x * sizeof(float), CUstream.NullStream, resultPtr, src1Ptr, src2Ptr, alphaPtr, betaPtr, rows, cols, eps);
+            Invoke(context, cudaContext, "gAddLNormalization", grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, src1Ptr, src2Ptr, alphaPtr, betaPtr, rows, cols, eps);
 
         }
 
@@ -967,14 +1073,14 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             long rows = storageSize / cols;
 
 
-            dim3 threads = new dim3((uint)Math.Min(512, rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+            dim3 block = new dim3((uint)Math.Min(512, cols));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
 
             CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
             CUdeviceptr srcOriginalLengthsPtr = CudaHelpers.GetBufferStart(srcOriginalLengths);
             CUdeviceptr tgtOriginalLengthsPtr = CudaHelpers.GetBufferStart(tgtOriginalLengths);
 
-            Invoke(context, cudaContext, "BuildSrcTgtMask", grid, threads, threads.x * sizeof(float), CUstream.NullStream, resultPtr, srcOriginalLengthsPtr, tgtOriginalLengthsPtr, rows, cols, tgtPaddedSeqLen, value, maskedValue);
+            Invoke(context, cudaContext, "BuildSrcTgtMask", grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, srcOriginalLengthsPtr, tgtOriginalLengthsPtr, rows, cols, tgtPaddedSeqLen, value, maskedValue);
         }
 
 
@@ -997,14 +1103,14 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             long rows = storageSize / cols;
 
 
-            dim3 threads = new dim3((uint)Math.Min(512, rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+            dim3 block = new dim3((uint)Math.Min(512, cols));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
 
             CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
             CUdeviceptr originalLengthsPtr = CudaHelpers.GetBufferStart(originalLengths);
 
 
-            Invoke(context, cudaContext, "BuildSelfMask", grid, threads, threads.x * sizeof(float), CUstream.NullStream, resultPtr, originalLengthsPtr, rows, cols, paddedSeqLen, value, maskedValue);
+            Invoke(context, cudaContext, "BuildSelfMask", grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, originalLengthsPtr, rows, cols, paddedSeqLen, value, maskedValue);
 
 
         }
@@ -1028,14 +1134,14 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             long rows = storageSize / cols;
 
 
-            dim3 threads = new dim3((uint)Math.Min(512, rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+            dim3 block = new dim3((uint)Math.Min(512, cols));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
 
             CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
             CUdeviceptr originalLengthsPtr = CudaHelpers.GetBufferStart(originalLengths);
 
 
-            Invoke(context, cudaContext, "BuildSelfTriMask", grid, threads, threads.x * sizeof(float), CUstream.NullStream, resultPtr, originalLengthsPtr, rows, cols, paddedSeqLen, value, maskedValue);
+            Invoke(context, cudaContext, "BuildSelfTriMask", grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, originalLengthsPtr, rows, cols, paddedSeqLen, value, maskedValue);
         }
 
 
@@ -1058,13 +1164,13 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             long rows = storageSize / cols;
 
 
-            dim3 threads = new dim3((uint)Math.Min(512, rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+            dim3 block = new dim3((uint)Math.Min(512, cols));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
 
             CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
 
 
-            Invoke(context, cudaContext, "BuildTriMask", grid, threads, threads.x * sizeof(float), CUstream.NullStream, resultPtr, rows, cols, value, maskedValue);
+            Invoke(context, cudaContext, "BuildTriMask", grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, rows, cols, value, maskedValue);
         }
 
 
@@ -1087,15 +1193,15 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             long rows = storageSize / cols;
 
 
-            dim3 threads = new dim3((uint)Math.Min(512, rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+            dim3 block = new dim3((uint)Math.Min(512, cols));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
 
             CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
             CUdeviceptr srcPtr = CudaHelpers.GetBufferStart(src);
             CUdeviceptr indicePtr = CudaHelpers.GetBufferStart(indice);
 
 
-            Invoke(context, cudaContext, "IndexSelect", grid, threads, threads.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, indicePtr, rows, cols);
+            Invoke(context, cudaContext, "IndexSelect", grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, indicePtr, rows, cols);
 
         }
 
@@ -1118,15 +1224,15 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             long rows = storageSize / cols;
 
 
-            dim3 threads = new dim3((uint)Math.Min(512, rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+            dim3 block = new dim3((uint)Math.Min(512, cols));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
 
             CUdeviceptr gradPtr = CudaHelpers.GetBufferStart(grad);
             CUdeviceptr adjPtr = CudaHelpers.GetBufferStart(adj);
             CUdeviceptr indicePtr = CudaHelpers.GetBufferStart(indice);
 
 
-            Invoke(context, cudaContext, "IndexSelectGrad", grid, threads, threads.x * sizeof(float), CUstream.NullStream, gradPtr, adjPtr, indicePtr, rows, cols);
+            Invoke(context, cudaContext, "IndexSelectGrad", grid, block, block.x * sizeof(float), CUstream.NullStream, gradPtr, adjPtr, indicePtr, rows, cols);
 
         }
 
@@ -1150,13 +1256,13 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             long rows = storageSize / cols;
 
 
-            dim3 threads = new dim3((uint)Math.Min(512, rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+            dim3 block = new dim3((uint)Math.Min(512, cols));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
 
             CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
             CUdeviceptr srcPtr = CudaHelpers.GetBufferStart(src);
 
-            Invoke(context, cudaContext, "gSoftmax", grid, threads, threads.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, rows, cols);
+            Invoke(context, cudaContext, "gSoftmax", grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, rows, cols);
         }
 
         private void Adam(TSCudaContext context, Tensor weight, Tensor gradient, Tensor v, Tensor m, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
@@ -1176,15 +1282,15 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
             long rows = storageSize / cols;
 
-            dim3 threads = new dim3((uint)Math.Min(512, rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+            dim3 block = new dim3((uint)Math.Min(512, cols));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
 
             CUdeviceptr weightPtr = CudaHelpers.GetBufferStart(weight);
             CUdeviceptr gradientPtr = CudaHelpers.GetBufferStart(gradient);
             CUdeviceptr vPtr = CudaHelpers.GetBufferStart(v);
             CUdeviceptr mPtr = CudaHelpers.GetBufferStart(m);
 
-            Invoke(context, cudaContext, "Adam", grid, threads, 0, CUstream.NullStream, weightPtr, gradientPtr, vPtr, mPtr, rows, cols, batchSize, step_size, clipval, regc, decay_rate_v, decay_rate_m, iter, eps);
+            Invoke(context, cudaContext, "Adam", grid, block, 0, CUstream.NullStream, weightPtr, gradientPtr, vPtr, mPtr, rows, cols, batchSize, step_size, clipval, regc, decay_rate_v, decay_rate_m, iter, eps);
         }
 
         public Tensor Adam(Tensor weight, Tensor gradient, Tensor v, Tensor m, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
@@ -1212,14 +1318,14 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
             long rows = storageSize / cols;
 
-            dim3 threads = new dim3((uint)Math.Min(512, rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+            dim3 block = new dim3((uint)Math.Min(512, cols));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
 
             CUdeviceptr weightPtr = CudaHelpers.GetBufferStart(weight);
             CUdeviceptr gradientPtr = CudaHelpers.GetBufferStart(gradient);
             CUdeviceptr cachePtr = CudaHelpers.GetBufferStart(cache);
 
-            Invoke(context, cudaContext, "RMSProp", grid, threads, 0, CUstream.NullStream, weightPtr, gradientPtr, cachePtr, rows, cols, batchSize, step_size, clipval, regc, decay_rate, eps);
+            Invoke(context, cudaContext, "RMSProp", grid, block, 0, CUstream.NullStream, weightPtr, gradientPtr, cachePtr, rows, cols, batchSize, step_size, clipval, regc, decay_rate, eps);
         }
 
         public Tensor RMSProp(Tensor weight, Tensor gradient, Tensor cache, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
@@ -1249,14 +1355,14 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
             int iAddGrad = addGrad ? 1 : 0;
 
-            dim3 threads = new dim3((uint)Math.Min(512, rows));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, threads.y)));
+            dim3 block = new dim3((uint)Math.Min(512, cols));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
 
             CUdeviceptr gradPtr = CudaHelpers.GetBufferStart(grad);
             CUdeviceptr adjPtr = CudaHelpers.GetBufferStart(adj);
             CUdeviceptr valPtr = CudaHelpers.GetBufferStart(val);
 
-            Invoke(context, cudaContext, "gSoftmaxGrad", grid, threads, threads.x * sizeof(float), CUstream.NullStream, gradPtr, adjPtr, valPtr, rows, cols, iAddGrad);
+            Invoke(context, cudaContext, "gSoftmaxGrad", grid, block, block.x * sizeof(float), CUstream.NullStream, gradPtr, adjPtr, valPtr, rows, cols, iAddGrad);
         }
 
 

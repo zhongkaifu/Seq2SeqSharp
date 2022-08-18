@@ -950,6 +950,24 @@ namespace TensorSharp.Cpu
             return grad;
         }
 
+        [RegisterOpStorageType("topK", typeof(CpuStorage))]
+        public void TopK(Tensor outVal, Tensor outIdx, Tensor src, int k)
+        {
+            int ndim = src.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(src.Sizes, src.Strides);
+            long cols = src.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+            TensorApplyCPU.TopK(outVal, outIdx, src, k, (int)rows, (int)cols);
+        }
+
+
         [RegisterOpStorageType("softmax", typeof(CpuStorage))]
         public Tensor Softmax(Tensor result, Tensor src)
         {

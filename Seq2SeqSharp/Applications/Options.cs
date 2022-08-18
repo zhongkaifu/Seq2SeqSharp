@@ -37,9 +37,6 @@ namespace Seq2SeqSharp.Applications
         [Arg("Token generation types. It supports GreedySearch and Sampling. Default is GreedySearch", nameof(DecodingStrategy))]
         public DecodingStrategyEnums DecodingStrategy = DecodingStrategyEnums.GreedySearch;
 
-        [Arg("The top-P value for sampling decoding strategy. The value above 0.0 will cause non-deterministic results. Default is 0.0", nameof(DecodingTopPValue))]
-        public float DecodingTopPValue = 0.0f;
-
         [Arg("The penalty for decoded repeat tokens. Default is 5.0", nameof(DecodingRepeatPenalty))]
         public float DecodingRepeatPenalty = 5.0f;
 
@@ -114,9 +111,6 @@ namespace Seq2SeqSharp.Applications
 
         [Arg("Starting Learning rate", nameof(StartLearningRate))]
         public float StartLearningRate = 0.0006f;
-
-        [Arg("The shuffle block size", nameof(ShuffleBlockSize))]
-        public int ShuffleBlockSize = -1;
 
         [Arg("Shuffle Type. It could be NoPaddingInSrc, NoPaddingInTgt and Random", nameof(ShuffleType))]
         public ShuffleEnums ShuffleType = ShuffleEnums.Random;

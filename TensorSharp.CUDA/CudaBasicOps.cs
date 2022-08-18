@@ -594,6 +594,11 @@ namespace TensorSharp.CUDA
         [RegisterOpStorageType("softmaxgrad", typeof(CudaStorage))]
         public Tensor SoftmaxGrad(Tensor grad, Tensor adj, Tensor val, bool addGrad = true) { return advFuncKernels.SoftmaxGrad(grad, adj, val, addGrad); }
 
+
+        [RegisterOpStorageType("topK", typeof(CudaStorage))]
+        public Tensor TopK(Tensor outVal, Tensor outIdx, Tensor inVal, int k) { return advFuncKernels.TopK(outVal, outIdx, inVal, k); }
+
+
         [RegisterOpStorageType("layernorm", typeof(CudaStorage))]
         public Tensor LayerNorm(Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-09f) { return advFuncKernels.LayerNorm(result, src, alpha, beta, eps); }
         [RegisterOpStorageType("layernormgrad", typeof(CudaStorage))]

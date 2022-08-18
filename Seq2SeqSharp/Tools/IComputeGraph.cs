@@ -60,7 +60,7 @@ namespace Seq2SeqSharp
         IWeightTensor Max(IWeightTensor w, int dim);
         IWeightTensor Argmax(IWeightTensor w, int dim);
 
-        IWeightTensor TopPSampleIndice(IWeightTensor w, List<List<int>> seqs, float topP = 0.9f, float repeatPenalty = 5.0f);
+        IWeightTensor SampleIndicue(IWeightTensor w, List<List<int>> seqs, float repeatPenalty = 5.0f);
 
 
         IWeightTensor IndexSelect(IWeightTensor s, float[] idxs, bool clearWeights = false);
@@ -74,6 +74,7 @@ namespace Seq2SeqSharp
         IWeightTensor Scatter(IWeightTensor indices, float val, int dim, bool runGradient = true, params long[] shape);
         IWeightTensor ScatterAdd(IWeightTensor source, IWeightTensor indices, int dim, params long[] shape);
 
+        (IWeightTensor, IWeightTensor) TopK(IWeightTensor src, int k);
         IWeightTensor Sub(float v, IWeightTensor w1);
 
         #region Operations for masking

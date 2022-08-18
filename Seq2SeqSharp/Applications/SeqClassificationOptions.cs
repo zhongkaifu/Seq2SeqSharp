@@ -28,7 +28,6 @@ namespace Seq2SeqSharp.Applications
         {
             DecodingOptions decodingOptions = new DecodingOptions();
             decodingOptions.DecodingStrategy = DecodingStrategy;
-            decodingOptions.TopPValue = DecodingTopPValue;
             decodingOptions.RepeatPenalty = DecodingRepeatPenalty;
 
             decodingOptions.BeamSearchSize = BeamSearchSize;

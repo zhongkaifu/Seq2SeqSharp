@@ -1,4 +1,14 @@
-﻿using System;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using System;
 using TensorSharp.Core;
 
 namespace TensorSharp
@@ -235,6 +245,12 @@ namespace TensorSharp
         public static Tensor BuildTriMask(Tensor result, float value, float maskedValue)
         {
             return (Tensor)OpRegistry.Invoke("buildtrimask", result, value, maskedValue);
+        }
+
+
+        public static Tensor TopK(Tensor outVal, Tensor outIdx, Tensor inVal, int k)
+        {
+            return (Tensor)OpRegistry.Invoke("topK", outVal, outIdx, inVal, k);
         }
 
         public static Tensor LayerNorm(Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-09f) { return (Tensor)OpRegistry.Invoke("layernorm", result, src, alpha, beta, eps); }
