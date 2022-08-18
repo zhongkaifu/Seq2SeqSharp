@@ -76,8 +76,7 @@ Parameters:
 **-SrcLang**: Source language name.  
 **-TgtLang**: Target language name.  
 **-TrainCorpusPath**: training corpus folder path  
-**-ValidCorpusPath**: valid corpus folder path  
-**-ShuffleBlockSize**: The block size for corpus shuffle. The default value is -1 which means we shuffle entire corpus.  
+**-ValidCorpusPath**: valid corpus folder path   
 **-GradClip**: The clip gradients.  
 **-BatchSize**: Batch size for training. Default is 1.  
 **-ValBatchSize**: Batch size for testing. Default is 1.  
@@ -168,9 +167,7 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
   "CompilerOptions": "--use_fast_math --gpu-architecture=compute_70",
   "ConfigFilePath": "",
   "DecodingStrategy": "GreedySearch",
-  "DecodingTopPValue": 0.0,
-  "DecodingRepeatPenalty": 2.0,
-  "DecodingDistancePenalty": 5.0,
+  "DecodingRepeatPenalty": 5.0,
   "DeviceIds": "0,1",
   "TaskParallelism": 2,
   "DropoutRatio": 0.0,
@@ -191,7 +188,6 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
   "ProcessorType": "GPU",
   "SrcLang": "SRC",
   "StartLearningRate": 0.0006,
-  "ShuffleBlockSize": -1,
   "ShuffleType": "NoPadding",
   "Task": "Train",
   "TooLongSequence": "Truncation",
@@ -266,7 +262,6 @@ Here is the configuration file for model training.
 "TgtLang":"CLS",
 "InputTestFile":null,
 "OutputFile":null,
-"ShuffleBlockSize":-1,
 "GradClip":5.0,
 "BatchSize":16,
 "ValBatchSize":1,
@@ -357,7 +352,6 @@ Here is the configuration file for model training.
     "InputTestFile":null,
     "OutputTestFile":null,
     "ShuffleType":"NoPadding",
-    "ShuffleBlockSize":-1,
     "GradClip":5.0,
     "BatchSize":256,
     "ValBatchSize":128,
@@ -740,10 +734,10 @@ Now you already have your customized network and you can play it. See Progream.c
 # How To Play Your Network  
 In Seq2SeqConsole project, it shows you how to initialize and train your network. Here are few steps about how to do it.  
 ```c#
-                    Seq2SeqCorpus trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize, shuffleBlockSize: opts.ShuffleBlockSize,
+                    Seq2SeqCorpus trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize,
                         maxSrcSentLength: opts.MaxSrcTrainSentLength, maxTgtSentLength: opts.MaxTgtTrainSentLength, shuffleEnums: shuffleType);
                     // Load valid corpus
-                    Seq2SeqCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new Seq2SeqCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxSrcTestSentLength, opts.MaxTgtTestSentLength, shuffleEnums: shuffleType);
+                    Seq2SeqCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new Seq2SeqCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.MaxSrcTestSentLength, opts.MaxTgtTestSentLength, shuffleEnums: shuffleType);
 
                     // Create learning rate
                     ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);
