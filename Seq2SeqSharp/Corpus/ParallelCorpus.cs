@@ -15,6 +15,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -292,12 +293,10 @@ namespace Seq2SeqSharp.Tools
         {
             var length2offsets = BuildIndex();
 
-            using (FileStream fs = new FileStream(binaryDataSetFilePath, FileMode.Open))
-            using (MemoryStream ms = new MemoryStream())
+            using (MemoryMappedFile mmf = MemoryMappedFile.CreateFromFile(binaryDataSetFilePath))
+            using (MemoryMappedViewStream mms = mmf.CreateViewStream())
             {
-                fs.CopyTo(ms);
-                ms.Seek(0, SeekOrigin.Begin);
-                using (BinaryReader br = new BinaryReader(ms))
+                using (BinaryReader br = new BinaryReader(mms))
                 {
                     int maxOutputsSize = m_batchSize * 10;
                     List<SntPair> outputs = new List<SntPair>();
@@ -351,6 +350,10 @@ namespace Seq2SeqSharp.Tools
                             br.BaseStream.Seek(offset, SeekOrigin.Begin);
                             var srcLine = br.ReadString();
                             var tgtLine = br.ReadString();
+
+
+                            Logger.WriteLine($"Src = '{srcLine}', Tgt = '{tgtLine}'");
+
                             SntPair sntPair = new SntPair(srcLine, tgtLine);
                             outputs.Add(sntPair);
                         }
