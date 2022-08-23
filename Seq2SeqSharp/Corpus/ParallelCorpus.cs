@@ -352,8 +352,6 @@ namespace Seq2SeqSharp.Tools
                             var tgtLine = br.ReadString();
 
 
-                            Logger.WriteLine($"Src = '{srcLine}', Tgt = '{tgtLine}'");
-
                             SntPair sntPair = new SntPair(srcLine, tgtLine);
                             outputs.Add(sntPair);
                         }
