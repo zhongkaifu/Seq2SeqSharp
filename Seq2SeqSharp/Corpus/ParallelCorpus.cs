@@ -291,72 +291,78 @@ namespace Seq2SeqSharp.Tools
         public IEnumerator<T> GetEnumerator()
         {
             var length2offsets = BuildIndex();
-            
-            using(BinaryReader br = new BinaryReader(new FileStream(binaryDataSetFilePath, FileMode.Open)))
+
+            using (FileStream fs = new FileStream(binaryDataSetFilePath, FileMode.Open))
+            using (MemoryStream ms = new MemoryStream())
             {
-                int maxOutputsSize = m_batchSize * 10;
-                List<SntPair> outputs = new List<SntPair>();
-
-                int lengthRnd = rnd.Next(length2offsets.Count);
-                long length = length2offsets.Keys.ToArray()[lengthRnd];
-                LinkedList<long> offsets = length2offsets[length];
-
-                while (length2offsets.Count > 0)
+                fs.CopyTo(ms);
+                ms.Seek(0, SeekOrigin.Begin);
+                using (BinaryReader br = new BinaryReader(ms))
                 {
-                    bool lengthChanged = false;
-                    if (offsets.Count == 0)
+                    int maxOutputsSize = m_batchSize * 10;
+                    List<SntPair> outputs = new List<SntPair>();
+
+                    int lengthRnd = rnd.Next(length2offsets.Count);
+                    long length = length2offsets.Keys.ToArray()[lengthRnd];
+                    LinkedList<long> offsets = length2offsets[length];
+
+                    while (length2offsets.Count > 0)
                     {
-                        length2offsets.Remove(length);
-                        if (length2offsets.Count > 0)
+                        bool lengthChanged = false;
+                        if (offsets.Count == 0)
                         {
+                            length2offsets.Remove(length);
+                            if (length2offsets.Count > 0)
+                            {
+                                lengthRnd = rnd.Next(length2offsets.Count);
+                                length = length2offsets.Keys.ToArray()[lengthRnd];
+                                offsets = length2offsets[length];
+                                lengthChanged = true;
+                            }
+                        }
+
+                        if (offsets.Count == 0)
+                        {
+                            break;
+                        }
+
+                        if (outputs.Count > maxOutputsSize || lengthChanged == true)
+                        {
+                            for (int i = 0; i < outputs.Count; i += m_batchSize)
+                            {
+                                int size = Math.Min(m_batchSize, outputs.Count - i);
+                                var batch = new T();
+                                batch.CreateBatch(outputs.GetRange(i, size));
+                                yield return batch;
+                            }
+
+                            outputs.Clear();
+
+                            //Force to select sequences with different length
                             lengthRnd = rnd.Next(length2offsets.Count);
                             length = length2offsets.Keys.ToArray()[lengthRnd];
                             offsets = length2offsets[length];
-                            lengthChanged = true;
                         }
-                    }
-
-                    if (offsets.Count == 0)
-                    {
-                        break;
-                    }
-
-                    if (outputs.Count > maxOutputsSize || lengthChanged == true)
-                    {
-                        for (int i = 0; i < outputs.Count; i += m_batchSize)
+                        else
                         {
-                            int size = Math.Min(m_batchSize, outputs.Count - i);
-                            var batch = new T();
-                            batch.CreateBatch(outputs.GetRange(i, size));
-                            yield return batch;
+                            long offset = offsets.First.Value;
+                            offsets.RemoveFirst();
+
+                            br.BaseStream.Seek(offset, SeekOrigin.Begin);
+                            var srcLine = br.ReadString();
+                            var tgtLine = br.ReadString();
+                            SntPair sntPair = new SntPair(srcLine, tgtLine);
+                            outputs.Add(sntPair);
                         }
-
-                        outputs.Clear();
-
-                        //Force to select sequences with different length
-                        lengthRnd = rnd.Next(length2offsets.Count);
-                        length = length2offsets.Keys.ToArray()[lengthRnd];
-                        offsets = length2offsets[length];
                     }
-                    else
+
+                    for (int i = 0; i < outputs.Count; i += m_batchSize)
                     {
-                        long offset = offsets.First.Value;
-                        offsets.RemoveFirst();
-
-                        br.BaseStream.Seek(offset, SeekOrigin.Begin);
-                        var srcLine = br.ReadString();
-                        var tgtLine = br.ReadString();
-                        SntPair sntPair = new SntPair(srcLine, tgtLine);
-                        outputs.Add(sntPair);
+                        int size = Math.Min(m_batchSize, outputs.Count - i);
+                        var batch = new T();
+                        batch.CreateBatch(outputs.GetRange(i, size));
+                        yield return batch;
                     }
-                }
-
-                for (int i = 0; i < outputs.Count; i += m_batchSize)
-                {
-                    int size = Math.Min(m_batchSize, outputs.Count - i);
-                    var batch = new T();
-                    batch.CreateBatch(outputs.GetRange(i, size));
-                    yield return batch;
                 }
             }
 

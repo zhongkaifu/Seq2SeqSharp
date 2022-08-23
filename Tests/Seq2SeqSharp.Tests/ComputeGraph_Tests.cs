@@ -12,6 +12,7 @@ using AdvUtils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Seq2SeqSharp.Tools;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using TensorSharp;
 
@@ -229,8 +230,6 @@ public class ComputeGraph_Tests
         int batchSize = 5;
         int vocabSize = 20;
         TensorAllocator.InitDevices(ProcessorTypeEnums.CPU, new int[] { 0 });
-        var graph = new ComputeGraphTensor(new WeightTensorFactory(), 0, true);
-
         var tensorSrc = BuildRandomTensor(shape: new long[2] { batchSize, vocabSize }, name: "tensorSrc", isTrainable: true);
         var tensorSrcWeights = tensorSrc.ToWeightArray();
 
@@ -252,6 +251,68 @@ public class ComputeGraph_Tests
         }
     }
 
+    [TestMethod]
+    public void TestTopK()
+    {
+        int batchSize = 5;
+        int vocabSize = 20;
+        int K = 5;
+        TensorAllocator.InitDevices(ProcessorTypeEnums.CPU, new int[] { 0 });
+        var graph = new ComputeGraphTensor(new WeightTensorFactory(), 0, true);
+
+        var tensorSrc = BuildRandomTensor(shape: new long[2] { batchSize, vocabSize }, name: "tensorSrc", isTrainable: true);
+        (var tensorK, var tensorIdx) = graph.TopK(tensorSrc, K);
+
+        float[] weightSrc = tensorSrc.ToWeightArray();
+        float[] weightK = tensorK.ToWeightArray();
+        float[] weightIdx = tensorIdx.ToWeightArray();
+
+        for (int i = 0; i < batchSize; i++)
+        {
+            SortedDictionary<float, List<int>> sd = new SortedDictionary<float, List<int>>();
+            for (int j = 0; j < vocabSize; j++)
+            {
+                if (sd.ContainsKey(weightSrc[i * vocabSize + j]) == false)
+                {
+                    sd.Add(weightSrc[i * vocabSize + j], new List<int>());
+                }
+
+                sd[weightSrc[i * vocabSize + j]].Add(j);
+            }
+
+            float[] sortedWeights = new float[K];
+            float[] sortedIdx = new float[K];
+            int cnt = 0;
+            foreach (var pair in sd.Reverse())
+            {
+                if (cnt == K)
+                {
+                    break;
+                }
+
+                foreach (var idx in pair.Value)
+                {
+                    if (cnt == K)
+                    {
+                        break;
+                    }
+
+                    sortedWeights[cnt] = pair.Key;
+                    sortedIdx[cnt] = idx;
+
+                    cnt++;
+                }
+            }
+
+            for (int j = 0; j < K; j++)
+            {
+                Assert.IsTrue(sortedWeights[j] == weightK[i * K + j]);
+                Assert.IsTrue(sortedIdx[j] == weightIdx[i * K + j]);
+
+            }            
+        }
+       
+    }
 
     [TestMethod]
     public void TestCrossEntropyLoss()

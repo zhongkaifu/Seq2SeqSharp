@@ -19,10 +19,8 @@
 </head>
 <body>
 
-    <h1>Automatic Text Generation Demo Powered by <a href="https://github.com/zhongkaifu/Seq2SeqSharp">Seq2SeqSharp</a></h1>
-    <br />
+    <h1>Automatic Text Generation Demo</h1>
     <p>Given input text, the model will continue writing it. You can try different values of repeating penalty and distance penalty to generate different output text.</p>
-    <br />
     <label id="promptInput">Input Text:</label>
     <br />
     <textarea type="text" id="txtName" cols="100" rows="20"></textarea>
@@ -30,8 +28,8 @@
     <label id="promptOutputTokenNum">The number of tokens to output in each step:</label>
     <select id="ddlOutputTokenNum">
         <option value="2">2</option>
-        <option value="4">4</option>
-        <option value="8" selected="selected">8</option>
+        <option value="4" selected="selected">4</option>
+        <option value="8">8</option>
         <option value="16">16</option>
         <option value="32">32</option>
     </select>
@@ -73,13 +71,13 @@
 
     <label id="promptContextSize">Context size:</label>
     <select id="ddlContextSize">
-        <option value="128">128</option>
+        <option value="128" selected="selected">128</option>
         <option value="256">256</option>
         <option value="384">384</option>
         <option value="512">512</option>
         <option value="768">768</option>
         <option value="1024">1024</option>
-        <option value="2048 selected="selected">2048</option>
+        <option value="2048">2048</option>
         <option value="4096">4096</option>
     </select>
 
@@ -99,7 +97,7 @@
 
     <label hidden id="clientIP">Input Text:</label>
    
-
+    <p>Powered by <a href="https://github.com/zhongkaifu/Seq2SeqSharp">Seq2SeqSharp</a></p>
 
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
 
