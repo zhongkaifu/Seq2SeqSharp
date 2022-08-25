@@ -556,7 +556,7 @@ namespace TensorSharp.CUDA
 
 
         [RegisterOpStorageType("indexselect", typeof(CudaStorage))]
-        public Tensor IndexSelect(Tensor result, Tensor src, Tensor indice) { return advFuncKernels.IndexSelect(result, src, indice); }
+        public Tensor IndexSelect(Tensor result, Tensor src, Tensor indice, bool isAdd) { return advFuncKernels.IndexSelect(result, src, indice, isAdd); }
 
         [RegisterOpStorageType("indexselectgrad", typeof(CudaStorage))]
         public Tensor IndexSelectGrad(Tensor grad, Tensor adj, Tensor indice) { return advFuncKernels.IndexSelectGrad(grad, adj, indice); }

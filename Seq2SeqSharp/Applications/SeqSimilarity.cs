@@ -70,7 +70,7 @@ namespace Seq2SeqSharp.Applications
             else
             {
                 m_modelMetaData = new SeqSimilarityModel(options.HiddenSize, options.EmbeddingDim, options.EncoderLayerDepth, options.MultiHeadNum,
-                    options.EncoderType, srcVocab, clsVocab, options.EnableSegmentEmbeddings, m_options.SimilarityType, options.MaxSegmentNum);
+                    options.EncoderType, srcVocab, clsVocab, options.EnableSegmentEmbeddings, m_options.SimilarityType, maxSegmentNum: options.MaxSegmentNum, expertNum: options.ExpertNum);
 
                 //Initializng weights in encoders and decoders
                 CreateTrainableParameters(m_modelMetaData);

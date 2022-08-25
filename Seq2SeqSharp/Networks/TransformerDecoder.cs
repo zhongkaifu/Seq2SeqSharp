@@ -9,6 +9,7 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
 using AdvUtils;
+using Seq2SeqSharp.Layers;
 using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
 using System;
@@ -20,7 +21,7 @@ namespace Seq2SeqSharp
     {
         private readonly List<MultiHeadAttention> m_selfAttns = new List<MultiHeadAttention>();
         private readonly List<MultiHeadAttention> m_encAttns = new List<MultiHeadAttention>();
-        private readonly List<PositionwiseFeedForward> m_posFFNs = new List<PositionwiseFeedForward>();
+        private readonly List<IFeedForwardLayer> m_posFFNs = new List<IFeedForwardLayer>();
 
         private readonly int m_inputDim;
         private readonly float m_dropoutRatio;
@@ -33,8 +34,9 @@ namespace Seq2SeqSharp
         private readonly float m_learningRateFactor;
         private readonly LayerNormalization layerNorm;
         private readonly ActivateFuncEnums m_activateFunc;
+        private readonly int m_expertNum;
 
-        public TransformerDecoder(string name, int multiHeadNum, int hiddenDim, int inputDim, int depth, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.Relu)
+        public TransformerDecoder(string name, int multiHeadNum, int hiddenDim, int inputDim, int depth, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.Relu, int expertNum = 1)
         {
             Logger.WriteLine($"Creating transformer decoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', InputDim = '{inputDim}', Depth = '{depth}', MultiHeadNum = '{multiHeadNum}'");
 
@@ -48,6 +50,7 @@ namespace Seq2SeqSharp
             m_isTrainable = isTrainable;
             m_learningRateFactor = learningRateFactor;
             m_activateFunc = activateFunc;
+            m_expertNum = expertNum;
 
             if (hiddenDim != inputDim)
             {
@@ -66,9 +69,19 @@ namespace Seq2SeqSharp
                 m_encAttns.Add(new MultiHeadAttention($"{name}.EncAttn_{i}", multiHeadNum, hiddenDim, hiddenDim, m_dropoutRatio, deviceId, isTrainable: isTrainable, learningRateFactor: learningRateFactor));
             }
 
-            for (int i = 0; i < depth; i++)
+            if (m_expertNum > 1)
             {
-                m_posFFNs.Add(new PositionwiseFeedForward($"{name}.PosFFN_{i}", hiddenDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, activateFunc: activateFunc));
+                for (int i = 0; i < depth; i++)
+                {
+                    m_posFFNs.Add(new MoEFeedForward($"{name}.MoEFFN_{i}", m_expertNum, hiddenDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, activateFunc: activateFunc));
+                }
+            }
+            else
+            {
+                for (int i = 0; i < depth; i++)
+                {
+                    m_posFFNs.Add(new PositionwiseFeedForward($"{name}.PosFFN_{i}", hiddenDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, activateFunc: activateFunc));
+                }
             }
 
 
@@ -119,7 +132,7 @@ namespace Seq2SeqSharp
                 {
                     (tgtInputs, attnProbs) = m_selfAttns[k].Perform(tgtInputs, selfMaskTensor, batchSize, subg, outputAttenWeights: false);
                     (tgtInputs, attnProbs) = m_encAttns[k].Perform(tgtInputs, encOutputBatchFirst, encOutputBatchFirst, crossMaskTensor, batchSize, subg, outputAttenWeights: (outputAttnWeights && k == m_selfAttns.Count - 1), cachedTensors: cachedTensors);
-                    tgtInputs = m_posFFNs[k].Perform(tgtInputs, batchSize, subg);
+                    tgtInputs = m_posFFNs[k].Process(tgtInputs, batchSize, subg);
                 }
 
                 tgtInputs = layerNorm.Norm(tgtInputs, subg);
@@ -146,7 +159,7 @@ namespace Seq2SeqSharp
 
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
-            return new TransformerDecoder(m_name, m_multiHeadNum, m_hiddenDim, m_inputDim, m_depth, m_dropoutRatio, deviceId, m_isTrainable, learningRateFactor: m_learningRateFactor, activateFunc: m_activateFunc);
+            return new TransformerDecoder(m_name, m_multiHeadNum, m_hiddenDim, m_inputDim, m_depth, m_dropoutRatio, deviceId, m_isTrainable, learningRateFactor: m_learningRateFactor, activateFunc: m_activateFunc, expertNum: m_expertNum);
         }
 
         public List<IWeightTensor> GetParams()

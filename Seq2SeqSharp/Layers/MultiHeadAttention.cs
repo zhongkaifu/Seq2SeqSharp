@@ -121,7 +121,8 @@ namespace Seq2SeqSharp
                 }
             }
 
-            var relPosWeights = g.IndexSelect(relativePositionalEmbWeights, relPosIdx);
+            var indice = g.CreateTensorWeights(new long[] { relPosIdx.Length, 1 }, relPosIdx);
+            var relPosWeights = g.IndexSelect(relativePositionalEmbWeights, indice);
             relPosWeights = g.View(relPosWeights, dims: new long[] { 1, seqLenQ, seqLenQ });
             relPosWeights = g.Expand(relPosWeights, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenQ });
             attn = g.Add(attn, relPosWeights);

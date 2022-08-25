@@ -114,7 +114,8 @@ namespace Seq2SeqSharp.Utils
             {
                 for (int k = 0; k < tagIdxsList.Count; k++)
                 {
-                    var tagEmbeddings_k = g.IndexSelect(embeddingsTensor, tagIdxsList[k], clearWeights: true);
+                    var indiceTagEmbs = g.CreateTensorWeights(new long[] { tagIdxsList[k].Length, 1 }, tagIdxsList[k]);
+                    var tagEmbeddings_k = g.IndexSelect(embeddingsTensor, indiceTagEmbs, clearWeights: true);
                     if (tagEmbeddings == null)
                     {
                         tagEmbeddings = tagEmbeddings_k;
@@ -126,7 +127,8 @@ namespace Seq2SeqSharp.Utils
                 }
             }
 
-            IWeightTensor embeddingRst = g.IndexSelect(embeddingsTensor, idxs);
+            var indiceEmbs = g.CreateTensorWeights(new long[] { idxs.Length, 1 }, idxs);
+            IWeightTensor embeddingRst = g.IndexSelect(embeddingsTensor, indiceEmbs);
             if (scaleFactor != 1.0f)
             {
                 embeddingRst = g.Mul(embeddingRst, scaleFactor, inPlace: true);
@@ -135,7 +137,8 @@ namespace Seq2SeqSharp.Utils
             // Apply segment embeddings to the input sequence embeddings
             if (segmentEmbedding != null)
             {
-                embeddingRst = g.Add(embeddingRst, g.IndexSelect(segmentEmbedding, segIdxs));
+                var indiceSeg = g.CreateTensorWeights(new long[] { segIdxs.Length, 1 }, segIdxs);
+                embeddingRst = g.Add(embeddingRst, g.IndexSelect(segmentEmbedding, indiceSeg));
             }
 
             if (tagEmbeddings != null)

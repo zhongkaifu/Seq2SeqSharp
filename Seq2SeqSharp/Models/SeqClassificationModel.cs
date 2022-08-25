@@ -9,15 +9,15 @@ namespace Seq2SeqSharp.Models
     public class SeqClassificationModel : Model
     {
         public SeqClassificationModel() { }
-        public SeqClassificationModel(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, List<Vocab> clsVocabs, bool enableSegmentEmbeddings, bool enableTagEmbeddings, int maxSegmentNum)
-            : base(hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, enableTagEmbeddings, maxSegmentNum, false)
+        public SeqClassificationModel(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, List<Vocab> clsVocabs, bool enableSegmentEmbeddings, bool enableTagEmbeddings, int maxSegmentNum, int expertNum)
+            : base(hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, enableTagEmbeddings, maxSegmentNum, pointerGenerator: false, expertNum: expertNum)
         {
             ClsVocabs = clsVocabs;
         }
         public SeqClassificationModel(Model_4_ProtoBufSerializer m)
             : base(m.HiddenDim, m.EncoderLayerDepth, m.EncoderType, m.EncoderEmbeddingDim, m.MultiHeadNum,
                     m.SrcVocab?.ToVocab(),
-                    m.EnableSegmentEmbeddings, m.EnableTagEmbeddings, m.MaxSegmentNum, false)
+                    m.EnableSegmentEmbeddings, m.EnableTagEmbeddings, m.MaxSegmentNum, pointerGenerator: false, expertNum: m.ExpertNum)
         {
             ClsVocabs = m.ClsVocabs?.Select(v => v.ToVocab()).ToList();
             Name2Weights = m.Name2Weights;

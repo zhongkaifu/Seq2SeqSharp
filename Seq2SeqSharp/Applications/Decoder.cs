@@ -32,7 +32,7 @@ namespace Seq2SeqSharp.Applications
             {
                 decoder = new MultiProcessorNetworkWrapper<IDecoder>(
                     new TransformerDecoder("TransformerDecoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.DecoderEmbeddingDim, modelMetaData.DecoderLayerDepth, options.DropoutRatio, raDeviceIds.GetNextItem(),
-                    isTrainable: options.IsDecoderTrainable, learningRateFactor: options.DecoderStartLearningRateFactor, activateFunc: options.ActivateFunc), raDeviceIds.ToArray());
+                    isTrainable: options.IsDecoderTrainable, learningRateFactor: options.DecoderStartLearningRateFactor, activateFunc: options.ActivateFunc, expertNum: modelMetaData.ExpertNum), raDeviceIds.ToArray());
             }
 
             return decoder;
@@ -280,11 +280,12 @@ namespace Seq2SeqSharp.Applications
                     decOutputIdx[i] = tgtSeqLen * (i + 1) - 1;
                 }
 
-                decOutput = g.IndexSelect(decOutput, decOutputIdx);
 
+                var indice = g.CreateTensorWeights(new long[] { decOutputIdx.Length, 1 }, decOutputIdx);
+                decOutput = g.IndexSelect(decOutput, indice);
                 if (pointerGenerator != null)
                 {
-                    decEncAttnProbs = g.IndexSelect(decEncAttnProbs, decOutputIdx);
+                    decEncAttnProbs = g.IndexSelect(decEncAttnProbs, indice);
                 }
 
                 tgtSeqLen = 1;

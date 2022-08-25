@@ -9,15 +9,15 @@ namespace Seq2SeqSharp
     public class SeqLabelModel : Model
     {
         public SeqLabelModel() { }
-        public SeqLabelModel( int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, Vocab clsVocab, bool enableSegmentEmbeddings, int maxSegmentNum)
-            : base( hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, false, maxSegmentNum, false )
+        public SeqLabelModel( int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, Vocab clsVocab, bool enableSegmentEmbeddings, int maxSegmentNum, int expertNum)
+            : base( hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, false, maxSegmentNum, pointerGenerator: false, expertNum: expertNum )
         {
             ClsVocab = clsVocab;
         }
         public SeqLabelModel( Model_4_ProtoBufSerializer m )
             : base( m.HiddenDim, m.EncoderLayerDepth, m.EncoderType, m.EncoderEmbeddingDim, m.MultiHeadNum,
                     m.SrcVocab?.ToVocab(), 
-                    enableSegmentEmbeddings: false, enableTagEmbeddings: false, m.MaxSegmentNum, false )
+                    enableSegmentEmbeddings: false, enableTagEmbeddings: false, m.MaxSegmentNum, pointerGenerator: false, expertNum: m.ExpertNum )
         {
             ClsVocabs    = m.ClsVocabs?.Select( v => v.ToVocab() ).ToList(); 
             Name2Weights = m.Name2Weights;

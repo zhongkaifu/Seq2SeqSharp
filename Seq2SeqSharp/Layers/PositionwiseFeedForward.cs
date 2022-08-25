@@ -9,13 +9,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
 using AdvUtils;
+using Seq2SeqSharp.Layers;
 using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
 using System.Collections.Generic;
 
 namespace Seq2SeqSharp
 {
-    internal class PositionwiseFeedForward
+    internal class PositionwiseFeedForward : IFeedForwardLayer
     {
         private readonly LayerNormalization layerNorm2;
         private readonly FeedForwardLayer feedForwardLayer1;
@@ -39,7 +40,7 @@ namespace Seq2SeqSharp
             feedForwardLayer2 = new FeedForwardLayer($"{name}.{nameof(feedForwardLayer2)}", hiddenDim * 4, hiddenDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor);
         }
       
-        public IWeightTensor Perform(IWeightTensor input, int batchSize, IComputeGraph graph)
+        public IWeightTensor Process(IWeightTensor input, int batchSize, IComputeGraph graph)
         {
             using var g = graph.CreateSubGraph($"{m_name}_PositionwiseFeedForward");
             var inputNorm = layerNorm2.Norm(input, g);
@@ -90,6 +91,16 @@ namespace Seq2SeqSharp
             m_activateFunc = (ActivateFuncEnums)stream.GetWeights($"{m_name}.ActivateFunc")[0];
             Logger.WriteLine($"Loading '{m_name}' activate function setting '{m_activateFunc}'");
 
+        }
+
+        public INeuralUnit CloneToDeviceAt(int deviceId)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public int GetDeviceId()
+        {
+            throw new System.NotImplementedException();
         }
     }
 }

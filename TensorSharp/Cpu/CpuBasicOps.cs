@@ -909,7 +909,7 @@ namespace TensorSharp.Cpu
         }
 
         [RegisterOpStorageType("indexselect", typeof(CpuStorage))]
-        public Tensor IndexSelect(Tensor result, Tensor src, Tensor indice)
+        public Tensor IndexSelect(Tensor result, Tensor src, Tensor indice, bool isAdd)
         {
             int ndim = result.DimensionCount;
             long storageSize = TensorDimensionHelpers.GetStorageSize(result.Sizes, result.Strides);
@@ -923,7 +923,7 @@ namespace TensorSharp.Cpu
             long rows = storageSize / cols;
 
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, new long[] { indice.Sizes[0], src.Sizes[1] });
-            TensorApplyCPU.IndexSelect(writeTarget, src, indice, (int)rows, (int)cols);
+            TensorApplyCPU.IndexSelect(writeTarget, src, indice, (int)rows, (int)cols, isAdd);
             return writeTarget;
         }
 

@@ -255,6 +255,7 @@ namespace Seq2SeqSharp.Models
                                     = m.EnableTagEmbeddings;
             MaxSegmentNum = m.MaxSegmentNum;
             PointerGenerator = m.PointerGenerator;
+            ExpertNum = m.ExpertNum;
         }
         public static Model_4_ProtoBufSerializer Create(Model m) => new Model_4_ProtoBufSerializer(m);
 
@@ -282,6 +283,8 @@ namespace Seq2SeqSharp.Models
         [ProtoMember(19)] public int MaxSegmentNum { get; set; }
 
         [ProtoMember(20)] public bool PointerGenerator { get; set; }
+
+        [ProtoMember(21)] public int ExpertNum { get; set; }
 
         //Vocab IModel.SrcVocab { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
         //Vocab IModel.TgtVocab { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }

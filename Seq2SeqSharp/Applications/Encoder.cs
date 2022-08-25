@@ -52,7 +52,7 @@ namespace Seq2SeqSharp.Applications
             {
                 encoder = new MultiProcessorNetworkWrapper<IEncoder>(
                     new TransformerEncoder("TransformerEncoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.EncoderEmbeddingDim, modelMetaData.EncoderLayerDepth, options.DropoutRatio, raDeviceIds.GetNextItem(),
-                    isTrainable: options.IsEncoderTrainable, learningRateFactor: options.EncoderStartLearningRateFactor, activateFunc: options.ActivateFunc), raDeviceIds.ToArray());
+                    isTrainable: options.IsEncoderTrainable, learningRateFactor: options.EncoderStartLearningRateFactor, activateFunc: options.ActivateFunc, expertNum: modelMetaData.ExpertNum), raDeviceIds.ToArray());
 
                 contextDim = modelMetaData.HiddenDim;
             }
@@ -85,7 +85,8 @@ namespace Seq2SeqSharp.Applications
                 contextCLSIdxs[j] = j * contextPaddedLen;
             }
 
-            IWeightTensor contextCLSOutput = computeGraph.IndexSelect(encContextOutput, contextCLSIdxs);
+            var indice = computeGraph.CreateTensorWeights(new long[] { contextCLSIdxs.Length, 1 }, contextCLSIdxs);
+            IWeightTensor contextCLSOutput = computeGraph.IndexSelect(encContextOutput, indice);
             return contextCLSOutput;
         }
 

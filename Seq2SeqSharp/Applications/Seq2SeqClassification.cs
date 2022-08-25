@@ -69,7 +69,8 @@ namespace Seq2SeqSharp.Applications
             else
             {
                 m_modelMetaData = new Seq2SeqClassificationModel(options.HiddenSize, options.SrcEmbeddingDim, options.TgtEmbeddingDim, options.EncoderLayerDepth, options.DecoderLayerDepth, options.MultiHeadNum,
-                    options.EncoderType, options.DecoderType, srcVocab, tgtVocab, clsVocab, options.EnableCoverageModel, options.SharedEmbeddings, options.EnableSegmentEmbeddings, options.EnableTagEmbeddings, options.MaxSegmentNum);
+                    options.EncoderType, options.DecoderType, srcVocab, tgtVocab, clsVocab, options.EnableCoverageModel, options.SharedEmbeddings, options.EnableSegmentEmbeddings, options.EnableTagEmbeddings, 
+                    maxSegmentNum: options.MaxSegmentNum, expertNum: options.ExpertNum);
 
                 //Initializng weights in encoders and decoders
                 CreateTrainableParameters(m_modelMetaData);
@@ -150,7 +151,8 @@ namespace Seq2SeqSharp.Applications
                 }
             }
 
-            IWeightTensor clsWeightTensor = computeGraph.IndexSelect(encOutput, clsIdxs);
+            var indice = computeGraph.CreateTensorWeights(new long[] { batchSize, 1 }, clsIdxs);
+            IWeightTensor clsWeightTensor = computeGraph.IndexSelect(encOutput, indice);
 
             float cost = 0.0f;
             NetworkResult nrCLS = new NetworkResult

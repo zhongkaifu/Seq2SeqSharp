@@ -49,6 +49,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("Enable segment embeddings", nameof(EnableSegmentEmbeddings))]
         public bool EnableSegmentEmbeddings = false;
 
+        [Arg("The expert size for MoE model. Default is 1", nameof(ExpertNum))]
+        public int ExpertNum = 1;
+
         [Arg("Maximum Segment Capacity. Default value is 16", nameof(MaxSegmentNum))]
         public int MaxSegmentNum = 16;
 

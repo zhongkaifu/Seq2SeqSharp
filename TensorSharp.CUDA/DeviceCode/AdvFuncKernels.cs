@@ -472,7 +472,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
   }
 }
 
-  __global__ void IndexSelect(float* __restrict__ result, float* __restrict__ src, float* __restrict__ indice, int rows, int cols)
+  __global__ void IndexSelect(float* __restrict__ result, float* __restrict__ src, float* __restrict__ indice, int rows, int cols, int isAdd)
   {
     for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -487,7 +487,15 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
           for(int tid = 0; tid < cols; tid += blockDim.x) {
             int id = tid + threadIdx.x;
             if(id < cols) {
-            resultRow[id] = srcRow[id];
+
+            if (isAdd == 0)
+            {
+               resultRow[id] = srcRow[id];
+            }
+            else
+            {             
+               atomicAdd(resultRow + id, srcRow[id]);
+            }
             }
           }
       }
@@ -1175,7 +1183,7 @@ __global__ void TopK(float* input, float* output, float *outputIdx, int k, unsig
 
 
 
-        private void IndexSelect(TSCudaContext context, Tensor result, Tensor src, Tensor indice)
+        private void IndexSelect(TSCudaContext context, Tensor result, Tensor src, Tensor indice, bool isAdd)
         {
             CudaContext cudaContext = context.CudaContextForTensor(src);
 
@@ -1201,7 +1209,7 @@ __global__ void TopK(float* input, float* output, float *outputIdx, int k, unsig
             CUdeviceptr indicePtr = CudaHelpers.GetBufferStart(indice);
 
 
-            Invoke(context, cudaContext, "IndexSelect", grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, indicePtr, rows, cols);
+            Invoke(context, cudaContext, "IndexSelect", grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, indicePtr, rows, cols, (isAdd == true) ? 1 : 0);
 
         }
 
@@ -1424,11 +1432,11 @@ __global__ void TopK(float* input, float* output, float *outputIdx, int k, unsig
             return result;
         }
 
-        public Tensor IndexSelect(Tensor result, Tensor src, Tensor indice)
+        public Tensor IndexSelect(Tensor result, Tensor src, Tensor indice, bool isAdd)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(src);
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, new long[] { indice.Sizes[0], src.Sizes[1] });
-            IndexSelect(context, writeTarget, src, indice);
+            IndexSelect(context, writeTarget, src, indice, isAdd);
 
             return writeTarget;
         }

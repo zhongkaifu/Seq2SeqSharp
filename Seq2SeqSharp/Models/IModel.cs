@@ -9,6 +9,8 @@ namespace Seq2SeqSharp
         public int EncoderEmbeddingDim { get; set; }
         public int DecoderLayerDepth { get; set; }
         public int EncoderLayerDepth { get; set; }
+
+        public int ExpertNum { get; set; }
         public DecoderTypeEnums DecoderType { get; set; }
         public EncoderTypeEnums EncoderType { get; set; }
         public int HiddenDim { get; set; }

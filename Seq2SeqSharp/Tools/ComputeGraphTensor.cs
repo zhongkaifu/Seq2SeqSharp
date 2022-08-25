@@ -1252,15 +1252,29 @@ namespace Seq2SeqSharp.Tools
             //bitmap.Dispose();
         }
 
+        public IWeightTensor CreateTensorWeights(long[] sizes, float[] values)
+        {
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"New_Tensor", needGradient: false);
+            res.TWeight.CopyFrom(values);
 
-        public IWeightTensor IndexSelect(IWeightTensor s, float[] idxs, bool clearWeights = false)
+            return res;
+        }
+
+        public IWeightTensor Zero(long[] sizes)
+        {
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, cleanWeights: true, name: $"Zero_Tensor");
+
+            return res;
+        }
+
+        public IWeightTensor IndexUpdate(long[] sizes, IWeightTensor s, IWeightTensor indice, bool clearWeights = false)
         {
             WeightTensor src = s as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { idxs.Length, s.Sizes[^1] }, m_deviceId, name: $"{GetHashString(src.Name)}.IndexSelect", graphToBind: this, needGradient: src.NeedGradient, clearWeights: clearWeights);
+            WeightTensor idx = indice as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"{GetHashString(src.Name)}.IndexUpdate", graphToBind: this, needGradient: src.NeedGradient, cleanWeights: clearWeights);
 
-            Tensor indice = new Tensor(src.Allocator, DType.Float32, idxs.Length, 1);
-            indice.CopyFrom(idxs);
-            Ops.IndexSelect(res.TWeight, src.TWeight, indice);
+
+            Ops.IndexSelectGrad(res.TWeight, src.TWeight, idx.TWeight);
 
             if (m_needsBackprop)
             {
@@ -1269,17 +1283,42 @@ namespace Seq2SeqSharp.Tools
                     if (src.NeedGradient)
                     {
                         res.ReleaseWeight();
-                        Ops.IndexSelectGrad(src.TGradient, res.TGradient, indice);
+                        Ops.IndexSelect(src.TGradient, res.TGradient, idx.TWeight, true);
                     }
 
-                    res.Dispose();
-                    indice.Dispose();
+                    res.Dispose();                  
                 }
                 m_backprop.Add(backward);
             }
-            else
+
+
+            return res;
+        }
+
+
+
+        public IWeightTensor IndexSelect(IWeightTensor s, IWeightTensor indice, bool clearWeights = false, bool isAdd = false)
+        {
+            WeightTensor src = s as WeightTensor;
+            WeightTensor idx = indice as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { idx.Rows, s.Sizes[^1] }, m_deviceId, name: $"{GetHashString(src.Name)}.IndexSelect", graphToBind: this, needGradient: src.NeedGradient, cleanWeights: clearWeights);
+
+
+            Ops.IndexSelect(res.TWeight, src.TWeight, idx.TWeight, isAdd);
+
+            if (m_needsBackprop)
             {
-                indice.Dispose();
+                void backward()
+                {
+                    if (src.NeedGradient)
+                    {
+                        res.ReleaseWeight();
+                        Ops.IndexSelectGrad(src.TGradient, res.TGradient, idx.TWeight);
+                    }
+
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
             }
 
             return res;
@@ -1865,9 +1904,9 @@ namespace Seq2SeqSharp.Tools
 
 
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(newSize, m_deviceId, name: $"TopKValue_{m_deviceId}", graphToBind: this, needGradient: s.NeedGradient);
-            WeightTensor resIdx = m_weightTensorFactory.CreateWeightTensor(newSize, m_deviceId, name: $"TopKIndex_{m_deviceId}", graphToBind: this, needGradient: false);
+            WeightTensor resIdx = m_weightTensorFactory.CreateWeightTensor(newSize, m_deviceId, name: $"TopKIndex_{m_deviceId}", graphToBind: null, needGradient: false);
             Ops.TopK(res.TWeight, resIdx.TWeight, s.TWeight, k);
-
+           
             if (m_needsBackprop)
             {
                 void backward()

@@ -11,6 +11,7 @@ Attention based LSTM decoder with coverage model
 Bi-directional LSTM encoder  
 Support multi-platforms, such as Windows, Linux, MacOS and others  
 Built-in several networks for sequence-to-sequence, sequence-classification, labeling and similarity tasks  
+Mixture of Experts network that could easily train huge model with less computing cost  
 Built-in SentencePiece supported  
 Tags embeddings mechanism  
 Prompted Decoders  
@@ -80,6 +81,7 @@ Parameters:
 **-GradClip**: The clip gradients.  
 **-BatchSize**: Batch size for training. Default is 1.  
 **-ValBatchSize**: Batch size for testing. Default is 1.  
+**-ExpertNum**: The number of experts in MoE (Mixture of Expert) model. Default is 1.  
 **-Dropout**: Dropout ratio. Defaul is 0.1  
 **-ProcessorType**: Processor type: CPU or GPU(Cuda)  
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
@@ -170,6 +172,7 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
   "DecodingRepeatPenalty": 5.0,
   "DeviceIds": "0,1",
   "TaskParallelism": 2,
+  "ExpertNum": 1,
   "DropoutRatio": 0.0,
   "EnableSegmentEmbeddings": false,
   "MaxSegmentNum": 16,

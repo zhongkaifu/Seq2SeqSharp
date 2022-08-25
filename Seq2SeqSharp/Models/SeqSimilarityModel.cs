@@ -8,8 +8,8 @@ namespace Seq2SeqSharp.Models
     public class SeqSimilarityModel : Model
     {
         public SeqSimilarityModel() { }
-        public SeqSimilarityModel(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, Vocab clsVocab, bool enableSegmentEmbeddings, string similarityType, int maxSegmentNum)
-            : base(hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, false, maxSegmentNum, false)
+        public SeqSimilarityModel(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, Vocab clsVocab, bool enableSegmentEmbeddings, string similarityType, int maxSegmentNum, int expertNum)
+            : base(hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, false, maxSegmentNum, pointerGenerator: false, expertNum: expertNum)
         {
             ClsVocab = clsVocab;
             SimilarityType = similarityType;
@@ -17,7 +17,7 @@ namespace Seq2SeqSharp.Models
         public SeqSimilarityModel(Model_4_ProtoBufSerializer m)
             : base(m.HiddenDim, m.EncoderLayerDepth, m.EncoderType, m.EncoderEmbeddingDim, m.MultiHeadNum,
                     m.SrcVocab?.ToVocab(),
-                    m.EnableSegmentEmbeddings, enableTagEmbeddings: false, m.MaxSegmentNum, false)
+                    m.EnableSegmentEmbeddings, enableTagEmbeddings: false, m.MaxSegmentNum, pointerGenerator: false, expertNum: m.ExpertNum)
         {
             ClsVocabs = m.ClsVocabs?.Select(v => v.ToVocab()).ToList();
             Name2Weights = m.Name2Weights;

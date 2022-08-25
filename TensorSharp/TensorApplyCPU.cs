@@ -1155,7 +1155,7 @@ namespace TensorSharp
 
 
 
-		unsafe static public void IndexSelect(Tensor result_, Tensor src_, Tensor indice_, int rows, int cols)
+		unsafe static public void IndexSelect(Tensor result_, Tensor src_, Tensor indice_, int rows, int cols, bool isAdd)
 		{
 			float* result = (float*)CpuNativeHelpers.GetBufferStart(result_);
 			float* src = (float*)CpuNativeHelpers.GetBufferStart(src_);
@@ -1171,7 +1171,14 @@ namespace TensorSharp
 
 					for (int i = 0; i < cols; ++i)
 					{
-						resultRow[i] = srcRow[i];
+						if (isAdd == false)
+						{
+							resultRow[i] = srcRow[i];
+						}
+						else
+						{
+							resultRow[i] += srcRow[i];
+						}
 					}
 				}
 			}

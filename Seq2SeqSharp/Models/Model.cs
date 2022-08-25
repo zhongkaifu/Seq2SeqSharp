@@ -13,6 +13,8 @@ namespace Seq2SeqSharp.Models
         public int EncoderEmbeddingDim { get; set; }
         public int DecoderLayerDepth { get; set; }
         public int EncoderLayerDepth { get; set; }
+
+        public int ExpertNum { get; set; }
         public DecoderTypeEnums DecoderType { get; set; }
         public EncoderTypeEnums EncoderType { get; set; }
         public int HiddenDim { get; set; }
@@ -66,7 +68,7 @@ namespace Seq2SeqSharp.Models
 
         public Model() { }
         public Model( int hiddenDim, int encoderLayerDepth, EncoderTypeEnums encoderType, int encoderEmbeddingDim, int multiHeadNum, Vocab srcVocab,
-            bool enableSegmentEmbeddings, bool enableTagEmbeddings, int maxSegmentNum, bool pointerGenerator )
+            bool enableSegmentEmbeddings, bool enableTagEmbeddings, int maxSegmentNum, bool pointerGenerator, int expertNum )
         {
             HiddenDim = hiddenDim;
             EncoderLayerDepth = encoderLayerDepth;
@@ -78,6 +80,7 @@ namespace Seq2SeqSharp.Models
             EnableTagEmbeddings = enableTagEmbeddings;
             MaxSegmentNum = maxSegmentNum;
             PointerGenerator = pointerGenerator;
+            ExpertNum = expertNum;
 
             Name2Weights = new Dictionary<string, float[]>();
         }
@@ -117,6 +120,7 @@ namespace Seq2SeqSharp.Models
             Logger.WriteLine( $"Enable tag embeddings: '{EnableTagEmbeddings}'" );
             Logger.WriteLine( $"Multi-head size: '{MultiHeadNum}'" );
             Logger.WriteLine($"Pointer Generator: '{PointerGenerator}'");
+            Logger.WriteLine($"Expert Num: '{ExpertNum}");
 
 
             if ( ! SimilarityType.IsNullOrEmpty() )

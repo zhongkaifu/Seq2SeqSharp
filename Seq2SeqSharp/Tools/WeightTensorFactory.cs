@@ -22,11 +22,11 @@ namespace Seq2SeqSharp.Tools
             return r;
         }
 
-        public WeightTensor CreateWeightTensor(long[] sizes, int deviceId, bool clearWeights = false, string name = "", IComputeGraph graphToBind = null, NormType normType = NormType.None, bool needGradient = true)
+        public WeightTensor CreateWeightTensor(long[] sizes, int deviceId, bool cleanWeights = false, string name = "", IComputeGraph graphToBind = null, NormType normType = NormType.None, bool needGradient = true)
         {
             WeightTensor r = new WeightTensor(sizes, deviceId, name, normType: normType, graphToBind: graphToBind, needGradient: needGradient);
 
-            if (clearWeights)
+            if (cleanWeights)
             {
                 r.CleanWeight();
             }

@@ -12,8 +12,8 @@ namespace Seq2SeqSharp
 
         public Seq2SeqModel(int hiddenDim, int encoderEmbeddingDim, int decoderEmbeddingDim, int encoderLayerDepth, int decoderLayerDepth, int multiHeadNum,
                              EncoderTypeEnums encoderType, DecoderTypeEnums decoderType, Vocab srcVocab, Vocab tgtVocab, bool enableCoverageModel,
-                             bool sharedEmbeddings, bool enableSegmentEmbeddings, bool enableTagEmbeddings, int maxSegmentNum, bool pointerGenerator)
-            : base(hiddenDim, encoderLayerDepth, encoderType, encoderEmbeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, enableTagEmbeddings, maxSegmentNum, pointerGenerator)
+                             bool sharedEmbeddings, bool enableSegmentEmbeddings, bool enableTagEmbeddings, int maxSegmentNum, bool pointerGenerator, int expertNum)
+            : base(hiddenDim, encoderLayerDepth, encoderType, encoderEmbeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, enableTagEmbeddings, maxSegmentNum, pointerGenerator: pointerGenerator, expertNum: expertNum)
         {
             DecoderEmbeddingDim = decoderEmbeddingDim;
             DecoderLayerDepth = decoderLayerDepth;
@@ -27,7 +27,7 @@ namespace Seq2SeqSharp
         public Seq2SeqModel(Model_4_ProtoBufSerializer m)
             : base(m.HiddenDim, m.EncoderLayerDepth, m.EncoderType, m.EncoderEmbeddingDim, m.MultiHeadNum,
                     m.SrcVocab?.ToVocab(),
-                    m.EnableSegmentEmbeddings, m.EnableTagEmbeddings, m.MaxSegmentNum, m.PointerGenerator)
+                    m.EnableSegmentEmbeddings, m.EnableTagEmbeddings, m.MaxSegmentNum, pointerGenerator: m.PointerGenerator, expertNum: m.ExpertNum)
         {
             ClsVocabs = m.ClsVocabs?.Select(v => v.ToVocab()).ToList();
             Name2Weights = m.Name2Weights;

@@ -62,8 +62,10 @@ namespace Seq2SeqSharp
 
         IWeightTensor SampleIndicue(IWeightTensor w, List<List<int>> seqs, float repeatPenalty = 5.0f);
 
-
-        IWeightTensor IndexSelect(IWeightTensor s, float[] idxs, bool clearWeights = false);
+        IWeightTensor Zero(long[] sizes);
+        IWeightTensor CreateTensorWeights(long[] sizes, float[] values);
+        IWeightTensor IndexSelect(IWeightTensor s, IWeightTensor indice, bool clearWeights = false, bool isAdd = false);
+        IWeightTensor IndexUpdate(long[] sizes, IWeightTensor s, IWeightTensor indice, bool clearWeights = false);
 
         void Bind(IWeightTensor w);
         void Unbind(IWeightTensor w);

@@ -223,7 +223,7 @@ namespace TensorSharp
         public static Tensor SoftmaxGrad(Tensor grad, Tensor adj, Tensor val, bool addGrad = true) { return (Tensor)OpRegistry.Invoke("softmaxgrad", grad, adj, val, addGrad); }
 
 
-        public static Tensor IndexSelect(Tensor result, Tensor src, Tensor indice) { return (Tensor)OpRegistry.Invoke("indexselect", result, src, indice); }
+        public static Tensor IndexSelect(Tensor result, Tensor src, Tensor indice, bool isAdd = false) { return (Tensor)OpRegistry.Invoke("indexselect", result, src, indice, isAdd); }
         public static Tensor IndexSelectGrad(Tensor grad, Tensor adj, Tensor indice) { return (Tensor)OpRegistry.Invoke("indexselectgrad", grad, adj, indice); }
 
 
