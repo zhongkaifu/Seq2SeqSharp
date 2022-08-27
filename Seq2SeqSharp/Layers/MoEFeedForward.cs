@@ -13,6 +13,7 @@ using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Seq2SeqSharp.Layers
 {
@@ -58,42 +59,69 @@ namespace Seq2SeqSharp.Layers
 
         public IWeightTensor Process(IWeightTensor input, int batchSize, IComputeGraph graph)
         {
-            int seqLen = input.Rows / batchSize;
+           // int seqLen = input.Rows / batchSize;
             using var g = graph.CreateSubGraph($"{m_name}_MoEFeedForward");
             var inputNorm = layerNorm.Norm(input, g);
 
             var inputRouter = g.Mul(inputNorm, m_Router); // [batchSize * seqLen, expertNum]
             inputRouter = g.Softmax(inputRouter); // [batchSize * seqLen, expertNum]
-            inputRouter = g.View(inputRouter, dims: new long[] { batchSize, seqLen, m_expertNum });
-            inputRouter = g.Transpose(inputRouter, 2, 0); // [expertNum, seqLen, batchSize]
-            inputRouter = g.Transpose(inputRouter, 1, 2); // [expertNum, batchSize, seqLen]
-            inputRouter = g.AsContiguous(inputRouter); // [expertNum, batchSize, seqLen]
+            inputRouter = g.AsContiguous(g.Transpose(inputRouter)); // [expertNum, batchSize * seqLen]
 
-            int K = (int)(seqLen / m_expertNum + 1);
-            (var topKValue, var topKIndex) = g.TopK(inputRouter, K); // [expertNum, batchSize, K]
+            int K = (int)(input.Rows / m_expertNum + 1);
+            (var topKValue, var topKIndex) = g.TopK(inputRouter, K); // [expertNum, K]
 
-            float[] factors = new float[batchSize];
-            for (int i = 0; i < batchSize; i++)
-            {
-                factors[i] = i * seqLen;
-            }
-            var factorTensor = g.CreateTensorWeights(sizes: new long[] { 1, batchSize, 1 }, factors);
-            factorTensor = g.Expand(factorTensor, dims: new long[] { m_expertNum, batchSize, K });
-            topKIndex = g.Add(topKIndex, factorTensor);
 
-            topKIndex = g.AsContiguous(g.View(topKIndex, dims: new long[] { m_expertNum * batchSize * K, 1 }));
+            /////////////////DEBUG//////////////////////
+            //var idxs = topKIndex.ToWeightArray();
+            //SortedDictionary<int, int> id2freq = new SortedDictionary<int, int>();
+            //for (int i = 0; i < m_expertNum; i++)
+            //{
+            //    StringBuilder sb = new StringBuilder();
+            //    for (int j = 0; j < K; j++)
+            //    {
+            //        int value = (int)idxs[i * K + j];
+            //        sb.Append(value);
+            //        sb.Append(" ");
+
+            //        if (id2freq.ContainsKey(value) == false)
+            //        {
+            //            id2freq.Add(value, 0);
+            //        }
+            //        id2freq[value]++;
+            //    }
+            //    Logger.WriteLine($"Expert '{i}': {sb.ToString()}");
+            //}
+
+            //Logger.WriteLine("id : freq");
+            //foreach (var pair in id2freq)
+            //{
+            //    Logger.WriteLine($"{pair.Key} : {pair.Value}");
+            //}
+
+            //for (int i = 0; i < input.Rows; i++)
+            //{
+            //    if (id2freq.ContainsKey(i) == false)
+            //    {
+            //        Logger.WriteLine($"id '{i}' is not processed.");
+            //    }
+            //}
+            ///////////////END OF DEBUG/////////////////////
+
+
+
+            topKIndex = g.AsContiguous(g.View(topKIndex, dims: new long[] { m_expertNum * K, 1 }));
             topKIndex.UnbindFromComputeGraph();
 
-            var selectedEmbs = g.IndexSelect(inputNorm, topKIndex, clearWeights: true); // [expertNum * batchSize * K, hiddenDim]
-            selectedEmbs = g.View(selectedEmbs, dims: new long[] { m_expertNum, batchSize * K, -1 }); // [expertNum, batchSize * K, hiddenDim];
-            selectedEmbs = g.MulBatch(selectedEmbs, m_Whd1); // [expertNum, batchSize * K, hiddenDim * 4]
+            var selectedEmbs = g.IndexSelect(inputNorm, topKIndex, clearWeights: true); // [expertNum * K, hiddenDim]
+            selectedEmbs = g.View(selectedEmbs, dims: new long[] { m_expertNum, K, -1 }); // [expertNum, K, hiddenDim];
+            selectedEmbs = g.MulBatch(selectedEmbs, m_Whd1); // [expertNum, K, hiddenDim * 4]
             selectedEmbs = ((m_activateFunc == ActivateFuncEnums.Swish) ? g.Swish(selectedEmbs, inPlace: true) : g.Relu(selectedEmbs, inPlace: true));
-            selectedEmbs = g.MulBatch(selectedEmbs, m_Whd2); // [expertNum, batchSize * K, hiddenDim]
+            selectedEmbs = g.MulBatch(selectedEmbs, m_Whd2); // [expertNum, K, hiddenDim]
 
-            topKValue = g.View(topKValue, dims: new long[] { m_expertNum, batchSize * K, 1 });
-            topKValue = g.Expand(topKValue, dims: new long[] { m_expertNum, batchSize * K, m_hiddenDim });
-            selectedEmbs = g.EltMul(selectedEmbs, topKValue); // [expertNum, batchSize * K, hiddenDim]
-            selectedEmbs = g.AsContiguous(g.View(selectedEmbs, dims: new long[] { m_expertNum * batchSize * K, m_hiddenDim }));
+            topKValue = g.View(topKValue, dims: new long[] { m_expertNum, K, 1 });
+            topKValue = g.Expand(topKValue, dims: new long[] { m_expertNum, K, m_hiddenDim });
+            selectedEmbs = g.EltMul(selectedEmbs, topKValue); // [expertNum, K, hiddenDim]
+            selectedEmbs = g.AsContiguous(g.View(selectedEmbs, dims: new long[] { m_expertNum * K, m_hiddenDim }));
 
             var outputEmbs = g.IndexUpdate(input.Sizes, selectedEmbs, topKIndex, true); // [batchSize * seqLen, hiddenDim]
             outputEmbs = graph.Add(outputEmbs, input);
