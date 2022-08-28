@@ -254,9 +254,9 @@ public class ComputeGraph_Tests
     [TestMethod]
     public void TestTopK()
     {
-        int batchSize = 5;
-        int vocabSize = 20;
-        int K = 5;
+        int batchSize = 256;
+        int vocabSize = 25600;
+        int K = 1280;
         TensorAllocator.InitDevices(ProcessorTypeEnums.CPU, new int[] { 0 });
         var graph = new ComputeGraphTensor(new WeightTensorFactory(), 0, true);
 
@@ -280,8 +280,8 @@ public class ComputeGraph_Tests
                 sd[weightSrc[i * vocabSize + j]].Add(j);
             }
 
-            float[] sortedWeights = new float[K];
-            float[] sortedIdx = new float[K];
+            List<float> sortedWeights = new List<float>();
+            List<float> sortedIdx = new List<float>();
             int cnt = 0;
             foreach (var pair in sd.Reverse())
             {
@@ -297,19 +297,32 @@ public class ComputeGraph_Tests
                         break;
                     }
 
-                    sortedWeights[cnt] = pair.Key;
-                    sortedIdx[cnt] = idx;
+                    sortedWeights.Add((float)Math.Round(pair.Key, 4));
+                    sortedIdx.Add((float)idx);
 
                     cnt++;
                 }
             }
 
+           
+
             for (int j = 0; j < K; j++)
             {
-                Assert.IsTrue(sortedWeights[j] == weightK[i * K + j]);
-                Assert.IsTrue(sortedIdx[j] == weightIdx[i * K + j]);
+                float value = (float)Math.Round(weightK[i * K + j], 4);
+                float idx = weightIdx[i * K + j];
 
-            }            
+                int valueIdx = sortedWeights.IndexOf(value);
+                int idxIdx = sortedIdx.IndexOf(idx);
+
+                Assert.IsTrue(valueIdx >= 0);
+                Assert.IsTrue(idxIdx >= 0);
+
+                sortedWeights.RemoveAt(valueIdx);
+                sortedIdx.RemoveAt(idxIdx);
+            }
+
+            Assert.IsTrue(sortedWeights.Count == 0);
+            Assert.IsTrue(sortedIdx.Count == 0);
         }
        
     }

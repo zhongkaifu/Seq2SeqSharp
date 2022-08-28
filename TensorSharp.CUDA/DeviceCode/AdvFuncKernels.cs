@@ -774,29 +774,56 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
 
 
 
-
-
-
-__global__ void replace_smaller(float* array, float* arrayIdx, int k, float data, float idx)
-{
-    if(data < array[k-1])
-        return;
-    for(int j=k-2; j>=0; j--)
-    {
-        if(data > array[j])
-        {
-            array[j+1] = array[j];
-            arrayIdx[j+1] = arrayIdx[j];
-        }
-        else{
-            array[j+1] = data;
-            arrayIdx[j+1] = idx;
-            return;
-        }
-    }
-    array[0] = data;
-    arrayIdx[0] = idx;
+__device__ void swap(float *a, float *b) {
+	const float t = *a;
+	*a = *b;
+	*b = t;
 }
+
+__device__ void maxHeapify(float *maxHeap, float *maxHeapIdx, int heapSize, int idx) {
+
+    while (1)
+{
+	int largest = idx;  // Initialize largest as root
+	int left = (idx << 1) + 1;  // left = 2*idx + 1
+	int right = (idx + 1) << 1; // right = 2*idx + 2
+
+	// See if left child of root exists and is greater than root
+	if (left < heapSize && maxHeap[left] < maxHeap[largest]) {
+		largest = left;
+	}
+
+	// See if right child of root exists and is greater than
+	// the largest so far
+	if (right < heapSize && maxHeap[right] < maxHeap[largest]) {
+		largest = right;
+	}
+
+	// Change root, if needed
+	if (largest != idx) {
+		swap(&maxHeap[largest], &maxHeap[idx]);
+        swap(&maxHeapIdx[largest], &maxHeapIdx[idx]);
+	//	maxHeapify(maxHeap, maxHeapIdx, heapSize, largest);
+
+        idx = largest;
+
+	}
+    else
+    {
+       break;
+    }
+}
+}
+
+// A utility function to create a max heap of given capacity
+__device__ void createAndBuildHeap(float *array, float* arrayIdx, int size) {
+	// Start from bottommost and rightmost internal mode and heapify all
+	// internal modes in bottom up way
+	for (int i = (size - 2) / 2; i >= 0; --i) {
+		maxHeapify(array, arrayIdx, size, i);
+	}
+}
+
 
 __global__ void TopK(float* input, float* output, float *outputIdx, int k, unsigned rows, unsigned cols)
 {
@@ -808,22 +835,30 @@ __global__ void TopK(float* input, float* output, float *outputIdx, int k, unsig
       float* outputIdxRow = outputIdx + j * k;
       const float* inputRow = input + j * cols;
 
-      for(int tid = 0; tid < k; tid += blockDim.x) {        
-        int i = tid + threadIdx.x;
-        if(i < k) {
-          outputRow[i] = -1.70141e+38;
-          outputIdxRow[i] = -1.70141e+38;
+      
+	if (threadIdx.x == 0) {
+
+        for (int i = 0;i < k;i++)
+        {
+           outputRow[i] = inputRow[i];
+           outputIdxRow[i] = i;
         }
-      }
 
-      __syncthreads();  
+		// Build a heap from the input data.
+		createAndBuildHeap(outputRow, outputIdxRow, k);
 
-      if (threadIdx.x == 0)
-      {
-         for(int i = 0; i < cols; i++) {  
-             replace_smaller(outputRow, outputIdxRow, k, inputRow[i], i);
-         }
-      }
+        for (int i = k;i < cols;i++)
+        {
+            if (inputRow[i] > outputRow[0])
+            {
+               outputRow[0] = inputRow[i];
+               outputIdxRow[0] = i;
+
+               maxHeapify(outputRow, outputIdxRow, k, 0);
+            }
+        }
+	}
+
   }
 }
 }
@@ -885,7 +920,7 @@ __global__ void TopK(float* input, float* output, float *outputIdx, int k, unsig
             CUdeviceptr inValPtr = CudaHelpers.GetBufferStart(inVal);
 
 
-            Invoke(context, cudaContext, "TopK", grid, block, block.x * sizeof(float) * 4, CUstream.NullStream, inValPtr, outValPtr, outIdxPtr, k, rows, cols);
+            Invoke(context, cudaContext, "TopK", grid, block, (uint)(block.x * sizeof(float) * 2), CUstream.NullStream, inValPtr, outValPtr, outIdxPtr, k, rows, cols);
 
         }
 
