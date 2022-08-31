@@ -62,15 +62,13 @@ namespace Seq2SeqSharp.Applications
                     throw new ArgumentException($"Model '{m_options.ModelFilePath}' exists and it includes vocabulary, so input vocabulary must be null.");
                 }
 
-                m_modelMetaData = LoadModelImpl_WITH_CONVERT(CreateTrainableParameters);
+                m_modelMetaData = LoadModel(CreateTrainableParameters);
                 //m_modelMetaData = LoadModelImpl();
                 //---LoadModel_As_BinaryFormatter( CreateTrainableParameters );
             }
             else
             {
-                m_modelMetaData = new Seq2SeqClassificationModel(options.HiddenSize, options.SrcEmbeddingDim, options.TgtEmbeddingDim, options.EncoderLayerDepth, options.DecoderLayerDepth, options.MultiHeadNum,
-                    options.EncoderType, options.DecoderType, srcVocab, tgtVocab, clsVocab, options.EnableCoverageModel, options.SharedEmbeddings, options.EnableSegmentEmbeddings, options.EnableTagEmbeddings, 
-                    maxSegmentNum: options.MaxSegmentNum, expertNum: options.ExpertNum);
+                m_modelMetaData = new Seq2SeqClassificationModel(options, srcVocab, tgtVocab, clsVocab);
 
                 //Initializng weights in encoders and decoders
                 CreateTrainableParameters(m_modelMetaData);

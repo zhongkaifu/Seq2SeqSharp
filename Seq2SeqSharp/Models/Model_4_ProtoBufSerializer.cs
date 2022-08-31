@@ -227,8 +227,7 @@ namespace Seq2SeqSharp.Models
     /// </summary>
     [ProtoContract(SkipConstructor = true), ProtoInclude(100, typeof(Vocab_4_ProtoBufSerializer)),
                                           ProtoInclude(101, typeof(DecoderTypeEnums)),
-                                          ProtoInclude(101, typeof(EncoderTypeEnums))/*,
-                                          ProtoInclude(102, typeof(SimilarityTypeEnums))*/]
+                                          ProtoInclude(101, typeof(EncoderTypeEnums))]
     public sealed class Model_4_ProtoBufSerializer //: IModel
     {
         public Model_4_ProtoBufSerializer() { }
@@ -249,13 +248,12 @@ namespace Seq2SeqSharp.Models
             ClsVocabs = m.ClsVocabs?.Select(c => new Vocab_4_ProtoBufSerializer(c)).ToList();
             EnableCoverageModel = m.EnableCoverageModel;
             SharedEmbeddings = m.SharedEmbeddings;
-            //SimilarityType_         = m.SimilarityType;
             SimilarityType = m.SimilarityType;
-            EnableTagEmbeddings
-                                    = m.EnableTagEmbeddings;
+            EnableTagEmbeddings = m.EnableTagEmbeddings;
             MaxSegmentNum = m.MaxSegmentNum;
             PointerGenerator = m.PointerGenerator;
             ExpertNum = m.ExpertNum;
+            ExpertsPerTokenFactor = m.ExpertsPerTokenFactor;
         }
         public static Model_4_ProtoBufSerializer Create(Model m) => new Model_4_ProtoBufSerializer(m);
 
@@ -269,9 +267,6 @@ namespace Seq2SeqSharp.Models
         [ProtoMember(8)] public int HiddenDim { get; set; }
         [ProtoMember(9)] public bool EnableSegmentEmbeddings { get; set; }
         [ProtoMember(10)] public int MultiHeadNum { get; set; }
-        //[ProtoMember(11)] public Vocab SrcVocab { get; set; }
-        //[ProtoMember(12)] public Vocab TgtVocab { get; set; }
-        //[ProtoMember(13)] public List< Vocab > ClsVocabs { get; set; }
         [ProtoMember(11)] public Vocab_4_ProtoBufSerializer SrcVocab { get; set; }
         [ProtoMember(12)] public Vocab_4_ProtoBufSerializer TgtVocab { get; set; }
         [ProtoMember(13)] public List<Vocab_4_ProtoBufSerializer> ClsVocabs { get; set; }
@@ -279,16 +274,12 @@ namespace Seq2SeqSharp.Models
         [ProtoMember(15)] public bool SharedEmbeddings { get; set; }
         [ProtoMember(16)] public string SimilarityType { get; set; }
         [ProtoMember(17)] public bool EnableTagEmbeddings { get; set; }
-        //[ProtoMember(18)] public SimilarityTypeEnums SimilarityType_ { get; set; }
         [ProtoMember(19)] public int MaxSegmentNum { get; set; }
 
         [ProtoMember(20)] public bool PointerGenerator { get; set; }
 
         [ProtoMember(21)] public int ExpertNum { get; set; }
 
-        //Vocab IModel.SrcVocab { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-        //Vocab IModel.TgtVocab { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-        //List<Vocab> IModel.ClsVocabs { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-        //public Vocab ClsVocab { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
+        [ProtoMember(22)] public int ExpertsPerTokenFactor { get; set; }
     }
 }

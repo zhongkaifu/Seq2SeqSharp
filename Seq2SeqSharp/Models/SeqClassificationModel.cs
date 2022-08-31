@@ -11,6 +11,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Utils;
 
 namespace Seq2SeqSharp.Models
@@ -19,15 +20,13 @@ namespace Seq2SeqSharp.Models
     public class SeqClassificationModel : Model
     {
         public SeqClassificationModel() { }
-        public SeqClassificationModel(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, List<Vocab> clsVocabs, bool enableSegmentEmbeddings, bool enableTagEmbeddings, int maxSegmentNum, int expertNum)
-            : base(hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, enableTagEmbeddings, maxSegmentNum, pointerGenerator: false, expertNum: expertNum)
+        public SeqClassificationModel(SeqClassificationOptions opts, Vocab srcVocab, List<Vocab> clsVocabs)
+            : base(opts, srcVocab)
         {
             ClsVocabs = clsVocabs;
         }
         public SeqClassificationModel(Model_4_ProtoBufSerializer m)
-            : base(m.HiddenDim, m.EncoderLayerDepth, m.EncoderType, m.EncoderEmbeddingDim, m.MultiHeadNum,
-                    m.SrcVocab?.ToVocab(),
-                    m.EnableSegmentEmbeddings, m.EnableTagEmbeddings, m.MaxSegmentNum, pointerGenerator: false, expertNum: m.ExpertNum)
+            : base(m)
         {
             ClsVocabs = m.ClsVocabs?.Select(v => v.ToVocab()).ToList();
             Name2Weights = m.Name2Weights;

@@ -20,7 +20,7 @@ namespace Seq2SeqSharp
     internal class TransformerEncoder : IEncoder
     {
         private readonly List<MultiHeadAttention> m_encoders = new List<MultiHeadAttention>();
-        private readonly List<IFeedForwardLayer> m_posFFNs = new List<IFeedForwardLayer>();
+        private readonly List<IFeedForwardLayer> m_feedForwards = new List<IFeedForwardLayer>();
 
         private readonly int m_inputDim;
         private readonly float m_dropoutRatio;
@@ -34,8 +34,9 @@ namespace Seq2SeqSharp
         private readonly LayerNormalization layerNorm;
         private readonly ActivateFuncEnums m_activateFunc;
         private readonly int m_expertNum;
+        private readonly int m_expertsPerTokenFactor;
 
-        public TransformerEncoder(string name, int multiHeadNum, int hiddenDim, int inputDim, int depth, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.Relu, int expertNum = 1)
+        public TransformerEncoder(string name, int multiHeadNum, int hiddenDim, int inputDim, int depth, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.Relu, int expertNum = 1, int expertsPerTokenFactor = 1)
         {
             Logger.WriteLine($"Creating transformer encoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', InputDim = '{inputDim}', Depth = '{depth}', MultiHeadNum = '{multiHeadNum}'");
 
@@ -50,6 +51,7 @@ namespace Seq2SeqSharp
             m_learningRateFactor = learningRateFactor;
             m_activateFunc = activateFunc;
             m_expertNum = expertNum;
+            m_expertsPerTokenFactor = expertsPerTokenFactor;
 
             if (hiddenDim != inputDim)
             {
@@ -59,21 +61,18 @@ namespace Seq2SeqSharp
             m_encoders.Add(new MultiHeadAttention($"{name}.SelfAttn_0", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId, isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor));
             for (int i = 1; i < depth; i++)
             {
-                m_encoders.Add(new MultiHeadAttention($"{name}.SelfAttn_{i}", multiHeadNum, hiddenDim, hiddenDim, m_dropoutRatio, deviceId, isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor));              
+                m_encoders.Add(new MultiHeadAttention($"{name}.SelfAttn_{i}", multiHeadNum, hiddenDim, hiddenDim, m_dropoutRatio, deviceId, isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor));
             }
 
-            if (m_expertNum > 1)
+            for (int i = 0; i < depth; i++)
             {
-                for (int i = 0; i < depth; i++)
+                if (m_expertNum > 1)
                 {
-                    m_posFFNs.Add(new MoEFeedForward($"{name}.MoEFFN_{i}", m_expertNum, hiddenDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, activateFunc: activateFunc));
+                    m_feedForwards.Add(new MoEFeedForward($"{name}.MoEFFN_{i}", m_expertNum, hiddenDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, activateFunc: activateFunc, expertsPerTokenFactor: expertsPerTokenFactor));
                 }
-            }
-            else
-            {
-                for (int i = 0; i < depth; i++)
+                else
                 {
-                    m_posFFNs.Add(new PositionwiseFeedForward($"{name}.PosFFN_{i}", hiddenDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, activateFunc: activateFunc));
+                    m_feedForwards.Add(new PositionwiseFeedForward($"{name}.PosFFN_{i}", hiddenDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, activateFunc: activateFunc));
                 }
             }
 
@@ -112,7 +111,7 @@ namespace Seq2SeqSharp
                 for (int k = 0; k < m_encoders.Count; k++)
                 {
                     (inputs, attnProbs) = m_encoders[k].Perform(inputs, maskTensor, batchSize, subg, outputAttenWeights: false);
-                    inputs = m_posFFNs[k].Process(inputs, batchSize, subg);
+                    inputs = m_feedForwards[k].Process(inputs, batchSize, subg);
                 }
 
                 inputs = layerNorm.Norm(inputs, subg);
@@ -134,7 +133,7 @@ namespace Seq2SeqSharp
 
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
-            return new TransformerEncoder(m_name, m_multiHeadNum, m_hiddenDim, m_inputDim, m_depth, m_dropoutRatio, deviceId, m_isTrainable, learningRateFactor: m_learningRateFactor, activateFunc: m_activateFunc, expertNum: m_expertNum);
+            return new TransformerEncoder(m_name, m_multiHeadNum, m_hiddenDim, m_inputDim, m_depth, m_dropoutRatio, deviceId, m_isTrainable, learningRateFactor: m_learningRateFactor, activateFunc: m_activateFunc, expertNum: m_expertNum, expertsPerTokenFactor: m_expertsPerTokenFactor);
         }
 
         public List<IWeightTensor> GetParams()
@@ -146,7 +145,7 @@ namespace Seq2SeqSharp
                 response.AddRange(item.GetParams());
             }
 
-            foreach (var item in m_posFFNs)
+            foreach (var item in m_feedForwards)
             {
                 response.AddRange(item.GetParams());
             }
@@ -163,7 +162,7 @@ namespace Seq2SeqSharp
                 item.Save(stream);
             }
 
-            foreach (var item in m_posFFNs)
+            foreach (var item in m_feedForwards)
             {
                 item.Save(stream);
             }
@@ -178,7 +177,7 @@ namespace Seq2SeqSharp
                 item.Load(stream);
             }
 
-            foreach (var item in m_posFFNs)
+            foreach (var item in m_feedForwards)
             {
                 item.Load(stream);
             }

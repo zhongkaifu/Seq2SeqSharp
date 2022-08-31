@@ -13,7 +13,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -148,7 +147,7 @@ namespace Seq2SeqSharp.Tools
             return new ComputeGraphTensor(new WeightTensorFactory(), DeviceIds[deviceIdIdx], needBack);
         }
       
-        protected T LoadModelImpl_WITH_CONVERT(Func<T, bool> initializeParametersFunc)
+        protected T LoadModel(Func<T, bool> initializeParametersFunc)
         {
                 return (LoadModelImpl());
         }

@@ -17,6 +17,7 @@ namespace Seq2SeqSharp
     public interface IComputeGraph : IDisposable
     {
         int DeviceId { get; }
+        bool NeedsBackprop { get; }
         IComputeGraph CreateSubGraph(string name);
         IWeightTensor Transpose(IWeightTensor w, int dim1, int dim2);
         IWeightTensor MulBatch(IWeightTensor m1, IWeightTensor m2, float alpha = 1.0f);
@@ -50,7 +51,6 @@ namespace Seq2SeqSharp
         IWeightTensor Transpose(IWeightTensor w);
         IWeightTensor Mul(IWeightTensor w, float v, bool inPlace = false);
         IWeightTensor LayerNorm(IWeightTensor src, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-9f);
-        //IWeightTensor AddLayerNorm(IWeightTensor src1, IWeightTensor src2, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-09f);
 
         IWeightTensor Select(IWeightTensor src, int dim, int index);
         void Backward();
@@ -59,6 +59,7 @@ namespace Seq2SeqSharp
 
         IWeightTensor Max(IWeightTensor w, int dim);
         IWeightTensor Argmax(IWeightTensor w, int dim);
+        IWeightTensor EqualTo(IWeightTensor w, float val);
 
         IWeightTensor SampleIndicue(IWeightTensor w, List<List<int>> seqs, float repeatPenalty = 5.0f);
 
@@ -100,5 +101,7 @@ namespace Seq2SeqSharp
         IWeightTensor Div(IWeightTensor w, float v, bool inPlace = false);
 
         float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f);
+
+        IWeightTensor CreateUniformRandomTensor(long[] sizes, float minVal, float maxVal);
     }
 }

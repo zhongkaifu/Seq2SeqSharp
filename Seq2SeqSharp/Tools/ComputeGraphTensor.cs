@@ -78,6 +78,7 @@ namespace Seq2SeqSharp.Tools
         private readonly bool m_isSubGraph;
         private readonly List<IWeightTensor> m_tensorsBindToCurrentGraph;
         public int DeviceId => m_deviceId;
+        public bool NeedsBackprop => m_needsBackprop;
 
 
         public ComputeGraphTensor(IWeightFactory weightFactory, int deviceId, bool needBack = true, ConcurrentList<Action> backprop = null, bool isSubGraph = false)
@@ -993,6 +994,32 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+        public IWeightTensor EqualTo(IWeightTensor w, float val)
+        {
+            WeightTensor m = w as WeightTensor;
+            Tensor equalT = Ops.EqualTo(null, m.TWeight, val);
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(equalT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.EqualTo", graphToBind: this, needGradient: m.NeedGradient);
+            res.TWeight = equalT;
+
+            if (m_needsBackprop)
+            {
+                if (res.NeedGradient)
+                {
+                    throw new NotSupportedException($"EqualTo operation doesn't support back propagation.");
+                }
+            }
+
+            return res;
+        }
+
+        private static double PowerA(double a, double b)
+        {
+            int tmp = (int)(BitConverter.DoubleToInt64Bits(a) >> 32);
+            int tmp2 = (int)(b * (tmp - 1072632447) + 1072632447);
+            return BitConverter.Int64BitsToDouble(((long)tmp2) << 32);
+        }
+
         /// <summary>
         /// Top-P sampling for each row in given tensor
         /// </summary>
@@ -1002,52 +1029,67 @@ namespace Seq2SeqSharp.Tools
         /// <returns>The sampled index</returns>
         public IWeightTensor SampleIndicue(IWeightTensor w, List<List<int>> seqs, float repeatPenalty = 5.0f)
         {
-            int K = seqs[0].Count + 1;
-
             WeightTensor m = w as WeightTensor;
-            Tensor w1 = new Tensor(m.TWeight.Allocator, DType.Float32, new long[] { m.Rows, K });
-            Tensor w1Idx = new Tensor(m.TWeight.Allocator, DType.Float32, new long[] { m.Rows, K });
+            float[] weights = m.ToWeightArray();
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { m.Rows, 1 }, m_deviceId, name: $"{GetHashString(m.Name)}.Sample", graphToBind: this, needGradient: m.NeedGradient);
 
-            Ops.TopK(w1, w1Idx, m.TWeight, K);
-            float[] weights = w1.GetElementsAsFloat((int)w1.GetStorageSize());
-            float[] weightsIdx = w1Idx.GetElementsAsFloat((int)w1Idx.GetStorageSize());
-
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { m.Rows, 1}, m_deviceId, name: $"{GetHashString(m.Name)}.Sample", graphToBind: this, needGradient: m.NeedGradient);
             float[] indices = new float[m.Rows];
+            float thresholdValue = 1.0f / (float)(m.Columns * 10000.0);
 
             for (int i = 0; i < m.Rows; i++)
             {
-                int offset = i * K;
+                int offset = i * m.Columns;
                 List<int> seq = seqs[i];
 
-                Dictionary<int, int> tokenId2Distance = new Dictionary<int, int>(); // <tokenId, offsetInSeq>. The last offset of the token in the given sequence
+                Dictionary<int, int> tokenId2OffsetInSeq = new Dictionary<int, int>(); // <tokenId, offsetInSeq>. The last offset of the token in the given sequence
+                Dictionary<int, int> tokenId2Cnt = new Dictionary<int, int>(); // <tokenId, count> The number of token in the given sequences
                 for (int j = 0; j < seq.Count; j++)
                 {
-                    tokenId2Distance[seq[j]] = seq.Count - j;
+                    if (tokenId2OffsetInSeq.ContainsKey(seq[j]) == false)
+                    {
+                        tokenId2OffsetInSeq.Add(seq[j], j);
+                        tokenId2Cnt.Add(seq[j], 0);
+                    }
+                    else
+                    {
+                        tokenId2OffsetInSeq[seq[j]] = j;
+                    }
+
+                    tokenId2Cnt[seq[j]]++;
                 }
 
                 float maxWeight = float.MinValue;
                 int maxWeightIndice = -1;
 
-                for (int j = 0; j < K; j++)
+                for (int j = 0; j < m.Columns; j++)
                 {
                     float weight = weights[offset + j];
-                    int idx = (int)weightsIdx[offset + j];
+                    if (Math.Abs(weight) < thresholdValue)
+                    {
+                        continue;
+                    }
 
                     //Decay weights if tokens has already been generated before
-                    if (tokenId2Distance.ContainsKey(idx))
+                    if (tokenId2OffsetInSeq.ContainsKey(j))
                     {
-                        weight = (float)(weight * Math.Log(tokenId2Distance[idx], seq.Count) / repeatPenalty);
+                        int offsetInSeq = tokenId2OffsetInSeq[j];
+                        weight = (float)(weight * PowerA(repeatPenalty, -1.0 - (double)tokenId2Cnt[j] / (double)(seq.Count - offsetInSeq)));
+                    }
+
+                    if (Math.Abs(weight) < thresholdValue)
+                    {
+                        continue;
                     }
 
                     if (weight > maxWeight)
                     {
                         maxWeight = weight;
-                        maxWeightIndice = idx;
+                        maxWeightIndice = j;
                     }
                 }
 
                 indices[i] = maxWeightIndice;
+
             }
 
             res.SetWeightArray(indices);
@@ -1058,9 +1100,6 @@ namespace Seq2SeqSharp.Tools
                 throw new NotSupportedException($"TopPSampleIndice operation doesn't support back propagation.");
             }
 
-
-            w1.Dispose();
-            w1Idx.Dispose();
 
             return res;
 
@@ -1077,7 +1116,7 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                throw new NotSupportedException($"Argmax operation doesn't support back propagation.");
+                throw new NotSupportedException($"Max operation doesn't support back propagation.");
             }
 
             return res;
@@ -1259,6 +1298,16 @@ namespace Seq2SeqSharp.Tools
 
             return res;
         }
+
+        public IWeightTensor CreateUniformRandomTensor(long[] sizes, float minVal, float maxVal)
+        {
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"New_UniformRandom_Tensor", needGradient: false);
+            float[] w = TensorSharp.RandomGenerator.BuildRandomUniformWeight(sizes, minVal, maxVal);
+            res.TWeight.CopyFrom(w);
+
+            return res;
+        }
+
 
         public IWeightTensor Zero(long[] sizes)
         {
@@ -1729,20 +1778,13 @@ namespace Seq2SeqSharp.Tools
             return (res[0], res[1], res[2]);
         }
 
-        private Tensor BuildRandomTensor(int rows, int columns, int batchSize, float prob)
+        private Tensor BuildBernoullRandomTensor(long[] sizes, float prob)
         {
-            using Tensor noise = new Tensor(TensorAllocator.Allocator(m_deviceId), DType.Float32, rows / batchSize, columns);
-            float[] w = TensorSharp.RandomGenerator.BuildRandomBernoulliWeight(new long[] { rows / batchSize, columns }, prob);
+            Tensor noise = new Tensor(TensorAllocator.Allocator(m_deviceId), DType.Float32, sizes);
+            float[] w = TensorSharp.RandomGenerator.BuildRandomBernoulliWeight(sizes, prob);
             noise.SetElementsAsFloat(w);
 
-            if (rows / batchSize == 1)
-            {
-                return noise.Expand(rows, columns);
-            }
-            else
-            {
-                return noise.RepeatTensor(batchSize, 1);
-            }
+            return noise;
         }
 
         public IWeightTensor LayerNorm(IWeightTensor src, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-9f)
@@ -1827,7 +1869,8 @@ namespace Seq2SeqSharp.Tools
 
             // Generate noise tensor
             float p = 1.0f - drop_prob;
-            Tensor noise = BuildRandomTensor(V.Rows, V.Columns, batchSize, p);
+            Tensor noise = BuildBernoullRandomTensor(sizes: new long[] { 1, V.Sizes[^1] }, prob: p);
+            Tensor noiseExp = noise.Expand(V.Sizes);
 
             WeightTensor w = V as WeightTensor;
             WeightTensor res = null;
@@ -1841,7 +1884,7 @@ namespace Seq2SeqSharp.Tools
             }
             VisualizeNodes(V, res);
 
-            Ops.Mul(res.TWeight, w.TWeight, noise);
+            Ops.Mul(res.TWeight, w.TWeight, noiseExp);
 
             void backward()
             {
@@ -1854,11 +1897,12 @@ namespace Seq2SeqSharp.Tools
                         w.TGradient = res.TGradient.CopyRef();
                     }
 
-                    w.AddMulGradient(noise, res.TGradient, inPlace);
+                    w.AddMulGradient(noiseExp, res.TGradient, inPlace);
                 }
 
                 res.Dispose();
                 noise.Dispose();
+                noiseExp.Dispose();
             }
             m_backprop.Add(backward);
 

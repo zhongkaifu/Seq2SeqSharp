@@ -16,9 +16,6 @@ namespace Seq2SeqSharp.Applications
     public class SeqSimilarityOptions : Options
     {
 
-        [Arg("The embedding dim", "EmbeddingDim")]
-        public int EmbeddingDim = 128;
-
         [Arg("It indicates if the embedding is trainable", "IsEmbeddingTrainable")]
         public bool IsEmbeddingTrainable = true;
 

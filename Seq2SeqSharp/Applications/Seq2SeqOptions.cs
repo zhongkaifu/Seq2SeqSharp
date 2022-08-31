@@ -53,9 +53,6 @@ namespace Seq2SeqSharp
         [Arg("Sharing embeddings between source side and target side", nameof(SharedEmbeddings))]
         public bool SharedEmbeddings = false;
 
-        [Arg("The embedding dim in source side", nameof(SrcEmbeddingDim))]
-        public int SrcEmbeddingDim = 128;
-
         [Arg("The embedding dim in target side", nameof(TgtEmbeddingDim))]
         public int TgtEmbeddingDim = 128;
 

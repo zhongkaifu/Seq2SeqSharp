@@ -10,6 +10,7 @@
 
 using System;
 using System.Linq;
+using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Utils;
 
 namespace Seq2SeqSharp.Models
@@ -18,16 +19,14 @@ namespace Seq2SeqSharp.Models
     public class SeqSimilarityModel : Model
     {
         public SeqSimilarityModel() { }
-        public SeqSimilarityModel(int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, Vocab clsVocab, bool enableSegmentEmbeddings, string similarityType, int maxSegmentNum, int expertNum)
-            : base(hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, false, maxSegmentNum, pointerGenerator: false, expertNum: expertNum)
+        public SeqSimilarityModel(SeqSimilarityOptions opts, Vocab srcVocab, Vocab clsVocab)
+            : base(opts, srcVocab)
         {
             ClsVocab = clsVocab;
-            SimilarityType = similarityType;
+            SimilarityType = opts.SimilarityType;
         }
         public SeqSimilarityModel(Model_4_ProtoBufSerializer m)
-            : base(m.HiddenDim, m.EncoderLayerDepth, m.EncoderType, m.EncoderEmbeddingDim, m.MultiHeadNum,
-                    m.SrcVocab?.ToVocab(),
-                    m.EnableSegmentEmbeddings, enableTagEmbeddings: false, m.MaxSegmentNum, pointerGenerator: false, expertNum: m.ExpertNum)
+            : base(m)
         {
             ClsVocabs = m.ClsVocabs?.Select(v => v.ToVocab()).ToList();
             Name2Weights = m.Name2Weights;

@@ -54,15 +54,14 @@ namespace Seq2SeqSharp
                 }
 
                 // Model file exists, so we load it from file.
-                m_modelMetaData = LoadModelImpl_WITH_CONVERT(CreateTrainableParameters);
+                m_modelMetaData = LoadModel(CreateTrainableParameters);
                 //m_modelMetaData = LoadModelImpl();
                 //---LoadModel_As_BinaryFormatter( CreateTrainableParameters );
             }
             else
             {
                 // Model doesn't exist, we create it and initlaize parameters
-                m_modelMetaData = new SeqLabelModel(options.HiddenSize, options.EmbeddingDim, options.EncoderLayerDepth, options.MultiHeadNum, options.EncoderType, srcVocab, clsVocab, 
-                    options.EnableSegmentEmbeddings, maxSegmentNum: options.MaxSegmentNum, expertNum: options.ExpertNum);
+                m_modelMetaData = new SeqLabelModel(options, srcVocab, clsVocab);
 
                 //Initializng weights in encoders and decoders
                 CreateTrainableParameters(m_modelMetaData);

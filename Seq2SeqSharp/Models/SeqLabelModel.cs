@@ -10,6 +10,7 @@
 
 using System;
 using System.Linq;
+using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Models;
 using Seq2SeqSharp.Utils;
 
@@ -19,19 +20,17 @@ namespace Seq2SeqSharp
     public class SeqLabelModel : Model
     {
         public SeqLabelModel() { }
-        public SeqLabelModel( int hiddenDim, int embeddingDim, int encoderLayerDepth, int multiHeadNum, EncoderTypeEnums encoderType, Vocab srcVocab, Vocab clsVocab, bool enableSegmentEmbeddings, int maxSegmentNum, int expertNum)
-            : base( hiddenDim, encoderLayerDepth, encoderType, embeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, false, maxSegmentNum, pointerGenerator: false, expertNum: expertNum )
+        public SeqLabelModel(SeqLabelOptions opts, Vocab srcVocab, Vocab clsVocab)
+            : base(opts, srcVocab)
         {
             ClsVocab = clsVocab;
         }
-        public SeqLabelModel( Model_4_ProtoBufSerializer m )
-            : base( m.HiddenDim, m.EncoderLayerDepth, m.EncoderType, m.EncoderEmbeddingDim, m.MultiHeadNum,
-                    m.SrcVocab?.ToVocab(), 
-                    enableSegmentEmbeddings: false, enableTagEmbeddings: false, m.MaxSegmentNum, pointerGenerator: false, expertNum: m.ExpertNum )
+        public SeqLabelModel(Model_4_ProtoBufSerializer m)
+            : base(m)
         {
-            ClsVocabs    = m.ClsVocabs?.Select( v => v.ToVocab() ).ToList(); 
+            ClsVocabs = m.ClsVocabs?.Select(v => v.ToVocab()).ToList();
             Name2Weights = m.Name2Weights;
         }
-        public static SeqLabelModel Create( Model_4_ProtoBufSerializer m ) => new SeqLabelModel( m );
+        public static SeqLabelModel Create(Model_4_ProtoBufSerializer m) => new SeqLabelModel(m);
     }
 }

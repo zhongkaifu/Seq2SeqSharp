@@ -9,7 +9,7 @@ namespace AdvUtils
     public class Logger
     {
         public enum Level { err, warn, info};
-        public enum LogVerbose {None, Normal, Details };
+        public enum LogVerbose {None, Normal, Details, Debug };
 
         public static LogVerbose Verbose = LogVerbose.Normal;
 

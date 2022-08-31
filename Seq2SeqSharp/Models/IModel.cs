@@ -21,6 +21,7 @@ namespace Seq2SeqSharp
         public int EncoderLayerDepth { get; set; }
 
         public int ExpertNum { get; set; }
+        public int ExpertsPerTokenFactor { get; set; }
         public DecoderTypeEnums DecoderType { get; set; }
         public EncoderTypeEnums EncoderType { get; set; }
         public int HiddenDim { get; set; }

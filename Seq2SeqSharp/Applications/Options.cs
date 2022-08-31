@@ -52,11 +52,17 @@ namespace Seq2SeqSharp.Applications
         [Arg("The expert size for MoE model. Default is 1", nameof(ExpertNum))]
         public int ExpertNum = 1;
 
+        [Arg("The factor of expert size per token for MoE model. Default is 1", nameof(ExpertsPerTokenFactor))]
+        public int ExpertsPerTokenFactor = 1;
+
         [Arg("Maximum Segment Capacity. Default value is 16", nameof(MaxSegmentNum))]
         public int MaxSegmentNum = 16;
 
         [Arg("The network depth in encoder.", nameof(EncoderLayerDepth))]
         public int EncoderLayerDepth = 1;
+
+        [Arg("The embedding dim in source side", nameof(SrcEmbeddingDim))]
+        public int SrcEmbeddingDim = 128;
 
         [Arg("Starting Learning rate factor for encoders", nameof(EncoderStartLearningRateFactor))]
         public float EncoderStartLearningRateFactor = 1.0f;

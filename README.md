@@ -173,6 +173,7 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
   "DeviceIds": "0,1",
   "TaskParallelism": 2,
   "ExpertNum": 1,
+  "ExpertsPerTokenFactor": 1,
   "DropoutRatio": 0.0,
   "EnableSegmentEmbeddings": false,
   "MaxSegmentNum": 16,

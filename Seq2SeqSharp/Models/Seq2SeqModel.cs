@@ -20,24 +20,20 @@ namespace Seq2SeqSharp
     {
         public Seq2SeqModel() { }
 
-        public Seq2SeqModel(int hiddenDim, int encoderEmbeddingDim, int decoderEmbeddingDim, int encoderLayerDepth, int decoderLayerDepth, int multiHeadNum,
-                             EncoderTypeEnums encoderType, DecoderTypeEnums decoderType, Vocab srcVocab, Vocab tgtVocab, bool enableCoverageModel,
-                             bool sharedEmbeddings, bool enableSegmentEmbeddings, bool enableTagEmbeddings, int maxSegmentNum, bool pointerGenerator, int expertNum)
-            : base(hiddenDim, encoderLayerDepth, encoderType, encoderEmbeddingDim, multiHeadNum, srcVocab, enableSegmentEmbeddings, enableTagEmbeddings, maxSegmentNum, pointerGenerator: pointerGenerator, expertNum: expertNum)
+        public Seq2SeqModel(Seq2SeqOptions opts, Vocab srcVocab, Vocab tgtVocab)
+            : base(opts, srcVocab)
         {
-            DecoderEmbeddingDim = decoderEmbeddingDim;
-            DecoderLayerDepth = decoderLayerDepth;
-            MultiHeadNum = multiHeadNum;
-            DecoderType = decoderType;
-            EnableCoverageModel = enableCoverageModel;
-            SharedEmbeddings = sharedEmbeddings;
+            DecoderEmbeddingDim = opts.TgtEmbeddingDim;
+            DecoderLayerDepth = opts.DecoderLayerDepth;
+            DecoderType = opts.DecoderType;
+            EnableCoverageModel = opts.EnableCoverageModel;
+            SharedEmbeddings = opts.SharedEmbeddings;
             TgtVocab = tgtVocab;
+            PointerGenerator = opts.PointerGenerator;
         }
 
         public Seq2SeqModel(Model_4_ProtoBufSerializer m)
-            : base(m.HiddenDim, m.EncoderLayerDepth, m.EncoderType, m.EncoderEmbeddingDim, m.MultiHeadNum,
-                    m.SrcVocab?.ToVocab(),
-                    m.EnableSegmentEmbeddings, m.EnableTagEmbeddings, m.MaxSegmentNum, pointerGenerator: m.PointerGenerator, expertNum: m.ExpertNum)
+            : base(m)
         {
             ClsVocabs = m.ClsVocabs?.Select(v => v.ToVocab()).ToList();
             Name2Weights = m.Name2Weights;
