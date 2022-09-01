@@ -287,7 +287,6 @@ namespace Seq2SeqSharp.Tools
 
             return len2offsets;
         }
-        
 
         public IEnumerator<T> GetEnumerator()
         {
@@ -308,7 +307,7 @@ namespace Seq2SeqSharp.Tools
                     while (length2offsets.Count > 0)
                     {
                         bool lengthChanged = false;
-                        if (offsets.Count == 0)
+                        if (offsets.Any() == false)
                         {
                             length2offsets.Remove(length);
                             if (length2offsets.Count > 0)
@@ -320,7 +319,7 @@ namespace Seq2SeqSharp.Tools
                             }
                         }
 
-                        if (offsets.Count == 0)
+                        if (offsets.Any() == false)
                         {
                             break;
                         }
