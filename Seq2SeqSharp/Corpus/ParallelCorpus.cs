@@ -51,7 +51,7 @@ namespace Seq2SeqSharp.Tools
 
         private TooLongSequence m_tooLongSequence = TooLongSequence.Ignore;
 
-        private string binaryDataSetFilePath = "";
+        private string m_binaryDataSetFilePath = "";
 
 
         public (List<Dictionary<string, int>>, List<Dictionary<string, int>>) CountTokenFreqs()
@@ -135,8 +135,9 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        private Dictionary<long, LinkedList<long>> BuildIndex()
+        private (Dictionary<long, LinkedList<long>>, string) BuildIndex()
         {
+            Logger.WriteLine($"Start to build index for data set.");
             SortedDictionary<int, int> dictSrcLenDist = new SortedDictionary<int, int>();
             SortedDictionary<int, int> dictTgtLenDist = new SortedDictionary<int, int>();
             int corpusSize = 0;
@@ -145,7 +146,7 @@ namespace Seq2SeqSharp.Tools
             string randomFileName = Path.GetRandomFileName();
             Logger.WriteLine($"Loading and shuffling corpus from '{m_srcFileList.Count}' files.");
 
-            binaryDataSetFilePath = randomFileName + ".tmp";
+            string binaryDataSetFilePath = randomFileName + ".tmp";
             BinaryWriter bw = new BinaryWriter(new FileStream(binaryDataSetFilePath, FileMode.Create)); 
 
             Dictionary<long, LinkedList<long>> len2offsets = new Dictionary<long, LinkedList<long>>();
@@ -285,63 +286,34 @@ namespace Seq2SeqSharp.Tools
                 m_showTokenDist = false;
             }
 
-            return len2offsets;
+            Logger.WriteLine($"Finished to build index for data set.");
+
+            return (len2offsets, binaryDataSetFilePath);
         }
 
-        public IEnumerator<T> GetEnumerator()
+        public void PrepareDataSet()
         {
-            var length2offsets = BuildIndex();
+            (var length2offsets, string tmpDataSetFilePath) = BuildIndex();
 
-            using (MemoryMappedFile mmf = MemoryMappedFile.CreateFromFile(binaryDataSetFilePath))
+            int batchNum = 0;
+            Logger.WriteLine($"Start to sort and shuffle data set by length.");
+
+            m_binaryDataSetFilePath = tmpDataSetFilePath + ".sorted";
+            using (BinaryWriter bw = new BinaryWriter(new FileStream(m_binaryDataSetFilePath, FileMode.Create)))
+            using (MemoryMappedFile mmf = MemoryMappedFile.CreateFromFile(tmpDataSetFilePath))
             using (MemoryMappedViewStream mms = mmf.CreateViewStream())
             {
                 using (BinaryReader br = new BinaryReader(mms))
                 {
-                    int maxOutputsSize = m_batchSize * 10;
-                    List<SntPair> outputs = new List<SntPair>();
-
-                    int lengthRnd = rnd.Next(length2offsets.Count);
-                    long length = length2offsets.Keys.ToArray()[lengthRnd];
-                    LinkedList<long> offsets = length2offsets[length];
-
                     while (length2offsets.Count > 0)
-                    {
-                        bool lengthChanged = false;
-                        if (offsets.Any() == false)
-                        {
-                            length2offsets.Remove(length);
-                            if (length2offsets.Count > 0)
-                            {
-                                lengthRnd = rnd.Next(length2offsets.Count);
-                                length = length2offsets.Keys.ToArray()[lengthRnd];
-                                offsets = length2offsets[length];
-                                lengthChanged = true;
-                            }
-                        }
+                    {                    
+                        int lengthRnd = rnd.Next(length2offsets.Count);
+                        long length = length2offsets.Keys.ToArray()[lengthRnd];
+                        LinkedList<long> offsets = length2offsets[length];
 
-                        if (offsets.Any() == false)
-                        {
-                            break;
-                        }
-
-                        if (outputs.Count > maxOutputsSize || lengthChanged == true)
-                        {
-                            for (int i = 0; i < outputs.Count; i += m_batchSize)
-                            {
-                                int size = Math.Min(m_batchSize, outputs.Count - i);
-                                var batch = new T();
-                                batch.CreateBatch(outputs.GetRange(i, size));
-                                yield return batch;
-                            }
-
-                            outputs.Clear();
-
-                            //Force to select sequences with different length
-                            lengthRnd = rnd.Next(length2offsets.Count);
-                            length = length2offsets.Keys.ToArray()[lengthRnd];
-                            offsets = length2offsets[length];
-                        }
-                        else
+                        int size = Math.Min(m_batchSize, offsets.Count);
+                        bw.Write(size);
+                        for (int i = 0; i < size; i++)
                         {
                             long offset = offsets.First.Value;
                             offsets.RemoveFirst();
@@ -350,23 +322,67 @@ namespace Seq2SeqSharp.Tools
                             var srcLine = br.ReadString();
                             var tgtLine = br.ReadString();
 
+                            bw.Write(srcLine);
+                            bw.Write(tgtLine);
+                        }
+
+                        batchNum++;
+                        if (batchNum % 10000 == 0)
+                        {
+                            Logger.WriteLine($"Batch '{batchNum}' has been processed.");
+                        }
+
+
+                        if (offsets.Any() == false)
+                        {
+                            length2offsets.Remove(length);
+                        }
+                    }
+
+                    bw.Write(-1);
+                }
+            }
+
+            File.Delete(tmpDataSetFilePath);
+
+            Logger.WriteLine($"Finished to sort and shuffle data set by length.");
+        }
+
+        public IEnumerator<T> GetEnumerator()
+        {
+            PrepareDataSet();
+
+            using (MemoryMappedFile mmf = MemoryMappedFile.CreateFromFile(m_binaryDataSetFilePath))
+            using (MemoryMappedViewStream mms = mmf.CreateViewStream())
+            {
+                using (BinaryReader br = new BinaryReader(mms))
+                {
+                    while (true)
+                    {
+                        int sizeInBatch = br.ReadInt32();
+                        if (sizeInBatch < 0)
+                        {
+                            break;
+                        }
+
+                        List<SntPair> outputs = new List<SntPair>();
+                        for (int i = 0; i < sizeInBatch; i++)
+                        {
+                            var srcLine = br.ReadString();
+                            var tgtLine = br.ReadString();
 
                             SntPair sntPair = new SntPair(srcLine, tgtLine);
                             outputs.Add(sntPair);
                         }
-                    }
 
-                    for (int i = 0; i < outputs.Count; i += m_batchSize)
-                    {
-                        int size = Math.Min(m_batchSize, outputs.Count - i);
                         var batch = new T();
-                        batch.CreateBatch(outputs.GetRange(i, size));
-                        yield return batch;
+                        batch.CreateBatch(outputs);
+                        yield return batch;                        
                     }
                 }
             }
 
-            File.Delete(binaryDataSetFilePath);
+            File.Delete(m_binaryDataSetFilePath);
         }
 
         IEnumerator IEnumerable.GetEnumerator()
