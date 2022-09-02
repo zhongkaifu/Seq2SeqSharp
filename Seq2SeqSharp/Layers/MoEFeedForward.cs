@@ -109,7 +109,24 @@ namespace Seq2SeqSharp.Layers
             {
                 var routerLoss = g.Mean(inputRouter, 0); // [1, expertNum]
                 routerLoss = g.Add(routerLoss, -1.0f / (float)m_expertNum);
+                routerLoss = g.Mul(routerLoss, 0.01f);
                 routerLoss.CopyWeightsToGradients(routerLoss);
+
+
+                //var lessTensor = g.LessOrEqual(inputRouter, 1.0f / (float)m_expertNum);
+                //var inputRouterLess = g.Mul(inputRouter, m_expertNum);
+                //inputRouterLess = g.EltMul(lessTensor, inputRouterLess);
+
+                //inputRouterLess.CopyWeightsToGradients(inputRouterLess);
+
+
+                //var greaterTensor = g.GreaterThan(inputRouter, 1.0f / (float)m_expertNum);
+                //var inputRouterGreater = g.Mul(inputRouter, (float)m_expertNum / (1.0f - m_expertNum));
+                //inputRouterGreater = g.Add(inputRouterGreater, -1.0f * (float)m_expertNum / (1.0f - m_expertNum));
+                //inputRouterGreater = g.EltMul(greaterTensor, inputRouterGreater);
+                //inputRouterGreater.CopyWeightsToGradients(inputRouterGreater);
+
+
             }
 
             //###################Token choice top-1 expert###############################
