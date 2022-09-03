@@ -60,6 +60,8 @@ namespace Seq2SeqSharp
         IWeightTensor Max(IWeightTensor w, int dim);
         IWeightTensor Argmax(IWeightTensor w, int dim);
         IWeightTensor EqualTo(IWeightTensor w, float val);
+        IWeightTensor LessOrEqual(IWeightTensor w, float val);
+        IWeightTensor GreaterThan(IWeightTensor w, float val);
 
         IWeightTensor SampleIndicue(IWeightTensor w, List<List<int>> seqs, float repeatPenalty = 5.0f);
 

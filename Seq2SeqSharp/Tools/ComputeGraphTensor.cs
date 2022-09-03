@@ -999,7 +999,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor m = w as WeightTensor;
             Tensor equalT = Ops.EqualTo(null, m.TWeight, val);
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(equalT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.EqualTo", graphToBind: this, needGradient: m.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(equalT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.EqualTo", graphToBind: this, needGradient: false);
             res.TWeight = equalT;
 
             if (m_needsBackprop)
@@ -1007,6 +1007,44 @@ namespace Seq2SeqSharp.Tools
                 if (res.NeedGradient)
                 {
                     throw new NotSupportedException($"EqualTo operation doesn't support back propagation.");
+                }
+            }
+
+            return res;
+        }
+
+        public IWeightTensor LessOrEqual(IWeightTensor w, float val)
+        {
+            WeightTensor m = w as WeightTensor;
+            Tensor equalT = Ops.LessOrEqual(null, m.TWeight, val);
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(equalT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.LessOrEqual", graphToBind: this, needGradient: false);
+            res.TWeight = equalT;
+
+            if (m_needsBackprop)
+            {
+                if (res.NeedGradient)
+                {
+                    throw new NotSupportedException($"LessOrEqual operation doesn't support back propagation.");
+                }
+            }
+
+            return res;
+        }
+
+        public IWeightTensor GreaterThan(IWeightTensor w, float val)
+        {
+            WeightTensor m = w as WeightTensor;
+            Tensor equalT = Ops.GreaterThan(null, m.TWeight, val);
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(equalT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.GreaterThan", graphToBind: this, needGradient: false);
+            res.TWeight = equalT;
+
+            if (m_needsBackprop)
+            {
+                if (res.NeedGradient)
+                {
+                    throw new NotSupportedException($"GreaterThan operation doesn't support back propagation.");
                 }
             }
 
