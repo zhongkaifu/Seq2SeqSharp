@@ -100,17 +100,35 @@ namespace Seq2SeqSharp.Layers
 
             }
 
-            if (g.NeedsBackprop)
-            {
-                var routerLoss = g.Mean(inputRouterDense, 0); // [1, expertNum]
-                routerLoss = g.Add(routerLoss, (float)m_expertsPerTokenFactor / (float)m_expertNum);
-                routerLoss = g.Mul(routerLoss, 0.01f);
-                routerLoss.CopyWeightsToGradients(routerLoss);
-            }
-
             //###################Token choice top-1 expert###############################
             inputRouter = g.AsContiguous(inputRouter); // [batchSize * seqLen, expertNum]
             (var topValue, var topIndex) = g.TopK(inputRouter, m_expertsPerTokenFactor); // [batchSize * seqLen, m_expertsPerTokenFactor]
+
+
+            if (g.NeedsBackprop)
+            {
+                var routerLoss = g.Mean(inputRouter, 0); // [1, expertNum]
+                var topKScatter = g.Scatter(topIndex, 1, 1, runGradient: false, shape: inputRouter.Sizes); // [batchSize * seqLen, expertNum]
+                topKScatter = g.Mean(topKScatter, 0); // [1, expertNum]
+
+                routerLoss = g.EltMul(routerLoss, topKScatter); // [1, expertNum]
+                routerLoss = g.Mean(routerLoss, 1); // [1, 1]
+                routerLoss = g.Mul(routerLoss, (float)Math.Sqrt(m_expertNum) * 0.01f);
+                routerLoss.FillGradient(1.0f);
+
+                //routerLoss = g.Add(routerLoss, (float)m_expertsPerTokenFactor / (float)m_expertNum);
+                //routerLoss = g.Mul(routerLoss, 0.01f);
+                //routerLoss.CopyWeightsToGradients(routerLoss);
+            }
+
+
+
+
+
+
+
+
+
             var topIndexArray = topIndex.ToWeightArray();
             List<float>[] indexs = new List<float>[m_expertNum]; // [expertNum, token_offsets]
             for (int i = 0; i < indexs.Length; i++)
