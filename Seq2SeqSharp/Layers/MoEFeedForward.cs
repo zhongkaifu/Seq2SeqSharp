@@ -113,7 +113,7 @@ namespace Seq2SeqSharp.Layers
 
                 routerLoss = g.EltMul(routerLoss, topKScatter); // [1, expertNum]
                 routerLoss = g.Mean(routerLoss, 1); // [1, 1]
-                routerLoss = g.Mul(routerLoss, (float)Math.Sqrt(m_expertNum) * 0.01f);
+                routerLoss = g.Mul(routerLoss, (float)(m_expertNum * m_expertNum) * 0.01f);
                 routerLoss.FillGradient(1.0f);
 
                 //routerLoss = g.Add(routerLoss, (float)m_expertsPerTokenFactor / (float)m_expertNum);
