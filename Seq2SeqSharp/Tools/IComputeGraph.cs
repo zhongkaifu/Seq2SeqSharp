@@ -100,7 +100,9 @@ namespace Seq2SeqSharp
 
         IWeightTensor Rsqrt(IWeightTensor w);
 
+        IWeightTensor Div(IWeightTensor w1, IWeightTensor w2);
         IWeightTensor Div(IWeightTensor w, float v, bool inPlace = false);
+        IWeightTensor Exp(IWeightTensor w);
 
         float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f);
 

@@ -328,6 +328,45 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+        public IWeightTensor Div(IWeightTensor w1, IWeightTensor w2)
+        {
+            WeightTensor m1 = w1 as WeightTensor;
+            WeightTensor m2 = w2 as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.Div", graphToBind: this, needGradient: m1.NeedGradient || m2.NeedGradient);
+
+            Ops.Div(res.TWeight, m1.TWeight, m2.TWeight);
+
+            if (m_needsBackprop)
+            {
+                void backward()
+                {
+                    if (m1.NeedGradient)
+                    {
+                        using Tensor tmpT = Ops.Div(null, res.TGradient, m2.TWeight);
+                        m1.CopyOrAddGradient(tmpT);
+                    }
+
+                    if (m2.NeedGradient)
+                    {
+                        using Tensor tmpT1 = Ops.Div(null, res.TWeight, m2.TWeight);
+                        using Tensor tmpT2 = Ops.Mul(null, res.TGradient, tmpT1);
+                        using Tensor tmpT3 = Ops.Mul(null, tmpT2, -1.0f);
+                        m2.CopyOrAddGradient(tmpT3);
+
+                    }
+
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+
+                res.UnbindFromComputeGraph();
+                m2.UnbindFromComputeGraph();
+            }
+
+            return res;
+
+        }
+
 
         public IWeightTensor Div(IWeightTensor w, float v, bool inPlace = false)
         {
@@ -626,6 +665,34 @@ namespace Seq2SeqSharp.Tools
 
             return res;
         }
+
+        public IWeightTensor Exp(IWeightTensor w)
+        {
+            WeightTensor m = w as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Exp", graphToBind: this, needGradient: m.NeedGradient);
+
+            Ops.Exp(res.TWeight, m.TWeight);
+            if (m_needsBackprop)
+            {
+                void backward()
+                {
+                    if (m.NeedGradient)
+                    {
+//                        res.ReleaseWeight();
+                        Ops.AddMul(m.TGradient, m.TGradient, res.TGradient, res.TWeight);
+                    }
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+
+                res.UnbindFromComputeGraph();
+
+            }
+
+            return res;
+        }
+
+
 
         public IWeightTensor Add(IWeightTensor w1, float v)
         {
