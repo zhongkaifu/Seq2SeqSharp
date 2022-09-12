@@ -72,7 +72,7 @@ namespace SeqSimilarityConsole
                 if ( opts.Task == ModeEnums.Train )
                 {
                     // Load train corpus
-                    SeqClassificationMultiTasksCorpus trainCorpus = new SeqClassificationMultiTasksCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize,
+                    SeqClassificationMultiTasksCorpus trainCorpus = new SeqClassificationMultiTasksCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, maxTokenSizePerBatch: opts.MaxTokenSizePerBatch,
                         maxSentLength: opts.MaxTrainSentLength, shuffleEnums: opts.ShuffleType );
 
                     // Load valid corpus
@@ -82,7 +82,7 @@ namespace SeqSimilarityConsole
                         string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
                         foreach (var validCorpusPath in validCorpusPathList)
                         {
-                            validCorpusList.Add(new SeqClassificationMultiTasksCorpus(opts.ValidCorpusPaths, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, opts.ValBatchSize, opts.MaxTestSentLength, shuffleEnums: opts.ShuffleType ));
+                            validCorpusList.Add(new SeqClassificationMultiTasksCorpus(opts.ValidCorpusPaths, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, opts.ValMaxTokenSizePerBatch, opts.MaxTestSentLength, shuffleEnums: opts.ShuffleType ));
                         }
                     }
 

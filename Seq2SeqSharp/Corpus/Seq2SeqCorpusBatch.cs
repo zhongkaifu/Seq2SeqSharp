@@ -1,10 +1,16 @@
-﻿using Seq2SeqSharp.Tools;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.Corpus
 {
@@ -17,8 +23,8 @@ namespace Seq2SeqSharp.Corpus
         public long TgtGroupLenId = 0;
         public long GroupLenId = 0;
 
-        public int SrcLength = 0;
-        public int TgtLength = 0;
+        public int SrcTokenSize = 0;
+        public int TgtTokenSize = 0;
 
         private long maxSeqLength = 0;
         public RawSntPair(string s, string t, int maxSrcSeqLength, int maxTgtSeqLength, bool truncateTooLongSeq)
@@ -31,8 +37,8 @@ namespace Seq2SeqSharp.Corpus
                 t = TruncateSeq(t, maxTgtSeqLength);
             }
 
-            SrcLength = CountWhiteSpace(s);
-            TgtLength = CountWhiteSpace(t);
+            SrcTokenSize = CountWhiteSpace(s);
+            TgtTokenSize = CountWhiteSpace(t);
 
             SrcGroupLenId = GenerateGroupLenId(s);
             TgtGroupLenId = GenerateGroupLenId(t);

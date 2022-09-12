@@ -19,6 +19,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("The batch size", nameof(BatchSize))]
         public int BatchSize = 1;
 
+        [Arg("The maxmium token size per batch", nameof(MaxTokenSizePerBatch))]
+        public int MaxTokenSizePerBatch = 5000;
+
         [Arg("Beam search size. Default is 1", nameof(BeamSearchSize))]
         public int BeamSearchSize = 1;
 
@@ -82,7 +85,7 @@ namespace Seq2SeqSharp.Applications
         [Arg("It indicates if the encoder is trainable", nameof(IsEncoderTrainable))]
         public bool IsEncoderTrainable = true;
 
-        [Arg("Maxmium epoch number during training. Default is 100", nameof(MaxEpochNum))]
+        [Arg("The maxmium epoch number during training. Default is 100", nameof(MaxEpochNum))]
         public int MaxEpochNum = 100;
 
         [Arg("The ratio of memory usage", nameof(MemoryUsageRatio))]
@@ -106,13 +109,13 @@ namespace Seq2SeqSharp.Applications
         [Arg("The prompt for output. It's a input file along with InputTestFile", nameof(OutputPromptFile))]
         public string OutputPromptFile = null;
 
-        [Arg("Processor type: GPU, CPU, CPU_MKL", nameof(ProcessorType))]
+        [Arg("The processor type: GPU, CPU, CPU_MKL", nameof(ProcessorType))]
         public ProcessorTypeEnums ProcessorType = ProcessorTypeEnums.GPU;
 
         [Arg("The instructions used in CPU_MKL processor type", nameof(MKLInstructions))]
         public string MKLInstructions = "AVX2";
 
-        [Arg("Source language name.", nameof(SrcLang))]
+        [Arg("The source language name.", nameof(SrcLang))]
         public string SrcLang;
 
         [Arg("The vocabulary file path for source side.", nameof(SrcVocab))]
@@ -136,7 +139,7 @@ namespace Seq2SeqSharp.Applications
         [Arg("The level of log to output", nameof(LogVerbose))]
         public Logger.LogVerbose LogVerbose = Logger.LogVerbose.Normal;
 
-        [Arg("Target language name.", nameof(TgtLang))]
+        [Arg("The target language name.", nameof(TgtLang))]
         public string TgtLang;
 
         [Arg("The vocabulary file path for target side.", nameof(TgtVocab))]
@@ -151,8 +154,8 @@ namespace Seq2SeqSharp.Applications
         [Arg("Update parameters every N batches. Default is 1", nameof(UpdateFreq))]
         public int UpdateFreq = 1;
 
-        [Arg("The batch size during validation", nameof(ValBatchSize))]
-        public int ValBatchSize = 1;
+        [Arg("The maxmium token size per batch during validation", nameof(ValMaxTokenSizePerBatch))]
+        public int ValMaxTokenSizePerBatch = 5000;
 
         [Arg("Start to run validation after N updates. Default is 20,000", nameof(StartValidAfterUpdates))]
         public int StartValidAfterUpdates = 20000;

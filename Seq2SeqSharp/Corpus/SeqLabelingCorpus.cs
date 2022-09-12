@@ -69,9 +69,9 @@ namespace Seq2SeqSharp.Tools
         public SeqLabelingCorpus(string corpusFilePath, int batchSize, int maxSentLength = 128, ShuffleEnums shuffleEnums = ShuffleEnums.Random)
         {
             Logger.WriteLine($"Loading sequence labeling corpus from '{corpusFilePath}' MaxSentLength = '{maxSentLength}'");
-            m_batchSize = batchSize;
-            m_maxSrcSentLength = maxSentLength;
-            m_maxTgtSentLength = maxSentLength;
+            m_maxTokenSizePerBatch = batchSize;
+            m_maxSrcTokenSize = maxSentLength;
+            m_maxTgtTokenSize = maxSentLength;
             m_shuffleEnums = shuffleEnums;
             CorpusName = corpusFilePath;
 

@@ -23,8 +23,8 @@ namespace Seq2SeqSharp.Corpus
     public class Seq2SeqClassificationCorpus : ParallelCorpus<Seq2SeqClassificationCorpusBatch>
     {
 
-        public Seq2SeqClassificationCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int batchSize, int maxSrcSentLength = 32, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random, TooLongSequence tooLongSequence = TooLongSequence.Ignore)
-            : base(corpusFilePath, srcLangName, tgtLangName, batchSize, maxSrcSentLength, maxTgtSentLength, shuffleEnums: shuffleEnums, tooLongSequence: tooLongSequence)
+        public Seq2SeqClassificationCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int maxTokenSizePerBatch, int maxSrcSentLength = 32, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random, TooLongSequence tooLongSequence = TooLongSequence.Ignore)
+            : base(corpusFilePath, srcLangName, tgtLangName, maxTokenSizePerBatch, maxSrcSentLength, maxTgtSentLength, shuffleEnums: shuffleEnums, tooLongSequence: tooLongSequence)
         {
 
         }
