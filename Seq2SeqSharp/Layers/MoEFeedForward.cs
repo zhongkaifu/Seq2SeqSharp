@@ -29,7 +29,7 @@ namespace Seq2SeqSharp.Layers
         //private readonly IWeightTensor m_ByPassWhd2;
 
         private readonly IWeightTensor m_Router;
-        private readonly IWeightTensor m_RouterBias;
+        private readonly IWeightTensor m_Router2;
 
         private readonly string m_name;
         private readonly int m_expertNum;
@@ -60,8 +60,8 @@ namespace Seq2SeqSharp.Layers
 
 
 
-            m_Router = new WeightTensor(new long[2] { hiddenDim, expertNum}, deviceId, name: $"{name}.{nameof(m_Router)}", normType: NormType.Uniform, isTrainable: isTrainable, learningRateFactor: learningRateFactor);
-            m_RouterBias = new WeightTensor(new long[2] { 1, expertNum }, 0, deviceId, name: $"{name}.{nameof(m_RouterBias)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor);
+            m_Router = new WeightTensor(new long[3] { expertNum, hiddenDim * 4, 1}, deviceId, name: $"{name}.{nameof(m_Router)}", normType: NormType.Uniform, isTrainable: isTrainable, learningRateFactor: learningRateFactor);
+            m_Router2 = new WeightTensor(new long[3] { expertNum, 1, hiddenDim * 4 }, 0, deviceId, name: $"{name}.{nameof(m_Router2)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor);
 
         }
 
@@ -80,7 +80,32 @@ namespace Seq2SeqSharp.Layers
             //Computing routing result
             using var g = graph.CreateSubGraph($"{m_name}_MoEFeedForward");
             var inputNorm = layerNorm.Norm(input, g);
-            var inputRouterDense = g.Affine(inputNorm, m_Router, m_RouterBias); // [batchSize * seqLen, expertNum]
+
+
+
+
+
+            var Whd1Avg = g.MulBatch(m_Whd1, m_Router); // [expertNum, hiddenDim, 1]
+            Whd1Avg = g.View(Whd1Avg, dims: new long[] { m_expertNum, m_hiddenDim }); // [expertNum, hiddenDim]
+
+
+            var Whd2Avg = g.MulBatch(m_Router2, m_Whd2); // [expertNum, 1, hiddenDim]
+            Whd2Avg = g.View(Whd2Avg, dims: new long[] { m_expertNum, m_hiddenDim }); // [expertNum, hiddenDim]
+
+            var WhdSum = g.Add(Whd1Avg, Whd2Avg); // [expertNum, hiddenDim]
+            WhdSum = g.AsContiguous(g.Transpose(WhdSum)); // [hiddenDim, expertNum]
+            WhdSum = g.Sigmoid(WhdSum); // [hiddenDim, expertNum]
+            var inputRouterDense = g.Mul(inputNorm, WhdSum, alpha: (float)(1.0 / Math.Sqrt(m_hiddenDim))); // [batchSize * seqLen, expertNum]
+
+
+
+
+
+
+
+
+
+            //var inputRouterDense = g.Affine(inputNorm, m_Router, m_RouterBias); // [batchSize * seqLen, expertNum]
             var inputRouter = g.Softmax(inputRouterDense); // [batchSize * seqLen, expertNum]
 
 
@@ -104,28 +129,28 @@ namespace Seq2SeqSharp.Layers
             //###################Token choice top-1 expert###############################
             (var topValue, var topIndex) = g.TopK(inputRouter, m_expertsPerTokenFactor); // [batchSize * seqLen, m_expertsPerTokenFactor]
 
-            if (g.NeedsBackprop)
-            {
-                //Z-loss
-                //var zLoss = g.Exp(inputRouterDense); // [batchSize * seqLen, expertNum]
-                //zLoss = g.Sum(zLoss, 1); // [batchSize * seqLen, 1]
-                //zLoss = g.Log(zLoss); // [batchSize * seqLen, 1]
-                //zLoss = g.EltMul(zLoss, zLoss); // [batchSize * seqLen, 1]
-                //zLoss = g.Mean(zLoss, 0); // [1,1]
-                //zLoss = g.Mul(zLoss, 0.001f);
-                //zLoss.FillGradient(1.0f);
+            //if (g.NeedsBackprop)
+            //{
+            //    //Z-loss
+            //    //var zLoss = g.Exp(inputRouterDense); // [batchSize * seqLen, expertNum]
+            //    //zLoss = g.Sum(zLoss, 1); // [batchSize * seqLen, 1]
+            //    //zLoss = g.Log(zLoss); // [batchSize * seqLen, 1]
+            //    //zLoss = g.EltMul(zLoss, zLoss); // [batchSize * seqLen, 1]
+            //    //zLoss = g.Mean(zLoss, 0); // [1,1]
+            //    //zLoss = g.Mul(zLoss, 0.001f);
+            //    //zLoss.FillGradient(1.0f);
 
 
 
-                // Loss for load balance
-                var routerLoss = g.Mean(inputRouter, 0); // [1, expertNum]
-                var topKScatter = g.Scatter(topIndex, 1, 1, runGradient: false, shape: inputRouter.Sizes); // [batchSize * seqLen, expertNum]
-                topKScatter = g.Mean(topKScatter, 0); // [1, expertNum]
+            //    // Loss for load balance
+            //    var routerLoss = g.Mean(inputRouter, 0); // [1, expertNum]
+            //    var topKScatter = g.Scatter(topIndex, 1, 1, runGradient: false, shape: inputRouter.Sizes); // [batchSize * seqLen, expertNum]
+            //    topKScatter = g.Mean(topKScatter, 0); // [1, expertNum]
 
-                routerLoss = g.EltMul(routerLoss, topKScatter); // [1, expertNum]
-                routerLoss = g.Mean(routerLoss, 1); // [1, 1]
-                routerLoss.FillGradient((float)(m_expertNum * m_expertNum) * 0.01f);
-            }
+            //    routerLoss = g.EltMul(routerLoss, topKScatter); // [1, expertNum]
+            //    routerLoss = g.Mean(routerLoss, 1); // [1, 1]
+            //    routerLoss.FillGradient((float)(m_expertNum * m_expertNum) * 0.01f);
+            //}
 
             var topIndexArray = topIndex.ToWeightArray();
             List<float>[] indexs = new List<float>[m_expertNum]; // [expertNum, token_offsets]
@@ -178,46 +203,6 @@ namespace Seq2SeqSharp.Layers
             input.UnbindFromComputeGraph();
 
             return input;
-
-            //////######################End of token choice top-1 expert#####################################
-
-
-
-
-
-
-
-
-
-            ////############################Expert choice tokens###################################
-
-            //inputRouter = g.AsContiguous(g.Transpose(inputRouter)); // [expertNum, batchSize * seqLen]
-
-            //int K = (int)Math.Min(input.Rows, input.Rows * m_expertsPerTokenFactor / m_expertNum + 1);
-            //(var topKValue, var topKIndex) = g.TopK(inputRouter, K); // [expertNum, K]
-
-
-            //DumpRoutingResultsInDebugMode(input, K, topKIndex, topKValue);
-
-
-            //topKIndex = g.AsContiguous(g.View(topKIndex, dims: new long[] { m_expertNum * K, 1 }));
-            //topKIndex.UnbindFromComputeGraph();
-
-            //var selectedEmbs = g.IndexSelect(inputNorm, topKIndex, clearWeights: true); // [expertNum * K, hiddenDim]
-            //selectedEmbs = g.View(selectedEmbs, dims: new long[] { m_expertNum, K, -1 }); // [expertNum, K, hiddenDim];
-            //selectedEmbs = g.MulBatch(selectedEmbs, m_Whd1); // [expertNum, K, hiddenDim * 4]
-            //selectedEmbs = ((m_activateFunc == ActivateFuncEnums.Swish) ? g.Swish(selectedEmbs, inPlace: true) : g.Relu(selectedEmbs, inPlace: true));
-            //selectedEmbs = g.MulBatch(selectedEmbs, m_Whd2); // [expertNum, K, hiddenDim]
-
-            //topKValue = g.View(topKValue, dims: new long[] { m_expertNum, K, 1 });
-            //topKValue = g.Expand(topKValue, dims: new long[] { m_expertNum, K, m_hiddenDim });
-            //selectedEmbs = g.EltMul(selectedEmbs, topKValue); // [expertNum, K, hiddenDim]
-            //selectedEmbs = g.AsContiguous(g.View(selectedEmbs, dims: new long[] { m_expertNum * K, m_hiddenDim }));
-
-            //var outputEmbs = g.IndexUpdate(input.Sizes, selectedEmbs, topKIndex, true); // [batchSize * seqLen, hiddenDim]
-            //outputEmbs = graph.Add(outputEmbs, input);
-
-            //return outputEmbs;
         }
 
         private void DumpRoutingResultsInDebugMode(IWeightTensor input, int K, IWeightTensor topKIndex, IWeightTensor topKValue)
@@ -278,7 +263,7 @@ namespace Seq2SeqSharp.Layers
             //response.AddRange(m_ByPassWhd2.GetParams());
 
             response.AddRange(m_Router.GetParams());
-            response.AddRange(m_RouterBias.GetParams());
+            response.AddRange(m_Router2.GetParams());
 
             return response;
         }
@@ -297,7 +282,7 @@ namespace Seq2SeqSharp.Layers
 
 
             m_Router.Save(stream);
-            m_RouterBias.Save(stream);
+            m_Router2.Save(stream);
 
             stream.AddWeights($"{m_name}.ActivateFunc", new float[1] { (float)m_activateFunc });
         }
@@ -316,7 +301,7 @@ namespace Seq2SeqSharp.Layers
 
 
             m_Router.Load(stream);
-            m_RouterBias.Load(stream);
+            m_Router2.Load(stream);
 
             m_activateFunc = (ActivateFuncEnums)stream.GetWeights($"{m_name}.ActivateFunc")[0];
             Logger.WriteLine($"Loading '{m_name}' activate function setting '{m_activateFunc}'");
