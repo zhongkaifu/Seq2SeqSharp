@@ -291,6 +291,29 @@ namespace Seq2SeqSharp.Tools
             return (len2offsets, binaryDataSetFilePath);
         }
 
+
+        public long GetNextLength(Dictionary<long, LinkedList<long>> len2offsets)
+        {
+            int totalItems = 0;
+            foreach (var pair in len2offsets)
+            {
+                totalItems += pair.Value.Count;
+            }
+
+            int rndItems = rnd.Next(totalItems);
+            totalItems = 0;
+            foreach (var pair in len2offsets)
+            {
+                if (totalItems <= rndItems && totalItems + pair.Value.Count >= rndItems)
+                {
+                    return pair.Key;
+                }
+                totalItems += pair.Value.Count;
+            }
+
+            return -1;
+        }
+
         public void PrepareDataSet()
         {
             (var length2offsets, string tmpDataSetFilePath) = BuildIndex();
@@ -307,8 +330,7 @@ namespace Seq2SeqSharp.Tools
                 {
                     while (length2offsets.Count > 0)
                     {                    
-                        int lengthRnd = rnd.Next(length2offsets.Count);
-                        long length = length2offsets.Keys.ToArray()[lengthRnd];
+                        long length = GetNextLength(length2offsets);
                         LinkedList<long> offsets = length2offsets[length];
 
                         int totalSrcTokenSize = 0;

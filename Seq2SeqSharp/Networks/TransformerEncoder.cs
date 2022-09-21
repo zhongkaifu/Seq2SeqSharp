@@ -66,7 +66,7 @@ namespace Seq2SeqSharp
 
             for (int i = 0; i < depth; i++)
             {
-                if (m_expertNum > 1)
+                if (m_expertNum > 1 && i % 2 == 0)
                 {
                     m_feedForwards.Add(new MoEFeedForward($"{name}.MoEFFN_{i}", m_expertNum, hiddenDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, activateFunc: activateFunc, expertsPerTokenFactor: expertsPerTokenFactor));
                 }
