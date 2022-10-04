@@ -14,23 +14,18 @@ using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Threading;
 
 namespace Seq2SeqSharp.Layers
 {
     internal class MoEFeedForward : IFeedForwardLayer
     {
         private readonly LayerNormalization layerNorm;
-      //  private readonly LayerNormalization routerNorm;
 
         private readonly IWeightTensor m_Whd1;
         private readonly IWeightTensor m_Whd2;
 
-        //private readonly IWeightTensor m_ByPassWhd1;
-        //private readonly IWeightTensor m_ByPassWhd2;
-
         private readonly IWeightTensor m_Router;
-        private readonly IWeightTensor m_Router2;
+        private readonly IWeightTensor m_RouterBias;
 
         private readonly string m_name;
         private readonly int m_expertNum;
@@ -50,19 +45,12 @@ namespace Seq2SeqSharp.Layers
             Logger.WriteLine($"Creating MoE feed forward layer. Name = '{name}', ExpertNum = '{expertNum}', ExpertsPerToken = '{expertsPerTokenFactor}', HiddenDim = '{hiddenDim}', DeviceId = '{deviceId}', Dropout ratio = '{dropoutRatio}', IsTrainable = '{isTrainable}', Learning rate factor = '{learningRateFactor}', Activate Function = '{activateFunc}'");
 
             layerNorm = new LayerNormalization($"{name}.{nameof(layerNorm)}", hiddenDim, deviceId, isTrainable, learningRateFactor: learningRateFactor);
-        //    routerNorm = new LayerNormalization($"{name}.{nameof(routerNorm)}", m_expertNum, deviceId, isTrainable, learningRateFactor: learningRateFactor);
 
             m_Whd1 = new WeightTensor(new long[3] { expertNum, hiddenDim, hiddenDim * 4 }, deviceId, name: $"{name}.{nameof(m_Whd1)}", normType: NormType.Uniform, isTrainable: isTrainable, learningRateFactor: learningRateFactor);
             m_Whd2 = new WeightTensor(new long[3] { expertNum, hiddenDim * 4, hiddenDim }, deviceId, name: $"{name}.{nameof(m_Whd2)}", normType: NormType.Uniform, isTrainable: isTrainable, learningRateFactor: learningRateFactor);
 
-
-            //m_ByPassWhd1 = new WeightTensor(new long[3] { expertNum, hiddenDim, hiddenDim * 4 }, deviceId, name: $"{name}.{nameof(m_ByPassWhd1)}", normType: NormType.Uniform, isTrainable: isTrainable, learningRateFactor: learningRateFactor);
-            //m_ByPassWhd2 = new WeightTensor(new long[3] { expertNum, hiddenDim * 4, hiddenDim }, deviceId, name: $"{name}.{nameof(m_ByPassWhd2)}", normType: NormType.Uniform, isTrainable: isTrainable, learningRateFactor: learningRateFactor);
-
-
-
-            m_Router = new WeightTensor(new long[3] { expertNum, hiddenDim * 4, 1}, deviceId, name: $"{name}.{nameof(m_Router)}", normType: NormType.Uniform, isTrainable: isTrainable, learningRateFactor: learningRateFactor);
-            m_Router2 = new WeightTensor(new long[3] { expertNum, 1, hiddenDim * 4 }, 0, deviceId, name: $"{name}.{nameof(m_Router2)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor);
+            m_Router = new WeightTensor(new long[2] { hiddenDim, expertNum }, deviceId, name: $"{name}.{nameof(m_Router)}", normType: NormType.Uniform, isTrainable: isTrainable, learningRateFactor: learningRateFactor);
+            m_RouterBias = new WeightTensor(new long[2] { 1, expertNum }, 0, deviceId, name: $"{name}.{nameof(m_RouterBias)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor);
 
         }
 
@@ -81,19 +69,10 @@ namespace Seq2SeqSharp.Layers
             //Computing routing result
             using var g = graph.CreateSubGraph($"{m_name}_MoEFeedForward");
             var inputNorm = layerNorm.Norm(input, g);
-
-            var Whd1Avg = g.MulBatch(m_Whd1, m_Router); // [expertNum, hiddenDim, 1]
-            Whd1Avg = g.View(Whd1Avg, dims: new long[] { m_expertNum, m_hiddenDim }); // [expertNum, hiddenDim]
-
-            var Whd2Avg = g.MulBatch(m_Router2, m_Whd2); // [expertNum, 1, hiddenDim]
-            Whd2Avg = g.View(Whd2Avg, dims: new long[] { m_expertNum, m_hiddenDim }); // [expertNum, hiddenDim]
-
-            var WhdSum = g.Add(Whd1Avg, Whd2Avg); // [expertNum, hiddenDim]
-            WhdSum = g.AsContiguous(g.Transpose(WhdSum)); // [hiddenDim, expertNum]
-            WhdSum = g.Sigmoid(WhdSum); // [hiddenDim, expertNum]
-            var inputRouterDense = g.Mul(inputNorm, WhdSum, alpha: (float)(1.0 / Math.Sqrt(m_hiddenDim))); // [batchSize * seqLen, expertNum]
-
+            var inputRouterDense = g.Affine(inputNorm, m_Router, m_RouterBias); // [batchSize * seqLen, expertNum]
             var inputRouter = g.Softmax(inputRouterDense); // [batchSize * seqLen, expertNum]
+
+
             if (Logger.Verbose == Logger.LogVerbose.Debug)
             {
                 var routerArray = inputRouter.ToWeightArray();
@@ -111,8 +90,30 @@ namespace Seq2SeqSharp.Layers
 
             }
 
-            //###################Token choice top-1 expert###############################
             (var topValue, var topIndex) = g.TopK(inputRouter, m_expertsPerTokenFactor); // [batchSize * seqLen, m_expertsPerTokenFactor]
+
+            //if (g.NeedsBackprop)
+            //{
+            //    //Z-loss
+            //    //var zLoss = g.Exp(inputRouterDense); // [batchSize * seqLen, expertNum]
+            //    //zLoss = g.Sum(zLoss, 1); // [batchSize * seqLen, 1]
+            //    //zLoss = g.Log(zLoss); // [batchSize * seqLen, 1]
+            //    //zLoss = g.EltMul(zLoss, zLoss); // [batchSize * seqLen, 1]
+            //    //zLoss = g.Mean(zLoss, 0); // [1,1]
+            //    //zLoss = g.Mul(zLoss, 0.001f);
+            //    //zLoss.FillGradient(1.0f);
+
+
+
+            //    // Loss for load balance
+            //    var routerLoss = g.Mean(inputRouter, 0); // [1, expertNum]
+            //    var topKScatter = g.Scatter(topIndex, 1, 1, runGradient: false, shape: inputRouter.Sizes); // [batchSize * seqLen, expertNum]
+            //    topKScatter = g.Mean(topKScatter, 0); // [1, expertNum]
+
+            //    routerLoss = g.EltMul(routerLoss, topKScatter); // [1, expertNum]
+            //    routerLoss = g.Mean(routerLoss, 1); // [1, 1]
+            //    routerLoss.FillGradient((float)(m_expertNum * m_expertNum) * 0.01f);
+            //}
 
             var topIndexArray = topIndex.ToWeightArray();
             List<float>[] indexs = new List<float>[m_expertNum]; // [expertNum, token_offsets]
@@ -166,66 +167,18 @@ namespace Seq2SeqSharp.Layers
 
             return input;
         }
-
-        private void DumpRoutingResultsInDebugMode(IWeightTensor input, int K, IWeightTensor topKIndex, IWeightTensor topKValue)
-        {
-            if (Logger.Verbose == Logger.LogVerbose.Debug)
-            {
-                Logger.WriteLine($"Input Row = '{input.Rows}', expert size = '{m_expertNum}', K = '{K}', experts per token factor = '{m_expertsPerTokenFactor}'");
-                var idxs = topKIndex.ToWeightArray();
-                var vals = topKValue.ToWeightArray();
-                SortedDictionary<int, int> id2freq = new SortedDictionary<int, int>();
-                for (int i = 0; i < m_expertNum; i++)
-                {
-                    StringBuilder sb = new StringBuilder();
-                    for (int j = 0; j < K; j++)
-                    {
-                        int value = (int)idxs[i * K + j];
-                        float weight = vals[i * K + j];
-                        sb.Append($"{value} ({weight})");
-                        sb.Append(" ");
-
-                        if (id2freq.ContainsKey(value) == false)
-                        {
-                            id2freq.Add(value, 0);
-                        }
-                        id2freq[value]++;
-                    }
-                    Logger.WriteLine($"Expert '{i}' has tokens: {sb.ToString()}");
-                }
-
-                Logger.WriteLine("Experts size per token:");
-                foreach (var pair in id2freq)
-                {
-                    Logger.WriteLine($"{pair.Key} : {pair.Value}");
-                }
-
-                for (int i = 0; i < input.Rows; i++)
-                {
-                    if (id2freq.ContainsKey(i) == false)
-                    {
-                        Logger.WriteLine($"token '{i}' is not assigned to any expert.");
-                    }
-                }
-            }
-        }
-
+       
         public virtual List<IWeightTensor> GetParams()
         {
             List<IWeightTensor> response = new List<IWeightTensor>();
 
             response.AddRange(layerNorm.GetParams());
-         //   response.AddRange(routerNorm.GetParams());
 
             response.AddRange(m_Whd1.GetParams());
             response.AddRange(m_Whd2.GetParams());
 
-
-            //response.AddRange(m_ByPassWhd1.GetParams());
-            //response.AddRange(m_ByPassWhd2.GetParams());
-
             response.AddRange(m_Router.GetParams());
-            response.AddRange(m_Router2.GetParams());
+            response.AddRange(m_RouterBias.GetParams());
 
             return response;
         }
@@ -234,17 +187,12 @@ namespace Seq2SeqSharp.Layers
         public void Save(IModel stream)
         {
             layerNorm.Save(stream);
-        //    routerNorm.Save(stream);
 
             m_Whd1.Save(stream);
             m_Whd2.Save(stream);
 
-            //m_ByPassWhd1.Save(stream);
-            //m_ByPassWhd2.Save(stream);
-
-
             m_Router.Save(stream);
-            m_Router2.Save(stream);
+            m_RouterBias.Save(stream);
 
             stream.AddWeights($"{m_name}.ActivateFunc", new float[1] { (float)m_activateFunc });
         }
@@ -253,23 +201,16 @@ namespace Seq2SeqSharp.Layers
         public void Load(IModel stream)
         {
             layerNorm.Load(stream);
-         //   routerNorm.Load(stream);
 
             m_Whd1.Load(stream);
             m_Whd2.Load(stream);
 
-            //m_ByPassWhd1.Load(stream);
-            //m_ByPassWhd2.Load(stream);
-
-
             m_Router.Load(stream);
-            m_Router2.Load(stream);
+            m_RouterBias.Load(stream);
 
             m_activateFunc = (ActivateFuncEnums)stream.GetWeights($"{m_name}.ActivateFunc")[0];
             Logger.WriteLine($"Loading '{m_name}' activate function setting '{m_activateFunc}'");
 
         }
-
-
     }
 }

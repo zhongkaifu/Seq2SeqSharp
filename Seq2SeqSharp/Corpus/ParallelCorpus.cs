@@ -323,57 +323,53 @@ namespace Seq2SeqSharp.Tools
 
             m_binaryDataSetFilePath = tmpDataSetFilePath + ".sorted";
             using (BinaryWriter bw = new BinaryWriter(new FileStream(m_binaryDataSetFilePath, FileMode.Create)))
-            using (MemoryMappedFile mmf = MemoryMappedFile.CreateFromFile(tmpDataSetFilePath))
-            using (MemoryMappedViewStream mms = mmf.CreateViewStream())
+            using (BinaryReader br = new BinaryReader(new FileStream(tmpDataSetFilePath, FileMode.Open)))
             {
-                using (BinaryReader br = new BinaryReader(mms))
+                while (length2offsets.Count > 0)
                 {
-                    while (length2offsets.Count > 0)
-                    {                    
-                        long length = GetNextLength(length2offsets);
-                        LinkedList<long> offsets = length2offsets[length];
+                    long length = GetNextLength(length2offsets);
+                    LinkedList<long> offsets = length2offsets[length];
 
-                        int totalSrcTokenSize = 0;
-                        int totalTgtTokenSize = 0;
-                        int sentSize = 0;
-                        List<string> srcLines = new List<string>();
-                        List<string> tgtLines = new List<string>();
-                        while (totalSrcTokenSize + totalTgtTokenSize < m_maxTokenSizePerBatch && offsets.Any())
-                        {
-                            long offset = offsets.First.Value;
-                            offsets.RemoveFirst();
+                    int totalSrcTokenSize = 0;
+                    int totalTgtTokenSize = 0;
+                    int sentSize = 0;
+                    List<string> srcLines = new List<string>();
+                    List<string> tgtLines = new List<string>();
+                    while (totalSrcTokenSize + totalTgtTokenSize < m_maxTokenSizePerBatch && offsets.Any())
+                    {
+                        long offset = offsets.First.Value;
+                        offsets.RemoveFirst();
 
-                            br.BaseStream.Seek(offset, SeekOrigin.Begin);
-                            totalSrcTokenSize += br.ReadInt32();
-                            totalTgtTokenSize += br.ReadInt32();
-                            srcLines.Add(br.ReadString());
-                            tgtLines.Add(br.ReadString());
-                           
-                            sentSize++;
-                        }
+                        br.BaseStream.Seek(offset, SeekOrigin.Begin);
+                        totalSrcTokenSize += br.ReadInt32();
+                        totalTgtTokenSize += br.ReadInt32();
+                        srcLines.Add(br.ReadString());
+                        tgtLines.Add(br.ReadString());
 
-                        bw.Write(sentSize);
-                        for (int i = 0; i < sentSize; i++)
-                        {
-                            bw.Write(srcLines[i]);
-                            bw.Write(tgtLines[i]);
-                        }
-
-                        batchNum++;
-                        if (batchNum % 10000 == 0)
-                        {
-                            Logger.WriteLine($"Batch '{batchNum}' has been processed.");
-                        }
-
-
-                        if (offsets.Any() == false)
-                        {
-                            length2offsets.Remove(length);
-                        }
+                        sentSize++;
                     }
 
-                    bw.Write(-1);
+                    bw.Write(sentSize);
+                    for (int i = 0; i < sentSize; i++)
+                    {
+                        bw.Write(srcLines[i]);
+                        bw.Write(tgtLines[i]);
+                    }
+
+                    batchNum++;
+                    if (batchNum % 10000 == 0)
+                    {
+                        Logger.WriteLine($"Batch '{batchNum}' has been processed.");
+                    }
+
+
+                    if (offsets.Any() == false)
+                    {
+                        length2offsets.Remove(length);
+                    }
                 }
+
+                bw.Write(-1);
             }
 
             File.Delete(tmpDataSetFilePath);
