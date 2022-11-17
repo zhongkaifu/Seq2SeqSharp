@@ -23,15 +23,16 @@
     <p>Given input text, the model will continue writing it. You can try different values of repeating penalty and distance penalty to generate different output text.</p>
     <label id="promptInput">Input Text:</label>
     <br />
-    <textarea type="text" id="txtName" cols="100" rows="20"></textarea>
+    <textarea type="text" id="txtName" cols="150" rows="20"></textarea>
     <br />
     <label id="promptOutputTokenNum">The number of tokens to output in each step:</label>
     <select id="ddlOutputTokenNum">
-        <option value="2">2</option>
         <option value="4" selected="selected">4</option>
         <option value="8">8</option>
         <option value="16">16</option>
         <option value="32">32</option>
+        <option value="64">64</option>
+        <option value="128">128</option>
     </select>
 
     <label id="promptRepeatPenalty">Penalty for repeat:</label>
@@ -81,6 +82,8 @@
         <option value="4096">4096</option>
     </select>
 
+    <label id="useSrcAsPrompt">Use source as prompt:</label>
+    <input type="checkbox" id="cbUseSrcAsPrompt"/>
 
     <input type="button" id="btnGet" value="Generate Text" />
     <input type="button" id="btnCancel" value="Cancel" />
@@ -123,15 +126,16 @@ var rq = null;
                 rq = $.ajax({
                     type: "POST",
                     url: "/Home/GenerateText",
-                    data: { "srcInput": $("#txtName").val(), "tgtInput": $("#txtName").val(), "num": $("#ddlOutputTokenNum").val(), 
-                    "random": false, "repeatPenalty": $("#ddlRepeatPenalty").val(), 
-                    "contextSize": $("#ddlContextSize").val(), "clientIP": $("#clientIP").text()},
+                    data: {
+                        "srcInput": $("#txtName").val(), "tgtInput": "", "num": $("#ddlOutputTokenNum").val(),
+                        "random": false, "repeatPenalty": $("#ddlRepeatPenalty").val(),
+                        "contextSize": $("#ddlContextSize").val(), "clientIP": $("#clientIP").text(), 
+                        "useSrcAsPrompt": $('#cbUseSrcAsPrompt').is(':checked')
+                    },
                     beforeSend: function () {
 
                         $("#outputText").html("");
-                        $("#statusText").html("Generating...");
-
-                      
+                        $("#statusText").html("Generating...");                    
                     },
                     success: function (response) {
                         $("#outputText").html(response.output);
@@ -166,7 +170,9 @@ var rq = null;
                     url: "/Home/GenerateText",
                     data: { "srcInput": $("#txtName").val(), "tgtInput": $("#outputText").text(), "num": $("#ddlOutputTokenNum").val(), 
                     "random": false, "repeatPenalty": $("#ddlRepeatPenalty").val(), 
-                    "contextSize": $("#ddlContextSize").val() , "clientIP": $("#clientIP").text()},
+                    "contextSize": $("#ddlContextSize").val() , "clientIP": $("#clientIP").text(),
+                    "useSrcAsPrompt": false
+                    },
                     beforeSend: function () {
                     },
                     success: function (response) {
@@ -174,6 +180,7 @@ var rq = null;
                         if (response.output == $("#outputText").text())
                         {
                             $("#statusText").html("Cancelled");
+                            $("#btnGet").attr("disabled", false);
                         }
                         else
                         {

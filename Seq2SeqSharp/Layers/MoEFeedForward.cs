@@ -91,30 +91,6 @@ namespace Seq2SeqSharp.Layers
             }
 
             (var topValue, var topIndex) = g.TopK(inputRouter, m_expertsPerTokenFactor); // [batchSize * seqLen, m_expertsPerTokenFactor]
-
-            //if (g.NeedsBackprop)
-            //{
-            //    //Z-loss
-            //    //var zLoss = g.Exp(inputRouterDense); // [batchSize * seqLen, expertNum]
-            //    //zLoss = g.Sum(zLoss, 1); // [batchSize * seqLen, 1]
-            //    //zLoss = g.Log(zLoss); // [batchSize * seqLen, 1]
-            //    //zLoss = g.EltMul(zLoss, zLoss); // [batchSize * seqLen, 1]
-            //    //zLoss = g.Mean(zLoss, 0); // [1,1]
-            //    //zLoss = g.Mul(zLoss, 0.001f);
-            //    //zLoss.FillGradient(1.0f);
-
-
-
-            //    // Loss for load balance
-            //    var routerLoss = g.Mean(inputRouter, 0); // [1, expertNum]
-            //    var topKScatter = g.Scatter(topIndex, 1, 1, runGradient: false, shape: inputRouter.Sizes); // [batchSize * seqLen, expertNum]
-            //    topKScatter = g.Mean(topKScatter, 0); // [1, expertNum]
-
-            //    routerLoss = g.EltMul(routerLoss, topKScatter); // [1, expertNum]
-            //    routerLoss = g.Mean(routerLoss, 1); // [1, 1]
-            //    routerLoss.FillGradient((float)(m_expertNum * m_expertNum) * 0.01f);
-            //}
-
             var topIndexArray = topIndex.ToWeightArray();
             List<float>[] indexs = new List<float>[m_expertNum]; // [expertNum, token_offsets]
             for (int i = 0; i < indexs.Length; i++)
@@ -131,6 +107,9 @@ namespace Seq2SeqSharp.Layers
                 }
             }
 
+            List<IWeightTensor> tokenEmbsList = new List<IWeightTensor>();
+            List<IWeightTensor> tokenIdxList = new List<IWeightTensor>();
+
             for (int i = 0; i < m_expertNum; i++)
             {
                 if (Logger.Verbose == Logger.LogVerbose.Debug)
@@ -141,29 +120,33 @@ namespace Seq2SeqSharp.Layers
 
                 if (indexs[i].Count > 0)
                 {
-                    var scores_eI = g.AsContiguous(g.Peek(inputRouter, 1, i)); // [batchSize * seqLen, 1]
+                    using var gExp = g.CreateSubGraph($"{m_name}_MoEFeedForward_{i}");
+                    var scores_eI = gExp.AsContiguous(gExp.Peek(inputRouter, 1, i)); // [batchSize * seqLen, 1]
                     var tokenIdx_eI = g.CreateTensorWeights(new long[] { indexs[i].Count, 1 }, indexs[i].ToArray());
 
-                    var topValue_eI = g.IndexSelect(scores_eI, tokenIdx_eI); // [indexs[i].Count, 1]
-                    topValue_eI = g.AsContiguous(g.Expand(topValue_eI, dims: new long[] { indexs[i].Count, inputNorm.Sizes[^1] }));
+                    var topValue_eI = gExp.IndexSelect(scores_eI, tokenIdx_eI); // [indexs[i].Count, 1]
+                    topValue_eI = gExp.Expand(topValue_eI, dims: new long[] { indexs[i].Count, inputNorm.Sizes[^1] });
 
-                    var tokenEmbs = g.IndexSelect(inputNorm, tokenIdx_eI);
-                    var m_Whd1_i = g.AsContiguous(g.Select(m_Whd1, 0, i));
-                    var m_Whd2_i = g.AsContiguous(g.Select(m_Whd2, 0, i));
+                    var tokenEmbs = gExp.IndexSelect(inputNorm, tokenIdx_eI);
+                    var m_Whd1_i = gExp.Select(m_Whd1, 0, i);
+                    var m_Whd2_i = gExp.Select(m_Whd2, 0, i);
 
 
-                    tokenEmbs = g.Mul(tokenEmbs, m_Whd1_i);
-                    tokenEmbs = ((m_activateFunc == ActivateFuncEnums.Swish) ? g.Swish(tokenEmbs, inPlace: true) : g.Relu(tokenEmbs, inPlace: true));
-                    tokenEmbs = g.Mul(tokenEmbs, m_Whd2_i);
+                    tokenEmbs = gExp.Mul(tokenEmbs, m_Whd1_i);
+                    tokenEmbs = ((m_activateFunc == ActivateFuncEnums.Swish) ? gExp.Swish(tokenEmbs, inPlace: true) : gExp.Relu(tokenEmbs, inPlace: true));
+                    tokenEmbs = gExp.Mul(tokenEmbs, m_Whd2_i);
                     tokenEmbs = g.EltMul(tokenEmbs, topValue_eI);
 
-                    var resultEmbs = g.IndexUpdate(inputNorm.Sizes, tokenEmbs, tokenIdx_eI, true);
-                    input = g.Add(input, resultEmbs);
-
+                    tokenEmbsList.Add(tokenEmbs);
+                    tokenIdxList.Add(tokenIdx_eI);
                 }
             }
 
-            input.UnbindFromComputeGraph();
+            var tokenEmbsAll = g.Concate(tokenEmbsList, 0);
+            var tokenIdxAll = g.Concate(tokenIdxList, 0);
+            var resultEmbs = g.IndexUpdate(inputNorm.Sizes, tokenEmbsAll, tokenIdxAll, true);
+
+            input = graph.Add(input, resultEmbs);
 
             return input;
         }

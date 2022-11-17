@@ -36,11 +36,16 @@ namespace SeqWebApps.Controllers
         }
 
         [HttpPost]
-        public IActionResult GenerateText(string srcInput, string tgtInput, int num, bool random, float repeatPenalty, int contextSize, string clientIP)
+        public IActionResult GenerateText(string srcInput, string tgtInput, int num, bool random, float repeatPenalty, int contextSize, string clientIP, bool useSrcAsPrompt)
         {
             if (tgtInput == null)
             {
                 tgtInput = "";
+            }
+
+            if (useSrcAsPrompt)
+            {
+                tgtInput = srcInput;
             }
 
             TextGenerationModel textGeneration = new TextGenerationModel
@@ -72,8 +77,8 @@ namespace SeqWebApps.Controllers
             string[] srcLines = srcInputText.Split("\n");
             string[] tgtLines = tgtInputText.Split("\n");
 
-            srcInputText = String.Join("", srcLines).ToLower();
-            tgtInputText = String.Join("", tgtLines).ToLower();
+            srcInputText = String.Join("", srcLines);
+            tgtInputText = String.Join("", tgtLines);
 
 
             string prefixTgtLine = "";
@@ -95,9 +100,9 @@ namespace SeqWebApps.Controllers
                 }
 
             }
-            string outputText = Seq2SeqInstance.Call(tgtInputText, tgtInputText, tokenNumToGenerate, random, repeatPenalty);
-            outputText = prefixTgtLine.Trim() + outputText.Trim();
-            outputText = outputText.Trim();
+            string outputText = Seq2SeqInstance.Call(srcInputText, tgtInputText, tokenNumToGenerate, random, repeatPenalty);
+            outputText = prefixTgtLine + outputText;
+//            outputText = outputText.Trim();
 
             // Update logs and dump it every 1 hour when a call comes in.
 

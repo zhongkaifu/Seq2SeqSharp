@@ -66,7 +66,7 @@ namespace Seq2SeqWebApps
             }
 
             var srcInput = (m_srcSpm != null) ? m_srcSpm.Encode(rawSrcInput) : rawSrcInput;
-            List<string> tokens = srcInput.Split(' ').ToList();
+            List<string> tokens = srcInput.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
 
             if (tokens.Count > opts.MaxSrcSentLength)
             {
@@ -82,7 +82,7 @@ namespace Seq2SeqWebApps
 
 
             var tgtInput = (m_tgtSpm != null) ? m_tgtSpm.Encode(rawTgtInput) : rawTgtInput;
-            List<string> tokens2 = tgtInput.Split(' ').ToList();
+            List<string> tokens2 = tgtInput.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
             tokenNumToGenerate += tokens2.Count;
 
             if (tokenNumToGenerate > opts.MaxTgtSentLength)
@@ -109,8 +109,7 @@ namespace Seq2SeqWebApps
 
                 var nrs = m_seq2seq.Test<Seq2SeqCorpusBatch>(srcGroupBatchTokens, tgtGroupBatchTokens, decodingOptions);
                 string rst = String.Join(" ", nrs[0].Output[0][0].ToArray(), 0, nrs[0].Output[0][0].Count);
-                bool isEnded = rst.EndsWith("</s>");
-
+                bool isEnded = (rst.EndsWith("</s>") || rst == tgtInput);
                 rst = (m_tgtSpm != null) ? m_tgtSpm.Decode(rst) : rst;
                 if (isEnded)
                 {

@@ -862,16 +862,7 @@ __global__ void TopK(float* input, float* output, float *outputIdx, int k, unsig
   }
 }
 }
-
-
-
-
-
-
-
-
 }
-
 ";
 
         public AdvFuncKernels()

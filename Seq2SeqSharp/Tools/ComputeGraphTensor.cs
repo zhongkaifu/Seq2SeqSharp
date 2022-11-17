@@ -1420,6 +1420,8 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
+                idx.UnbindFromComputeGraph();
+
                 void backward()
                 {
                     if (src.NeedGradient)
