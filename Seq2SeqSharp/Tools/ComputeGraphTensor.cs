@@ -744,9 +744,9 @@ namespace Seq2SeqSharp.Tools
             {
                 void backward()
                 {
+                    res.ReleaseWeight();
                     if (m1.NeedGradient)
                     {
-                        res.ReleaseWeight();
                         Ops.Sub(m1.TGradient, m1.TGradient, res.TGradient);
                     }
                     res.Dispose();
@@ -757,6 +757,38 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+
+        public IWeightTensor Sub(IWeightTensor w0, IWeightTensor w1)
+        {
+            WeightTensor m0 = w0 as WeightTensor;
+            WeightTensor m1 = w1 as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w0.Name)}_{GetHashString(w1.Name)}.SubTT", graphToBind: this, needGradient: m0.NeedGradient || m1.NeedGradient);
+
+            VisualizeNodes(new IWeightTensor[] { w1 }, res);
+
+            Ops.Sub(res.TWeight, m0.TWeight, m1.TWeight);
+
+            if (m_needsBackprop)
+            {
+                void backward()
+                {
+                    res.ReleaseWeight();
+                    if (m0.NeedGradient)
+                    {
+                        m0.CopyOrAddGradient(res);
+                    }
+
+                    if (m1.NeedGradient)
+                    {
+                        Ops.Sub(m1.TGradient, m1.TGradient, res.TGradient);
+                    }
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
 
 
         public IWeightTensor Tanh(IWeightTensor w)
@@ -1207,12 +1239,26 @@ namespace Seq2SeqSharp.Tools
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(argMaxT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Max", graphToBind: this, needGradient: m.NeedGradient);
             res.TWeight = argMaxT;
 
-            if (m_needsBackprop)
-            {
-                throw new NotSupportedException($"Max operation doesn't support back propagation.");
-            }
+            //if (m_needsBackprop)
+            //{
+            //    throw new NotSupportedException($"Max operation doesn't support back propagation.");
+            //}
 
             return res;
+        }
+
+        public IWeightTensor LogSoftmax(IWeightTensor x)
+        {
+            var cmax = Max(x, 1);
+            var c = Expand(cmax, x.Sizes);
+
+            var xc = Sub(x, c);
+            var xcExp = Exp(xc);
+            var xcExpSum = Sum(xcExp, 1);
+            var xcExpSumLog = Log(xcExpSum);
+            xcExpSumLog = Expand(xcExpSumLog, x.Sizes);
+
+            return Sub(xc, xcExpSumLog);        
         }
 
 
@@ -2289,6 +2335,22 @@ namespace Seq2SeqSharp.Tools
             }
 
             loss = Log(loss);
+            loss = Mul(loss, -1.0f);
+            loss.FillGradient(graident);
+
+            return loss.ToWeightArray().Sum() / loss.ElementCount;
+        }
+
+        public float NLLLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f)
+        {
+            var scatterIdxTensor = View(truthTgtSeqs, new long[] { -1, 1 });
+            var loss = Gather(probs, scatterIdxTensor, 1);
+
+            if (smooth > 0.0f)
+            {
+                loss = Add(loss, smooth);
+            }
+
             loss = Mul(loss, -1.0f);
             loss.FillGradient(graident);
 

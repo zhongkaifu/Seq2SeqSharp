@@ -238,8 +238,8 @@ namespace Seq2SeqSharp.Applications
 
         public static (float, List<List<BeamSearchStatus>>) DecodeTransformer(List<List<int>> tgtSeqs, IComputeGraph g, IWeightTensor encOutputs, TransformerDecoder decoder, IFeedForwardLayer decoderFFLayer,
             IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, float[] srcOriginalLenghts, Vocab tgtVocab, ShuffleEnums shuffleType, float dropoutRatio, DecodingOptions decodingOptions, bool isTraining = true,
-            bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, IFeedForwardLayer pointerGenerator = null, List<List<int>> srcSeqs = null, Dictionary<string, IWeightTensor> cachedTensors = null, 
-            List<List<int>> alignmentsToSrc = null, List<List<float>> alignmentScoresToSrc = null, bool teacherForcedAlignment = false)
+            bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, IFeedForwardLayer pointerGenerator = null, List<List<int>> srcSeqs = null, Dictionary<string, IWeightTensor> cachedTensors = null,
+            List<List<int>> alignmentsToSrc = null, List<List<float>> alignmentScoresToSrc = null, bool teacherForcedAlignment = false, LossEnums lossType = LossEnums.CrossEntropy)
         {
             int eosTokenId = tgtVocab.GetWordIndex(BuildInTokens.EOS, logUnk: true);
             int batchSize = tgtSeqs.Count;
@@ -292,7 +292,7 @@ namespace Seq2SeqSharp.Applications
             }
 
             IWeightTensor ffLayer = decoderFFLayer.Process(decOutput, batchSize, g);
-            IWeightTensor probs = g.Softmax(ffLayer, inPlace: true);
+            IWeightTensor probs = (lossType == LossEnums.NegativeLogLikelihood && isTraining) ? g.LogSoftmax(ffLayer) : g.Softmax(ffLayer);
             IWeightTensor probsCopy = null;
             if (pointerGenerator != null)
             {
@@ -321,15 +321,25 @@ namespace Seq2SeqSharp.Applications
 
                 var probsCopyScatter = g.ScatterAdd(probsCopy, seqSeqsIndex, 1, shape: new long[] { batchSize * tgtSeqLen, ffLayer.Sizes[^1] });
 
+                if (lossType == LossEnums.NegativeLogLikelihood && isTraining)
+                {
+                    probs = g.Exp(probs);
+                }
+
                 probs = g.EltMul(probs, p_gen);
                 probs = g.Add(probs, probsCopyScatter, inPlace: true);
+
+                if (lossType == LossEnums.NegativeLogLikelihood && isTraining)
+                {
+                    probs = g.Log(probs);
+                }
 
             }
 
             if (isTraining)
             {
                 var leftShiftTgtSeqs = g.LeftShiftTokens(tgtSeqs, eosTokenId);
-                var cost = g.CrossEntropyLoss(probs, leftShiftTgtSeqs);
+                var cost = lossType == LossEnums.CrossEntropy ? g.CrossEntropyLoss(probs, leftShiftTgtSeqs) : g.NLLLoss(probs, leftShiftTgtSeqs);
 
                 return (cost, null);
             }

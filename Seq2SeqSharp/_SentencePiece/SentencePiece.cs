@@ -217,7 +217,7 @@ namespace Seq2SeqSharp._SentencePiece
             //var result = Marshal.PtrToStringUTF8( ptr );
             return (result);
         }
-        unsafe public string Encode( string input, bool toLower = true )
+        unsafe public string Encode( string input, bool toLower = false )
         {
             if ( toLower )
             {

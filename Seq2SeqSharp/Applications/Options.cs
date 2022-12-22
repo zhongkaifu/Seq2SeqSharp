@@ -85,6 +85,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("It indicates if the encoder is trainable", nameof(IsEncoderTrainable))]
         public bool IsEncoderTrainable = true;
 
+        [Arg("The type of loss function. It supports CrossEntropy and NegativeLogLikelihood", nameof(LossType))]
+        public LossEnums LossType = LossEnums.CrossEntropy;
+
         [Arg("The maxmium epoch number during training. Default is 100", nameof(MaxEpochNum))]
         public int MaxEpochNum = 100;
 

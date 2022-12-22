@@ -45,7 +45,7 @@ namespace Seq2SeqSharp
         public Seq2Seq(Seq2SeqOptions options, Vocab srcVocab = null, Vocab tgtVocab = null)
             : base(deviceIds: options.DeviceIds, processorType: options.ProcessorType, modelFilePath: options.ModelFilePath, memoryUsageRatio: options.MemoryUsageRatio, 
                   compilerOptions: options.CompilerOptions, runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq, 
-                  startToRunValidAfterUpdates: options.StartValidAfterUpdates, maxDegressOfParallelism: options.TaskParallelism, mklInstructions: options.MKLInstructions)
+                  startToRunValidAfterUpdates: options.StartValidAfterUpdates, maxDegressOfParallelism: options.TaskParallelism, mklInstructions: options.MKLInstructions, weightsUpdateCount: options.WeightsUpdateCount)
         {
             m_shuffleType = options.ShuffleType;
             m_options = options;
@@ -210,7 +210,7 @@ namespace Seq2SeqSharp
                 if (isTraining)
                 {
                     (var c, _) = Decoder.DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding, originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType,
-                        m_options.DropoutRatio, decodingOptions, isTraining, pointerGenerator: pointerGenerator, srcSeqs: srcTokensList);
+                        m_options.DropoutRatio, decodingOptions, isTraining, pointerGenerator: pointerGenerator, srcSeqs: srcTokensList, lossType: m_options.LossType);
                     nr.Cost = c;
                     nr.Output = null;
                 }
@@ -228,7 +228,7 @@ namespace Seq2SeqSharp
                     (var cost2, var bssSeqList) = Decoder.DecodeTransformer(tgtTokensList, g, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding,
                                                                                originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, decodingOptions, isTraining,
                                                                                outputSentScore: decodingOptions.BeamSearchSize > 1, pointerGenerator: pointerGenerator, 
-                                                                               srcSeqs: srcTokensList, teacherForcedAlignment: true);
+                                                                               srcSeqs: srcTokensList, teacherForcedAlignment: true, lossType: m_options.LossType);
                     nr.Cost = 0.0f;
                     nr.Output = m_modelMetaData.TgtVocab.ExtractTokens(bssSeqList);
                     if (decodingOptions.OutputAligmentsToSrc)

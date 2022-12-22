@@ -349,17 +349,25 @@ namespace Seq2SeqSharp.Tools
 
         public void CopyOrAddGradient(WeightTensor src)
         {
-            if (m_TGradient == null)
+            try
             {
-                m_allocator = TensorAllocator.Allocator(DeviceId);
-                m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
-                Ops.Copy(m_TGradient, src.TGradient);
+                if (m_TGradient == null)
+                {
+                    m_allocator = TensorAllocator.Allocator(DeviceId);
+                    m_TGradient = new Tensor(m_allocator, DType.Float32, Sizes);
+                    Ops.Copy(m_TGradient, src.TGradient);
 
-                m_GradientSetName = "CopyOrAddGradient_WeightTensor";
+                    m_GradientSetName = "CopyOrAddGradient_WeightTensor";
+                }
+                else
+                {
+                    Ops.Add(m_TGradient, m_TGradient, src.TGradient);
+                }
             }
-            else
+            catch(Exception e)
             {
-                Ops.Add(m_TGradient, m_TGradient, src.TGradient);
+                Logger.WriteLine($"Failed to update gradient for tensor '{Name}({TGradient.ToString()}) from '{src.Name}' ({src.TGradient.ToString()})");
+                throw;
             }
         }
 

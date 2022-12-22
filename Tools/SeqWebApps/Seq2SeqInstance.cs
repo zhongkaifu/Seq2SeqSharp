@@ -53,6 +53,23 @@ namespace Seq2SeqWebApps
             m_seq2seq = new Seq2Seq(opts);
         }
 
+        static (bool, string) CheckRepeatSentence(string sent)
+        {
+            for (int i = 5; i <= sent.Length / 2; i++)
+            {
+                string tailPart = sent.Substring(sent.Length - i);
+                string midPart = sent.Substring(sent.Length - i - tailPart.Length, tailPart.Length);
+
+                if (tailPart == midPart)
+                {
+                    sent = sent.Substring(0, sent.Length - tailPart.Length);
+                    return (true, sent);
+                }
+            }
+
+            return (false, sent);
+        }
+
         static public string Call(string rawSrcInput, string rawTgtInput, int tokenNumToGenerate, bool random, float repeatPenalty)
         {
             if (opts == null)
@@ -111,6 +128,14 @@ namespace Seq2SeqWebApps
                 string rst = String.Join(" ", nrs[0].Output[0][0].ToArray(), 0, nrs[0].Output[0][0].Count);
                 bool isEnded = (rst.EndsWith("</s>") || rst == tgtInput);
                 rst = (m_tgtSpm != null) ? m_tgtSpm.Decode(rst) : rst;
+                (bool isRepeat, string truncatedStr) = CheckRepeatSentence(rst);
+
+                if (isRepeat)
+                {
+                    rst = truncatedStr + " REPEAT";
+                    isEnded = true;
+                }
+
                 if (isEnded)
                 {
                     rst += " EOS";

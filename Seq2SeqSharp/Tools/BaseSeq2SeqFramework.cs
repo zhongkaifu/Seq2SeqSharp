@@ -105,7 +105,7 @@ namespace Seq2SeqSharp.Tools
         public int[] DeviceIds => m_deviceIds;
         private string m_modelFilePath;
         private readonly float m_regc = 1e-10f; // L2 regularization strength
-        private int m_weightsUpdateCount = 0;
+        private int m_weightsUpdateCount;
         private double m_avgCostPerWordInTotalInLastEpoch = 10000.0;
         private Dictionary<string, double> m_bestPrimaryScoreDict = new Dictionary<string, double>();
         private readonly int m_primaryTaskId = 0;
@@ -118,7 +118,7 @@ namespace Seq2SeqSharp.Tools
 
         public BaseSeq2SeqFramework(string deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, 
             string compilerOptions = null, int runValidEveryUpdates = 10000, int primaryTaskId = 0, int updateFreq = 1, int startToRunValidAfterUpdates = 0,
-            int maxDegressOfParallelism = 1, string mklInstructions = "AVX2")
+            int maxDegressOfParallelism = 1, string mklInstructions = "AVX2", int weightsUpdateCount = 0)
         {
             m_deviceIds = deviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
             string[] cudaCompilerOptions = compilerOptions.IsNullOrEmpty() ? null : compilerOptions.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -131,6 +131,7 @@ namespace Seq2SeqSharp.Tools
             m_startToRunValidAfterUpdates = startToRunValidAfterUpdates;
             m_runValidEveryUpdates = runValidEveryUpdates;
             m_maxDegressOfParallelism = maxDegressOfParallelism;
+            m_weightsUpdateCount = weightsUpdateCount;
         }
 
         public virtual List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, DecodingOptions decodingOptions, bool isTraining)

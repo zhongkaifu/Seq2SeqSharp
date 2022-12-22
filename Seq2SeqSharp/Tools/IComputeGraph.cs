@@ -80,6 +80,7 @@ namespace Seq2SeqSharp
         IWeightTensor ScatterAdd(IWeightTensor source, IWeightTensor indices, int dim, params long[] shape);
 
         (IWeightTensor, IWeightTensor) TopK(IWeightTensor src, int k);
+        IWeightTensor Sub(IWeightTensor w0, IWeightTensor w1);
         IWeightTensor Sub(float v, IWeightTensor w1);
 
         #region Operations for masking
@@ -105,7 +106,10 @@ namespace Seq2SeqSharp
         IWeightTensor Exp(IWeightTensor w);
 
         float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f);
+        float NLLLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f);
 
         IWeightTensor CreateUniformRandomTensor(long[] sizes, float minVal, float maxVal);
+
+        IWeightTensor LogSoftmax(IWeightTensor x);
     }
 }
