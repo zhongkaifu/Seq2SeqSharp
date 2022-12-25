@@ -133,7 +133,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        private (Dictionary<long, LinkedList<long>>, string) BuildIndex()
+        private (Dictionary<long, LinkedList<long>>, Dictionary<long, long>, string) BuildIndex()
         {
             Logger.WriteLine($"Start to build index for data set.");
             SortedDictionary<int, int> dictSrcLenDist = new SortedDictionary<int, int>();
@@ -148,6 +148,7 @@ namespace Seq2SeqSharp.Tools
             BinaryWriter bw = new BinaryWriter(new FileStream(binaryDataSetFilePath, FileMode.Create)); 
 
             Dictionary<long, LinkedList<long>> len2offsets = new Dictionary<long, LinkedList<long>>();
+            Dictionary<long, long> len2lengths = new Dictionary<long, long>();
 
             for (int i = 0; i < m_srcFileList.Count; i++)
             {
@@ -201,10 +202,7 @@ namespace Seq2SeqSharp.Tools
                     }
 
                     long offset = bw.BaseStream.Position;
-                    bw.Write(rawSntPair.SrcTokenSize);
-                    bw.Write(rawSntPair.TgtTokenSize);
-                    bw.Write(rawSntPair.SrcSnt);
-                    bw.Write(rawSntPair.TgtSnt);
+                    bw.Write(String.Join("\n", new string[] { rawSntPair.SrcSnt, rawSntPair.TgtSnt }));
 
                     long length = 0;
                     if (m_shuffleEnums == ShuffleEnums.NoPaddingInSrc)
@@ -223,8 +221,10 @@ namespace Seq2SeqSharp.Tools
                     if (len2offsets.ContainsKey(length) == false)
                     {
                         len2offsets.Add(length, new LinkedList<long>());
+                        len2lengths.Add(length, 0);
                     }
                     len2offsets[length].AddLast(offset);
+                    len2lengths[length]++;
 
                     Interlocked.Increment(ref corpusSize);
                 }
@@ -288,27 +288,28 @@ namespace Seq2SeqSharp.Tools
 
             Logger.WriteLine($"Finished to build index for data set.");
 
-            return (len2offsets, binaryDataSetFilePath);
+            return (len2offsets, len2lengths, binaryDataSetFilePath);
         }
 
 
-        public long GetNextLength(Dictionary<long, LinkedList<long>> len2offsets)
+        public long GetNextLength(Dictionary<long, LinkedList<long>> len2offsets, Dictionary<long, long> len2counts)
         {
-            int totalItems = 0;
+            long totalItems = 0;
             foreach (var pair in len2offsets)
             {
-                totalItems += pair.Value.Count;
+                totalItems += len2counts[pair.Key];
             }
 
-            int rndItems = rnd.Next(totalItems);
+            int rndItems = rnd.Next((int)totalItems);
             totalItems = 0;
             foreach (var pair in len2offsets)
             {
-                if (totalItems <= rndItems && totalItems + pair.Value.Count >= rndItems)
+                long length = len2counts[pair.Key];
+                if (totalItems <= rndItems && totalItems + length >= rndItems)
                 {
                     return pair.Key;
                 }
-                totalItems += pair.Value.Count;
+                totalItems += length;
             }
 
             return -1;
@@ -316,60 +317,70 @@ namespace Seq2SeqSharp.Tools
 
         public void PrepareDataSet()
         {
-            (var length2offsets, string tmpDataSetFilePath) = BuildIndex();
+            (var length2offsets, var length2counts, string tmpDataSetFilePath) = BuildIndex();
 
             int batchNum = 0;
             Logger.WriteLine($"Start to sort and shuffle data set by length.");
 
             m_binaryDataSetFilePath = tmpDataSetFilePath + ".sorted";
             using (BinaryWriter bw = new BinaryWriter(new FileStream(m_binaryDataSetFilePath, FileMode.Create)))
-            using (BinaryReader br = new BinaryReader(new FileStream(tmpDataSetFilePath, FileMode.Open)))
+            using (MemoryMappedFile mmf = MemoryMappedFile.CreateFromFile(tmpDataSetFilePath))
+            using (MemoryMappedViewStream mms = mmf.CreateViewStream())
             {
-                while (length2offsets.Count > 0)
+                using (BinaryReader br = new BinaryReader(mms))
                 {
-                    long length = GetNextLength(length2offsets);
-                    LinkedList<long> offsets = length2offsets[length];
-
-                    int totalSrcTokenSize = 0;
-                    int totalTgtTokenSize = 0;
-                    int sentSize = 0;
-                    List<string> srcLines = new List<string>();
-                    List<string> tgtLines = new List<string>();
-                    while (totalSrcTokenSize + totalTgtTokenSize < m_maxTokenSizePerBatch && offsets.Any())
+                    while (length2offsets.Count > 0)
                     {
-                        long offset = offsets.First.Value;
-                        offsets.RemoveFirst();
+                        long length = GetNextLength(length2offsets, length2counts);
+                        LinkedList<long> offsets = length2offsets[length];
 
-                        br.BaseStream.Seek(offset, SeekOrigin.Begin);
-                        totalSrcTokenSize += br.ReadInt32();
-                        totalTgtTokenSize += br.ReadInt32();
-                        srcLines.Add(br.ReadString());
-                        tgtLines.Add(br.ReadString());
+                        int totalSrcTokenSize = 0;
+                        int totalTgtTokenSize = 0;
+                        int sentSize = 0;
+                        List<string> srcLines = new List<string>();
+                        List<string> tgtLines = new List<string>();
+                        while (totalSrcTokenSize + totalTgtTokenSize < m_maxTokenSizePerBatch && offsets.Any())
+                        {
+                            long offset = offsets.First.Value;
+                            offsets.RemoveFirst();
+                            length2counts[length]--;
 
-                        sentSize++;
+                            br.BaseStream.Seek(offset, SeekOrigin.Begin);
+
+                            string[] srcTgtLine = br.ReadString().Split("\n");
+                            string srcLine = srcTgtLine[0];
+                            string tgtLine = srcTgtLine[1];
+
+                            totalSrcTokenSize += srcLine.Split(' ').Length;
+                            totalTgtTokenSize += tgtLine.Split(' ').Length;
+
+                            srcLines.Add(srcLine);
+                            tgtLines.Add(tgtLine);
+
+
+                            sentSize++;
+                        }
+
+                        bw.Write(sentSize);
+                        bw.Write(String.Join("\n", srcLines));
+                        bw.Write(String.Join("\n", tgtLines));
+
+                        batchNum++;
+                        if (batchNum % 10000 == 0)
+                        {
+                            Logger.WriteLine($"Batch '{batchNum}' has been processed.");
+                        }
+
+
+                        if (offsets.Any() == false)
+                        {
+                            length2offsets.Remove(length);
+                            length2counts.Remove(length);
+                        }
                     }
 
-                    bw.Write(sentSize);
-                    for (int i = 0; i < sentSize; i++)
-                    {
-                        bw.Write(srcLines[i]);
-                        bw.Write(tgtLines[i]);
-                    }
-
-                    batchNum++;
-                    if (batchNum % 10000 == 0)
-                    {
-                        Logger.WriteLine($"Batch '{batchNum}' has been processed.");
-                    }
-
-
-                    if (offsets.Any() == false)
-                    {
-                        length2offsets.Remove(length);
-                    }
+                    bw.Write(-1);
                 }
-
-                bw.Write(-1);
             }
 
             File.Delete(tmpDataSetFilePath);
@@ -395,10 +406,15 @@ namespace Seq2SeqSharp.Tools
                         }
 
                         List<SntPair> outputs = new List<SntPair>();
+
+                        string[] srcLines = br.ReadString().Split("\n");
+                        string[] tgtLines = br.ReadString().Split("\n");
+
+
                         for (int i = 0; i < sizeInBatch; i++)
                         {
-                            var srcLine = br.ReadString();
-                            var tgtLine = br.ReadString();
+                            var srcLine = srcLines[i];
+                            var tgtLine = tgtLines[i];
 
                             SntPair sntPair = new SntPair(srcLine, tgtLine);
                             outputs.Add(sntPair);

@@ -73,6 +73,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("Encoder type: LSTM, BiLSTM, Transformer", nameof(EncoderType))]
         public EncoderTypeEnums EncoderType = EncoderTypeEnums.Transformer;
 
+        [Arg("The gamma value of focal loss. Default is 0.0f", nameof(FocalLossGamma))]
+        public float FocalLossGamma = 0.0f;
+
         [Arg("Clip gradients", nameof(GradClip))]
         public float GradClip = 3.0f;
 

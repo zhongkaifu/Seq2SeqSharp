@@ -678,7 +678,6 @@ namespace Seq2SeqSharp.Tools
                 {
                     if (m.NeedGradient)
                     {
-//                        res.ReleaseWeight();
                         Ops.AddMul(m.TGradient, m.TGradient, res.TGradient, res.TWeight);
                     }
                     res.Dispose();
@@ -692,6 +691,40 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+        public IWeightTensor Pow(IWeightTensor w, float n)
+        {
+            WeightTensor m = w as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}_{n}.Pow", graphToBind: this, needGradient: m.NeedGradient);
+
+            Ops.Pow(res.TWeight, m.TWeight, n);
+            if (m_needsBackprop)
+            {
+                void backward()
+                {
+                    res.ReleaseWeight();
+                    if (m.NeedGradient)
+                    {
+                        var tTmp1 = Ops.Pow(null, m.TWeight, n - 1.0f);
+                        var tTmp2 = Ops.Mul(null, tTmp1, n);
+
+                        Ops.AddMul(m.TGradient, m.TGradient, res.TGradient, tTmp2);
+
+                        tTmp2.Dispose();
+                        tTmp1.Dispose();
+
+                    }
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+
+                res.UnbindFromComputeGraph();
+
+            }
+
+            return res;
+
+
+        }
 
 
         public IWeightTensor Add(IWeightTensor w1, float v)
@@ -2324,7 +2357,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f)
+        public float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f, float gamma = 0.0f)
         {
             var scatterIdxTensor = View(truthTgtSeqs, new long[] { -1, 1 });
             var loss = Gather(probs, scatterIdxTensor, 1);
@@ -2334,14 +2367,27 @@ namespace Seq2SeqSharp.Tools
                 loss = Add(loss, smooth);
             }
 
+            IWeightTensor focalFactor = null;
+            if (gamma > 0.0f)
+            {
+                focalFactor = Sub(1.0f, loss);
+                focalFactor = Pow(focalFactor, gamma);
+            }
+
             loss = Log(loss);
             loss = Mul(loss, -1.0f);
+
+            if (focalFactor != null)
+            {
+                loss = Mul(loss, focalFactor);
+            }
+
             loss.FillGradient(graident);
 
             return loss.ToWeightArray().Sum() / loss.ElementCount;
         }
 
-        public float NLLLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f)
+        public float NLLLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f, float gamma = 0.0f)
         {
             var scatterIdxTensor = View(truthTgtSeqs, new long[] { -1, 1 });
             var loss = Gather(probs, scatterIdxTensor, 1);
@@ -2351,7 +2397,19 @@ namespace Seq2SeqSharp.Tools
                 loss = Add(loss, smooth);
             }
 
+            IWeightTensor focalFactor = null;
+            if (gamma > 0.0f)
+            {
+                focalFactor = Sub(1.0f, loss);
+                focalFactor = Pow(focalFactor, gamma);
+            }
+
             loss = Mul(loss, -1.0f);
+            if (focalFactor != null)
+            {
+                loss = Mul(loss, focalFactor);
+            }
+
             loss.FillGradient(graident);
 
             return loss.ToWeightArray().Sum() / loss.ElementCount;
