@@ -323,7 +323,7 @@ namespace Seq2SeqSharp.Tools
             Logger.WriteLine($"Start to sort and shuffle data set by length.");
 
             m_binaryDataSetFilePath = tmpDataSetFilePath + ".sorted";
-            using (BinaryWriter bw = new BinaryWriter(new FileStream(m_binaryDataSetFilePath, FileMode.Create)))
+            using (BinaryWriter bw = new BinaryWriter(new FileStream(m_binaryDataSetFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 40960000)))
             using (MemoryMappedFile mmf = MemoryMappedFile.CreateFromFile(tmpDataSetFilePath))
             using (MemoryMappedViewStream mms = mmf.CreateViewStream())
             {
