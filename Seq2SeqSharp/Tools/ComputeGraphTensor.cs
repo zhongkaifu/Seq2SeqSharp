@@ -2407,7 +2407,7 @@ namespace Seq2SeqSharp.Tools
             loss = Mul(loss, -1.0f);
             if (focalFactor != null)
             {
-                loss = Mul(loss, focalFactor);
+                loss = EltMul(loss, focalFactor);
             }
 
             loss.FillGradient(graident);
