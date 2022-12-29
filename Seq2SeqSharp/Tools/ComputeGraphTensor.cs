@@ -2085,19 +2085,19 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightTensor Gather(IWeightTensor src, IWeightTensor indices, int dim)
+        public IWeightTensor Gather(IWeightTensor src, IWeightTensor indices, int dim, bool runGradients = true)
         {
             WeightTensor i = indices as WeightTensor;
             WeightTensor s = src as WeightTensor;
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(indices.Sizes, m_deviceId, name: $"Gather_{m_deviceId}", graphToBind: this, needGradient: s.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(indices.Sizes, m_deviceId, name: $"Gather_{m_deviceId}", graphToBind: this, needGradient: s.NeedGradient && runGradients);
             Ops.Gather(res.TWeight, s.TWeight, dim, i.TWeight);
 
             if (m_needsBackprop)
             {
                 void backward()
                 {
-                    if (s.NeedGradient)
+                    if (s.NeedGradient && runGradients)
                     {
                         res.ReleaseWeight();
                         Ops.ScatterAdd(s.TGradient, res.TGradient, dim, i.TWeight);
@@ -2360,7 +2360,11 @@ namespace Seq2SeqSharp.Tools
         public float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f, float gamma = 0.0f)
         {
             var scatterIdxTensor = View(truthTgtSeqs, new long[] { -1, 1 });
-            var loss = Gather(probs, scatterIdxTensor, 1);
+
+            var scatterTrue = Scatter(scatterIdxTensor, 1.0f, 1, needGradient: false, shape: probs.Sizes);
+            var scatterFalse = Sub(1.0f, scatterTrue);
+            var probsFalse = Sub(1.0f, probs);            
+            var loss = EltMulMulAdd(scatterTrue, probs, scatterFalse, probsFalse);
 
             if (smooth > 0.0f)
             {
@@ -2384,35 +2388,30 @@ namespace Seq2SeqSharp.Tools
 
             loss.FillGradient(graident);
 
-            return loss.ToWeightArray().Sum() / loss.ElementCount;
+            var lossTrue = Gather(loss, scatterIdxTensor, 1, runGradients: false);
+            return lossTrue.ToWeightArray().Sum() / loss.ElementCount;
         }
 
-        public float NLLLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f, float gamma = 0.0f)
+        public float NLLLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f)
         {
             var scatterIdxTensor = View(truthTgtSeqs, new long[] { -1, 1 });
-            var loss = Gather(probs, scatterIdxTensor, 1);
+
+            var scatterTrue = Scatter(scatterIdxTensor, 1.0f, 1, needGradient: false, shape: probs.Sizes);
+            var scatterFalse = Sub(1.0f, scatterTrue);
+            var probsFalse = Sub(1.0f, probs);
+            var loss = EltMulMulAdd(scatterTrue, probs, scatterFalse, probsFalse);
 
             if (smooth > 0.0f)
             {
                 loss = Add(loss, smooth);
             }
 
-            IWeightTensor focalFactor = null;
-            if (gamma > 0.0f)
-            {
-                focalFactor = Sub(1.0f, loss);
-                focalFactor = Pow(focalFactor, gamma);
-            }
 
             loss = Mul(loss, -1.0f);
-            if (focalFactor != null)
-            {
-                loss = EltMul(loss, focalFactor);
-            }
-
             loss.FillGradient(graident);
 
-            return loss.ToWeightArray().Sum() / loss.ElementCount;
+            var lossTrue = Gather(loss, scatterIdxTensor, 1, runGradients: false);
+            return lossTrue.ToWeightArray().Sum() / loss.ElementCount;
         }
 
 

@@ -74,7 +74,7 @@ namespace Seq2SeqSharp
         void Unbind(IWeightTensor w);
 
 
-        IWeightTensor Gather(IWeightTensor src, IWeightTensor indices, int dim);
+        IWeightTensor Gather(IWeightTensor src, IWeightTensor indices, int dim, bool runGradients = true);
         IWeightTensor Scatter(IWeightTensor source, IWeightTensor indices, int dim, params long[] shape);
         IWeightTensor Scatter(IWeightTensor indices, float val, int dim, bool runGradient = true, params long[] shape);
         IWeightTensor ScatterAdd(IWeightTensor source, IWeightTensor indices, int dim, params long[] shape);
@@ -107,7 +107,7 @@ namespace Seq2SeqSharp
         IWeightTensor Pow(IWeightTensor w, float n);
 
         float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f, float gamma = 0.0f);
-        float NLLLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f, float gamma = 0.0f);
+        float NLLLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f);
 
         IWeightTensor CreateUniformRandomTensor(long[] sizes, float minVal, float maxVal);
 
