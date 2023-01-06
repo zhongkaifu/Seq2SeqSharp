@@ -757,8 +757,17 @@ namespace TensorSharp
 			Apply2(result, src, func);
 		}
 
+        unsafe static public void Exp(Tensor result, Tensor src)
+        {
+            unsafe void func(float* r, float* s)
+            {
+                *r = (float)Math.Exp(*s);
+            };
 
-		unsafe static public void TanhD(Tensor result, Tensor resW, Tensor resG)
+            Apply2(result, src, func);
+        }
+
+        unsafe static public void TanhD(Tensor result, Tensor resW, Tensor resG)
 		{
 			unsafe void func(float* r, float* x, float* y)
 			{

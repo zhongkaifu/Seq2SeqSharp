@@ -208,9 +208,14 @@ namespace TensorSharp.Cpu
             return writeTarget;
         }
 
-        private readonly MethodInfo exp_func = NativeWrapper.GetMethod("TS_Exp");
         [RegisterOpStorageType("exp", typeof(CpuStorage))]
-        public Tensor Exp(Tensor result, Tensor src) { return NativeWrapper.InvokeNullableResultElementwise(exp_func, result, src); }
+        public Tensor Exp(Tensor result, Tensor src) 
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
+            TensorApplyCPU.Exp(writeTarget, src);
+
+            return writeTarget;
+        }
 
         [RegisterOpStorageType("log", typeof(CpuStorage))]
         public Tensor Log(Tensor result, Tensor src) 

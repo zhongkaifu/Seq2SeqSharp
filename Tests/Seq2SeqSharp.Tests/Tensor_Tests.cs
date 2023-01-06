@@ -20,6 +20,8 @@ namespace Seq2SeqSharp.Tests
     [TestClass]
     public class Tensor_Tests
     {
+        static Random rnd = new Random(DateTime.Now.Millisecond);
+
         private Tensor BuildTensor(long[] shape, int deviceId, float value)
         {
             Tensor tensorA = new Tensor(TensorAllocator.Allocator(deviceId), DType.Float32, sizes: shape);
@@ -35,6 +37,41 @@ namespace Seq2SeqSharp.Tests
             return tensorA;
         }
 
+        [TestMethod]
+        public void TestScatter()
+        {
+            int deviceId = 0;
+            int N = 100;
+            int categoryNum = 10;
+            TensorAllocator.InitDevices(ProcessorTypeEnums.CPU, new int[] { deviceId });
+            var tensorIdx = BuildTensor(shape: new long[] { N, 1}, deviceId, 0.0f);
+            float[] arrayIdx = new float[N];
+
+            //Build ground truth labels
+            for (int i = 0; i < N; i++)
+            {
+                arrayIdx[i] = rnd.Next(0, categoryNum);
+            }
+            tensorIdx.SetElementsAsFloat(arrayIdx);
+
+            var resultTensor = BuildTensor(shape: new long[] { N, categoryNum }, deviceId, 0.0f);
+            Ops.ScatterFill(resultTensor, 1.0f, 1, tensorIdx);
+
+            float[] arrayResult = new float[N * categoryNum];
+            resultTensor.CopyToArray(arrayResult);
+
+            for (int i = 0; i < N; i++)
+            {
+                Assert.IsTrue(arrayResult[i * categoryNum + (int)arrayIdx[i]] == 1.0f);
+                for (int j = 0; j < categoryNum; j++)
+                {
+                    if (j != (int)arrayIdx[i])
+                    {
+                        Assert.IsTrue(arrayResult[i * categoryNum + j] == 0.0f);
+                    }
+                }
+            }
+        }
 
         [TestMethod]
         public void TestAtomicAdd()

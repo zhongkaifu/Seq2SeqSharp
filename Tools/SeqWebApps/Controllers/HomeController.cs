@@ -85,11 +85,22 @@ namespace SeqWebApps.Controllers
             string prefixTgtLine = "";
 
             //The generated target tokens are too long, let's truncate it.
-            if (tgtInputText.Length > tgtContextSize)
+            var maxTgtContextSize = tgtContextSize - tokenNumToGenerate;
+            if (tgtInputText.Length > maxTgtContextSize)
             {
-                prefixTgtLine = tgtInputText.Substring(0, tgtInputText.Length - tgtContextSize);
-                tgtInputText = tgtInputText.Substring(tgtInputText.Length - tgtContextSize);
+                int idx = tgtInputText.Length - maxTgtContextSize;
+                while (idx > 0)
+                {
+                    if (tgtInputText[idx] == '。' || tgtInputText[idx] == '.' || tgtInputText[idx] == '？' || tgtInputText[idx] == '!' || tgtInputText[idx] == '?' || tgtInputText[idx] == '!')
+                    {
+                        idx++;
+                        break;
+                    }
+                    idx--;
+                }
 
+                prefixTgtLine = tgtInputText.Substring(0, idx);
+                tgtInputText = tgtInputText.Substring(idx);
             }
 
             string logStr = $"Client = '{clientIP}', SrcInput Text = '{srcInputText}', Repeat Penalty = '{repeatPenalty}', Target Context Size = '{tgtContextSize}'";

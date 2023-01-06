@@ -9,7 +9,6 @@ OPS_API int TS_Neg(TensorRef* result, TensorRef* src);
 OPS_API int TS_Sign(TensorRef* result, TensorRef* src);
 
 OPS_API int TS_Sqrt(TensorRef* result, TensorRef* src);
-OPS_API int TS_Exp(TensorRef* result, TensorRef* src);
 OPS_API int TS_Log1p(TensorRef* result, TensorRef* src);
 OPS_API int TS_Floor(TensorRef* result, TensorRef* src);
 OPS_API int TS_Ceil(TensorRef* result, TensorRef* src);

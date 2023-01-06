@@ -40,7 +40,6 @@ namespace TensorSharp.Cpu
 
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Sqrt(IntPtr result, IntPtr src);
 
-        [DllImport(dll, CallingConvention = cc)] public static extern int TS_Exp(IntPtr result, IntPtr src);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Log1p(IntPtr result, IntPtr src);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Floor(IntPtr result, IntPtr src);
         [DllImport(dll, CallingConvention = cc)] public static extern int TS_Ceil(IntPtr result, IntPtr src);

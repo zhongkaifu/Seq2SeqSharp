@@ -86,3 +86,6 @@ Temporary Items
 /Tests/Seq2SeqSharp.Tests/obj/Release/net7.0/ref
 /Tests/Seq2SeqSharp.Tests/obj/Release/net7.0/refint
 /Tests/Seq2SeqSharp.Tests/obj/Release/net7.0
+/Tests/Seq2SeqSharp.Tests/obj/Release/net6.0/Seq2SeqSharp.Tests.GeneratedMSBuildEditorConfig.editorconfig
+/Tests/Seq2SeqSharp.Tests/obj/Release/net6.0/Seq2SeqSharp.Tests.csproj.AssemblyReference.cache
+/Tests/Seq2SeqSharp.Tests/obj/Release/net6.0/.NETCoreApp,Version=v6.0.AssemblyAttributes.cs

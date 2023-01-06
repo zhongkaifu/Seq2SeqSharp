@@ -328,7 +328,7 @@ public class ComputeGraph_Tests
     }
 
     [TestMethod]
-    public void TestCrossEntropyLoss()
+    public void TestLogSoftmax()
     {
         int batchSize = 5;
         int vocabSize = 20;
@@ -336,13 +336,15 @@ public class ComputeGraph_Tests
         var graph = new ComputeGraphTensor(new WeightTensorFactory(), 0, true);
 
         var tensorA = BuildRandomTensor(shape: new long[2] { batchSize, vocabSize }, name: "tensorA", isTrainable: true);
-        var tensorIdx = BuildRandomLabelTensor(batchSize, vocabSize, "tensorIdx");
 
         var probs = graph.Softmax(tensorA);
-        float[] softmaxWeights = probs.ToWeightArray();
-        graph.CrossEntropyLoss(probs, tensorIdx);
+        var logProbs = graph.Log(probs);
+        var logSoftmaxProbs = graph.LogSoftmax(tensorA);
 
-        graph.Backward();
+        float[] softmaxWeights = logProbs.ToWeightArray();
+        float[] logSoftmaxWeights = logSoftmaxProbs.ToWeightArray();
+
+
 
         //Check if graidents are correct
         for (int i = 0; i < batchSize; i++)
@@ -350,16 +352,9 @@ public class ComputeGraph_Tests
             for (int j = 0; j < vocabSize; j++)
             {
                 float softmaxWeight = softmaxWeights[i * vocabSize + j];
-                float tensorAGrad = tensorA.GetGradientAt(new long[] { i, j });
+                float logSoftmaxWeight = logSoftmaxWeights[i * vocabSize + j];
 
-                if (tensorIdx.GetWeightAt(new long[] {i, 0}) != j)
-                {
-                    Assert.IsTrue(Math.Round(tensorAGrad, 4) == Math.Round(softmaxWeight, 4));
-                }
-                else
-                {
-                    Assert.IsTrue(Math.Round(tensorAGrad, 4) == Math.Round(softmaxWeight - 1.0f, 4));
-                }
+                Assert.IsTrue(Math.Round(softmaxWeight, 4) == Math.Round(logSoftmaxWeight, 4));
             }
         }
     }  

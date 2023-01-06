@@ -88,6 +88,39 @@ public class Seq2Seq_Tests
 
     }
 
+    [TestMethod]
+    [DeploymentItem("seq2seq_mt_enu_chs_tiny_test.model")]
+    public void TestSeq2SeqInferenceWithPrompt()
+    {
+        var opts = new Seq2SeqOptions();
+        opts.ModelFilePath = "seq2seq_mt_enu_chs_tiny_test.model";
+        opts.MaxValidSrcSentLength = 110;
+        opts.MaxValidTgtSentLength = 110;
+        opts.ProcessorType = ProcessorTypeEnums.CPU;
+        opts.DeviceIds = "0";
+
+        var seq2seq = new Seq2Seq(opts);
+        DecodingOptions decodingOptions = opts.CreateDecodingOptions();
+
+        List<List<List<string>>> groupBatchTokens = BuildInputGroupBatchTokens("▁yes , ▁solutions ▁do ▁exist .");
+        List<List<List<string>>> promptGroupBatchTokens = BuildInputGroupBatchTokens("好");
+
+        var nrs = seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, promptGroupBatchTokens, decodingOptions);
+        var out_tokens = nrs[0].Output[0][0];
+        var output = string.Join(" ", out_tokens);
+        Assert.IsTrue(output == "<s> 好 , 解决方案 是 。 </s>");
+
+
+        groupBatchTokens = BuildInputGroupBatchTokens("▁a ▁question ▁of ▁climate .");
+        promptGroupBatchTokens = BuildInputGroupBatchTokens("关于");
+        nrs = seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, promptGroupBatchTokens, decodingOptions);
+        out_tokens = nrs[0].Output[0][0];
+        output = string.Join(" ", out_tokens);
+        Assert.IsTrue(output == "<s> 关于 气候变化 问题 。 </s>");
+
+    }
+
+
     private static List<List<List<string>>> BuildInputGroupBatchTokens(string input)
     {
         var tokens = input.Split(' ').ToList();
@@ -175,7 +208,6 @@ public class Seq2Seq_Tests
             {
                 validCorpusList.Add(new Seq2SeqCorpus(validCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValMaxTokenSizePerBatch, opts.MaxValidSrcSentLength, opts.MaxValidTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence));
             }
-
         }
 
         // Create learning rate
