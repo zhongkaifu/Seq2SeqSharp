@@ -80,3 +80,9 @@ Temporary Items
 /Tests/Seq2SeqSharp.Tests/obj/Release/net6.0/Seq2SeqSharp.Tests.genruntimeconfig.cache
 /Tests/Seq2SeqSharp.Tests/obj/Release/net6.0/ref
 /Tests/Seq2SeqSharp.Tests/obj/Release/net6.0/refint
+/Tests/Seq2SeqSharp.Tests/obj/Debug/net7.0
+/Tools/SeqDictMatchConsole/bin/Debug/net7.0
+/Tools/SeqDictMatchConsole/bin/Release/net7.0
+/Tests/Seq2SeqSharp.Tests/obj/Release/net7.0/ref
+/Tests/Seq2SeqSharp.Tests/obj/Release/net7.0/refint
+/Tests/Seq2SeqSharp.Tests/obj/Release/net7.0

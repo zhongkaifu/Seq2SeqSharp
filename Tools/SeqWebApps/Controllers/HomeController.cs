@@ -43,8 +43,9 @@ namespace SeqWebApps.Controllers
                 tgtInput = "";
             }
 
-            if (useSrcAsPrompt)
+            if (useSrcAsPrompt && String.IsNullOrEmpty(tgtInput))
             {
+                Logger.WriteLine($"Using source text '{srcInput}' as prompt to target text.");
                 tgtInput = srcInput;
             }
 
@@ -100,12 +101,11 @@ namespace SeqWebApps.Controllers
                 }
 
             }
+
             string outputText = Seq2SeqInstance.Call(srcInputText, tgtInputText, tokenNumToGenerate, random, repeatPenalty);
             outputText = prefixTgtLine + outputText;
-//            outputText = outputText.Trim();
 
             // Update logs and dump it every 1 hour when a call comes in.
-
             lock (locker)
             {
                 string truncatedOutput = outputText.Replace(srcInputText, "");

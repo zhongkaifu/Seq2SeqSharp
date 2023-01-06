@@ -317,75 +317,82 @@ namespace Seq2SeqSharp.Tools
 
         public void PrepareDataSet()
         {
-            (var length2offsets, var length2counts, string tmpDataSetFilePath) = BuildIndex();
-
-            int batchNum = 0;
-            Logger.WriteLine($"Start to sort and shuffle data set by length.");
-
-            m_binaryDataSetFilePath = tmpDataSetFilePath + ".sorted";
-            using (BinaryWriter bw = new BinaryWriter(new FileStream(m_binaryDataSetFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 40960000)))
-            using (MemoryMappedFile mmf = MemoryMappedFile.CreateFromFile(tmpDataSetFilePath))
-            using (MemoryMappedViewStream mms = mmf.CreateViewStream())
+            try
             {
-                using (BinaryReader br = new BinaryReader(mms))
+                (var length2offsets, var length2counts, string tmpDataSetFilePath) = BuildIndex();
+
+                int batchNum = 0;
+                Logger.WriteLine($"Start to sort and shuffle data set by length.");
+
+                m_binaryDataSetFilePath = tmpDataSetFilePath + ".sorted";
+                using (BinaryWriter bw = new BinaryWriter(new FileStream(m_binaryDataSetFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 40960000)))
+                using (MemoryMappedFile mmf = MemoryMappedFile.CreateFromFile(tmpDataSetFilePath))
+                using (MemoryMappedViewStream mms = mmf.CreateViewStream())
                 {
-                    while (length2offsets.Count > 0)
+                    using (BinaryReader br = new BinaryReader(mms))
                     {
-                        long length = GetNextLength(length2offsets, length2counts);
-                        LinkedList<long> offsets = length2offsets[length];
-
-                        int totalSrcTokenSize = 0;
-                        int totalTgtTokenSize = 0;
-                        int sentSize = 0;
-                        List<string> srcLines = new List<string>();
-                        List<string> tgtLines = new List<string>();
-                        while (totalSrcTokenSize + totalTgtTokenSize < m_maxTokenSizePerBatch && offsets.Any())
+                        while (length2offsets.Count > 0)
                         {
-                            long offset = offsets.First.Value;
-                            offsets.RemoveFirst();
-                            length2counts[length]--;
+                            long length = GetNextLength(length2offsets, length2counts);
+                            LinkedList<long> offsets = length2offsets[length];
 
-                            br.BaseStream.Seek(offset, SeekOrigin.Begin);
+                            int totalSrcTokenSize = 0;
+                            int totalTgtTokenSize = 0;
+                            int sentSize = 0;
+                            List<string> srcLines = new List<string>();
+                            List<string> tgtLines = new List<string>();
+                            while (totalSrcTokenSize + totalTgtTokenSize < m_maxTokenSizePerBatch && offsets.Any())
+                            {
+                                long offset = offsets.First.Value;
+                                offsets.RemoveFirst();
+                                length2counts[length]--;
 
-                            string[] srcTgtLine = br.ReadString().Split("\n");
-                            string srcLine = srcTgtLine[0];
-                            string tgtLine = srcTgtLine[1];
+                                br.BaseStream.Seek(offset, SeekOrigin.Begin);
 
-                            totalSrcTokenSize += srcLine.Split(' ').Length;
-                            totalTgtTokenSize += tgtLine.Split(' ').Length;
+                                string[] srcTgtLine = br.ReadString().Split("\n");
+                                string srcLine = srcTgtLine[0];
+                                string tgtLine = srcTgtLine[1];
 
-                            srcLines.Add(srcLine);
-                            tgtLines.Add(tgtLine);
+                                totalSrcTokenSize += srcLine.Split(' ').Length;
+                                totalTgtTokenSize += tgtLine.Split(' ').Length;
+
+                                srcLines.Add(srcLine);
+                                tgtLines.Add(tgtLine);
 
 
-                            sentSize++;
+                                sentSize++;
+                            }
+
+                            bw.Write(sentSize);
+                            bw.Write(String.Join("\n", srcLines));
+                            bw.Write(String.Join("\n", tgtLines));
+
+                            batchNum++;
+                            if (batchNum % 10000 == 0)
+                            {
+                                Logger.WriteLine($"Batch '{batchNum}' has been processed.");
+                            }
+
+
+                            if (offsets.Any() == false)
+                            {
+                                length2offsets.Remove(length);
+                                length2counts.Remove(length);
+                            }
                         }
 
-                        bw.Write(sentSize);
-                        bw.Write(String.Join("\n", srcLines));
-                        bw.Write(String.Join("\n", tgtLines));
-
-                        batchNum++;
-                        if (batchNum % 10000 == 0)
-                        {
-                            Logger.WriteLine($"Batch '{batchNum}' has been processed.");
-                        }
-
-
-                        if (offsets.Any() == false)
-                        {
-                            length2offsets.Remove(length);
-                            length2counts.Remove(length);
-                        }
+                        bw.Write(-1);
                     }
-
-                    bw.Write(-1);
                 }
+
+                File.Delete(tmpDataSetFilePath);
+
+                Logger.WriteLine($"Finished to sort and shuffle data set by length.");
             }
-
-            File.Delete(tmpDataSetFilePath);
-
-            Logger.WriteLine($"Finished to sort and shuffle data set by length.");
+            catch (Exception err)
+            {
+                Logger.WriteLine($"Failed to prepare data set: '{err.Message}', Call Stack = '{err.StackTrace}'");
+            }
         }
 
         public IEnumerator<T> GetEnumerator()

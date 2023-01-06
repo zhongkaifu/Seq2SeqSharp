@@ -156,7 +156,7 @@ namespace Seq2SeqSharp
                 var tgtTokensList = m_modelMetaData.ClsVocab.GetWordIndex(tgtSnts);
 
                 var tgtTokensTensor = g.CreateTokensTensor(tgtTokensList);
-                cost = g.CrossEntropyLoss(probs, tgtTokensTensor, gamma: m_options.FocalLossGamma);
+                cost = g.CrossEntropyLoss(probs, tgtTokensTensor, smooth: 1e-9f, gamma: m_options.FocalLossGamma);
             }
             else
             {
