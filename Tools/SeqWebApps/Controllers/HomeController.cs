@@ -12,6 +12,7 @@ using System.Diagnostics;
 using System.Text;
 using AdvUtils;
 using Microsoft.AspNetCore.Mvc;
+using Seq2SeqSharp.Utils;
 using Seq2SeqWebApps;
 using SeqWebApps.Models;
 
@@ -183,6 +184,16 @@ namespace SeqWebApps.Controllers
             return parts.ToArray();
         }
 
+        private bool OnlyPartsInSent(string sent, string[] parts)
+        {
+            foreach (string part in parts)
+            {
+                sent = sent.Replace(part, "");
+            }
+
+            return sent.Trim().IsNullOrEmpty();
+        }
+
         private List<string> SplitSents(string currentSent)
         {
             List<string> sents = new List<string>();
@@ -200,11 +211,11 @@ namespace SeqWebApps.Controllers
                 bool skipNextLine = false;
                 if (i < parts.Length - 1)
                 {
-                    if (setClosedPunct.Contains(parts[i + 1][0]))
+                    if (setClosedPunct.Contains(parts[i + 1][0]) || OnlyPartsInSent(parts[i + 1], parts))
                     {
                         p = parts[i] + parts[i + 1];
                         skipNextLine = true;
-                    }
+                    }                   
                     else
                     {
                         p = parts[i];

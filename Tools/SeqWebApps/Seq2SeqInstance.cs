@@ -119,6 +119,12 @@ namespace Seq2SeqWebApps
             DecodingOptions decodingOptions = opts.CreateDecodingOptions();
             decodingOptions.MaxTgtSentLength = tokenNumToGenerate;
             decodingOptions.RepeatPenalty = repeatPenalty;
+            decodingOptions.RandomSelectOutputToken = random;
+
+            if (repeatPenalty == 0)
+            {
+                decodingOptions.DecodingStrategy = Seq2SeqSharp.Utils.DecodingStrategyEnums.GreedySearch;
+            }
 
             try
             {
@@ -127,12 +133,16 @@ namespace Seq2SeqWebApps
                 var nrs = m_seq2seq.Test<Seq2SeqCorpusBatch>(srcGroupBatchTokens, tgtGroupBatchTokens, decodingOptions);
                 string rst = String.Join(" ", nrs[0].Output[0][0].ToArray(), 0, nrs[0].Output[0][0].Count);
                 bool isEnded = (rst.EndsWith("</s>") || rst == tgtInput);
+
+                //Remove OOV tokens
+                rst = rst.Replace("<unk>", "").Replace("  ", " ");
+
                 rst = (m_tgtSpm != null) ? m_tgtSpm.Decode(rst) : rst;
                 (bool isRepeat, string truncatedStr) = CheckRepeatSentence(rst);
 
                 if (isRepeat)
                 {
-                    rst = truncatedStr + " REPEAT";
+                    rst = truncatedStr + " !!! Found repeat sentences, try to use larger value of penalty for repeat. !!!";
                     isEnded = true;
                 }
 

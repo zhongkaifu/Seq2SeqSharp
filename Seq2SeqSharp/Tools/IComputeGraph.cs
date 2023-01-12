@@ -63,7 +63,7 @@ namespace Seq2SeqSharp
         IWeightTensor LessOrEqual(IWeightTensor w, float val);
         IWeightTensor GreaterThan(IWeightTensor w, float val);
 
-        IWeightTensor SampleIndicue(IWeightTensor w, List<List<int>> seqs, float repeatPenalty = 5.0f);
+        IWeightTensor SampleIndicue(IWeightTensor w, List<List<int>> seqs, float repeatPenalty = 1.0f, bool randomSelect = false);
 
         IWeightTensor Zero(long[] sizes);
         IWeightTensor CreateTensorWeights(long[] sizes, float[] values);

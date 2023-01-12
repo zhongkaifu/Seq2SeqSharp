@@ -37,6 +37,7 @@
 
     <label id="promptRepeatPenalty">Penalty for repeat:</label>
     <select id="ddlRepeatPenalty">
+        <option value="0">0</option>
         <option value="1" selected="selected">1</option>
         <option value="2">2</option>
         <option value="3">3</option>
@@ -72,9 +73,9 @@
 
     <label id="promptContextSize">Context size:</label>
     <select id="ddlContextSize">
-        <option value="128" selected="selected">128</option>
+        <option value="128">128</option>
         <option value="256">256</option>
-        <option value="384">384</option>
+        <option value="384" selected="selected">384</option>
         <option value="512">512</option>
         <option value="768">768</option>
         <option value="1024">1024</option>
@@ -84,6 +85,10 @@
 
     <label id="useSrcAsPrompt">Use source as prompt:</label>
     <input type="checkbox" id="cbUseSrcAsPrompt" checked/>
+
+    <label id="randomOutput">Random output text:</label>
+    <input type="checkbox" id="cbRandomOutput"/>
+
 
     <input type="button" id="btnGet" value="Generate Text" />
     <input type="button" id="btnCancel" value="Cancel" />
@@ -119,16 +124,20 @@ var rq = null;
         $(function () {
             $("#btnGet").click(function () {
 
-                $("#btnGet").attr("disabled", true);
            
                 $("#clientIP").load()
+
+                if (rq != null)
+                {
+                    rq.abort();
+                }
 
                 rq = $.ajax({
                     type: "POST",
                     url: "/Home/GenerateText",
                     data: {
                         "srcInput": $("#txtName").val(), "tgtInput": "", "num": $("#ddlOutputTokenNum").val(),
-                        "random": false, "repeatPenalty": $("#ddlRepeatPenalty").val(),
+                        "random": $('#cbRandomOutput').is(':checked'), "repeatPenalty": $("#ddlRepeatPenalty").val(),
                         "contextSize": $("#ddlContextSize").val(), "clientIP": $("#clientIP").text(), 
                         "useSrcAsPrompt": $('#cbUseSrcAsPrompt').is(':checked')
                     },
@@ -142,8 +151,7 @@ var rq = null;
 
                         if (response.output.endsWith("eos") == true || response.output.endsWith("EOS") == true)
                         {
-                            $("#statusText").html("Done");
-                            $("#btnGet").attr("disabled", false);
+                            $("#statusText").html("Done");                         
                         }
 
 
@@ -169,7 +177,7 @@ var rq = null;
                     type: "POST",
                     url: "/Home/GenerateText",
                     data: { "srcInput": $("#txtName").val(), "tgtInput": $("#outputText").text(), "num": $("#ddlOutputTokenNum").val(), 
-                    "random": false, "repeatPenalty": $("#ddlRepeatPenalty").val(), 
+                    "random": $('#cbRandomOutput').is(':checked'), "repeatPenalty": $("#ddlRepeatPenalty").val(), 
                     "contextSize": $("#ddlContextSize").val() , "clientIP": $("#clientIP").text(),
                     "useSrcAsPrompt": false
                     },
@@ -180,14 +188,12 @@ var rq = null;
                         if (response.output == $("#outputText").text())
                         {
                             $("#statusText").html("Cancelled");
-                            $("#btnGet").attr("disabled", false);
                         }
                         else
                         {
                             if (response.output.endsWith("eos") == true || response.output.endsWith("EOS") == true)
                             {
                                 $("#statusText").html("Done");
-                                $("#btnGet").attr("disabled", false);
                             }
 
                             $("#outputText").html(response.output);
@@ -214,9 +220,6 @@ var rq = null;
 
             $("#btnCancel").click(function () {
                 $("#statusText").html("Cancelled");
-
-                $("#btnGet").attr("disabled", false);
-
                 
                         if (rq != null) {
                             rq.abort();

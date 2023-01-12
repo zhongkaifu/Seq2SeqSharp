@@ -352,7 +352,7 @@ namespace Seq2SeqSharp.Applications
                 {
                     // Output "i"th target word
                     using var targetIdxTensor = (decodingOptions.DecodingStrategy == DecodingStrategyEnums.GreedySearch) ? g.Argmax(probs, 1) : 
-                                                g.SampleIndicue(probs, tgtSeqs, decodingOptions.RepeatPenalty);
+                                                g.SampleIndicue(probs, tgtSeqs, decodingOptions.RepeatPenalty, decodingOptions.RandomSelectOutputToken);
                     IWeightTensor gatherTensor = null;
                     if (outputSentScore)
                     {

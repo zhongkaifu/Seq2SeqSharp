@@ -30,5 +30,7 @@ namespace Seq2SeqSharp.Applications
         // It indicates if aligments to source sequence should be outputted
         public bool OutputAligmentsToSrc = false;
 
+        public bool RandomSelectOutputToken = false;
+
     }
 }

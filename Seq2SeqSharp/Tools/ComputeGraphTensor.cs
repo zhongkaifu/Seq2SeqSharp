@@ -1197,7 +1197,7 @@ namespace Seq2SeqSharp.Tools
         /// <param name="seqs"></param>
         /// <param name="topP"></param>
         /// <returns>The sampled index</returns>
-        public IWeightTensor SampleIndicue(IWeightTensor w, List<List<int>> seqs, float repeatPenalty = 5.0f)
+        public IWeightTensor SampleIndicue(IWeightTensor w, List<List<int>> seqs, float repeatPenalty = 1.0f, bool randomSelect = false)
         {
             int K = seqs[0].Count + 1;
 
@@ -1218,9 +1218,19 @@ namespace Seq2SeqSharp.Tools
                 List<int> seq = seqs[i];
 
                 Dictionary<int, int> tokenId2Distance = new Dictionary<int, int>(); // <tokenId, offsetInSeq>. The last offset of the token in the given sequence
+                Dictionary<int, int> tokenIdCount = new Dictionary<int, int>();
                 for (int j = 0; j < seq.Count; j++)
                 {
                     tokenId2Distance[seq[j]] = seq.Count - j;
+
+                    if (tokenIdCount.ContainsKey(seq[j]) == false)
+                    {
+                        tokenIdCount[seq[j]] = 1;
+                    }
+                    else
+                    {
+                        tokenIdCount[seq[j]]++;
+                    }
                 }
 
                 float maxWeight = float.MinValue;
@@ -1234,7 +1244,18 @@ namespace Seq2SeqSharp.Tools
                     //Decay weights if tokens has already been generated before
                     if (tokenId2Distance.ContainsKey(idx))
                     {
-                        weight = (float)(weight * Math.Log(tokenId2Distance[idx], seq.Count) / repeatPenalty);
+                        var rp = (float)Math.Pow((float)tokenId2Distance[idx] / (float)seq.Count, Math.Log(tokenIdCount[idx] + 1.0f));
+
+                        if (randomSelect)
+                        {
+                            rp = RandomGenerator.floatRandom(Math.Min(0.0f, rp / repeatPenalty), rp);
+                        }
+                        else
+                        {
+                            rp = rp / repeatPenalty;
+                        }
+
+                        weight = (float)(weight * Math.Log(tokenId2Distance[idx], seq.Count) * rp);
                     }
 
                     if (weight > maxWeight)

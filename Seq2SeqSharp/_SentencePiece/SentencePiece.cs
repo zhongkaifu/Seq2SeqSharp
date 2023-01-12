@@ -199,22 +199,22 @@ namespace Seq2SeqSharp._SentencePiece
 
         [M(O.AggressiveInlining)] unsafe private static string ConvertToString( IntPtr ptr )
         {
-            #region comm. EQUAL/SAME METHOD
-            //*
-            var result_bytes = (byte*) ptr.ToPointer();
-            var len = 0;
-            for ( ; ; len++ )
-            {
-                if ( result_bytes[ len ] == 0 )
-                {
-                    break;
-                }
-            }
-            var result = Encoding.UTF8.GetString( result_bytes, len );
-            //*/
-            #endregion
+            //#region comm. EQUAL/SAME METHOD
+            ////*
+            //var result_bytes = (byte*) ptr.ToPointer();
+            //var len = 0;
+            //for ( ; ; len++ )
+            //{
+            //    if ( result_bytes[ len ] == 0 )
+            //    {
+            //        break;
+            //    }
+            //}
+            //var result = Encoding.UTF8.GetString( result_bytes, len );
+            ////*/
+            //#endregion
 
-            //var result = Marshal.PtrToStringUTF8( ptr );
+            var result = Marshal.PtrToStringUTF8( ptr );
             return (result);
         }
         unsafe public string Encode( string input, bool toLower = false )
@@ -270,7 +270,7 @@ namespace Seq2SeqSharp._SentencePiece
 
                 var result = ConvertToString( ptr );
                 Native.__SP_Free( ptr );
-                return (result/*.Replace( '▁', SPACE ).TrimStart( SPACE )*/);
+                return (result.Trim()/*.Replace( '▁', SPACE ).TrimStart( SPACE )*/);
             }
         }
     }
