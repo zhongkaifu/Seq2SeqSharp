@@ -15,11 +15,15 @@ namespace Seq2SeqSharp.Applications
     public class SeqClassificationOptions : Options
     {
 
-        [Arg("It indicates if the embedding is trainable", "IsEmbeddingTrainable")]
+        [Arg("It indicates if the embedding is trainable", nameof(IsEmbeddingTrainable))]
         public bool IsEmbeddingTrainable = true;
 
         [Arg("Maxmium sentence length", nameof(MaxSentLength))]
         public int MaxSentLength = 110;
+
+
+        [Arg("The weights of each tag while calculating loss during training. Format: Tag1:Weight1, Tag2:Weight2, ... ,TagN:WeightN", nameof(TagWeights))]
+        public string TagWeights = "";
 
         public DecodingOptions CreateDecodingOptions()
         {

@@ -76,6 +76,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("The gamma value of focal loss. Default is 0.0f", nameof(FocalLossGamma))]
         public float FocalLossGamma = 0.0f;
 
+        [Arg("The smooth value of loss. Default is 1e-9f", nameof(LossSmooth))]
+        public float LossSmooth = 1e-9f;
+
         [Arg("Clip gradients", nameof(GradClip))]
         public float GradClip = 3.0f;
 

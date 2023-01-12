@@ -33,6 +33,8 @@ namespace Seq2SeqSharp
         private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
         private readonly SeqLabelOptions m_options;
 
+        private readonly float[] m_tagWeightsList = null;
+
         public SeqLabel(SeqLabelOptions options, Vocab srcVocab = null, Vocab clsVocab = null)
             : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions, startToRunValidAfterUpdates: options.StartValidAfterUpdates,
                   runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq, maxDegressOfParallelism: options.TaskParallelism)
@@ -68,6 +70,21 @@ namespace Seq2SeqSharp
             }
 
             m_modelMetaData.ShowModelInfo();
+
+            if (String.IsNullOrEmpty(m_options.TagWeights) == false)
+            {
+                m_tagWeightsList = SplitTagWeights(m_options.TagWeights);
+                Logger.WriteLine("The list of tag weights:");
+                for (int i = 0; i < m_tagWeightsList.Length; i++)
+                {
+                    Logger.WriteLine($"{i}:{m_tagWeightsList[i]}");
+                }
+            }
+            else
+            {
+                Logger.WriteLine("No tag weights are specified.");
+                m_tagWeightsList = null;
+            }
         }
 
         protected override SeqLabelModel LoadModelImpl() => base.LoadModelRoutine<Model_4_ProtoBufSerializer>(CreateTrainableParameters, SeqLabelModel.Create);
@@ -154,9 +171,18 @@ namespace Seq2SeqSharp
             {
                 BuildInTokens.PadSentences(tgtSnts);
                 var tgtTokensList = m_modelMetaData.ClsVocab.GetWordIndex(tgtSnts);
-
                 var tgtTokensTensor = g.CreateTokensTensor(tgtTokensList);
-                cost = g.CrossEntropyLoss(probs, tgtTokensTensor, smooth: 1e-9f, gamma: m_options.FocalLossGamma);
+
+                if (m_tagWeightsList == null)
+                {
+                    cost = g.CrossEntropyLoss(probs, tgtTokensTensor, smooth: m_options.LossSmooth, gamma: m_options.FocalLossGamma);
+                }
+                else
+                {
+                    var tagWeightsTensor = g.CreateTensorWeights(sizes: new long[] { 1, m_tagWeightsList.Length }, m_tagWeightsList);
+                    tagWeightsTensor = g.Expand(tagWeightsTensor, dims: probs.Sizes);
+                    cost = g.CrossEntropyLoss(probs, tgtTokensTensor, tagWeightsTensor, smooth: m_options.LossSmooth, gamma: m_options.FocalLossGamma);
+                }
             }
             else
             {
@@ -181,6 +207,25 @@ namespace Seq2SeqSharp
             nrs.Add(nr);
 
             return nrs;
+        }
+
+
+        public float[] SplitTagWeights(string tagWeights)
+        {
+            Vocab clsVocab = m_modelMetaData.ClsVocab;
+            float[] array = new float[clsVocab.Count];
+            Array.Clear(array, 0, array.Length);
+
+            string[] tagWeightArray = tagWeights.Split(',');
+            foreach(var tagWeight in tagWeightArray)
+            {
+                string[] pair = tagWeight.Trim().Split(':');
+                int idx = clsVocab.GetWordIndex(pair[0]);
+                array[idx] = float.Parse(pair[1]);
+
+            }
+
+            return array;
         }
 
         public void DumpVocabToFiles(string outputSrcVocab, string outputTgtVocab)

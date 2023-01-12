@@ -107,6 +107,7 @@ namespace Seq2SeqSharp
         IWeightTensor Pow(IWeightTensor w, float n);
 
         float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f, float gamma = 0.0f);
+        float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, IWeightTensor graident, float smooth = 0.0f, float gamma = 0.0f);
         float NLLLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f);
 
         IWeightTensor CreateUniformRandomTensor(long[] sizes, float minVal, float maxVal);
