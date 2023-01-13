@@ -181,6 +181,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("The number of updates for weights", nameof(WeightsUpdateCount))]
         public int WeightsUpdateCount = 0;
 
+        [Arg("The step factor of learning rate after each epoch", nameof(LearningRateStepFactor))]
+        public float LearningRateStepFactor = 1.0f;
+
         [Arg("The size of vocabulary in source side", nameof(SrcVocabSize))]
         public int SrcVocabSize = 45000;
 

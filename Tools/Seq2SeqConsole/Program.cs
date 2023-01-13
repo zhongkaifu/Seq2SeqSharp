@@ -78,7 +78,7 @@ namespace Seq2SeqConsole
                     }
 
                     // Create learning rate
-                    ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);
+                    ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount, opts.LearningRateStepFactor);
 
                     // Create optimizer
                     IOptimizer optimizer = Misc.CreateOptimizer(opts);

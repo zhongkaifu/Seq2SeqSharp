@@ -18,9 +18,9 @@ namespace Seq2SeqSharp
         private readonly float m_startLearningRate = 0.001f;
         private int m_weightsUpdateCount = 0;
         private readonly int m_warmupSteps = 8000;
-        private readonly float m_stepFactor = 0.1f;
+        private readonly float m_stepFactor = 1.0f;
 
-        public DecayLearningRate(float startLearningRate, int warmupSteps, int weightsUpdatesCount, float stepFactor = 0.1f)
+        public DecayLearningRate(float startLearningRate, int warmupSteps, int weightsUpdatesCount, float stepFactor = 1.0f)
         {
             Logger.WriteLine($"Creating decay learning rate. StartLearningRate = '{startLearningRate}', WarmupSteps = '{warmupSteps}', WeightsUpdatesCount = '{weightsUpdatesCount}'");
             m_startLearningRate = startLearningRate;

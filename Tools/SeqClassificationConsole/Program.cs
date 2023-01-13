@@ -88,7 +88,7 @@ namespace SeqClassificationConsole
                     }
 
                     // Create learning rate
-                    ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);
+                    ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount, opts.LearningRateStepFactor);
 
                     // Create metrics
                     Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>();
