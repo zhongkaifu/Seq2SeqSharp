@@ -136,7 +136,7 @@ namespace Seq2SeqSharp.Applications
         [Arg("Shuffle Type. It could be NoPaddingInSrc, NoPaddingInTgt and Random", nameof(ShuffleType))]
         public ShuffleEnums ShuffleType = ShuffleEnums.Random;
 
-        [Arg("Task to execute. It could be Train, Valid, Test, DumpVocab or Help", nameof(Task))]
+        [Arg("Task to execute. It supports Train, Valid, Test, DumpVocab, UpdateVocab and Help", nameof(Task))]
         public ModeEnums Task = ModeEnums.Help;
 
         [Arg("How to deal with too long sequence. It can be Ignore or Truncation", nameof(TooLongSequence))]

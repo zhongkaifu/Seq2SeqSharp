@@ -305,7 +305,7 @@ namespace Seq2SeqSharp.Tools
                             SumGradientsToTensorsInDefaultDevice();
 
                             //Optmize parameters
-                            lr = learningRate.GetCurrentLearningRate();
+                            lr = learningRate.GetCurrentLearningRate(ep);
                             List<IWeightTensor> models = GetParametersFromDefaultDevice();
 
                             m_weightsUpdateCount++;

@@ -83,6 +83,22 @@ namespace Seq2SeqSharp
             m_modelMetaData.ShowModelInfo();
         }
 
+        public void UpdateVocabs(Vocab srcVocab, Vocab tgtVocab)
+        {
+            if (srcVocab != null)
+            {
+                m_modelMetaData.SrcVocab = srcVocab;
+            }
+
+            if (tgtVocab != null)
+            {
+                m_modelMetaData.TgtVocab = tgtVocab;
+            }
+
+            SaveModel(createBackupPrevious: true);
+        }
+
+
         protected override Seq2SeqModel LoadModelImpl() => base.LoadModelRoutine<Model_4_ProtoBufSerializer>(CreateTrainableParameters, Seq2SeqModel.Create);
 
         private bool CreateTrainableParameters(IModel model)

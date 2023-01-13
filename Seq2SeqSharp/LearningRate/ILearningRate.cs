@@ -2,6 +2,6 @@
 {
     public interface ILearningRate
     {
-        float GetCurrentLearningRate();
+        float GetCurrentLearningRate(int epoch);
     }
 }

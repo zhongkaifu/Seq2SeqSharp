@@ -7,6 +7,7 @@
         Test,
         Alignment,
         DumpVocab,
+        UpdateVocab,
         Help
     }
 }
