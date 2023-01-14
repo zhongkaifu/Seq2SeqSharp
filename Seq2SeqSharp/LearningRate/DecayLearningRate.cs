@@ -18,21 +18,44 @@ namespace Seq2SeqSharp
         private readonly float m_startLearningRate = 0.001f;
         private int m_weightsUpdateCount = 0;
         private readonly int m_warmupSteps = 8000;
-        private readonly float m_stepFactor = 1.0f;
+        private readonly float m_stepDownFactor = 1.0f;
+        private readonly int m_updateNumToStepDownLearningRate = 0;
 
-        public DecayLearningRate(float startLearningRate, int warmupSteps, int weightsUpdatesCount, float stepFactor = 1.0f)
+        public DecayLearningRate(float startLearningRate, int warmupSteps, int weightsUpdatesCount, float stepDownFactor = 1.0f, int updateNumToStepDownLearningRate = 0)
         {
-            Logger.WriteLine($"Creating decay learning rate. StartLearningRate = '{startLearningRate}', WarmupSteps = '{warmupSteps}', WeightsUpdatesCount = '{weightsUpdatesCount}'");
+            Logger.WriteLine($"Creating decay learning rate. StartLearningRate = '{startLearningRate}', WarmupSteps = '{warmupSteps}', WeightsUpdatesCount = '{weightsUpdatesCount}', StepDownFactor = '{stepDownFactor}', UpdateNumToStepDownLearningRate = '{updateNumToStepDownLearningRate}'");
+
+            if (stepDownFactor != 1.0f)
+            {
+                if (updateNumToStepDownLearningRate > 0)
+                {
+                    Logger.WriteLine($"Step down learning rateo to '{stepDownFactor}' * current_learning_rate after every '{updateNumToStepDownLearningRate}' updates.");
+                }
+                else
+                {
+                    Logger.WriteLine($"Step down learning rateo to '{stepDownFactor}' * current_learning_rate after each epoch.");
+                }
+            }
+
+
             m_startLearningRate = startLearningRate;
             m_warmupSteps = warmupSteps;
             m_weightsUpdateCount = weightsUpdatesCount;
-            m_stepFactor = stepFactor;
+            m_stepDownFactor = stepDownFactor;
+            m_updateNumToStepDownLearningRate = updateNumToStepDownLearningRate;
         }
 
         public float GetCurrentLearningRate(int epoch)
         {
             m_weightsUpdateCount++;
-            float lr = m_startLearningRate * (float)(Math.Pow(m_stepFactor, epoch) * Math.Min(Math.Pow(m_weightsUpdateCount, -0.5), Math.Pow(m_warmupSteps, -1.5) * m_weightsUpdateCount) / Math.Pow(m_warmupSteps, -0.5));
+
+            int stepDownFactor = epoch;
+            if (m_updateNumToStepDownLearningRate > 0)
+            {
+                stepDownFactor = m_weightsUpdateCount / m_updateNumToStepDownLearningRate;
+            }
+
+            float lr = m_startLearningRate * (float)(Math.Pow(m_stepDownFactor, stepDownFactor) * Math.Min(Math.Pow(m_weightsUpdateCount, -0.5), Math.Pow(m_warmupSteps, -1.5) * m_weightsUpdateCount) / Math.Pow(m_warmupSteps, -0.5));
             return lr;
         }
     }

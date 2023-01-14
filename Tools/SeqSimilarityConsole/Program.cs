@@ -87,7 +87,7 @@ namespace SeqSimilarityConsole
                     }
 
                     // Create learning rate
-                    ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount, opts.LearningRateStepFactor);
+                    ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount, opts.LearningRateStepDownFactor);
 
                     // Create metrics
                     IMetric metric = null;

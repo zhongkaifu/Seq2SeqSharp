@@ -211,7 +211,7 @@ public class Seq2Seq_Tests
         }
 
         // Create learning rate
-        ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount, opts.LearningRateStepFactor);
+        ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount, opts.LearningRateStepDownFactor, opts.UpdateNumToStepDownLearningRate);
 
         // Create optimizer
         IOptimizer optimizer = Misc.CreateOptimizer(opts);
