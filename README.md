@@ -2,7 +2,7 @@
 
 [![.NET](https://github.com/zhongkaifu/Seq2SeqSharp/actions/workflows/dotnet.yml/badge.svg)](https://github.com/zhongkaifu/Seq2SeqSharp/actions/workflows/dotnet.yml)
 # Seq2SeqSharp  
-Seq2SeqSharp is a tensor based fast & flexible encoder-decoder deep neural network framework written by .NET (C#). It can be used for sequence-to-sequence task, sequence-labeling task and sequence-classification task and other NLP tasks. Seq2SeqSharp supports both CPUs and GPUs. It's powered by .NET core, so Seq2SeqSharp can run on both Windows and Linux without any modification and recompilation.  
+Seq2SeqSharp is a tensor based fast & flexible encoder-decoder deep neural network framework written by .NET (C#). It can be used for sequence-to-sequence task, sequence-labeling task and sequence-classification task and other NLP tasks. Seq2SeqSharp supports both CPUs and GPUs and is able to run cross-platforms, such as Windows and Linux (x86, x64 and ARM) without any modification and recompilation.  
 
 # Features  
 Pure C# framework   
@@ -10,6 +10,7 @@ Transformer encoder and decoder with pointer generator
 Attention based LSTM decoder with coverage model  
 Bi-directional LSTM encoder  
 Support multi-platforms, such as Windows, Linux, MacOS and others  
+Support multi-architecture, such as X86, X64 and ARM  
 Built-in several networks for sequence-to-sequence, sequence-classification, labeling and similarity tasks  
 Mixture of Experts network that could easily train huge model with less computing cost  
 Built-in SentencePiece supported  
@@ -480,20 +481,6 @@ Besides using the release package, you could also build Seq2SeqSharp from source
 
 # Using different CUDA versions and .NET versions  
 Seq2SeqSharp uses CUDA 11.x and .NET 7.0 by default, but you can still use different versions of them. It has already been tested on .NET core 3.1, CUDA 10.x and some other versions.  
-
-For different CUDA versions, you need to change the versions of ManagedCUDA to the corresponding versions. They are all in *.project files. For example: The following settings are in TensorSharp.CUDA.project for CUDA 10.2  
-```xml
-    <PackageReference Include="ManagedCuda-102">  
-      <Version>10.2.41</Version>  
-    </PackageReference>  
-    <PackageReference Include="ManagedCuda-CUBLAS">  
-      <Version>10.2.41</Version>  
-    </PackageReference>  
-    <PackageReference Include="ManagedCuda-NVRTC">  
-      <Version>10.2.41</Version>  
-    </PackageReference>  
-```
-
 For different .NET versions, you need to modify target framework in *.csproj files. Here is an example to use .net core 3.1 as target framework in Seq2SeqSharp.csproj file.  
 ```xml
     <PropertyGroup>  

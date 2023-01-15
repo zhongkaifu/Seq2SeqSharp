@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\GlobalAssemblyInfo.proj" />
+
+  <PropertyGroup>
+    <AssemblyTitle>CudaBlas for ManagedCuda</AssemblyTitle>
+    <AssemblyProduct>CudaBlas for ManagedCuda</AssemblyProduct>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <AssemblyName>CudaBlas</AssemblyName>
+    <RootNamespace>CudaBlas</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ManagedCUDA\ManagedCuda.netCore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+
+</Project>

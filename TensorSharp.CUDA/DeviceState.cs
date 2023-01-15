@@ -1,4 +1,5 @@
-﻿using ManagedCuda;
+﻿using AdvUtils;
+using ManagedCuda;
 using ManagedCuda.CudaBlas;
 using System;
 using TensorSharp.CUDA.ContextState;
@@ -28,6 +29,7 @@ namespace TensorSharp.CUDA
         {
             CudaContext = new CudaContext(deviceId);
             DeviceInfo = CudaContext.GetDeviceInfo();
+            Logger.WriteLine($"Cuda device '{deviceId}' DeviceName = '{DeviceInfo.DeviceName}' MultiProcessorCount = '{DeviceInfo.MultiProcessorCount}' MaxBlocksPerMultiProcessor = '{DeviceInfo.MaxBlocksPerMultiProcessor}' MaxThreadsPerMultiProcessor = '{DeviceInfo.MaxThreadsPerMultiProcessor}' MaxSharedMemoryPerMultiprocessor = '{DeviceInfo.MaxSharedMemoryPerMultiprocessor}'");
 
             BlasHandles = new ObjectPool<CudaBlas>(1, () =>
             {

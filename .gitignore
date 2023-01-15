@@ -89,3 +89,17 @@ Temporary Items
 /Tests/Seq2SeqSharp.Tests/obj/Release/net6.0/Seq2SeqSharp.Tests.GeneratedMSBuildEditorConfig.editorconfig
 /Tests/Seq2SeqSharp.Tests/obj/Release/net6.0/Seq2SeqSharp.Tests.csproj.AssemblyReference.cache
 /Tests/Seq2SeqSharp.Tests/obj/Release/net6.0/.NETCoreApp,Version=v6.0.AssemblyAttributes.cs
+/ExternalProjects/managedCuda/CudaBlas/bin/x64/Release/net7.0
+/ExternalProjects/managedCuda/CudaBlas/obj
+/ExternalProjects/managedCuda/CudaRand/bin/x64/Release/net7.0
+/ExternalProjects/managedCuda/CudaRand/obj/Debug/net7.0
+/ExternalProjects/managedCuda/CudaRand/obj/x64/Release/net7.0
+/ExternalProjects/managedCuda/CudaRand/obj
+/ExternalProjects/managedCuda/ManagedCUDA/bin/Release/net7.0
+/ExternalProjects/managedCuda/ManagedCUDA/obj
+/ExternalProjects/managedCuda/NVRTC/bin/x64/Release/net7.0
+/ExternalProjects/managedCuda/NVRTC/obj/Debug/net7.0/.NETCoreApp,Version=v7.0.AssemblyAttributes.cs
+/ExternalProjects/managedCuda/NVRTC/obj
+/ExternalProjects/managedCuda/CudaBlas/bin/Release/net7.0
+/ExternalProjects/managedCuda/CudaRand/bin/Release/net7.0
+/ExternalProjects/managedCuda/NVRTC/bin/Release/net7.0

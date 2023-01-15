@@ -406,7 +406,7 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
-            Logger.WriteLine(Logger.Level.info, ConsoleColor.Green, $"Epoch '{ep}' took '{DateTime.Now - startDateTime}' time to finish. AvgCost = {avgCostPerWordInTotal:F6}, AvgCostInLastEpoch = {m_avgCostPerWordInTotalInLastEpoch:F6}");
+            Logger.WriteLine(Logger.Level.info, ConsoleColor.Green, $"Epoch '{ep}' took '{DateTime.Now - startDateTime}' time to finish. AvgCost = {avgCostPerWordInTotal.ToString("e4")}, AvgCostInLastEpoch = {m_avgCostPerWordInTotalInLastEpoch.ToString("e4")}");
             m_avgCostPerWordInTotalInLastEpoch = avgCostPerWordInTotal;
 
             if (EpochEndWatcher != null)

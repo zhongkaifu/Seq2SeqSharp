@@ -43,7 +43,7 @@ namespace SeqClassificationConsole
         private static void ShowOptions(string[] args, SeqClassificationOptions opts)
         {
             string commandLine = string.Join(" ", args);
-            Logger.WriteLine($"SeqClassificationConsole v2.5.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
+            Logger.WriteLine($"SeqClassificationConsole v2.7.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
             Logger.WriteLine($"Command Line = '{commandLine}'");
 
             string strOpts = JsonConvert.SerializeObject( opts, Formatting.Indented, new JsonSerializerSettings() { NullValueHandling = NullValueHandling.Ignore, Converters = new[] { new StringEnumConverter() }, } );

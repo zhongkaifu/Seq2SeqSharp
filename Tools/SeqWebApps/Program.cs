@@ -6,6 +6,7 @@ using Seq2SeqSharp._SentencePiece;
 using Seq2SeqWebApps;
 
 Logger.LogFile = $"{nameof(SeqWebApps)}_{GetTimeStamp(DateTime.Now)}.log";
+Logger.WriteLine($"SeqWebApps v2.7.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
 
 var Configuration = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
 
