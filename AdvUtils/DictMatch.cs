@@ -26,7 +26,7 @@ namespace AdvUtils
     };
 
     //存放每个节点的子树的指针列表（即后继块）
-    public class sufentry
+    public class Sufentry
     {
         public int hashsize; //该后继块的hash表大小
         public int backsepos; //指向其属主dentry节点
@@ -49,7 +49,7 @@ namespace AdvUtils
 
 
         private List<dm_entry_t> dentry; //  存放树的每个节点
-        private List<sufentry> seinfo;
+        private List<Sufentry> seinfo;
         private int sebufsize;
         private List<Lemma> lmlist; // 存放完成匹配对应的某模式
 
@@ -59,7 +59,7 @@ namespace AdvUtils
         public DictMatch()
         {
             dentry = new List<dm_entry_t>();
-            seinfo = new List<sufentry>();
+            seinfo = new List<Sufentry>();
             lmlist = new List<Lemma>();
         }
 
@@ -69,7 +69,7 @@ namespace AdvUtils
             BinaryReader br = new BinaryReader(sr.BaseStream);
 
             dentry = new List<dm_entry_t>();
-            seinfo = new List<sufentry>();
+            seinfo = new List<Sufentry>();
             lmlist = new List<Lemma>();
 
             entrance = br.ReadInt32();
@@ -88,7 +88,7 @@ namespace AdvUtils
             int seinfoCount = br.ReadInt32();
             for (int i = 0; i < seinfoCount; i++)
             {
-                sufentry suf = new sufentry();
+                Sufentry suf = new Sufentry();
                 suf.backsepos = br.ReadInt32();
                 suf.hashsize = br.ReadInt32();
 
@@ -134,7 +134,7 @@ namespace AdvUtils
             }
 
             bw.Write(seinfo.Count);
-            foreach (sufentry item in seinfo)
+            foreach (Sufentry item in seinfo)
             {
                 bw.Write(item.backsepos);
                 bw.Write(item.hashsize);
@@ -169,12 +169,12 @@ namespace AdvUtils
         private void Init()
         {
             dentry = new List<dm_entry_t>();
-            seinfo = new List<sufentry>();
+            seinfo = new List<Sufentry>();
             sebufsize = DM_DEFAULT_SEBUFSIZE;
             lmlist = new List<Lemma>();
 
             entrance = 0;
-            sufentry s = InitSufentry(1, DM_DENTRY_FIRST);
+            Sufentry s = InitSufentry(1, DM_DENTRY_FIRST);
             seinfo.Add(s);
         }
 
@@ -406,7 +406,7 @@ namespace AdvUtils
                 }
 
                 dentry[lastpos].suffix_pos = seinfo.Count;
-                sufentry s = InitSufentry(1, lastpos);
+                Sufentry s = InitSufentry(1, lastpos);
                 seinfo.Add(s);
                 sufpos = dentry[lastpos].suffix_pos;
             }
@@ -459,7 +459,7 @@ namespace AdvUtils
                             sufpos = entrance;
                         }
 
-                        sufentry s = InitSufentry(newhash, lastpos);
+                        Sufentry s = InitSufentry(newhash, lastpos);
                         for (int i = 0; i < hsize; i++)
                         {
                             int others;
@@ -617,9 +617,9 @@ namespace AdvUtils
 
         }
 
-        private sufentry InitSufentry(int hashsize, int backsepos)
+        private Sufentry InitSufentry(int hashsize, int backsepos)
         {
-            sufentry s = new sufentry();
+            Sufentry s = new Sufentry();
             s.hashsize = hashsize;
             s.backsepos = backsepos;
             s.hashList = new int[hashsize];

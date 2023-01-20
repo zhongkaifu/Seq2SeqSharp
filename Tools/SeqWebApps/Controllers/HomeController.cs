@@ -20,10 +20,6 @@ namespace SeqWebApps.Controllers
 {
     public class HomeController : Controller
     {
-        static Dictionary<string, string> dictInputSents = new Dictionary<string, string>();
-        private static DateTime m_dtLastDumpLogs = DateTime.Now;
-        private static object locker = new object();
-
         private readonly ILogger<HomeController> _logger;
 
         public HomeController(ILogger<HomeController> logger)
@@ -35,6 +31,23 @@ namespace SeqWebApps.Controllers
         {
             return View();
         }
+
+        [HttpPost]
+        public void SubmitFeedback(string srcInput, string tgtInput, bool random, float repeatPenalty, int contextSize, string clientIP, bool useSrcAsPrompt, int feedBackType)
+        {
+            if (feedBackType == 1)
+            {
+                //Thumb Up
+                Logger.WriteLine($"ThumbUp: Random = '{random}', repeatPenalty = '{repeatPenalty}', contextSize = '{contextSize}', clientIP = '{clientIP}', useSrcAsPrompt = '{useSrcAsPrompt}', Source = '{srcInput}', Target = '{tgtInput}'");
+            }
+            else
+            {
+                //Thumb Down
+                Logger.WriteLine($"ThumbDown: Random = '{random}', repeatPenalty = '{repeatPenalty}', contextSize = '{contextSize}', clientIP = '{clientIP}', useSrcAsPrompt = '{useSrcAsPrompt}', Source = '{srcInput}', Target = '{tgtInput}'");
+            }
+                    
+        }
+
 
         [HttpPost]
         public IActionResult GenerateText(string srcInput, string tgtInput, int num, bool random, float repeatPenalty, int contextSize, string clientIP, bool useSrcAsPrompt)
@@ -104,53 +117,9 @@ namespace SeqWebApps.Controllers
                 tgtInputText = tgtInputText.Substring(idx);
             }
 
-            string logStr = $"Client = '{clientIP}', SrcInput Text = '{srcInputText}', Repeat Penalty = '{repeatPenalty}', Target Context Size = '{tgtContextSize}'";
-            lock (locker)
-            {
-                if (dictInputSents.ContainsKey(logStr) == false)
-                {
-                    Logger.WriteLine(logStr);
-                }
-
-            }
-
             string outputText = Seq2SeqInstance.Call(srcInputText, tgtInputText, tokenNumToGenerate, random, repeatPenalty);
             outputText = prefixTgtLine + outputText;
-
-            // Update logs and dump it every 1 hour when a call comes in.
-            lock (locker)
-            {
-                string truncatedOutput = outputText.Replace(srcInputText, "");
-                if (dictInputSents.ContainsKey(logStr) == false)
-                {
-                    dictInputSents.Add(logStr, truncatedOutput);
-                }
-                else
-                {
-                    dictInputSents[logStr] = truncatedOutput;
-                }
-                if (DateTime.Now - m_dtLastDumpLogs >= TimeSpan.FromHours(1.0))
-                {
-                    string dumpFilePath = Path.Combine(Directory.GetCurrentDirectory(), "dump_generated_text.log");
-                    List<string> dumpList = new List<string>();
-                    foreach (var pair in dictInputSents)
-                    {
-                        Logger.WriteLine($"Key = '{pair.Key}', Value = '{pair.Value}'");
-
-                        dumpList.Add($"Source = '{pair.Key}'");
-                        dumpList.Add($"Generated text = '{pair.Value}'");
-                        dumpList.Add("");
-                    }
-
-                    System.IO.File.AppendAllLines(dumpFilePath, dumpList);
-
-                    dictInputSents.Clear();
-
-                    m_dtLastDumpLogs = DateTime.Now;
-                }
-            }
-
-
+            
             var outputSents = SplitSents(outputText);
             return String.Join("<br />", outputSents);
 
@@ -235,36 +204,6 @@ namespace SeqWebApps.Controllers
             }
 
             return sents;
-
-            //List<string> newSents = new List<string>();
-            //int matchNum = 0;
-            //string currSent = "";
-            //for (int k = 0; k < sents.Count; k++)
-            //{
-            //    var sent = sents[k];
-            //    for (int i = 0; i < sent.Length; i++)
-            //    {
-            //        if (sent[i] == '“')
-            //        {
-            //            matchNum++;
-            //        }
-            //        else if (sent[i] == '”')
-            //        {
-            //            matchNum--;
-            //        }
-            //    }
-
-            //    currSent = currSent + sent;
-            //    if (matchNum == 0)
-            //    {
-            //        newSents.Add(currSent);
-            //        currSent = "";
-            //    }
-            //}
-
-            //newSents.Add(currSent);
-
-            //return newSents;
         }
 
     }

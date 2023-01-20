@@ -364,7 +364,7 @@ namespace Seq2SeqSharp.Tools
                     Ops.Add(m_TGradient, m_TGradient, src.TGradient);
                 }
             }
-            catch(Exception e)
+            catch(Exception)
             {
                 Logger.WriteLine($"Failed to update gradient for tensor '{Name}({TGradient.ToString()}) from '{src.Name}' ({src.TGradient.ToString()})");
                 throw;

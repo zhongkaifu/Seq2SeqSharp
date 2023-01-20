@@ -491,6 +491,11 @@ For different .NET versions, you need to modify target framework in *.csproj fil
 # Using Intel MKL to speed up training and inference for CPUs  
 Seq2SeqSharp can use Intel MKL to speed up performance for training and inference. To use Intel MKL, set ProcessorType to CPU_MKL, and copy files in dll folder to your current working directory.  
 
+
+# Build and run Seq2SeqSharp in Nvidia Jetson  
+Nvidia Jetson is an advanced platform for edge AI computing. Here is an example that running Seq2SeqSharp on Jetson Nano for Chinese medical QA task.  
+![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Images/medicalQA_demo.gif)  
+
 # Built-in Tags  
 Seq2SeqSharp has several built-in tokens and they are used for certain purposes.  
 | Token   | Comments                                                  |

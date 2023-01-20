@@ -9,7 +9,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Seq2SeqConsole", "Tools\Seq
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9D039B55-012C-49D6-AE5C-E6B4D94697E9}"
 	ProjectSection(SolutionItems) = preProject
+		Images\FictionGeneration.gif = Images\FictionGeneration.gif
+		Images\FictionGeneration_enu.gif = Images\FictionGeneration_enu.gif
 		LICENSE = LICENSE
+		Images\medicalQA_demo1.gif = Images\medicalQA_demo1.gif
 		NetworkViz.png = NetworkViz.png
 		Overview.jpg = Overview.jpg
 		README.md = README.md
