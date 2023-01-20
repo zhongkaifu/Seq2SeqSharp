@@ -494,7 +494,7 @@ Seq2SeqSharp can use Intel MKL to speed up performance for training and inferenc
 
 # Build and run Seq2SeqSharp in Nvidia Jetson  
 Nvidia Jetson is an advanced platform for edge AI computing. Here is an example that running Seq2SeqSharp on Jetson Nano for Chinese medical QA task.  
-![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Images/medicalQA_demo.gif)  
+![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Images/medicalQA_demo1.gif)  
 
 # Built-in Tags  
 Seq2SeqSharp has several built-in tokens and they are used for certain purposes.  
