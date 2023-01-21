@@ -134,9 +134,6 @@ namespace Seq2SeqWebApps
                 string rst = String.Join(" ", nrs[0].Output[0][0].ToArray(), 0, nrs[0].Output[0][0].Count);
                 bool isEnded = (rst.EndsWith("</s>") || rst == tgtInput);
 
-                //Remove OOV tokens
-                rst = rst.Replace("<unk>", "").Replace("  ", " ");
-
                 rst = (m_tgtSpm != null) ? m_tgtSpm.Decode(rst) : rst;
                 (bool isRepeat, string truncatedStr) = CheckRepeatSentence(rst);
 
