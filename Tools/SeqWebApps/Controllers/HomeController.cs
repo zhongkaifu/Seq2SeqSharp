@@ -54,18 +54,18 @@ namespace SeqWebApps.Controllers
         {
             if (tgtInput == null)
             {
+                Logger.WriteLine($"New Request: Random = '{random}', repeatPenalty = '{repeatPenalty}', contextSize = '{contextSize}', clientIP = '{clientIP}', useSrcAsPrompt = '{useSrcAsPrompt}', Source = '{srcInput}'");
                 tgtInput = "";
             }
 
             if (useSrcAsPrompt && String.IsNullOrEmpty(tgtInput))
             {
-                Logger.WriteLine($"Using source text '{srcInput}' as prompt to target text.");
                 tgtInput = srcInput;
             }
 
             TextGenerationModel textGeneration = new TextGenerationModel
             {
-                Output = CallBackend(srcInput, tgtInput, num, random, repeatPenalty, contextSize, clientIP),
+                Output = CallBackend(srcInput, tgtInput, num, random, repeatPenalty, contextSize),
                 DateTime = DateTime.Now.ToString()
             };
 
@@ -73,7 +73,7 @@ namespace SeqWebApps.Controllers
         }
 
 
-        private string CallBackend(string srcInputText, string tgtInputText, int tokenNumToGenerate, bool random, float repeatPenalty, int tgtContextSize, string clientIP)
+        private string CallBackend(string srcInputText, string tgtInputText, int tokenNumToGenerate, bool random, float repeatPenalty, int tgtContextSize)
         {
             if (String.IsNullOrEmpty(srcInputText))
             {
