@@ -114,7 +114,7 @@ namespace Seq2SeqConsole
                             Logger.WriteLine($"Building vocabulary from training corpus. Shared vocabulary is '{opts.SharedEmbeddings}'");
                             // We don't specify vocabulary, so we build it from train corpus
 
-                            (srcVocab, tgtVocab) = trainCorpus.BuildVocabs(opts.SrcVocabSize, opts.TgtVocabSize, opts.SharedEmbeddings);
+                            (srcVocab, tgtVocab) = trainCorpus.BuildVocabs(opts.SrcVocabSize, opts.TgtVocabSize, opts.SharedEmbeddings, opts.MinTokenFreqInVocab);
                         }
 
                         //New training

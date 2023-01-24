@@ -9,6 +9,7 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
 using Seq2SeqSharp.Utils;
+using System.Collections.Generic;
 
 namespace Seq2SeqSharp.Applications
 {
@@ -31,6 +32,5 @@ namespace Seq2SeqSharp.Applications
         public bool OutputAligmentsToSrc = false;
 
         public bool RandomSelectOutputToken = false;
-
     }
 }

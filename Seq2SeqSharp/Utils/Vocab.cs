@@ -252,6 +252,11 @@ namespace Seq2SeqSharp.Utils
             return result;
         }
 
+        /// <summary>
+        /// Convert beam search result to token list
+        /// </summary>
+        /// <param name="beam2batch2seq"></param>
+        /// <returns>Converted list. Format: [Beam_Search_Size, Batch_Size, Sequence_Length]</returns>
         public List<List<List<string>>> ExtractTokens(List<List<BeamSearchStatus>> beam2batch2seq)
         {
             List<List<List<string>>> result = new List<List<List<string>>>();

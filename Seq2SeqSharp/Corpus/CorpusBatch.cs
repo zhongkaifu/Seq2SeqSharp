@@ -245,12 +245,12 @@ namespace Seq2SeqSharp.Corpus
         /// <param name="vocabSize"></param>
         /// <param name="sharedSrcTgtVocabGroupMapping">The mappings for shared vocabularies between source side and target side. The values in the mappings are group ids. For example: sharedSrcTgtVocabGroupMapping[0] = 1 means the first group in source
         /// side and the second group in target side are shared vocabulary</param>
-        static public (List<Vocab>, List<Vocab>) GenerateVocabs(int srcVocabSize = 45000, int tgtVocabSize = 45000)
+        static public (List<Vocab>, List<Vocab>) GenerateVocabs(int srcVocabSize = 45000, int tgtVocabSize = 45000, int minFreq = 1)
         {
             Logger.WriteLine($"Building vocabulary from corpus.");
 
-            List<Vocab> srcVocabs = InnerBuildVocab(srcVocabSize, s_ds, "Source");
-            List<Vocab> tgtVocabs = InnerBuildVocab(tgtVocabSize, t_ds, "Target");
+            List<Vocab> srcVocabs = InnerBuildVocab(srcVocabSize, s_ds, "Source", minFreq);
+            List<Vocab> tgtVocabs = InnerBuildVocab(tgtVocabSize, t_ds, "Target", minFreq);
 
             s_ds.Clear();
             t_ds.Clear();
@@ -258,7 +258,7 @@ namespace Seq2SeqSharp.Corpus
             return (srcVocabs, tgtVocabs);
         }
 
-        private static List<Vocab> InnerBuildVocab(int vocabSize, List<Dictionary<string, int>> ds, string tag)
+        private static List<Vocab> InnerBuildVocab(int vocabSize, List<Dictionary<string, int>> ds, string tag, int minFreq = 1)
         {
             List<Vocab> vocabs = new List<Vocab>();
 
@@ -280,6 +280,11 @@ namespace Seq2SeqSharp.Corpus
                 int q = vocab.IndexToWord.Count;
                 foreach (var kv in sd.Reverse())
                 {
+                    if (kv.Key < minFreq)
+                    {
+                        break;
+                    }
+
                     foreach (var token in kv.Value)
                     {
                         if (BuildInTokens.IsPreDefinedToken(token) == false)
@@ -305,7 +310,7 @@ namespace Seq2SeqSharp.Corpus
 
                 vocabs.Add(vocab);
 
-                Logger.WriteLine($"{tag} Vocab Group '{i}': Original vocabulary size = '{s_d.Count}', Truncated vocabulary size = '{q}'");
+                Logger.WriteLine($"{tag} Vocab Group '{i}': Original vocabulary size = '{s_d.Count}', Truncated vocabulary size = '{q}', Minimum Token Frequency = '{minFreq}'");
 
             }
 

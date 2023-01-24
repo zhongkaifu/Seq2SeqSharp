@@ -201,5 +201,8 @@ namespace Seq2SeqSharp.Applications
 
         [Arg("SentencePiece model for target side", nameof(TgtSentencePieceModelPath))]
         public string TgtSentencePieceModelPath = null;
+
+        [Arg("The minimum token frequency in vocabulary", nameof(MinTokenFreqInVocab))]
+        public int MinTokenFreqInVocab = 1;
     }
 }
