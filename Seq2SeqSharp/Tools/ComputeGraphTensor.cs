@@ -9,6 +9,7 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
 using AdvUtils;
+using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
@@ -1197,7 +1198,7 @@ namespace Seq2SeqSharp.Tools
         /// <param name="seqs"></param>
         /// <param name="topP"></param>
         /// <returns>The sampled index</returns>
-        public IWeightTensor SampleIndicue(IWeightTensor w, List<List<int>> seqs, float repeatPenalty = 1.0f, bool randomSelect = false)
+        public IWeightTensor SampleIndicue(IWeightTensor w, List<List<int>> seqs, float repeatPenalty = 1.0f, bool randomSelect = false, List<int> blockedTokens = null)
         {
             int K = seqs[0].Count + 1;
 
@@ -1241,7 +1242,13 @@ namespace Seq2SeqSharp.Tools
                     float weight = weights[offset + j];
                     int idx = (int)weightsIdx[offset + j];
 
-                    //Decay weights if tokens has already been generated before
+                    if (blockedTokens != null && blockedTokens.Contains(idx))
+                    {
+                        // Ignore tokens in block list
+                        continue;
+                    }
+
+                    // Decay weights if tokens has already been generated before
                     if (tokenId2Distance.ContainsKey(idx))
                     {
                         var rp = (float)Math.Pow((float)tokenId2Distance[idx] / (float)seq.Count, Math.Log(tokenIdCount[idx] + 1.0f));

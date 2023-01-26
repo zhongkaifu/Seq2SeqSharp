@@ -32,5 +32,7 @@ namespace Seq2SeqSharp.Applications
         public bool OutputAligmentsToSrc = false;
 
         public bool RandomSelectOutputToken = false;
+
+        public List<int> BlockedTokens = null;
     }
 }

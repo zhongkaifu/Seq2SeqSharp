@@ -14,6 +14,7 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
 {
     Logger.WriteLine($"Loading Seq2Seq model '{Configuration["Seq2Seq:ModelFilePath"]}'");
 
+#pragma warning disable CS8604 // Possible null reference argument.
     var modelFilePath = Configuration["Seq2Seq:ModelFilePath"];
     var maxTestSrcSentLength = int.Parse(Configuration["Seq2Seq:MaxSrcTokenSize"]);
     var maxTestTgtSentLength = int.Parse(Configuration["Seq2Seq:MaxTgtTokenSize"]);
@@ -25,7 +26,8 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
     var gpuMemoryUsageRatio = float.Parse(Configuration["Seq2Seq:GPUMemoryUsageRatio"]);
     var mklInstructions = Configuration["Seq2Seq:MKLInstructions"];
     var beamSearchSize = int.Parse(Configuration["Seq2Seq:BeamSearchSize"]);
-
+    var blockedTokens = Configuration["Seq2Seq:BlockedTokens"];
+#pragma warning restore CS8604 // Possible null reference argument.
 
     SentencePiece? srcSpm = null;
     if (String.IsNullOrEmpty(Configuration["SourceSpm:ModelFilePath"]) == false)
@@ -39,9 +41,24 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
         tgtSpm = new SentencePiece(Configuration["TargetSpm:ModelFilePath"]);
     }
 
-    Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum = (Seq2SeqSharp.Utils.DecodingStrategyEnums)Enum.Parse(typeof(Seq2SeqSharp.Utils.DecodingStrategyEnums), tokenGenerationStrategy);
 
-    Seq2SeqInstance.Initialization(modelFilePath, maxTestSrcSentLength, maxTestTgtSentLength, processorType, deviceIds, srcSpm, tgtSpm, decodingStrategyEnum, topPSampling, repeatPenalty, memoryUsageRatio: gpuMemoryUsageRatio, mklInstructions: mklInstructions, beamSearchSize: beamSearchSize);
+#pragma warning disable CS8604 // Possible null reference argument.
+    Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum = (Seq2SeqSharp.Utils.DecodingStrategyEnums)Enum.Parse(typeof(Seq2SeqSharp.Utils.DecodingStrategyEnums), tokenGenerationStrategy);
+    Seq2SeqInstance.Initialization(modelFilePath,
+                                   maxTestSrcSentLength,
+                                   maxTestTgtSentLength,
+                                   processorType,
+                                   deviceIds,
+                                   srcSpm,
+                                   tgtSpm,
+                                   decodingStrategyEnum,
+                                   topPSampling,
+                                   repeatPenalty,
+                                   memoryUsageRatio: gpuMemoryUsageRatio,
+                                   mklInstructions: mklInstructions,
+                                   beamSearchSize: beamSearchSize,
+                                   blockedTokens: blockedTokens);
+#pragma warning restore CS8604 // Possible null reference argument.
 }
 
 

@@ -13,6 +13,7 @@ using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp._SentencePiece;
 using Seq2SeqSharp.Applications;
 using AdvUtils;
+using Seq2SeqSharp.Utils;
 
 namespace Seq2SeqWebApps
 {
@@ -23,9 +24,12 @@ namespace Seq2SeqWebApps
         static private SentencePiece? m_tgtSpm = null;
         static private Seq2SeqOptions? opts;
         static Semaphore? sm = null;
+        static List<int>? m_blockedTokens = null;
+
+        static public int MaxTokenToGenerate => opts.MaxTgtSentLength;
 
         static public void Initialization(string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, ProcessorTypeEnums processorType, string deviceIds, SentencePiece? srcSpm, SentencePiece? tgtSpm,
-            Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum, float topPSampling, float repeatPenalty, float memoryUsageRatio, string mklInstructions, int beamSearchSize)
+            Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum, float topPSampling, float repeatPenalty, float memoryUsageRatio, string mklInstructions, int beamSearchSize, string blockedTokens)
         {
             opts = new Seq2SeqOptions();
             opts.ModelFilePath = modelFilePath;
@@ -51,7 +55,22 @@ namespace Seq2SeqWebApps
                 sm = new Semaphore(1, 1);
             }
 
+            Logger.WriteLine("Creating Seq2Seq instance...");
+
             m_seq2seq = new Seq2Seq(opts);
+
+            if (String.IsNullOrEmpty(blockedTokens) == false)
+            {
+                Logger.WriteLine($"Creating blocked tokens = '{blockedTokens}'");
+                string[] tokens = blockedTokens.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                
+                m_blockedTokens = new List<int>();
+                foreach (var token in tokens)
+                {
+                    m_blockedTokens.Add(int.Parse(token));
+                }
+            }
+
         }
 
         static (bool, string) CheckRepeatSentence(string sent)
@@ -84,24 +103,24 @@ namespace Seq2SeqWebApps
             }
 
             var srcInput = (m_srcSpm != null) ? m_srcSpm.Encode(rawSrcInput) : rawSrcInput;
-            List<string> tokens = srcInput.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
+            List<string> srcTokens = srcInput.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
 
-            if (tokens.Count > opts.MaxSrcSentLength)
+            if (srcTokens.Count > opts.MaxSrcSentLength)
             {
-                tokens = tokens.GetRange(tokens.Count - opts.MaxSrcSentLength, opts.MaxSrcSentLength);
+                srcTokens = srcTokens.GetRange(srcTokens.Count - opts.MaxSrcSentLength, opts.MaxSrcSentLength);
             }
 
 
             List<List<String>> batchTokens = new List<List<string>>();
-            batchTokens.Add(tokens);
+            batchTokens.Add(srcTokens);
 
             List<List<List<string>>> srcGroupBatchTokens = new List<List<List<string>>>();
             srcGroupBatchTokens.Add(batchTokens);
 
 
             var tgtInput = (m_tgtSpm != null) ? m_tgtSpm.Encode(rawTgtInput) : rawTgtInput;
-            List<string> tokens2 = tgtInput.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
-            tokenNumToGenerate += tokens2.Count;
+            List<string> tgtTokens = tgtInput.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
+            tokenNumToGenerate += tgtTokens.Count;
 
             if (tokenNumToGenerate > opts.MaxTgtSentLength)
             {
@@ -111,7 +130,7 @@ namespace Seq2SeqWebApps
             }
 
             List<List<String>> batchTokens2 = new List<List<string>>();
-            batchTokens2.Add(tokens2);
+            batchTokens2.Add(tgtTokens);
 
             List<List<List<string>>> tgtGroupBatchTokens = new List<List<List<string>>>();
             tgtGroupBatchTokens.Add(batchTokens2);
@@ -121,6 +140,7 @@ namespace Seq2SeqWebApps
             decodingOptions.MaxTgtSentLength = tokenNumToGenerate;
             decodingOptions.RepeatPenalty = repeatPenalty;
             decodingOptions.RandomSelectOutputToken = random;
+            decodingOptions.BlockedTokens = m_blockedTokens;
 
             if (repeatPenalty == 0)
             {
@@ -136,11 +156,11 @@ namespace Seq2SeqWebApps
                 bool isEnded = (rst.EndsWith("</s>") || rst == tgtInput);
 
                 rst = (m_tgtSpm != null) ? m_tgtSpm.Decode(rst) : rst;
-                (bool isRepeat, string truncatedStr) = CheckRepeatSentence(rst);
+                (bool isRepeat, rst) = CheckRepeatSentence(rst);
 
                 if (isRepeat)
                 {
-                    rst = truncatedStr + " !!! Found repeat sentences, try to use larger value of penalty for repeat. !!!";
+                    rst = rst + " !!! Found repeat sentences, try to use larger value of penalty for repeat. !!!";
                     isEnded = true;
                 }
 
