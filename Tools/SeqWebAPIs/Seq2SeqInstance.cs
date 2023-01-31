@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using AdvUtils;
 using Seq2SeqSharp;
@@ -39,7 +40,10 @@ namespace Seq2SeqWebAPI
         {
             if (string.IsNullOrWhiteSpace(input)) return (input);
 
-            input = _SrcSentPiece.Encode(input);
+            if (_SrcSentPiece != null)
+            {
+                input = _SrcSentPiece.Encode(input);
+            }
 
             var tokens = input.Split(' ').ToList();
             var batchTokens = new List<List<string>> { tokens };
@@ -48,8 +52,17 @@ namespace Seq2SeqWebAPI
             DecodingOptions decodingOptions = opts.CreateDecodingOptions();
             var nrs = m_seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, null, decodingOptions);
             var out_tokens = nrs[0].Output[0][0];
-            var rst = _TgtSentPiece.Decode(out_tokens, 1, out_tokens.Count - 2);
-            //---var rst = string.Join( " ", out_tokens.ToArray(), 1, out_tokens.Count - 2 );
+
+            string rst = null;
+            if (_TgtSentPiece != null)
+            {
+                rst = _TgtSentPiece.Decode(out_tokens, 1, out_tokens.Count - 2);
+            }
+            else
+            {
+                rst = String.Join(" ", out_tokens);
+            }
+
             return rst;
         }
     }

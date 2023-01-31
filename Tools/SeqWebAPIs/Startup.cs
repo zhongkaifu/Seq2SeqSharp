@@ -37,11 +37,20 @@ namespace SeqWebAPIs
                 processorType = Configuration[ "Seq2Seq:ProcessorType" ].ToEnum< ProcessorTypeEnums >();
                 deviceIds = Configuration[ "Seq2Seq:DeviceIds" ];
 
-                var srcSentPiece = new SentencePiece( Configuration[ "Seq2Seq:SrcSentencePieceModelPath" ] );
-                var tgtSentPiece = new SentencePiece( Configuration[ "Seq2Seq:TgtSentencePieceModelPath" ] );
+                SentencePiece? srcSpm = null;
+                if (String.IsNullOrEmpty(Configuration["Seq2Seq:SrcSentencePieceModelPath"]) == false)
+                {
+                    srcSpm = new SentencePiece(Configuration["Seq2Seq:SrcSentencePieceModelPath"]);
+                }
+
+                SentencePiece? tgtSpm = null;
+                if (String.IsNullOrEmpty(Configuration["Seq2Seq:TgtSentencePieceModelPath"]) == false)
+                {
+                    tgtSpm = new SentencePiece(Configuration["Seq2Seq:TgtSentencePieceModelPath"]);
+                }
 
                 Seq2SeqInstance.Initialization( modelFilePath, maxTestSrcSentLength, maxTestTgtSentLength, 
-                                                processorType, deviceIds, (srcSentPiece, tgtSentPiece) );
+                                                processorType, deviceIds, (srcSpm, tgtSpm) );
             }
 
             if ( !Configuration[ "SeqClassification:ModelFilePath" ].IsNullOrEmpty() )

@@ -75,7 +75,7 @@ namespace Seq2SeqWebApps
 
         static (bool, string) CheckRepeatSentence(string sent)
         {
-            for (int i = 5; i <= sent.Length / 2; i++)
+            for (int i = 10; i <= sent.Length / 2; i++)
             {
                 string tailPart = sent.Substring(sent.Length - i);
                 string midPart = sent.Substring(sent.Length - i - tailPart.Length, tailPart.Length);
