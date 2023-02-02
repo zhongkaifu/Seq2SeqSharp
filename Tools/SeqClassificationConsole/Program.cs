@@ -149,24 +149,37 @@ namespace SeqClassificationConsole
                     // Kick off training
                     ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, taskId2metrics: taskId2metrics, decodingOptions: decodingOptions);
                 }
-                //else if (opts.Task == ModeEnums.Valid)
-                //{
-                //    Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPath}'");
+                else if (opts.Task == ModeEnums.Valid)
+                {
+                     Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPaths}'");
 
-                //    // Create metrics
-                //    List<IMetric> metrics = new List<IMetric>
-                //{
-                //    new BleuMetric(),
-                //    new LengthRatioMetric()
-                //};
+                    // Create metrics
+                    ss = new SeqClassification(opts);
+                    Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>();
 
-                //    // Load valid corpus
-                //    ParallelCorpus validCorpus = new ParallelCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.ShuffleBlockSize, opts.MaxSrcTestSentLength, opts.MaxTgtTestSentLength, shuffleEnums: shuffleType);
+                    for (int i = 0; i < ss.ClsVocabs.Count; i++)
+                    {
+                        taskId2metrics.Add(i, new List<IMetric>());
+                        taskId2metrics[i].Add(new MultiLabelsFscoreMetric("", ss.ClsVocabs[i].GetAllTokens(keepBuildInTokens: false)));
+                    }
 
-                //    ss = new Seq2Seq(opts);
-                //    ss.EvaluationWatcher += ss_EvaluationWatcher;
-                //    ss.Valid(validCorpus: validCorpus, metrics: metrics);
-                //}
+                    ss = new SeqClassification(opts);
+                    ss.EvaluationWatcher += Ss_EvaluationWatcher;
+
+                    // Load valid corpus
+                    if (!opts.ValidCorpusPaths.IsNullOrEmpty())
+                    {
+                        string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
+                        foreach (var validCorpusPath in validCorpusPathList)
+                        {
+                            Logger.WriteLine($"Loading valid corpus '{validCorpusPath}'");
+                            var validCorpus = new SeqClassificationMultiTasksCorpus(validCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, opts.ValMaxTokenSizePerBatch, opts.MaxSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence);
+
+                            Logger.WriteLine($"Validating corpus '{validCorpusPath}'");
+                            ss.Valid(validCorpus, taskId2metrics, null);
+                        }
+                    }          
+                }
                 else if ( opts.Task == ModeEnums.Test )
                 {
                     if (File.Exists(opts.OutputFile))
