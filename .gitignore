@@ -103,3 +103,7 @@ Temporary Items
 /ExternalProjects/managedCuda/CudaBlas/bin/Release/net7.0
 /ExternalProjects/managedCuda/CudaRand/bin/Release/net7.0
 /ExternalProjects/managedCuda/NVRTC/bin/Release/net7.0
+/ExternalProjects/managedCuda/CudaBlas/bin/Debug/net7.0
+/ExternalProjects/managedCuda/CudaRand/bin/Debug/net7.0
+/ExternalProjects/managedCuda/NVRTC/bin/Debug/net7.0
+/ExternalProjects/managedCuda/ManagedCUDA/bin/Debug/net7.0

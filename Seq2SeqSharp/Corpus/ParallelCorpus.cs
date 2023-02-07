@@ -50,7 +50,7 @@ namespace Seq2SeqSharp.Tools
         private TooLongSequence m_tooLongSequence = TooLongSequence.Ignore;
 
         private string m_binaryDataSetFilePath = "";
-
+        private int m_batchNumInTotal = 0;
 
         public (List<Dictionary<string, int>>, List<Dictionary<string, int>>) CountTokenFreqs()
         {
@@ -320,8 +320,6 @@ namespace Seq2SeqSharp.Tools
             try
             {
                 (var length2offsets, var length2counts, string tmpDataSetFilePath) = BuildIndex();
-
-                int batchNum = 0;
                 Logger.WriteLine($"Start to sort and shuffle data set by length.");
 
                 m_binaryDataSetFilePath = tmpDataSetFilePath + ".sorted";
@@ -367,10 +365,10 @@ namespace Seq2SeqSharp.Tools
                             bw.Write(String.Join("\n", srcLines));
                             bw.Write(String.Join("\n", tgtLines));
 
-                            batchNum++;
-                            if (batchNum % 10000 == 0)
+                            m_batchNumInTotal++;
+                            if (m_batchNumInTotal % 10000 == 0)
                             {
-                                Logger.WriteLine($"Batch '{batchNum}' has been processed.");
+                                Logger.WriteLine($"Batch '{m_batchNumInTotal}' has been processed.");
                             }
 
 
@@ -387,7 +385,7 @@ namespace Seq2SeqSharp.Tools
 
                 File.Delete(tmpDataSetFilePath);
 
-                Logger.WriteLine($"Finished to sort and shuffle data set by length.");
+                Logger.WriteLine($"Finished to sort and shuffle data set by length. Total batch size = '{m_batchNumInTotal}'");
             }
             catch (Exception err)
             {
@@ -398,6 +396,8 @@ namespace Seq2SeqSharp.Tools
         public IEnumerator<T> GetEnumerator()
         {
             PrepareDataSet();
+            int batchIdx = 0;
+            int currentBatchPercent = 0;
 
             using (MemoryMappedFile mmf = MemoryMappedFile.CreateFromFile(m_binaryDataSetFilePath))
             using (MemoryMappedViewStream mms = mmf.CreateViewStream())
@@ -416,12 +416,18 @@ namespace Seq2SeqSharp.Tools
 
                         string[] srcLines = br.ReadString().Split("\n");
                         string[] tgtLines = br.ReadString().Split("\n");
-
+                        batchIdx++;
 
                         for (int i = 0; i < sizeInBatch; i++)
                         {
                             var srcLine = srcLines[i];
                             var tgtLine = tgtLines[i];
+
+                            if ((100 * batchIdx / m_batchNumInTotal) > currentBatchPercent)
+                            {
+                                Logger.WriteLine($"Processing batch '{batchIdx}/{m_batchNumInTotal}'. The '{i}th' record in this batch is: Source = '{srcLine}' Target = '{tgtLine}'");
+                                currentBatchPercent++;
+                            }
 
                             SntPair sntPair = new SntPair(srcLine, tgtLine);
                             outputs.Add(sntPair);

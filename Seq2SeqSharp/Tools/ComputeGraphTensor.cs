@@ -133,6 +133,8 @@ namespace Seq2SeqSharp.Tools
                     res.Dispose();
                 }
                 m_backprop.Add(backward);
+
+                res.UnbindFromComputeGraph();
             }
 
             return res;
@@ -241,6 +243,8 @@ namespace Seq2SeqSharp.Tools
                     res.Dispose();
                 }
                 m_backprop.Add(backward);
+
+                res.UnbindFromComputeGraph();
             }
 
             return res;
@@ -2011,6 +2015,7 @@ namespace Seq2SeqSharp.Tools
                 }
                 m_backprop.Add(backward);
 
+                res.UnbindFromComputeGraph();
                 srcT.UnbindFromComputeGraph();
                 alphaT.UnbindFromComputeGraph();
                 betaT.UnbindFromComputeGraph();
