@@ -19,13 +19,13 @@ namespace Seq2SeqSharp.Applications
 {
     public class Decoder
     {
-        public static MultiProcessorNetworkWrapper<IDecoder> CreateDecoders(IModel modelMetaData, Seq2SeqOptions options, RoundArray<int> raDeviceIds, int contextDim)
+        public static MultiProcessorNetworkWrapper<IDecoder> CreateDecoders(IModel modelMetaData, Seq2SeqOptions options, RoundArray<int> raDeviceIds)
         {
             MultiProcessorNetworkWrapper<IDecoder> decoder;
             if (modelMetaData.DecoderType == DecoderTypeEnums.AttentionLSTM)
             {
                 decoder = new MultiProcessorNetworkWrapper<IDecoder>(
-                     new AttentionDecoder("AttnLSTMDecoder", modelMetaData.HiddenDim, modelMetaData.DecoderEmbeddingDim, contextDim,
+                     new AttentionDecoder("AttnLSTMDecoder", modelMetaData.HiddenDim, modelMetaData.DecoderEmbeddingDim, modelMetaData.HiddenDim,
                      options.DropoutRatio, modelMetaData.DecoderLayerDepth, raDeviceIds.GetNextItem(), modelMetaData.EnableCoverageModel, isTrainable: options.IsDecoderTrainable), raDeviceIds.ToArray());
             }
             else

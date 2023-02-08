@@ -75,17 +75,14 @@ namespace Seq2SeqSharp.Applications
         {
             Logger.WriteLine($"Creating encoders...");
             var raDeviceIds = new RoundArray<int>(DeviceIds);
-
-            int contextDim;
-            (m_encoder, contextDim) = Encoder.CreateEncoders(model, m_options, raDeviceIds);
-
+            m_encoder = Encoder.CreateEncoders(model, m_options, raDeviceIds);
             m_encoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>[model.ClsVocabs.Count];
             for (int i = 0; i < model.ClsVocabs.Count; i++)
             {
-                m_encoderFFLayer[i] = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer($"FeedForward_Encoder_{i}", contextDim, model.ClsVocabs[i].Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
+                m_encoderFFLayer[i] = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer($"FeedForward_Encoder_{i}", model.HiddenDim, model.ClsVocabs[i].Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
             }
 
-            (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, contextDim, m_options.MaxSentLength, model);
+            (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, model.HiddenDim, m_options.MaxSentLength, model);
 
             Logger.WriteLine($"Creating embeddings. Shape = '({model.SrcVocab.Count} ,{model.EncoderEmbeddingDim})'");
             m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { model.SrcVocab.Count, model.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SrcEmbeddings", isTrainable: m_options.IsEmbeddingTrainable), DeviceIds);

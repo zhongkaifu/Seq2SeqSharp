@@ -82,10 +82,8 @@ namespace Seq2SeqSharp.Applications
         {
             Logger.WriteLine($"Creating encoders and decoders...");
             var raDeviceIds = new RoundArray<int>(DeviceIds);
-
-            int contextDim;
-            (m_encoder, contextDim) = Encoder.CreateEncoders(model, m_options, raDeviceIds);
-            m_decoder = Decoder.CreateDecoders(model, m_options, raDeviceIds, contextDim);
+            m_encoder = Encoder.CreateEncoders(model, m_options, raDeviceIds);
+            m_decoder = Decoder.CreateDecoders(model, m_options, raDeviceIds);
 
             m_encoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("FeedForward_Encoder_0", model.HiddenDim, model.ClsVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),
                 isTrainable: true), DeviceIds);
@@ -93,7 +91,7 @@ namespace Seq2SeqSharp.Applications
             m_decoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("FeedForward_Decoder_0", model.HiddenDim, model.TgtVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),
                 isTrainable: true), DeviceIds);
 
-            (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, contextDim, Math.Max(Math.Max(m_options.MaxSrcSentLength, m_options.MaxValidSrcSentLength), Math.Max(m_options.MaxTgtSentLength, m_options.MaxValidTgtSentLength)), model);
+            (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, model.HiddenDim, Math.Max(Math.Max(m_options.MaxSrcSentLength, m_options.MaxValidSrcSentLength), Math.Max(m_options.MaxTgtSentLength, m_options.MaxValidTgtSentLength)), model);
             (m_srcEmbedding, m_tgtEmbedding) = CreateSrcTgtEmbeddings(model, raDeviceIds, m_options.IsSrcEmbeddingTrainable, m_options.IsTgtEmbeddingTrainable, m_options.EncoderStartLearningRateFactor, m_options.DecoderStartLearningRateFactor);
             return true;
         }

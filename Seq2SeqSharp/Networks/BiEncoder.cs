@@ -28,13 +28,10 @@ namespace Seq2SeqSharp
             m_forwardEncoders = new List<LSTMCell>();
             m_backwardEncoders = new List<LSTMCell>();
 
-            m_forwardEncoders.Add(new LSTMCell($"{name}.Forward_LSTM_0", hiddenDim, inputDim, deviceId, isTrainable: isTrainable));
-            m_backwardEncoders.Add(new LSTMCell($"{name}.Backward_LSTM_0", hiddenDim, inputDim, deviceId, isTrainable: isTrainable));
-
-            for (int i = 1; i < depth; i++)
+            for (int i = 0; i < depth; i++)
             {
-                m_forwardEncoders.Add(new LSTMCell($"{name}.Forward_LSTM_{i}", hiddenDim, hiddenDim * 2, deviceId, isTrainable: isTrainable));
-                m_backwardEncoders.Add(new LSTMCell($"{name}.Backward_LSTM_{i}", hiddenDim, hiddenDim * 2, deviceId, isTrainable: isTrainable));
+                m_forwardEncoders.Add(new LSTMCell($"{name}.Forward_LSTM_{i}", hiddenDim, hiddenDim, deviceId, isTrainable: isTrainable));
+                m_backwardEncoders.Add(new LSTMCell($"{name}.Backward_LSTM_{i}", hiddenDim, hiddenDim, deviceId, isTrainable: isTrainable));
             }
 
             m_name = name;
@@ -100,8 +97,8 @@ namespace Seq2SeqSharp
                 layerOutputs.Clear();
                 for (int j = 0; j < seqLen; j++)
                 {
-                    IWeightTensor concatW = g.Concate(1, forwardOutputs[j], backwardOutputs[j]);
-                    layerOutputs.Add(concatW);
+                    IWeightTensor addW = g.Add(forwardOutputs[j], backwardOutputs[j]);
+                    layerOutputs.Add(addW);
                 }
 
             }

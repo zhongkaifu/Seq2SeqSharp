@@ -22,7 +22,6 @@ namespace Seq2SeqSharp
         private IWeightTensor m_hidden;
         private IWeightTensor m_cell;
         private readonly int m_hdim;
-        private readonly int m_dim;
         private readonly int m_deviceId;
         private readonly string m_name;
         private readonly LayerNormalization m_layerNorm1;
@@ -30,15 +29,14 @@ namespace Seq2SeqSharp
 
         public IWeightTensor Hidden => m_hidden;
 
-        public LSTMCell(string name, int hdim, int dim, int deviceId, bool isTrainable)
+        public LSTMCell(string name, int hdim, int inputDim, int deviceId, bool isTrainable)
         {
             m_name = name;
 
-            m_Wxh = new WeightTensor(new long[2] { dim + hdim, hdim * 4 }, deviceId, normType: NormType.Uniform, name: $"{name}.{nameof(m_Wxh)}", isTrainable: isTrainable);
+            m_Wxh = new WeightTensor(new long[2] { inputDim + hdim, hdim * 4 }, deviceId, normType: NormType.Uniform, name: $"{name}.{nameof(m_Wxh)}", isTrainable: isTrainable);
             m_b = new WeightTensor(new long[2] { 1, hdim * 4 }, 0, deviceId, name: $"{name}.{nameof(m_b)}", isTrainable: isTrainable);
 
             m_hdim = hdim;
-            m_dim = dim;
             m_deviceId = deviceId;
 
             m_layerNorm1 = new LayerNormalization($"{name}.{nameof(m_layerNorm1)}", hdim * 4, deviceId, isTrainable: isTrainable);
