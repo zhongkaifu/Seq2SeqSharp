@@ -14,22 +14,30 @@ using Seq2SeqSharp._SentencePiece;
 using Seq2SeqSharp.Applications;
 using AdvUtils;
 using Seq2SeqSharp.Utils;
+using Seq2SeqSharp.Tools;
 
 namespace Seq2SeqWebApps
 {
+    public enum ModelType
+    { 
+        EncoderDecoder,
+        DecoderOnly    
+    } 
+    
     public static class Seq2SeqInstance
     {
-        static private Seq2Seq? m_seq2seq;
+        static private BaseSeq2SeqFramework<Seq2SeqModel>? m_seq2seq;
         static private SentencePiece? m_srcSpm = null;
         static private SentencePiece? m_tgtSpm = null;
         static private Seq2SeqOptions? opts;
         static Semaphore? sm = null;
         static List<int>? m_blockedTokens = null;
+        static ModelType m_modelType = ModelType.EncoderDecoder;
 
         static public int MaxTokenToGenerate => opts.MaxTgtSentLength;
 
         static public void Initialization(string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, ProcessorTypeEnums processorType, string deviceIds, SentencePiece? srcSpm, SentencePiece? tgtSpm,
-            Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum, float topPSampling, float repeatPenalty, float memoryUsageRatio, string mklInstructions, int beamSearchSize, string blockedTokens)
+            Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum, float topPSampling, float repeatPenalty, float memoryUsageRatio, string mklInstructions, int beamSearchSize, string blockedTokens, ModelType modelType)
         {
             opts = new Seq2SeqOptions();
             opts.ModelFilePath = modelFilePath;
@@ -45,6 +53,7 @@ namespace Seq2SeqWebApps
 
             m_srcSpm = srcSpm;
             m_tgtSpm = tgtSpm;
+            m_modelType = modelType;
 
             if (opts.ProcessorType == ProcessorTypeEnums.CPU)
             {
@@ -55,10 +64,15 @@ namespace Seq2SeqWebApps
                 sm = new Semaphore(1, 1);
             }
 
-            Logger.WriteLine("Creating Seq2Seq instance...");
-
-            m_seq2seq = new Seq2Seq(opts);
-
+            Logger.WriteLine($"Creating Seq2Seq instance. ModelType = '{m_modelType}'");
+            if (m_modelType == ModelType.EncoderDecoder)
+            {
+                m_seq2seq = new Seq2Seq(opts);
+            }
+            else
+            {
+                m_seq2seq = new GPT(opts);
+            }
             if (String.IsNullOrEmpty(blockedTokens) == false)
             {
                 Logger.WriteLine($"Creating blocked tokens = '{blockedTokens}'");
@@ -151,7 +165,17 @@ namespace Seq2SeqWebApps
             {
                 sm?.WaitOne();
 
-                var nrs = m_seq2seq.Test<Seq2SeqCorpusBatch>(srcGroupBatchTokens, tgtGroupBatchTokens, decodingOptions);
+                List<NetworkResult> nrs = null;
+
+                if (m_modelType == ModelType.EncoderDecoder)
+                {
+                    nrs = m_seq2seq.Test<Seq2SeqCorpusBatch>(srcGroupBatchTokens, tgtGroupBatchTokens, decodingOptions);
+                }
+                else
+                {
+                    nrs = m_seq2seq.Test<SeqCorpusBatch>(srcGroupBatchTokens, tgtGroupBatchTokens, decodingOptions);
+                }
+
                 string rst = String.Join(" ", nrs[0].Output[0][0].ToArray(), 0, nrs[0].Output[0][0].Count);
                 bool isEnded = (rst.EndsWith("</s>") || rst == tgtInput);
 

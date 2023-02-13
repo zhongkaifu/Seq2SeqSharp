@@ -242,7 +242,18 @@ namespace Seq2SeqSharp.Tools
             return (srcEmbeddings, tgtEmbeddings);
         }
 
-        public void Train(int maxTrainingEpoch, IParallelCorpus<ISntPairBatch> trainCorpus, IParallelCorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, Dictionary<int, List<IMetric>> taskId2metrics, IOptimizer optimizer, DecodingOptions decodingOptions)
+        internal MultiProcessorNetworkWrapper<IWeightTensor> CreateTgtEmbeddings(IModel modelMetaData, RoundArray<int> raDeviceIds, bool isTgtEmbeddingTrainable, float decoderStartLearningRateFactor)
+        {
+            MultiProcessorNetworkWrapper<IWeightTensor> tgtEmbeddings = null;
+            Logger.WriteLine($"Creating embeddings for target side. Shape = '({modelMetaData.TgtVocab.Count} ,{modelMetaData.DecoderEmbeddingDim})'");
+            tgtEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.TgtVocab.Count, modelMetaData.DecoderEmbeddingDim },
+                raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "TgtEmbeddings", isTrainable: isTgtEmbeddingTrainable, learningRateFactor: decoderStartLearningRateFactor), DeviceIds);
+
+            return tgtEmbeddings;
+        }
+
+
+        public void Train(int maxTrainingEpoch, ICorpus<ISntPairBatch> trainCorpus, ICorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, Dictionary<int, List<IMetric>> taskId2metrics, IOptimizer optimizer, DecodingOptions decodingOptions)
         {
             Logger.WriteLine("Start to train...");
             for (int i = 0; i < maxTrainingEpoch; i++)
@@ -255,7 +266,7 @@ namespace Seq2SeqSharp.Tools
             SaveModel(createBackupPrevious: false, suffix: $".{m_weightsUpdateCount}");
         }
 
-        public void Train(int maxTrainingEpoch, IParallelCorpus<ISntPairBatch> trainCorpus, IParallelCorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, List<IMetric> metrics, IOptimizer optimizer, DecodingOptions decodingOptions)
+        public void Train(int maxTrainingEpoch, ICorpus<ISntPairBatch> trainCorpus, ICorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, List<IMetric> metrics, IOptimizer optimizer, DecodingOptions decodingOptions)
         {
             Logger.WriteLine("Start to train...");
             Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>
@@ -266,7 +277,7 @@ namespace Seq2SeqSharp.Tools
             Train(maxTrainingEpoch, trainCorpus, validCorpusList, learningRate, taskId2metrics, optimizer, decodingOptions);
         }
 
-        internal void TrainOneEpoch(int ep, IParallelCorpus<ISntPairBatch> trainCorpus, IParallelCorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, IOptimizer solver, Dictionary<int, List<IMetric>> taskId2metrics, DecodingOptions decodingOptions,
+        internal void TrainOneEpoch(int ep, ICorpus<ISntPairBatch> trainCorpus, ICorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, IOptimizer solver, Dictionary<int, List<IMetric>> taskId2metrics, DecodingOptions decodingOptions,
             Func<IComputeGraph, ISntPairBatch, DecodingOptions, bool, List<NetworkResult>> forwardOnSingleDevice)
         {
             int processedLineInTotal = 0;
@@ -558,7 +569,7 @@ namespace Seq2SeqSharp.Tools
             return (cost / processedLine, srcWordCnts, tgtWordCnts, processedLine);
         }
 
-        private void CreateCheckPoint(IParallelCorpus<ISntPairBatch>[] validCorpusList, Dictionary<int, List<IMetric>> taskId2metrics, DecodingOptions decodingOptions, Func<IComputeGraph, ISntPairBatch, DecodingOptions, bool, List<NetworkResult>> forwardOnSingleDevice, double avgCostPerWordInTotal)
+        private void CreateCheckPoint(ICorpus<ISntPairBatch>[] validCorpusList, Dictionary<int, List<IMetric>> taskId2metrics, DecodingOptions decodingOptions, Func<IComputeGraph, ISntPairBatch, DecodingOptions, bool, List<NetworkResult>> forwardOnSingleDevice, double avgCostPerWordInTotal)
         {
             // We start to run validation after {startToRunValidAfterUpdates}
             if (m_weightsUpdateCount >= m_startToRunValidAfterUpdates && m_weightsUpdateCount % m_runValidEveryUpdates == 0)
@@ -780,7 +791,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public void Valid(IParallelCorpus<ISntPairBatch> validCorpus, List<IMetric> metrics, DecodingOptions decodingOptions)
+        public void Valid(ICorpus<ISntPairBatch> validCorpus, List<IMetric> metrics, DecodingOptions decodingOptions)
         {
             Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>
             {
@@ -789,7 +800,7 @@ namespace Seq2SeqSharp.Tools
             RunValid(validCorpus, RunForwardOnSingleDevice, taskId2metrics, decodingOptions, true);
         }
 
-        public void Valid(IParallelCorpus<ISntPairBatch> validCorpus, Dictionary<int, List<IMetric>> taskId2metrics, DecodingOptions decodingOptions) => RunValid(validCorpus, RunForwardOnSingleDevice, taskId2metrics, decodingOptions, true);
+        public void Valid(ICorpus<ISntPairBatch> validCorpus, Dictionary<int, List<IMetric>> taskId2metrics, DecodingOptions decodingOptions) => RunValid(validCorpus, RunForwardOnSingleDevice, taskId2metrics, decodingOptions, true);
 
         /// <summary>
         /// Evaluate the quality of model on valid corpus.
@@ -799,7 +810,7 @@ namespace Seq2SeqSharp.Tools
         /// <param name="metrics">A set of metrics. The first one is the primary metric</param>
         /// <param name="outputToFile">It indicates if valid corpus and results should be dumped to files</param>
         /// <returns>true if we get a better result on primary metric, otherwise, false</returns>
-        internal bool RunValid(IParallelCorpus<ISntPairBatch> validCorpus, Func<IComputeGraph, ISntPairBatch, DecodingOptions, bool, List<NetworkResult>> RunNetwork, Dictionary<int, List<IMetric>> taskId2metrics, DecodingOptions decodingOptions, bool outputToFile = false, string prefixName = "valid")
+        internal bool RunValid(ICorpus<ISntPairBatch> validCorpus, Func<IComputeGraph, ISntPairBatch, DecodingOptions, bool, List<NetworkResult>> RunNetwork, Dictionary<int, List<IMetric>> taskId2metrics, DecodingOptions decodingOptions, bool outputToFile = false, string prefixName = "valid")
         {
             double bestPrimaryScore = 0.0;
             if (m_bestPrimaryScoreDict.ContainsKey(prefixName) == false)

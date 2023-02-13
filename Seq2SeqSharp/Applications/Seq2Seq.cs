@@ -224,7 +224,7 @@ namespace Seq2SeqSharp
                 if (isTraining)
                 {
                     (var c, _) = Decoder.DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding, originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType,
-                        m_options.DropoutRatio, decodingOptions, isTraining, pointerGenerator: pointerGenerator, srcSeqs: srcTokensList, lossType: m_options.LossType, focalLossGamma: m_options.FocalLossGamma);
+                        m_options.DropoutRatio, decodingOptions, isTraining, pointerGenerator: pointerGenerator, srcSeqs: srcTokensList, lossType: m_options.LossType, focalLossGamma: m_options.FocalLossGamma, segmentEmbeddings: segmentEmbedding);
                     nr.Cost = c;
                     nr.Output = null;
                 }
@@ -242,7 +242,7 @@ namespace Seq2SeqSharp
                     (var cost2, var bssSeqList) = Decoder.DecodeTransformer(tgtTokensList, g, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding,
                                                                                originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, decodingOptions, isTraining,
                                                                                outputSentScore: decodingOptions.BeamSearchSize > 1, pointerGenerator: pointerGenerator, 
-                                                                               srcSeqs: srcTokensList, teacherForcedAlignment: true, lossType: m_options.LossType);
+                                                                               srcSeqs: srcTokensList, teacherForcedAlignment: true, lossType: m_options.LossType, segmentEmbeddings: segmentEmbedding);
                     nr.Cost = 0.0f;
                     nr.Output = m_modelMetaData.TgtVocab.ExtractTokens(bssSeqList);
                     if (decodingOptions.OutputAligmentsToSrc)
@@ -279,7 +279,8 @@ namespace Seq2SeqSharp
                                                                                 originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, decodingOptions, isTraining,
                                                                                 outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus,
                                                                                 pointerGenerator: pointerGenerator, srcSeqs: srcTokensList,
-                                                                                cachedTensors: cachedTensors, alignmentsToSrc: alignmentsToSrc, alignmentScoresToSrc: alignmentScores, blockedTokens: decodingOptions.BlockedTokens);
+                                                                                cachedTensors: cachedTensors, alignmentsToSrc: alignmentsToSrc, alignmentScoresToSrc: alignmentScores, 
+                                                                                blockedTokens: decodingOptions.BlockedTokens, segmentEmbeddings: segmentEmbedding);
 
                                 bssSeqList = Decoder.SwapBeamAndBatch(bssSeqList); // Swap shape: (beam_search_size, batch_size) -> (batch_size, beam_search_size)
                                 batch2beam2seq = Decoder.CombineBeamSearchResults(batch2beam2seq, bssSeqList);

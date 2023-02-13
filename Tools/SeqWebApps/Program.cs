@@ -27,6 +27,8 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
     var mklInstructions = Configuration["Seq2Seq:MKLInstructions"];
     var beamSearchSize = int.Parse(Configuration["Seq2Seq:BeamSearchSize"]);
     var blockedTokens = Configuration["Seq2Seq:BlockedTokens"];
+    var modelType = Configuration["Seq2Seq:ModelType"];
+
 #pragma warning restore CS8604 // Possible null reference argument.
 
     SentencePiece? srcSpm = null;
@@ -57,7 +59,8 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
                                    memoryUsageRatio: gpuMemoryUsageRatio,
                                    mklInstructions: mklInstructions,
                                    beamSearchSize: beamSearchSize,
-                                   blockedTokens: blockedTokens);
+                                   blockedTokens: blockedTokens,
+                                   modelType: (ModelType)Enum.Parse(typeof(ModelType), modelType));
 #pragma warning restore CS8604 // Possible null reference argument.
 }
 

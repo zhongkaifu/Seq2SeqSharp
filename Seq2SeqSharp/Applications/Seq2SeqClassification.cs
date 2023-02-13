@@ -210,7 +210,8 @@ namespace Seq2SeqSharp.Applications
             {
                 if (isTraining)
                 {
-                    (var c, _) = Decoder.DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding, originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, m_options.DropoutRatio, decodingOptions, isTraining);
+                    (var c, _) = Decoder.DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding, originalSrcLengths, m_modelMetaData.TgtVocab, 
+                        m_shuffleType, m_options.DropoutRatio, decodingOptions, isTraining, segmentEmbeddings: segmentEmbedding);
                     nr.Cost = c;
                     nr.Output = null;
                 }
@@ -228,7 +229,7 @@ namespace Seq2SeqSharp.Applications
                                 using var g = computeGraph.CreateSubGraph($"TransformerDecoder_Step_{i}");
                                 (var cost2, var bssSeqList) = Decoder.DecodeTransformer(batch2tgtTokens, g, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, posEmbedding,
                                                                                 originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, decodingOptions, isTraining,
-                                                                                outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus);
+                                                                                outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus, segmentEmbeddings: segmentEmbedding);
 
                                 bssSeqList = Decoder.SwapBeamAndBatch(bssSeqList);
                                 batch2beam2seq = Decoder.CombineBeamSearchResults(batch2beam2seq, bssSeqList);

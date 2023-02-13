@@ -9,6 +9,7 @@
     public enum DecoderTypeEnums
     {
         AttentionLSTM,
-        Transformer
+        Transformer,
+        GPTDecoder
     }
 }

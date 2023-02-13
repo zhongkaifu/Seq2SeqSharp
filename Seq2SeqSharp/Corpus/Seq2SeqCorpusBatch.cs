@@ -29,6 +29,11 @@ namespace Seq2SeqSharp.Corpus
         private long maxSeqLength = 0;
         public RawSntPair(string s, string t, int maxSrcSeqLength, int maxTgtSeqLength, bool truncateTooLongSeq)
         {
+            if (s == null)
+            {
+                s = "";
+            }
+
             this.maxSeqLength = Math.Max(maxSrcSeqLength, maxTgtSeqLength);
 
             if (truncateTooLongSeq)
@@ -107,8 +112,15 @@ namespace Seq2SeqSharp.Corpus
             SrcTokenGroups = new List<List<string>>();
             TgtTokenGroups = new List<List<string>>();
 
-            CreateGroup(srcLine, SrcTokenGroups);
-            CreateGroup(tgtLine, TgtTokenGroups);
+            if (String.IsNullOrEmpty(srcLine) == false)
+            {
+                CreateGroup(srcLine, SrcTokenGroups);
+            }
+
+            if (String.IsNullOrEmpty(tgtLine) == false)
+            {
+                CreateGroup(tgtLine, TgtTokenGroups);
+            }
         }
 
         private static void CreateGroup(string line, List<List<string>> sntGroup)

@@ -249,8 +249,17 @@ namespace Seq2SeqSharp.Corpus
         {
             Logger.WriteLine($"Building vocabulary from corpus.");
 
-            List<Vocab> srcVocabs = InnerBuildVocab(srcVocabSize, s_ds, "Source", minFreq);
-            List<Vocab> tgtVocabs = InnerBuildVocab(tgtVocabSize, t_ds, "Target", minFreq);
+            List<Vocab> srcVocabs = null;
+            if (srcVocabSize > 0)
+            {
+                srcVocabs = InnerBuildVocab(srcVocabSize, s_ds, "Source", minFreq);
+            }
+
+            List<Vocab> tgtVocabs = null;
+            if (tgtVocabSize > 0)
+            {
+                tgtVocabs = InnerBuildVocab(tgtVocabSize, t_ds, "Target", minFreq);
+            }
 
             s_ds.Clear();
             t_ds.Clear();

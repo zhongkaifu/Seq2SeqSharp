@@ -21,26 +21,13 @@ using System.Threading;
 
 namespace Seq2SeqSharp.Tools
 {
-    public enum TooLongSequence
+    public class MonoCorpus<T> : ICorpus<T> where T : ISntPairBatch, new()
     {
-        Ignore,
-        Truncation
-    }
-
-    public interface ICorpus<out T> : IEnumerable<T>
-    {
-        string CorpusName { get; set; }
-    }
-
-    public class ParallelCorpus<T> : ICorpus<T> where T : ISntPairBatch, new()
-    {
-        internal int m_maxSrcTokenSize = 32;
         internal int m_maxTgtTokenSize = 32;
         internal int m_maxTokenSizePerBatch = 1;
-        internal List<string> m_srcFileList;
         internal List<string> m_tgtFileList;
         internal ShuffleEnums m_shuffleEnums;
-      
+
         private bool m_showTokenDist = true;
 
         private readonly Random rnd = new Random(DateTime.Now.Millisecond);
@@ -52,64 +39,43 @@ namespace Seq2SeqSharp.Tools
         private string m_binaryDataSetFilePath = "";
         private int m_batchNumInTotal = 0;
 
-        public (List<Dictionary<string, int>>, List<Dictionary<string, int>>) CountTokenFreqs()
+        public List<Dictionary<string, int>> CountTokenFreqs()
         {
-            List<Dictionary<string, int>> sd = new List<Dictionary<string, int>>();
             List<Dictionary<string, int>> td = new List<Dictionary<string, int>>();
 
-            for (int i = 0; i < m_srcFileList.Count; i++)
+            for (int i = 0; i < m_tgtFileList.Count; i++)
             {
-                Logger.WriteLine($"Start to count token frequency in '{m_srcFileList[i]}' and '{m_tgtFileList[i]}'.");
-                StreamReader srSrc = new StreamReader(m_srcFileList[i]);
+                Logger.WriteLine($"Start to count token frequency in '{m_tgtFileList[i]}'.");
                 StreamReader srTgt = new StreamReader(m_tgtFileList[i]);
 
                 while (true)
                 {
-                    if (srSrc.EndOfStream && srTgt.EndOfStream)
+                    if (srTgt.EndOfStream)
                     {
                         break;
                     }
 
-                    string srcLine = srSrc.ReadLine();
                     string tgtLine = srTgt.ReadLine();
 
-                    if (srcLine.IsNullOrEmpty() && tgtLine.IsNullOrEmpty())
+                    if (tgtLine.IsNullOrEmpty())
                     {
                         break;
                     }
 
-                    string[] srcGroups = srcLine.Split('\t');
                     string[] tgtGroups = tgtLine.Split('\t');
 
-                    if (srcGroups.Length != tgtGroups.Length)
-                    {
-                        throw new InvalidDataException("Inconsistent group size between source side and target side.");
-                    }
 
-                    if (sd.Count == 0)
+                    if (td.Count == 0)
                     {
-                        for (int j = 0; j < srcGroups.Length; j++)
+                        for (int j = 0; j < tgtGroups.Length; j++)
                         {
-                            sd.Add(new Dictionary<string, int>());
                             td.Add(new Dictionary<string, int>());
                         }
                     }
 
-                    for (int j = 0; j < srcGroups.Length; j++)
+                    for (int j = 0; j < tgtGroups.Length; j++)
                     {
-                        string[] srcTokens = srcGroups[j].Split(' ');
                         string[] tgtTokens = tgtGroups[j].Split(' ');
-
-
-                        foreach (var srcToken in srcTokens)
-                        {
-                            if (sd[j].ContainsKey(srcToken) == false)
-                            {
-                                sd[j].Add(srcToken, 0);
-                            }
-                            sd[j][srcToken]++;
-                        }
-
                         foreach (var tgtToken in tgtTokens)
                         {
                             if (td[j].ContainsKey(tgtToken) == false)
@@ -124,45 +90,42 @@ namespace Seq2SeqSharp.Tools
             }
 
 
-            for (int j = 0; j < sd.Count; j++)
+            for (int j = 0; j < td.Count; j++)
             {
-                Logger.WriteLine($"Original token size at group '{j}' source = '{sd[j].Count}' target = '{td[j].Count}'");
+                Logger.WriteLine($"Original token size at group '{j}' target = '{td[j].Count}'");
             }
 
-            return (sd, td);
+            return td;
         }
 
 
         private (Dictionary<long, LinkedList<long>>, Dictionary<long, long>, string) BuildIndex()
         {
             Logger.WriteLine($"Start to build index for data set.");
-            SortedDictionary<int, int> dictSrcLenDist = new SortedDictionary<int, int>();
             SortedDictionary<int, int> dictTgtLenDist = new SortedDictionary<int, int>();
             int corpusSize = 0;
-            int tooLongSrcSntCnt = 0;
             int tooLongTgtSntCnt = 0;
             string randomFileName = Path.GetRandomFileName();
-            Logger.WriteLine($"Loading and shuffling corpus from '{m_srcFileList.Count}' files.");
+            Logger.WriteLine($"Loading and shuffling corpus from '{m_tgtFileList.Count}' files.");
 
             string binaryDataSetFilePath = randomFileName + ".tmp";
-            BinaryWriter bw = new BinaryWriter(new FileStream(binaryDataSetFilePath, FileMode.Create)); 
+            BinaryWriter bw = new BinaryWriter(new FileStream(binaryDataSetFilePath, FileMode.Create));
 
             Dictionary<long, LinkedList<long>> len2offsets = new Dictionary<long, LinkedList<long>>();
             Dictionary<long, long> len2lengths = new Dictionary<long, long>();
 
-            for (int i = 0; i < m_srcFileList.Count; i++)
+            for (int i = 0; i < m_tgtFileList.Count; i++)
             {
-                StreamReader srSrc = new StreamReader(m_srcFileList[i]);
                 StreamReader srTgt = new StreamReader(m_tgtFileList[i]);
 
                 while (true)
                 {
-                    if (srSrc.EndOfStream && srTgt.EndOfStream)
+                    if (srTgt.EndOfStream)
                     {
                         break;
                     }
 
-                    RawSntPair rawSntPair = new RawSntPair(srSrc.ReadLine(), srTgt.ReadLine(), m_maxSrcTokenSize, m_maxTgtTokenSize, m_tooLongSequence == TooLongSequence.Truncation);
+                    RawSntPair rawSntPair = new RawSntPair(null, srTgt.ReadLine(), 0, m_maxTgtTokenSize, m_tooLongSequence == TooLongSequence.Truncation);
                     if (rawSntPair.IsEmptyPair())
                     {
                         break;
@@ -170,12 +133,6 @@ namespace Seq2SeqSharp.Tools
 
                     if (m_showTokenDist)
                     {
-                        if (dictSrcLenDist.ContainsKey(rawSntPair.SrcTokenSize / 100) == false)
-                        {
-                            dictSrcLenDist.Add(rawSntPair.SrcTokenSize / 100, 0);
-                        }
-                        dictSrcLenDist[rawSntPair.SrcTokenSize / 100]++;
-
                         if (dictTgtLenDist.ContainsKey(rawSntPair.TgtTokenSize / 100) == false)
                         {
                             dictTgtLenDist.Add(rawSntPair.TgtTokenSize / 100, 0);
@@ -184,12 +141,6 @@ namespace Seq2SeqSharp.Tools
                     }
 
                     bool hasTooLongSent = false;
-                    if (rawSntPair.SrcTokenSize > m_maxSrcTokenSize)
-                    {
-                        Interlocked.Increment(ref tooLongSrcSntCnt);
-                        hasTooLongSent = true;
-                    }
-
                     if (rawSntPair.TgtTokenSize > m_maxTgtTokenSize)
                     {
                         Interlocked.Increment(ref tooLongTgtSntCnt);
@@ -202,14 +153,10 @@ namespace Seq2SeqSharp.Tools
                     }
 
                     long offset = bw.BaseStream.Position;
-                    bw.Write(String.Join("\n", new string[] { rawSntPair.SrcSnt, rawSntPair.TgtSnt }));
+                    bw.Write(rawSntPair.TgtSnt);
 
                     long length = 0;
-                    if (m_shuffleEnums == ShuffleEnums.NoPaddingInSrc)
-                    {
-                        length = rawSntPair.SrcGroupLenId;
-                    }
-                    else if (m_shuffleEnums == ShuffleEnums.NoPadding)
+                    if (m_shuffleEnums == ShuffleEnums.NoPadding)
                     {
                         length = rawSntPair.GroupLenId;
                     }
@@ -229,18 +176,12 @@ namespace Seq2SeqSharp.Tools
                     Interlocked.Increment(ref corpusSize);
                 }
 
-                srSrc.Close();
                 srTgt.Close();
             }
 
             bw.Close();
 
             Logger.WriteLine($"Shuffled '{corpusSize}' sentence pairs.");
-
-            if (tooLongSrcSntCnt > 0)
-            {
-                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Found {tooLongSrcSntCnt} source sentences are longer than '{m_maxSrcTokenSize}' tokens, ignore them.");
-            }
 
             if (tooLongTgtSntCnt > 0)
             {
@@ -249,23 +190,7 @@ namespace Seq2SeqSharp.Tools
 
             if (m_showTokenDist)
             {
-                Logger.WriteLine($"AggregateSrcLength = '{m_shuffleEnums}'");
-                Logger.WriteLine($"Src token length distribution");
-
-                int srcTotalNum = 0;
-                foreach (var pair in dictSrcLenDist)
-                {
-                    srcTotalNum += pair.Value;
-                }
-
-                int srcAccNum = 0;
-                foreach (var pair in dictSrcLenDist)
-                {
-                    srcAccNum += pair.Value;
-
-                    Logger.WriteLine($"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value} (acc: {100.0f * (float)srcAccNum / (float)srcTotalNum:F}%)");
-                }
-
+                Logger.WriteLine($"AggregateLength = '{m_shuffleEnums}'");
                 Logger.WriteLine($"Tgt token length distribution");
 
                 int tgtTotalNum = 0;
@@ -334,27 +259,18 @@ namespace Seq2SeqSharp.Tools
                             long length = GetNextLength(length2offsets, length2counts);
                             LinkedList<long> offsets = length2offsets[length];
 
-                            int totalSrcTokenSize = 0;
                             int totalTgtTokenSize = 0;
                             int sentSize = 0;
-                            List<string> srcLines = new List<string>();
                             List<string> tgtLines = new List<string>();
-                            while (totalSrcTokenSize + totalTgtTokenSize < m_maxTokenSizePerBatch && offsets.Any())
+                            while (totalTgtTokenSize < m_maxTokenSizePerBatch && offsets.Any())
                             {
                                 long offset = offsets.First.Value;
                                 offsets.RemoveFirst();
                                 length2counts[length]--;
 
                                 br.BaseStream.Seek(offset, SeekOrigin.Begin);
-
-                                string[] srcTgtLine = br.ReadString().Split("\n");
-                                string srcLine = srcTgtLine[0];
-                                string tgtLine = srcTgtLine[1];
-
-                                totalSrcTokenSize += srcLine.Split(' ').Length;
+                                string tgtLine = br.ReadString();
                                 totalTgtTokenSize += tgtLine.Split(' ').Length;
-
-                                srcLines.Add(srcLine);
                                 tgtLines.Add(tgtLine);
 
 
@@ -362,7 +278,6 @@ namespace Seq2SeqSharp.Tools
                             }
 
                             bw.Write(sentSize);
-                            bw.Write(String.Join("\n", srcLines));
                             bw.Write(String.Join("\n", tgtLines));
 
                             m_batchNumInTotal++;
@@ -413,29 +328,26 @@ namespace Seq2SeqSharp.Tools
                         }
 
                         List<SntPair> outputs = new List<SntPair>();
-
-                        string[] srcLines = br.ReadString().Split("\n");
                         string[] tgtLines = br.ReadString().Split("\n");
                         batchIdx++;
 
                         for (int i = 0; i < sizeInBatch; i++)
                         {
-                            var srcLine = srcLines[i];
                             var tgtLine = tgtLines[i];
 
                             if ((100 * batchIdx / m_batchNumInTotal) > currentBatchPercent)
                             {
-                                Logger.WriteLine($"Processing batch '{batchIdx}/{m_batchNumInTotal}'."); // The '{i}th' record in this batch is: Source = '{srcLine}' Target = '{tgtLine}'");
+                                Logger.WriteLine($"Processing batch '{batchIdx}/{m_batchNumInTotal}'."); // The '{i}th' record in this batch is: Target = '{tgtLine}'");
                                 currentBatchPercent++;
                             }
 
-                            SntPair sntPair = new SntPair(srcLine, tgtLine);
+                            SntPair sntPair = new SntPair(tgtLine, tgtLine);
                             outputs.Add(sntPair);
                         }
 
                         var batch = new T();
                         batch.CreateBatch(outputs);
-                        yield return batch;                        
+                        yield return batch;
                     }
                 }
             }
@@ -448,16 +360,15 @@ namespace Seq2SeqSharp.Tools
             return GetEnumerator();
         }
 
-        public ParallelCorpus()
+        public MonoCorpus()
         {
 
         }
 
-        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int maxTokenSizePerBatch, int maxSrcSentLength = 32, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random, TooLongSequence tooLongSequence = TooLongSequence.Ignore)
+        public MonoCorpus(string corpusFilePath, string tgtLangName, int maxTokenSizePerBatch, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random, TooLongSequence tooLongSequence = TooLongSequence.Ignore)
         {
-            Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSrcSentLength = '{maxSrcSentLength}',  MaxTgtSentLength = '{maxTgtSentLength}', aggregateSrcLengthForShuffle = '{shuffleEnums}', TooLongSequence = '{tooLongSequence}'");
+            Logger.WriteLine($"Loading mono corpus from '{corpusFilePath}' for target side '{tgtLangName}' MaxTgtSentLength = '{maxTgtSentLength}', aggregateLengthForShuffle = '{shuffleEnums}', TooLongSequence = '{tooLongSequence}'");
             m_maxTokenSizePerBatch = maxTokenSizePerBatch;
-            m_maxSrcTokenSize = maxSrcSentLength;
             m_maxTgtTokenSize = maxTgtSentLength;
 
             m_tooLongSequence = tooLongSequence;
@@ -465,26 +376,14 @@ namespace Seq2SeqSharp.Tools
             m_shuffleEnums = shuffleEnums;
             CorpusName = corpusFilePath;
 
-            m_srcFileList = new List<string>();
             m_tgtFileList = new List<string>();
             string[] files = Directory.GetFiles(corpusFilePath, $"*.*", SearchOption.TopDirectoryOnly);
-
-            Dictionary<string, string> srcKey2FileName = new Dictionary<string, string>();
             Dictionary<string, string> tgtKey2FileName = new Dictionary<string, string>();
 
-            string srcSuffix = $".{srcLangName}.snt";
             string tgtSuffix = $".{tgtLangName}.snt";
 
             foreach (string file in files)
             {
-                if (file.EndsWith(srcSuffix, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    string srcKey = file.Substring(0, file.Length - srcSuffix.Length);
-                    srcKey2FileName.Add(srcKey, file);
-
-                    Logger.WriteLine($"Add source file '{file}' to key '{srcKey}'");
-                }
-
                 if (file.EndsWith(tgtSuffix, StringComparison.InvariantCultureIgnoreCase))
                 {
                     string tgtKey = file.Substring(0, file.Length - tgtSuffix.Length);
@@ -495,12 +394,10 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
-            foreach (var pair in srcKey2FileName)
+            foreach (var pair in tgtKey2FileName)
             {
-                m_srcFileList.Add(pair.Value);
                 m_tgtFileList.Add(tgtKey2FileName[pair.Key]);
             }
-
         }
     }
 }
