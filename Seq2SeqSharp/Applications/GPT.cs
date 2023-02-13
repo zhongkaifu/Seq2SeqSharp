@@ -111,19 +111,6 @@ namespace Seq2SeqSharp
                     m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx));
         }
 
-        private string GenerateCacheKey(List<List<string>> strs)
-        {
-            List<string> r = new List<string>();
-
-            foreach (var str in strs)
-            {
-                r.Add(string.Join(" ", str));
-            }
-
-            return string.Join("\t", r);
-        }
-
-
         /// <summary>
         /// Run forward part on given single device
         /// </summary>
@@ -155,7 +142,6 @@ namespace Seq2SeqSharp
             }           
             else
             {   // Test mode or running validation in Training mode
-                Dictionary<string, IWeightTensor> cachedTensors = new Dictionary<string, IWeightTensor>();
                 List<List<BeamSearchStatus>> beam2batchStatus = Decoder.InitBeamSearchStatusListList(batchSize, tgtTokensList);
                 for (int i = tgtTokensList[0].Count; i < decodingOptions.MaxTgtSentLength; i++)
                 {
@@ -169,7 +155,7 @@ namespace Seq2SeqSharp
                             (var cost2, var bssSeqList) = Decoder.GPTDecode(batch2tgtTokens, g, decoder as GPTDecoder, decoderFFLayer, tgtEmbedding, posEmbedding,
                                                                             m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, decodingOptions, isTraining,
                                                                             outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus,
-                                                                            cachedTensors: cachedTensors, blockedTokens: decodingOptions.BlockedTokens, segmentEmbeddings: segmentEmbedding);
+                                                                            blockedTokens: decodingOptions.BlockedTokens, segmentEmbeddings: segmentEmbedding);
 
                             bssSeqList = Decoder.SwapBeamAndBatch(bssSeqList); // Swap shape: (beam_search_size, batch_size) -> (batch_size, beam_search_size)
                             batch2beam2seq = Decoder.CombineBeamSearchResults(batch2beam2seq, bssSeqList);
@@ -191,7 +177,6 @@ namespace Seq2SeqSharp
                         }
                     }
 
-
                     beam2batchStatus = Decoder.SwapBeamAndBatch(batch2beam2seq);
                     if (Decoder.AreAllSentsCompleted(beam2batchStatus))
                     {
@@ -201,16 +186,7 @@ namespace Seq2SeqSharp
 
                 nr.Cost = 0.0f;
                 nr.Output = m_modelMetaData.TgtVocab.ExtractTokens(beam2batchStatus);
-
-                if (cachedTensors != null)
-                {
-                    foreach (var pair in cachedTensors)
-                    {
-                        pair.Value.Dispose();
-                    }
-                }
             }
-
 
             nr.RemoveDuplicatedEOS();
 

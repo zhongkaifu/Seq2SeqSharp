@@ -7,6 +7,7 @@ Seq2SeqSharp is a tensor based fast & flexible encoder-decoder deep neural netwo
 # Features  
 Pure C# framework   
 Transformer encoder and decoder with pointer generator  
+GPTDecoder  
 Attention based LSTM decoder with coverage model  
 Bi-directional LSTM encoder  
 Support multi-platforms, such as Windows, Linux, MacOS and others  
@@ -245,6 +246,9 @@ For example: given the input sentence "▁i ▁would ▁like ▁to ▁drink ▁w
 | \<CHS\>  | \<CHS\> ▁我想 和你一起 喝酒 。 |      
 | \<JPN\>  | \<JPN\> ▁ あなたと 飲み たい |    
 | \<KOR\>  | \<KOR\> ▁나는 ▁당신과 ▁함께 ▁마시 길 ▁바랍니다 . | 
+
+## GPTConsole for GPT decoder only model training and testing  
+GPTConsole is a command line tool for GPT style model training and testing.
 
 
 ## SeqClassification for sequence-classification task  

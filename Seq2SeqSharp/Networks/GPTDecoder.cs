@@ -98,7 +98,7 @@ namespace Seq2SeqSharp
         /// <returns></returns>
         /// 
 
-        public (IWeightTensor, IWeightTensor) Decode(IWeightTensor tgtInputs, IWeightTensor tgtSelfMask, int batchSize, IComputeGraph g, bool outputAttnWeights = false, Dictionary<string, IWeightTensor> cachedTensors = null)
+        public (IWeightTensor, IWeightTensor) Decode(IWeightTensor tgtInputs, IWeightTensor tgtSelfMask, int batchSize, IComputeGraph g)
         {
             IWeightTensor attnProbs = null;
             using (IComputeGraph subg = g.CreateSubGraph($"{m_name}_GPTDecoder"))

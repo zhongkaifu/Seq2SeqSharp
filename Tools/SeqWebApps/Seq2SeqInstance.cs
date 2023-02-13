@@ -173,7 +173,7 @@ namespace Seq2SeqWebApps
                 }
                 else
                 {
-                    nrs = m_seq2seq.Test<SeqCorpusBatch>(srcGroupBatchTokens, tgtGroupBatchTokens, decodingOptions);
+                    nrs = m_seq2seq.Test<SeqCorpusBatch>(tgtGroupBatchTokens, tgtGroupBatchTokens, decodingOptions);
                 }
 
                 string rst = String.Join(" ", nrs[0].Output[0][0].ToArray(), 0, nrs[0].Output[0][0].Count);
