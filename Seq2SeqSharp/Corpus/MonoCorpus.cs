@@ -244,6 +244,7 @@ namespace Seq2SeqSharp.Tools
         {
             try
             {
+                m_batchNumInTotal = 0;
                 (var length2offsets, var length2counts, string tmpDataSetFilePath) = BuildIndex();
                 Logger.WriteLine($"Start to sort and shuffle data set by length.");
 
@@ -337,7 +338,7 @@ namespace Seq2SeqSharp.Tools
 
                             if ((100 * batchIdx / m_batchNumInTotal) > currentBatchPercent)
                             {
-                                Logger.WriteLine($"Processing batch '{batchIdx}/{m_batchNumInTotal}'."); // The '{i}th' record in this batch is: Target = '{tgtLine}'");
+                                Logger.WriteLine($"Processing batch '{batchIdx}/{m_batchNumInTotal}' '{(batchIdx * 100.0f / m_batchNumInTotal).ToString("e4")}%'."); // The '{i}th' record in this batch is: Target = '{tgtLine}'");
                                 currentBatchPercent++;
                             }
 
@@ -367,37 +368,16 @@ namespace Seq2SeqSharp.Tools
 
         public MonoCorpus(string corpusFilePath, string tgtLangName, int maxTokenSizePerBatch, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random, TooLongSequence tooLongSequence = TooLongSequence.Ignore)
         {
-            Logger.WriteLine($"Loading mono corpus from '{corpusFilePath}' for target side '{tgtLangName}' MaxTgtSentLength = '{maxTgtSentLength}', aggregateLengthForShuffle = '{shuffleEnums}', TooLongSequence = '{tooLongSequence}'");
+            Logger.WriteLine($"Loading mono corpus from '{corpusFilePath}' Files search pattern '*.{tgtLangName}.snt' MaxTgtSentLength = '{maxTgtSentLength}', aggregateLengthForShuffle = '{shuffleEnums}', TooLongSequence = '{tooLongSequence}'");
             m_maxTokenSizePerBatch = maxTokenSizePerBatch;
             m_maxTgtTokenSize = maxTgtSentLength;
-
             m_tooLongSequence = tooLongSequence;
-
             m_shuffleEnums = shuffleEnums;
             CorpusName = corpusFilePath;
 
             m_tgtFileList = new List<string>();
-            string[] files = Directory.GetFiles(corpusFilePath, $"*.*", SearchOption.TopDirectoryOnly);
-            Dictionary<string, string> tgtKey2FileName = new Dictionary<string, string>();
-
-            string tgtSuffix = $".{tgtLangName}.snt";
-
-            foreach (string file in files)
-            {
-                if (file.EndsWith(tgtSuffix, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    string tgtKey = file.Substring(0, file.Length - tgtSuffix.Length);
-                    tgtKey2FileName.Add(tgtKey, file);
-
-
-                    Logger.WriteLine($"Add target file '{file}' to key '{tgtKey}'");
-                }
-            }
-
-            foreach (var pair in tgtKey2FileName)
-            {
-                m_tgtFileList.Add(tgtKey2FileName[pair.Key]);
-            }
+            string[] files = Directory.GetFiles(corpusFilePath, $"*.{tgtLangName}.snt", SearchOption.TopDirectoryOnly);
+            m_tgtFileList.AddRange(files);           
         }
     }
 }

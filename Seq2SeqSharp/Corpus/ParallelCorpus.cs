@@ -319,6 +319,7 @@ namespace Seq2SeqSharp.Tools
         {
             try
             {
+                m_batchNumInTotal = 0;
                 (var length2offsets, var length2counts, string tmpDataSetFilePath) = BuildIndex();
                 Logger.WriteLine($"Start to sort and shuffle data set by length.");
 
@@ -425,7 +426,7 @@ namespace Seq2SeqSharp.Tools
 
                             if ((100 * batchIdx / m_batchNumInTotal) > currentBatchPercent)
                             {
-                                Logger.WriteLine($"Processing batch '{batchIdx}/{m_batchNumInTotal}'."); // The '{i}th' record in this batch is: Source = '{srcLine}' Target = '{tgtLine}'");
+                                Logger.WriteLine($"Processing batch '{batchIdx}/{m_batchNumInTotal}' '{(batchIdx * 100.0f / m_batchNumInTotal).ToString("e4")}%'."); // The '{i}th' record in this batch is: Source = '{srcLine}' Target = '{tgtLine}'");
                                 currentBatchPercent++;
                             }
 
