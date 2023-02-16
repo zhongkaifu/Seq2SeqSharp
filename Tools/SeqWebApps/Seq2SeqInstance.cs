@@ -116,12 +116,17 @@ namespace Seq2SeqWebApps
                 throw new ArgumentNullException($"The {nameof(Seq2SeqInstance)} is null.");
             }
 
+            if (m_modelType == ModelType.DecoderOnly && String.IsNullOrEmpty(rawTgtInput))
+            {
+                rawTgtInput = rawSrcInput;
+
+            }
+
             var srcInput = (m_srcSpm != null) ? m_srcSpm.Encode(rawSrcInput) : rawSrcInput;
             List<string> srcTokens = srcInput.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
-
             if (srcTokens.Count > opts.MaxSrcSentLength)
             {
-                srcTokens = srcTokens.GetRange(srcTokens.Count - opts.MaxSrcSentLength, opts.MaxSrcSentLength);
+                srcTokens = srcTokens.GetRange(0, opts.MaxSrcSentLength);
             }
 
 
@@ -134,6 +139,11 @@ namespace Seq2SeqWebApps
 
             var tgtInput = (m_tgtSpm != null) ? m_tgtSpm.Encode(rawTgtInput) : rawTgtInput;
             List<string> tgtTokens = tgtInput.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
+            if (tgtTokens.Count > opts.MaxTgtSentLength)
+            {
+                tgtTokens = tgtTokens.GetRange(tgtTokens.Count - opts.MaxTgtSentLength, opts.MaxTgtSentLength);
+            }
+
             tokenNumToGenerate += tgtTokens.Count;
 
             if (tokenNumToGenerate > opts.MaxTgtSentLength)

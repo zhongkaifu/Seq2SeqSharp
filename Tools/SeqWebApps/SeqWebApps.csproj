@@ -5,7 +5,31 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <SignAssembly>False</SignAssembly>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Copyright>Zhongkai Fu</Copyright>
+    <PackageProjectUrl>https://github.com/zhongkaifu/Seq2SeqSharp</PackageProjectUrl>
+    <Description>SeqWebApps is a light-weighted one page http server to host NLG model built by Seq2SeqSharp</Description>
+    <Company>Zhongkai Fu</Company>
+    <Title>SeqWebApps</Title>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Version>2.7.0</Version>
+    <RepositoryUrl>https://github.com/zhongkaifu/Seq2SeqSharp</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackAsTool>True</PackAsTool>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\AdvUtils\AdvUtils.csproj" />

@@ -33,34 +33,29 @@ namespace SeqWebApps.Controllers
         }
 
         [HttpPost]
-        public void SubmitFeedback(string srcInput, string tgtInput, bool random, float repeatPenalty, int contextSize, string clientIP, bool useSrcAsPrompt, int feedBackType)
+        public void SubmitFeedback(string srcInput, string tgtInput, bool random, float repeatPenalty, int contextSize, string clientIP, int feedBackType)
         {
             if (feedBackType == 1)
             {
                 //Thumb Up
-                Logger.WriteLine($"ThumbUp: Random = '{random}', repeatPenalty = '{repeatPenalty}', contextSize = '{contextSize}', clientIP = '{clientIP}', useSrcAsPrompt = '{useSrcAsPrompt}', Source = '{srcInput}', Target = '{tgtInput}'");
+                Logger.WriteLine($"ThumbUp: Random = '{random}', repeatPenalty = '{repeatPenalty}', contextSize = '{contextSize}', clientIP = '{clientIP}', Source = '{srcInput}', Target = '{tgtInput}'");
             }
             else
             {
                 //Thumb Down
-                Logger.WriteLine($"ThumbDown: Random = '{random}', repeatPenalty = '{repeatPenalty}', contextSize = '{contextSize}', clientIP = '{clientIP}', useSrcAsPrompt = '{useSrcAsPrompt}', Source = '{srcInput}', Target = '{tgtInput}'");
+                Logger.WriteLine($"ThumbDown: Random = '{random}', repeatPenalty = '{repeatPenalty}', contextSize = '{contextSize}', clientIP = '{clientIP}', Source = '{srcInput}', Target = '{tgtInput}'");
             }
                     
         }
 
 
         [HttpPost]
-        public IActionResult GenerateText(string srcInput, string tgtInput, int num, bool random, float repeatPenalty, int contextSize, string clientIP, bool useSrcAsPrompt)
+        public IActionResult GenerateText(string srcInput, string tgtInput, int num, bool random, float repeatPenalty, int contextSize, string clientIP)
         {
             if (tgtInput == null)
             {
-                Logger.WriteLine($"New Request: Random = '{random}', repeatPenalty = '{repeatPenalty}', contextSize = '{contextSize}', clientIP = '{clientIP}', useSrcAsPrompt = '{useSrcAsPrompt}', Source = '{srcInput}'");
+                Logger.WriteLine($"New Request: Random = '{random}', repeatPenalty = '{repeatPenalty}', contextSize = '{contextSize}', clientIP = '{clientIP}', Source = '{srcInput}'");
                 tgtInput = "";
-            }
-
-            if (useSrcAsPrompt && String.IsNullOrEmpty(tgtInput))
-            {
-                tgtInput = srcInput;
             }
 
             TextGenerationModel textGeneration = new TextGenerationModel
@@ -92,43 +87,10 @@ namespace SeqWebApps.Controllers
             string[] srcLines = srcInputText.Split("\n");
             string[] tgtLines = tgtInputText.Split("\n");
 
-            srcInputText = String.Join("", srcLines);
-            tgtInputText = String.Join("", tgtLines);
-
-
-            if (tgtInputText.Length > Seq2SeqInstance.MaxTokenToGenerate)
-            {
-                Logger.WriteLine($"Target text '{tgtInputText}' is too long, so we won't generate any more text for it.");
-
-                var tgtOutputSents = SplitSents(tgtInputText);
-                tgtInputText = String.Join("<br />", tgtOutputSents);
-
-                return tgtInputText + $"<br /> !!! The length of given source text or generated target text is more than {Seq2SeqInstance.MaxTokenToGenerate} characters, please trim it shorter and retry. !!! EOS";
-            }
+            srcInputText = String.Join(" ", srcLines);
+            tgtInputText = String.Join(" ", tgtLines);
            
-            string prefixTgtLine = "";
-
-            //The generated target tokens are too long, let's truncate it.
-            var maxTgtContextSize = tgtContextSize - tokenNumToGenerate;
-            if (tgtInputText.Length > maxTgtContextSize)
-            {
-                int idx = tgtInputText.Length - maxTgtContextSize;
-                while (idx > 0)
-                {
-                    if (tgtInputText[idx] == '。' || tgtInputText[idx] == '.' || tgtInputText[idx] == '？' || tgtInputText[idx] == '!' || tgtInputText[idx] == '?' || tgtInputText[idx] == '!')
-                    {
-                        idx++;
-                        break;
-                    }
-                    idx--;
-                }
-
-                prefixTgtLine = tgtInputText.Substring(0, idx);
-                tgtInputText = tgtInputText.Substring(idx);
-            }
-
             string outputText = Seq2SeqInstance.Call(srcInputText, tgtInputText, tokenNumToGenerate, random, repeatPenalty);
-            outputText = prefixTgtLine + outputText;
             
             var outputSents = SplitSents(outputText);
             return String.Join("<br />", outputSents);

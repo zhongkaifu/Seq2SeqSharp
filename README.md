@@ -248,7 +248,7 @@ For example: given the input sentence "▁i ▁would ▁like ▁to ▁drink ▁w
 | \<KOR\>  | \<KOR\> ▁나는 ▁당신과 ▁함께 ▁마시 길 ▁바랍니다 . | 
 
 ## GPTConsole for GPT decoder only model training and testing  
-GPTConsole is a command line tool for GPT style model training and testing.
+GPTConsole is a command line tool for GPT style model training and testing. Given text in input file per line, the model will continue generating the rest of text.  
 
 
 ## SeqClassification for sequence-classification task  
@@ -476,6 +476,8 @@ Here is an example that asking model to continue writing after "May the force be
 
 Here is another example of Chinese martial arts novel.  
 ![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Images/FictionGeneration.gif)  
+
+You can also visit NLG demo (Translation from English to Chinese) in Huggingface website [https://huggingface.co/spaces/zhongkaifu/nlg_demo]  
 
 # Build From Source Code  
 Besides using the release package, you could also build Seq2SeqSharp from source code. It has just two steps:  
