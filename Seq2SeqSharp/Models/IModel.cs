@@ -44,6 +44,8 @@ namespace Seq2SeqSharp
 
         public float[] GetWeights(string name);
 
+        public void DeleteWeights(string name);
+
         public bool PointerGenerator { get; set; }
 
         public void ClearWeights();

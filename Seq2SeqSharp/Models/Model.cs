@@ -131,6 +131,11 @@ namespace Seq2SeqSharp.Models
             return Name2Weights[name];
         }
 
+        public void DeleteWeights(string name)
+        {                      
+            Name2Weights.Remove(name);
+        }
+
         public void ClearWeights()
         {
             Name2Weights.Clear();

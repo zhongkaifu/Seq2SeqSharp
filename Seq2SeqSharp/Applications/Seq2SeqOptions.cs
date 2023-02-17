@@ -21,7 +21,7 @@ namespace Seq2SeqSharp
         [Arg("Starting Learning rate factor for decoders", nameof(DecoderStartLearningRateFactor))]
         public float DecoderStartLearningRateFactor = 1.0f;
 
-        [Arg("Decoder type: AttentionLSTM, Transformer", nameof(DecoderType))]
+        [Arg("Decoder type: None, AttentionLSTM, Transformer, GPTDecoder", nameof(DecoderType))]
         public DecoderTypeEnums DecoderType = DecoderTypeEnums.Transformer;
 
         [Arg("Apply coverage model in decoder", nameof(EnableCoverageModel))]

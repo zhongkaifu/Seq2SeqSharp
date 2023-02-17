@@ -516,6 +516,8 @@ namespace Seq2SeqSharp.Tools
             Logger.WriteLine($"Loading weights '{Name}' from the model to device '{DeviceId}'...");
 
             var weights = model.GetWeights(Name);
+            model.DeleteWeights(Name);
+
             if (weights != null)
             {
                 SetWeightArray(weights);

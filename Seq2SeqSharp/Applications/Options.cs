@@ -70,7 +70,7 @@ namespace Seq2SeqSharp.Applications
         [Arg("Starting Learning rate factor for encoders", nameof(EncoderStartLearningRateFactor))]
         public float EncoderStartLearningRateFactor = 1.0f;
 
-        [Arg("Encoder type: LSTM, BiLSTM, Transformer", nameof(EncoderType))]
+        [Arg("Encoder type: None, LSTM, BiLSTM, Transformer", nameof(EncoderType))]
         public EncoderTypeEnums EncoderType = EncoderTypeEnums.Transformer;
 
         [Arg("The gamma value of focal loss. Default is 0.0f", nameof(FocalLossGamma))]
