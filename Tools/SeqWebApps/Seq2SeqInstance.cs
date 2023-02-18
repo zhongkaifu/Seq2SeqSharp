@@ -187,7 +187,7 @@ namespace Seq2SeqWebApps
                 }
 
                 string rst = String.Join(" ", nrs[0].Output[0][0].ToArray(), 0, nrs[0].Output[0][0].Count);
-                bool isEnded = (rst.EndsWith("</s>") || rst == tgtInput);
+                bool isEnded = (rst.EndsWith("</s>") || rst == tgtInput || nrs[0].Status == NetworkResultStatus.OOM);
 
                 rst = (m_tgtSpm != null) ? m_tgtSpm.Decode(rst) : rst;
                 (bool isRepeat, rst) = CheckRepeatSentence(rst);

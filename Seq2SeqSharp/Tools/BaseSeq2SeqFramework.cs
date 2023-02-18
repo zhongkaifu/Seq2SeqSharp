@@ -27,19 +27,28 @@ using Seq2SeqSharp.Utils;
 
 namespace Seq2SeqSharp.Tools
 {
+    public enum NetworkResultStatus
+    {
+        SUCCEED,
+        FAILED,
+        OOM
+    }
+
     public class NetworkResult
     {
         public float Cost;
         public List<List<List<string>>> Output; // (beam_size, batch_size, seq_len)
         public List<List<List<int>>> Alignments; // (beam_size, batch_size, seq_len)
         public List<List<List<float>>> AlignmentScores; // (beam_size, batch_size, seq_len)
+        public NetworkResultStatus Status;
+
 
         public NetworkResult()
         {
             Output = null;
             Alignments = null;
             AlignmentScores = null;
-
+            Status = NetworkResultStatus.FAILED;
         }
 
         public void RemoveDuplicatedEOS()

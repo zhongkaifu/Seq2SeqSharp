@@ -208,6 +208,7 @@ namespace Seq2SeqSharp
             var tgtSnts = sntPairBatch.GetTgtTokens(0);
             var tgtTokensList = m_modelMetaData.TgtVocab.GetWordIndex(tgtSnts);
             NetworkResult nr = new NetworkResult();
+            nr.Status = NetworkResultStatus.SUCCEED;
 
             decoder.Reset(computeGraph.GetWeightFactory(), srcSnts.Count);
 
@@ -290,6 +291,7 @@ namespace Seq2SeqSharp
                         {
                             GC.Collect();
                             Logger.WriteLine(Logger.Level.warn, $"We have out of memory while generating '{i}th' tokens, so terminate decoding for current sequences.");
+                            nr.Status = NetworkResultStatus.OOM;
                             break;
                         }
 
