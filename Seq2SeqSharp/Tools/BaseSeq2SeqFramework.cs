@@ -80,6 +80,7 @@ namespace Seq2SeqSharp.Tools
 
         public void AppendResult(NetworkResult nr)
         {
+            Status = nr.Status;
             while (Output.Count < nr.Output.Count)
             {
                 Output.Add(new List<List<string>>());
@@ -87,7 +88,6 @@ namespace Seq2SeqSharp.Tools
 
             for (int beamIdx = 0; beamIdx < nr.Output.Count; beamIdx++)
             {
-
                 for (int batchIdx = 0; batchIdx < nr.Output[beamIdx].Count; batchIdx++)
                 {
                     Output[beamIdx].Add(nr.Output[beamIdx][batchIdx]);
