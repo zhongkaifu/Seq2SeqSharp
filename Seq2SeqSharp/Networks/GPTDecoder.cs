@@ -98,7 +98,7 @@ namespace Seq2SeqSharp
         /// <returns></returns>
         /// 
 
-        public (IWeightTensor, IWeightTensor) Decode(IWeightTensor tgtInputs, IWeightTensor tgtSelfMask, int batchSize, IComputeGraph g)
+        public (IWeightTensor, IWeightTensor) Decode(IWeightTensor tgtInputs, IWeightTensor tgtSelfMask, int batchSize, IComputeGraph g, Dictionary<string, IWeightTensor> cachedTensors = null)
         {
             IWeightTensor attnProbs = null;
             using (IComputeGraph subg = g.CreateSubGraph($"{m_name}_GPTDecoder"))
@@ -112,8 +112,8 @@ namespace Seq2SeqSharp
 
                 for (int k = 0; k < m_selfAttns.Count; k++)
                 {
-                    (tgtInputs, attnProbs) = m_selfAttns[k].Perform(tgtInputs, selfMaskTensor, batchSize, subg, outputAttenWeights: false);
-                    tgtInputs = m_feedForwards[k].Process(tgtInputs, batchSize, subg);
+                    (tgtInputs, attnProbs) = m_selfAttns[k].Perform(tgtInputs, selfMaskTensor, batchSize, subg, outputAttenWeights: false, cachedTensors: cachedTensors);
+                    tgtInputs = m_feedForwards[k].Process(tgtInputs, batchSize, subg, cachedTensors: cachedTensors);
                 }
 
                 tgtInputs = layerNorm.Norm(tgtInputs, subg);

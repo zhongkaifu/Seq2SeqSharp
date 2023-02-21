@@ -1,11 +1,36 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Title>GPT style model training and testing</Title>
+    <Authors>Zhongkai Fu</Authors>
+    <Description>The console tool for GPT style models training and testing</Description>
+    <Copyright>Zhongkai Fu</Copyright>
+    <PackageProjectUrl>https://github.com/zhongkaifu/Seq2SeqSharp</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/zhongkaifu/Seq2SeqSharp</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>GPT;LLM;.NET;ML;deep learning;CUDA;C#;GPU;transformer</PackageTags>
+    <PackageReleaseNotes>The console tool for GPT style model training and testing</PackageReleaseNotes>
+    <PackAsTool>True</PackAsTool>
+    <AssemblyVersion>2.7.0</AssemblyVersion>
+    <FileVersion>2.7.0</FileVersion>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />

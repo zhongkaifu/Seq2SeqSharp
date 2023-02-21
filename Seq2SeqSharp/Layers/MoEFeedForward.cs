@@ -64,7 +64,12 @@ namespace Seq2SeqSharp.Layers
             throw new NotImplementedException();
         }
 
-        public IWeightTensor Process(IWeightTensor input, int batchSize, IComputeGraph graph)
+        public void ClearStatus()
+        {
+
+        }
+
+        public IWeightTensor Process(IWeightTensor input, int batchSize, IComputeGraph graph, Dictionary<string, IWeightTensor> cachedTensors = null)
         {
             //Computing routing result
             using var g = graph.CreateSubGraph($"{m_name}_MoEFeedForward");

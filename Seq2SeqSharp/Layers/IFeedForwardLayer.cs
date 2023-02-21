@@ -9,12 +9,12 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
 using Seq2SeqSharp.Tools;
+using System.Collections.Generic;
 
 namespace Seq2SeqSharp.Layers
 {
     public interface IFeedForwardLayer : INeuralUnit
     {
-        IWeightTensor Process(IWeightTensor inputT, int batchSize, IComputeGraph g);
-
+        IWeightTensor Process(IWeightTensor inputT, int batchSize, IComputeGraph g, Dictionary<string, IWeightTensor> cachedTensors = null);
     }
 }

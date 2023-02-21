@@ -145,6 +145,7 @@ namespace Seq2SeqSharp
             else
             {   // Test mode or running validation in Training mode
                 List<List<BeamSearchStatus>> beam2batchStatus = Decoder.InitBeamSearchStatusListList(batchSize, tgtTokensList);
+                Dictionary<string, IWeightTensor> cachedTensors = new Dictionary<string, IWeightTensor>();
                 for (int i = tgtTokensList[0].Count; i < decodingOptions.MaxTgtSentLength; i++)
                 {
                     List<List<BeamSearchStatus>> batch2beam2seq = null; //(batch_size, beam_search_size)
@@ -157,7 +158,7 @@ namespace Seq2SeqSharp
                             (var cost2, var bssSeqList) = Decoder.GPTDecode(batch2tgtTokens, g, decoder as GPTDecoder, decoderFFLayer, tgtEmbedding, posEmbedding,
                                                                             m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, decodingOptions, isTraining,
                                                                             outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus,
-                                                                            blockedTokens: decodingOptions.BlockedTokens, segmentEmbeddings: segmentEmbedding);
+                                                                            blockedTokens: decodingOptions.BlockedTokens, segmentEmbeddings: segmentEmbedding, cachedTensors: cachedTensors);
 
                             bssSeqList = Decoder.SwapBeamAndBatch(bssSeqList); // Swap shape: (beam_search_size, batch_size) -> (batch_size, beam_search_size)
                             batch2beam2seq = Decoder.CombineBeamSearchResults(batch2beam2seq, bssSeqList);

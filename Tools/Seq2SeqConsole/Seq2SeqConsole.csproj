@@ -17,6 +17,8 @@
     <Description>A command line tool for sequence-to-sequence task. It can be used for model training and inference. It supports both CPU and GPU(CUDA).</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Copyright>Zhongkai Fu</Copyright>
+    <PackAsTool>True</PackAsTool>
     <!--<RetainVMGarbageCollection>true</RetainVMGarbageCollection>-->
   </PropertyGroup>
   

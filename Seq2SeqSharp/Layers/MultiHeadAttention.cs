@@ -88,9 +88,10 @@ namespace Seq2SeqSharp
         /// <param name="batchSize">Batch size of input data set</param>
         /// <param name="graph">The instance of computing graph</param>
         /// <returns>Transformered output tensor</returns>
-        public (IWeightTensor, IWeightTensor) Perform(IWeightTensor inputQ, IWeightTensor keyMask, int batchSize, IComputeGraph graph, bool outputAttenWeights = false)
+        public (IWeightTensor, IWeightTensor) Perform(IWeightTensor inputQ, IWeightTensor keyMask, int batchSize, IComputeGraph graph, bool outputAttenWeights = false, Dictionary<string, IWeightTensor> cachedTensors = null)
         {
-            using IComputeGraph g = graph.CreateSubGraph($"{m_name}_MultiHeadAttention");
+            string keyName = $"{m_name}_MultiHeadAttention_1";
+            using IComputeGraph g = graph.CreateSubGraph(keyName);
             int seqLenQ = inputQ.Rows / batchSize;
 
             IWeightTensor inputQNorm = layerNormQ.Norm(inputQ, g);
@@ -101,15 +102,35 @@ namespace Seq2SeqSharp
             var allK = g.Select(weightedQKV, 2, 1);
             var allV = g.Select(weightedQKV, 2, 2);
 
-
             //Multi-head attentions
             IWeightTensor Qs = g.View(g.AsContiguous(g.Transpose(allQ, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, m_d });
+
+            int newTokensIdx = seqLenQ;
+            IWeightTensor m_cacheQs = null;
+            string QKeyName = keyName + "_" + nameof(inputQ);
+            if (cachedTensors != null)
+            {
+                if (cachedTensors.ContainsKey(QKeyName) == true)
+                {
+                    m_cacheQs = cachedTensors[QKeyName];
+                    newTokensIdx = seqLenQ - (int)m_cacheQs.Sizes[0];
+                }
+                else
+                {
+                    cachedTensors.Add(QKeyName, null);
+                }
+
+                // Optimize runtime for test that only processing new tokens.
+                // For older tokens, just use cached output
+                Qs = g.Peek(Qs, 1, seqLenQ - newTokensIdx, newTokensIdx); // Shape: [batchSize * m_multiHeadNum, relPosSize, m_d]
+            }
+
             IWeightTensor Ks = g.View(g.AsContiguous(g.Transpose(g.Transpose(allK, 1, 2), 2, 3)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenQ });
             IWeightTensor Vs = g.View(g.AsContiguous(g.Transpose(allV, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, m_d });
 
             // Scaled softmax
             float scale = 1.0f / (float)(Math.Sqrt(m_d));
-            var attn = g.MulBatch(Qs, Ks, scale);
+            var attn = g.MulBatch(Qs, Ks, scale); // Shape: [batchSize * m_multiHeadNum, relPosSize, seqLenQ]
 
             // Calculate relative positional bias
             float[] relPosIdx = new float[seqLenQ * seqLenQ];
@@ -123,15 +144,26 @@ namespace Seq2SeqSharp
 
             var indice = g.CreateTensorWeights(new long[] { relPosIdx.Length, 1 }, relPosIdx);
             var relPosWeights = g.IndexSelect(relativePositionalEmbWeights, indice);
-            relPosWeights = g.View(relPosWeights, dims: new long[] { 1, seqLenQ, seqLenQ });
-            relPosWeights = g.Expand(relPosWeights, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenQ });
+            relPosWeights = g.View(relPosWeights, dims: new long[] { seqLenQ, seqLenQ });
+
+            if (cachedTensors != null)
+            {
+                relPosWeights = g.Peek(relPosWeights, 0, seqLenQ - newTokensIdx, newTokensIdx); // Shape: [relPosSize, seqLenQ]
+            }
+            relPosWeights = g.View(relPosWeights, dims: new long[] { 1, newTokensIdx, seqLenQ });
+            relPosWeights = g.Expand(relPosWeights, dims: new long[] { batchSize * m_multiHeadNum, newTokensIdx, seqLenQ });
             attn = g.Add(attn, relPosWeights);
 
 
             // Add mask
-            attn = g.View(attn, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ });
+            attn = g.View(attn, dims: new long[] { batchSize, m_multiHeadNum, newTokensIdx, seqLenQ });
             if (keyMask != null)
             {
+                if (cachedTensors != null)
+                {
+                    keyMask = g.Peek(keyMask, 2, seqLenQ - newTokensIdx, newTokensIdx);
+                }
+
                 attn = g.Add(attn, keyMask, inPlace: true);
             }
 
@@ -143,27 +175,49 @@ namespace Seq2SeqSharp
                 //Merge all attention probs over multi-heads
                 sumAttnWeights = graph.Sum(attnProbs, 1);
                 sumAttnWeights = graph.Div(sumAttnWeights, (float)m_multiHeadNum);
-                sumAttnWeights = graph.View(sumAttnWeights, new long[] { batchSize * seqLenQ, seqLenQ });
+                sumAttnWeights = graph.View(sumAttnWeights, new long[] { batchSize * newTokensIdx, seqLenQ }); ;
             }
 
-            attnProbs = g.View(attnProbs, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenQ });
+            attnProbs = g.View(attnProbs, dims: new long[] { batchSize * m_multiHeadNum, newTokensIdx, seqLenQ });
 
-            IWeightTensor o = g.View(g.MulBatch(attnProbs, Vs), dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, m_d });
-            IWeightTensor W = g.View(g.AsContiguous(g.Transpose(o, 1, 2)), dims: new long[] { batchSize * seqLenQ, m_multiHeadNum * m_d });
+            IWeightTensor o = g.View(g.MulBatch(attnProbs, Vs), dims: new long[] { batchSize, m_multiHeadNum, newTokensIdx, m_d });
+            IWeightTensor W = g.View(g.AsContiguous(g.Transpose(o, 1, 2)), dims: new long[] { batchSize * newTokensIdx, m_multiHeadNum * m_d });
 
             // Output projection
-            IWeightTensor finalAttResults = g.Dropout(g.Affine(W, W0, b0), batchSize, m_dropoutRatio, inPlace: true);
+            IWeightTensor finalAttResults = g.Dropout(g.Affine(W, W0, b0), batchSize, m_dropoutRatio, inPlace: true); // Shape: [batchSize * relPosSize, m_multiHeadNum * m_d]
+
+            if (cachedTensors != null)
+            {
+                finalAttResults = g.View(finalAttResults, dims: new long[] {batchSize, newTokensIdx, m_multiHeadNum * m_d });
+                finalAttResults = g.Transpose(finalAttResults, 0, 1); // Shape: [relPosSize, batchSize, m_multiHeadNum * m_d]
+
+                if (m_cacheQs == null)
+                {
+                    m_cacheQs = finalAttResults;
+                }
+                else
+                {
+                    m_cacheQs = g.Concate(0, m_cacheQs, finalAttResults);
+                }
+                m_cacheQs.UnbindFromComputeGraph();
+
+                cachedTensors[QKeyName] = m_cacheQs;
+
+                finalAttResults = g.AsContiguous(g.Transpose(m_cacheQs, 0, 1)); // Shape: [batchSize, seqLenQ, m_multiHeadNum * m_d]
+                finalAttResults = g.View(finalAttResults, dims: new long[] { batchSize * seqLenQ, m_multiHeadNum * m_d });
+            }
+
+            // For runtime, we don't call it by inplace, since it will change the content of cached weights
             IWeightTensor result = graph.Add(finalAttResults, inputQ, inPlace: true);
 
 
             return (result, sumAttnWeights);
         }
 
-
         /// <summary>
         /// Scaled multi-heads attention component with skip connectioned feed forward layers
         /// </summary>
-        /// <param name="inputQ">The input Q tensor</param>
+        /// <param name="inputQ">The input Q tensor Shape: [batchSize * seqLen, input_dim] </param>
         /// <param name="inputK">The input K tensor</param>
         /// <param name="inputV">The input V tensor</param>
         /// <param name="keyMask">The mask for softmax</param>
@@ -172,9 +226,30 @@ namespace Seq2SeqSharp
         /// <returns>Transformered output tensor</returns>
         public (IWeightTensor, IWeightTensor) Perform(IWeightTensor inputQ, IWeightTensor inputK, IWeightTensor inputV, IWeightTensor keyMask, int batchSize, IComputeGraph graph, bool outputAttenWeights = false, Dictionary<string, IWeightTensor> cachedTensors = null)
         {
-            string keyName = $"{m_name}_MultiHeadAttention";
+            string keyName = $"{m_name}_MultiHeadAttention_3";
             using IComputeGraph g = graph.CreateSubGraph(keyName);
             int seqLenQ = inputQ.Rows / batchSize;
+
+            int newTokensIdx = seqLenQ;
+            IWeightTensor m_cacheQs = null;
+            string QKeyName = keyName + "_" + nameof(inputQ);
+            if (cachedTensors != null)
+            {
+                if (cachedTensors.ContainsKey(QKeyName) == true)
+                {
+                    m_cacheQs = cachedTensors[QKeyName];
+                    newTokensIdx = seqLenQ - (int)m_cacheQs.Sizes[0];
+                }
+                else
+                {
+                    cachedTensors.Add(QKeyName, null);
+                }
+
+                // Optimize runtime for test that only processing new tokens
+                inputQ = g.View(inputQ, dims: new long[] { batchSize, seqLenQ, -1 });
+                inputQ = g.AsContiguous(g.Peek(inputQ, 1, seqLenQ - newTokensIdx, newTokensIdx)); // Shape: [batchSize, newTokensSize, input_dim]
+                inputQ = g.View(inputQ, dims: new long[] { batchSize * newTokensIdx, -1 }); // Shape: [batchSize * newTokensSize, input_dim]
+            }
 
             // SeqLenK must be euqal to SeqLenV
             int seqLenK = inputK.Rows / batchSize;
@@ -183,10 +258,10 @@ namespace Seq2SeqSharp
             IWeightTensor inputQNorm = layerNormQ.Norm(inputQ, g);
 
             //Input projections
-            IWeightTensor allQ = g.View(g.Affine(inputQNorm, Q, Qb), dims: new long[] { batchSize, seqLenQ, m_multiHeadNum, m_d });
+            IWeightTensor allQ = g.View(g.Affine(inputQNorm, Q, Qb), dims: new long[] { batchSize, newTokensIdx, m_multiHeadNum, m_d });
 
             //Multi-head attentions
-            IWeightTensor Qs = g.View(g.AsContiguous(g.Transpose(allQ, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, m_d });
+            IWeightTensor Qs = g.View(g.AsContiguous(g.Transpose(allQ, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, newTokensIdx, m_d });
 
 
             IWeightTensor Ks = null;
@@ -230,15 +305,20 @@ namespace Seq2SeqSharp
 
             // Scaled softmax
             float scale = 1.0f / (float)(Math.Sqrt(m_d));
-            var attn = g.MulBatch(Qs, Ks, scale);
-            attn = g.View(attn, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK });
+            var attn = g.MulBatch(Qs, Ks, scale); // Shape: [batchSize * m_multiHeadNum, newTokensIdx, seqLenK]
+            attn = g.View(attn, dims: new long[] { batchSize, m_multiHeadNum, newTokensIdx, seqLenK });
 
             if (keyMask != null)
             {
-                attn = g.Add(attn, keyMask, inPlace: true);
+                if (cachedTensors != null)
+                {
+                    keyMask = g.Peek(keyMask, 2, seqLenQ - newTokensIdx, newTokensIdx); // Shape: [batchSize, m_multiHeadNum, newTokensIdx, seqLenK]
+                }
+
+                attn = g.Add(attn, keyMask, inPlace: true);  // Shape: [batchSize, m_multiHeadNum, newTokensIdx, seqLenK]
             }
 
-            var attnProbs = g.Softmax(attn, inPlace: true);
+            var attnProbs = g.Softmax(attn, inPlace: true);  // Shape: [batchSize, m_multiHeadNum, newTokensIdx, seqLenK]
 
             IWeightTensor sumAttnWeights = null;
             if (outputAttenWeights)
@@ -251,18 +331,39 @@ namespace Seq2SeqSharp
                 }
 
                 sumAttnWeights = graph.Div(sumAttnWeights, (float)m_multiHeadNum, inPlace: true);
-                sumAttnWeights = graph.View(sumAttnWeights, new long[] { batchSize * seqLenQ, seqLenK });
+                sumAttnWeights = graph.View(sumAttnWeights, new long[] { batchSize * newTokensIdx, seqLenK });
             }
 
-            attnProbs = g.View(attnProbs, dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, seqLenK });
+            attnProbs = g.View(attnProbs, dims: new long[] { batchSize * m_multiHeadNum, newTokensIdx, seqLenK });
 
-            IWeightTensor o = g.View(g.MulBatch(attnProbs, Vs), dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, m_d });
-            IWeightTensor W = g.View(g.AsContiguous(g.Transpose(o, 1, 2)), dims: new long[] { batchSize * seqLenQ, m_multiHeadNum * m_d });
+            IWeightTensor o = g.View(g.MulBatch(attnProbs, Vs), dims: new long[] { batchSize, m_multiHeadNum, newTokensIdx, m_d });
+            IWeightTensor W = g.View(g.AsContiguous(g.Transpose(o, 1, 2)), dims: new long[] { batchSize * newTokensIdx, m_multiHeadNum * m_d });
 
             // Output projection
             IWeightTensor finalAttResults = g.Dropout(g.Affine(W, W0, b0), batchSize, m_dropoutRatio, inPlace: true);
-            IWeightTensor result = graph.Add(finalAttResults, inputQ, inPlace: true);
+            IWeightTensor result = graph.Add(finalAttResults, inputQ, inPlace: true); // Shape: [batchSize * newTokensSize, input_dim]
 
+
+            if (cachedTensors != null)
+            {
+                result = g.View(result, dims: new long[] { batchSize, newTokensIdx, m_multiHeadNum * m_d });
+                result = g.AsContiguous(g.Transpose(result, 0, 1)); // Shape: [newTokensIdx, batchSize, m_multiHeadNum * m_d]
+
+                if (m_cacheQs == null)
+                {
+                    m_cacheQs = result;// Shape: [newTokensIdx, batchSize, m_multiHeadNum * m_d]
+                }
+                else
+                {
+                    m_cacheQs = g.Concate(0, m_cacheQs, result);
+                }
+                m_cacheQs.UnbindFromComputeGraph();
+
+                cachedTensors[QKeyName] = m_cacheQs;
+
+                result = g.AsContiguous(g.Transpose(m_cacheQs, 0, 1)); // Shape: [batchSize, seqLenQ, m_multiHeadNum * m_d]
+                result = graph.View(result, dims: new long[] { batchSize * seqLenQ, m_multiHeadNum * m_d });
+            }
 
             return (result, sumAttnWeights);
         }

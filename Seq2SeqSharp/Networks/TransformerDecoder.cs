@@ -95,6 +95,7 @@ namespace Seq2SeqSharp
 
         public void Reset(IWeightFactory weightFactory, int batchSize)
         {
+
         }
 
         /// <summary>
@@ -129,9 +130,9 @@ namespace Seq2SeqSharp
 
                 for (int k = 0; k < m_selfAttns.Count; k++)
                 {
-                    (tgtInputs, attnProbs) = m_selfAttns[k].Perform(tgtInputs, selfMaskTensor, batchSize, subg, outputAttenWeights: false);
+                    (tgtInputs, attnProbs) = m_selfAttns[k].Perform(tgtInputs, selfMaskTensor, batchSize, subg, outputAttenWeights: false, cachedTensors: cachedTensors);
                     (tgtInputs, attnProbs) = m_encAttns[k].Perform(tgtInputs, encOutputBatchFirst, encOutputBatchFirst, crossMaskTensor, batchSize, subg, outputAttenWeights: (outputAttnWeights && k == m_selfAttns.Count - 1), cachedTensors: cachedTensors);
-                    tgtInputs = m_feedForwards[k].Process(tgtInputs, batchSize, subg);
+                    tgtInputs = m_feedForwards[k].Process(tgtInputs, batchSize, subg, cachedTensors: cachedTensors);
                 }
 
                 tgtInputs = layerNorm.Norm(tgtInputs, subg);

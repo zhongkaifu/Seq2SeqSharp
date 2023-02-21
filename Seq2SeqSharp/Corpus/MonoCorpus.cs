@@ -338,7 +338,7 @@ namespace Seq2SeqSharp.Tools
 
                             if ((100 * batchIdx / m_batchNumInTotal) > currentBatchPercent)
                             {
-                                Logger.WriteLine($"Processing batch '{batchIdx}/{m_batchNumInTotal}' '{(batchIdx * 100.0f / m_batchNumInTotal).ToString("e4")}%'."); // The '{i}th' record in this batch is: Target = '{tgtLine}'");
+                                Logger.WriteLine($"Processing batch '{batchIdx}/{m_batchNumInTotal}'."); // The '{i}th' record in this batch is: Target = '{tgtLine}'");
                                 currentBatchPercent++;
                             }
 
