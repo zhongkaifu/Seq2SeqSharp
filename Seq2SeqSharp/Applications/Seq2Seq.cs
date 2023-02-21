@@ -192,8 +192,6 @@ namespace Seq2SeqSharp
                     var cacheEntryOptions = new MemoryCacheEntryOptions().SetSize(1);
                     m_memoryCache.Set(cacheKey, encOutput.CopyWeightsRef($"cache_{encOutput.Name}", false, graphToBind: null), cacheEntryOptions);
                 }
-
-
             }
             else
             {

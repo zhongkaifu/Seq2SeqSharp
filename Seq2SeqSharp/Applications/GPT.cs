@@ -36,6 +36,7 @@ namespace Seq2SeqSharp
         private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
         readonly Seq2SeqOptions m_options = null;
 
+        private MemoryCache m_memoryCache;
         public GPT(Seq2SeqOptions options, Vocab tgtVocab = null)
             : base(deviceIds: options.DeviceIds, processorType: options.ProcessorType, modelFilePath: options.ModelFilePath, memoryUsageRatio: options.MemoryUsageRatio,
                   compilerOptions: options.CompilerOptions, runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq,
@@ -43,7 +44,12 @@ namespace Seq2SeqSharp
         {
             m_shuffleType = options.ShuffleType;
             m_options = options;
-          
+
+            m_memoryCache = new MemoryCache(new MemoryCacheOptions
+            {
+                SizeLimit = 1024
+            });
+
             // Model must exist if current task is not for training
             if ((m_options.Task != ModeEnums.Train) && !File.Exists(m_options.ModelFilePath))
             {
@@ -113,6 +119,18 @@ namespace Seq2SeqSharp
                     m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx));
         }
 
+        private string GenerateCacheKey(List<List<string>> strs)
+        {
+            List<string> r = new List<string>();
+
+            foreach (var str in strs)
+            {
+                r.Add(string.Join(" ", str));
+            }
+
+            return string.Join("\t", r);
+        }
+
         /// <summary>
         /// Run forward part on given single device
         /// </summary>
@@ -145,7 +163,26 @@ namespace Seq2SeqSharp
             else
             {   // Test mode or running validation in Training mode
                 List<List<BeamSearchStatus>> beam2batchStatus = Decoder.InitBeamSearchStatusListList(batchSize, tgtTokensList);
-                Dictionary<string, IWeightTensor> cachedTensors = new Dictionary<string, IWeightTensor>();
+                Dictionary<string, IWeightTensor> cachedTensors = null;
+                string cacheKey = GenerateCacheKey(tgtSnts);
+                if (!m_memoryCache.TryGetValue(cacheKey, out cachedTensors))
+                {
+                    cachedTensors = new Dictionary<string, IWeightTensor>();
+                    if (Logger.Verbose == Logger.LogVerbose.Debug)
+                    {
+                        Logger.WriteLine($"Missed cached tensor. cacheKey = '{cacheKey}' key length = '{cacheKey.Length}'");
+                    }
+                }
+                else
+                {
+                    if (Logger.Verbose == Logger.LogVerbose.Debug)
+                    {
+                        Logger.WriteLine($"Hit cached tensor. cacheKey = '{cacheKey}' key length = '{cacheKey.Length}'");
+                    }
+                }
+
+                m_memoryCache.Remove(cacheKey);
+
                 for (int i = tgtTokensList[0].Count; i < decodingOptions.MaxTgtSentLength; i++)
                 {
                     List<List<BeamSearchStatus>> batch2beam2seq = null; //(batch_size, beam_search_size)
@@ -166,7 +203,7 @@ namespace Seq2SeqSharp
                     }
                     catch (OutOfMemoryException)
                     {
-                        GC.Collect();
+                        GC.Collect();                      
                         Logger.WriteLine(Logger.Level.warn, $"We have out of memory while generating '{i}th' tokens, so terminate decoding for current sequences.");
                         nr.Status = NetworkResultStatus.OOM;
                         break;
@@ -190,6 +227,15 @@ namespace Seq2SeqSharp
 
                 nr.Cost = 0.0f;
                 nr.Output = m_modelMetaData.TgtVocab.ExtractTokens(beam2batchStatus);
+
+                cacheKey = GenerateCacheKey(nr.Output[0]);
+                var cacheEntryOptions = new MemoryCacheEntryOptions().SetSize(1);
+                Dictionary<string, IWeightTensor> newCachedTensors = new Dictionary<string, IWeightTensor>();
+                foreach (var pair in cachedTensors)
+                {
+                    newCachedTensors.Add(pair.Key, pair.Value.CopyWeightsRef(pair.Value.Name, false, graphToBind: null));
+                }
+                m_memoryCache.Set(cacheKey, newCachedTensors, cacheEntryOptions);
             }
 
             nr.RemoveDuplicatedEOS();

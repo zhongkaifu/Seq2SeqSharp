@@ -28,6 +28,7 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
     var beamSearchSize = int.Parse(Configuration["Seq2Seq:BeamSearchSize"]);
     var blockedTokens = Configuration["Seq2Seq:BlockedTokens"];
     var modelType = Configuration["Seq2Seq:ModelType"];
+    Logger.Verbose = (Logger.LogVerbose)Enum.Parse(typeof(Logger.LogVerbose), Configuration["Seq2Seq:LogVerbose"]);
 
 #pragma warning restore CS8604 // Possible null reference argument.
 
