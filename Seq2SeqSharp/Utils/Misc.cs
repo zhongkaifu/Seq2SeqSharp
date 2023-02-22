@@ -110,7 +110,7 @@ namespace Seq2SeqSharp.Utils
             MultiProcessorNetworkWrapper<IWeightTensor> posEmbeddings = null;
             MultiProcessorNetworkWrapper<IWeightTensor> segmentEmbeddings = null;
 
-            if (modelMetaData.EncoderType == EncoderTypeEnums.Transformer || modelMetaData.DecoderType == DecoderTypeEnums.Transformer)
+            if (modelMetaData.EncoderType != EncoderTypeEnums.BiLSTM || modelMetaData.DecoderType != DecoderTypeEnums.AttentionLSTM)
             {
                 posEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(PositionEmbedding.BuildPositionWeightTensor(
                     maxSentLength + 2,
