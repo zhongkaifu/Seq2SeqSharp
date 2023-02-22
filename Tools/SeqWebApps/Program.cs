@@ -3,6 +3,7 @@ using AdvUtils;
 using Microsoft.Extensions.Configuration;
 using Seq2SeqSharp;
 using Seq2SeqSharp._SentencePiece;
+using Seq2SeqSharp.Utils;
 using Seq2SeqWebApps;
 
 Logger.LogFile = $"{nameof(SeqWebApps)}_{GetTimeStamp(DateTime.Now)}.log";
@@ -14,23 +15,20 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
 {
     Logger.WriteLine($"Loading Seq2Seq model '{Configuration["Seq2Seq:ModelFilePath"]}'");
 
-#pragma warning disable CS8604 // Possible null reference argument.
     var modelFilePath = Configuration["Seq2Seq:ModelFilePath"];
-    var maxTestSrcSentLength = int.Parse(Configuration["Seq2Seq:MaxSrcTokenSize"]);
-    var maxTestTgtSentLength = int.Parse(Configuration["Seq2Seq:MaxTgtTokenSize"]);
-    var processorType = Configuration["Seq2Seq:ProcessorType"].ToEnum<ProcessorTypeEnums>();
-    var deviceIds = Configuration["Seq2Seq:DeviceIds"];
-    var tokenGenerationStrategy = Configuration["Seq2Seq:TokenGenerationStrategy"];
-    var repeatPenalty = float.Parse(Configuration["Seq2Seq:RepeatPenalty"]);
-    var topPSampling = float.Parse(Configuration["Seq2Seq:TopPSampling"]);
-    var gpuMemoryUsageRatio = float.Parse(Configuration["Seq2Seq:GPUMemoryUsageRatio"]);
-    var mklInstructions = Configuration["Seq2Seq:MKLInstructions"];
-    var beamSearchSize = int.Parse(Configuration["Seq2Seq:BeamSearchSize"]);
-    var blockedTokens = Configuration["Seq2Seq:BlockedTokens"];
-    var modelType = Configuration["Seq2Seq:ModelType"];
-    Logger.Verbose = (Logger.LogVerbose)Enum.Parse(typeof(Logger.LogVerbose), Configuration["Seq2Seq:LogVerbose"]);
-
-#pragma warning restore CS8604 // Possible null reference argument.
+    var maxTestSrcSentLength = String.IsNullOrEmpty(Configuration["Seq2Seq:MaxSrcTokenSize"]) ? 4096 : int.Parse(Configuration["Seq2Seq:MaxSrcTokenSize"]);
+    var maxTestTgtSentLength = String.IsNullOrEmpty(Configuration["Seq2Seq:MaxTgtTokenSize"]) ? 4096 : int.Parse(Configuration["Seq2Seq:MaxTgtTokenSize"]);
+    var processorType = String.IsNullOrEmpty(Configuration["Seq2Seq:ProcessorType"]) ? ProcessorTypeEnums.CPU : (Configuration["Seq2Seq:ProcessorType"].ToEnum<ProcessorTypeEnums>());
+    var deviceIds = String.IsNullOrEmpty(Configuration["Seq2Seq:DeviceIds"]) ? "0" : Configuration["Seq2Seq:DeviceIds"];
+    var decodingStrategyEnum = String.IsNullOrEmpty(Configuration["Seq2Seq:TokenGenerationStrategy"]) ? DecodingStrategyEnums.Sampling : Configuration["Seq2Seq:TokenGenerationStrategy"].ToEnum<DecodingStrategyEnums>();
+    var repeatPenalty = String.IsNullOrEmpty(Configuration["Seq2Seq:RepeatPenalty"]) ? 1.0f : float.Parse(Configuration["Seq2Seq:RepeatPenalty"]);
+    var topPSampling = String.IsNullOrEmpty(Configuration["Seq2Seq:TopPSampling"]) ? 1.0f : float.Parse(Configuration["Seq2Seq:TopPSampling"]);
+    var gpuMemoryUsageRatio = String.IsNullOrEmpty(Configuration["Seq2Seq:GPUMemoryUsageRatio"]) ? 0.99f : float.Parse(Configuration["Seq2Seq:GPUMemoryUsageRatio"]);
+    var mklInstructions = String.IsNullOrEmpty(Configuration["Seq2Seq:MKLInstructions"]) ? "" : Configuration["Seq2Seq:MKLInstructions"];
+    var beamSearchSize = String.IsNullOrEmpty(Configuration["Seq2Seq:BeamSearchSize"]) ? 1 : int.Parse(Configuration["Seq2Seq:BeamSearchSize"]);
+    var blockedTokens = String.IsNullOrEmpty(Configuration["Seq2Seq:BlockedTokens"]) ? "" : Configuration["Seq2Seq:BlockedTokens"];
+    var modelType = String.IsNullOrEmpty(Configuration["Seq2Seq:ModelType"]) ? ModelType.EncoderDecoder : Configuration["Seq2Seq:ModelType"].ToEnum<ModelType>();
+    Logger.Verbose = String.IsNullOrEmpty(Configuration["Seq2Seq:LogVerbose"]) ? Logger.LogVerbose.Normal : Configuration["Seq2Seq:LogVerbose"].ToEnum<Logger.LogVerbose>();
 
     SentencePiece? srcSpm = null;
     if (String.IsNullOrEmpty(Configuration["SourceSpm:ModelFilePath"]) == false)
@@ -44,9 +42,6 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
         tgtSpm = new SentencePiece(Configuration["TargetSpm:ModelFilePath"]);
     }
 
-
-#pragma warning disable CS8604 // Possible null reference argument.
-    Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum = (Seq2SeqSharp.Utils.DecodingStrategyEnums)Enum.Parse(typeof(Seq2SeqSharp.Utils.DecodingStrategyEnums), tokenGenerationStrategy);
     Seq2SeqInstance.Initialization(modelFilePath,
                                    maxTestSrcSentLength,
                                    maxTestTgtSentLength,
@@ -61,8 +56,7 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
                                    mklInstructions: mklInstructions,
                                    beamSearchSize: beamSearchSize,
                                    blockedTokens: blockedTokens,
-                                   modelType: (ModelType)Enum.Parse(typeof(ModelType), modelType));
-#pragma warning restore CS8604 // Possible null reference argument.
+                                   modelType: modelType);
 }
 
 
