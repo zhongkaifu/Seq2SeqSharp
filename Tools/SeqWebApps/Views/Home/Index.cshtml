@@ -2,6 +2,7 @@
 @{
     Layout = null;
 }
+@inject IConfiguration _config
 
 <!DOCTYPE html>
 <style>
@@ -15,12 +16,12 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width" />
-    <title>Automatic Text Generation Demo</title>
+    <title>@_config["Title"]</title>
 </head>
 <body>
 
-    <h1>Automatic Text Generation Demo</h1>
-    <p>Given input text, the model will generate text.</p>
+    <h1>@_config["Title"]</h1>
+    <p>@_config["Description"]</p>
     <label id="promptInput">Input Text:</label>
     <br />
     <textarea type="text" id="txtName" cols="150" rows="20" style="width:100%"></textarea>
