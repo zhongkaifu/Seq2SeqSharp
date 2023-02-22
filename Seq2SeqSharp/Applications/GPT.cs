@@ -215,6 +215,7 @@ namespace Seq2SeqSharp
                                     pair.Value.Dispose();
                                 }
                             }
+                            cachedTensors = null;
                         }
 
                         Logger.WriteLine(Logger.Level.warn, $"We have out of memory while generating '{i}th' tokens, so terminate decoding for current sequences.");
@@ -241,15 +242,18 @@ namespace Seq2SeqSharp
                 nr.Cost = 0.0f;
                 nr.Output = m_modelMetaData.TgtVocab.ExtractTokens(beam2batchStatus);
 
-                cacheKey = GenerateCacheKey(nr.Output[0]);
-                var cacheEntryOptions = new MemoryCacheEntryOptions().SetSize(1).SetAbsoluteExpiration(TimeSpan.FromMinutes(1));
-                
-                Dictionary<string, IWeightTensor> newCachedTensors = new Dictionary<string, IWeightTensor>();
-                foreach (var pair in cachedTensors)
+                if (cachedTensors != null)
                 {
-                    newCachedTensors.Add(pair.Key, pair.Value.CopyWeightsRef(pair.Value.Name, false, graphToBind: null));
+                    cacheKey = GenerateCacheKey(nr.Output[0]);
+                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSize(1).SetAbsoluteExpiration(TimeSpan.FromMinutes(1));
+
+                    Dictionary<string, IWeightTensor> newCachedTensors = new Dictionary<string, IWeightTensor>();
+                    foreach (var pair in cachedTensors)
+                    {
+                        newCachedTensors.Add(pair.Key, pair.Value.CopyWeightsRef(pair.Value.Name, false, graphToBind: null));
+                    }
+                    m_memoryCache.Set(cacheKey, newCachedTensors, cacheEntryOptions);
                 }
-                m_memoryCache.Set(cacheKey, newCachedTensors, cacheEntryOptions);
             }
 
             nr.RemoveDuplicatedEOS();
