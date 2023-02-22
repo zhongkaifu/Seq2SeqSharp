@@ -203,7 +203,20 @@ namespace Seq2SeqSharp
                     }
                     catch (OutOfMemoryException)
                     {
-                        GC.Collect();                      
+                        GC.Collect();            
+                        
+                        // Release all items in cached tensors
+                        if (cachedTensors!= null)
+                        {
+                            foreach (var pair in cachedTensors)
+                            {
+                                if (pair.Value != null)
+                                {
+                                    pair.Value.Dispose();
+                                }
+                            }
+                        }
+
                         Logger.WriteLine(Logger.Level.warn, $"We have out of memory while generating '{i}th' tokens, so terminate decoding for current sequences.");
                         nr.Status = NetworkResultStatus.OOM;
                         break;
@@ -229,7 +242,8 @@ namespace Seq2SeqSharp
                 nr.Output = m_modelMetaData.TgtVocab.ExtractTokens(beam2batchStatus);
 
                 cacheKey = GenerateCacheKey(nr.Output[0]);
-                var cacheEntryOptions = new MemoryCacheEntryOptions().SetSize(1);
+                var cacheEntryOptions = new MemoryCacheEntryOptions().SetSize(1).SetAbsoluteExpiration(TimeSpan.FromMinutes(1));
+                
                 Dictionary<string, IWeightTensor> newCachedTensors = new Dictionary<string, IWeightTensor>();
                 foreach (var pair in cachedTensors)
                 {
