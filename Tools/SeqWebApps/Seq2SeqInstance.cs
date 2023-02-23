@@ -201,7 +201,7 @@ namespace Seq2SeqWebApps
                 if (isEnded)
                 {
                     rst += " EOS";
-                    Logger.WriteLine($"Completed text generation: Source Input Text = '{rawSrcInput}', Target Prompt Text = '{rawTgtInput}', Token Numbers To Generate = '{tokenNumToGenerate}', IsRandomSample = '{random}', Repeat Penalty = '{repeatPenalty}', Output Text = '{rst}'");
+                    Logger.WriteLine($"Completed text generation: Source Input Text = '{rawSrcInput}', IsRandomSample = '{random}', Repeat Penalty = '{repeatPenalty}', Output Text = '{rst}'");
                 }
 
                 return rst;
