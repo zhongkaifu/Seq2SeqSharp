@@ -48,12 +48,13 @@ Seq2SeqSharp provides some command line tools that you can run for different typ
 | Seq2SeqClassificationConsole   | It's a multi-task based tool. The first task is for sequence-to-sequence, and the second task is for sequence classification. The model is jointly trained by these two tasks. Its model can be also test on Seq2SeqConsole and SeqClassificationConsole  |
 | SeqLabelConsole                | Used for sequence labeling tasks, such as named entity recongizer, postag and other                                                                                                                                                                       |
 | SeqSimilarityConsole           | Used for similarity calculation between two sequences. It supports to both discrete similarity (binary-classifier) and continuous similarity (consine distance)                                                                                           |
+| GPTConsole                     | Used to train and test GPT type models. It can be used for any text generation tasks.                                                                                                                                                                     |
 
 It also provides web service APIs for above tasks.  
 | Name       |   Comments                                                                                                           |
 | ---------- | -------------------------------------------------------------------------------------------------------------------- |  
 | SeqWebAPIs | Web Service RESTful APIs for many kinds of sequence tasks. It hosts models trained by Seq2SeqSharp and infer online. |
-
+| SeqWebApps | Web application for sequence-to-sequence or GPT models.                                                              |
 
 
 ## Seq2SeqConsole for sequence-to-sequence task  
@@ -394,99 +395,22 @@ Here is the configuration file for model training.
 ## SeqSimilarityConsole for sequences similarity calculation  
 Each line in data set contains two sequences and the tool can calculate their similairy. These two sequences are split by tab character.  
 
+# Demos and released models    
+From 2.7.0 version, Seq2SeqSharp models are deployed on Hugging Face and you can also play demos there.  
+| Demo                                                   |   Hugging Face Space Url                                |        Hugging Face Model Url                   |
+| ------------------------------------------------------ | ------------------------------------------------------- | ----------------------------------------------- |
+| Machine Translation from English to Chinese            | https://huggingface.co/spaces/zhongkaifu/mt_enu_chs     | https://huggingface.co/zhongkaifu/mt_enu_chs    |
+| Machine Translation from Chinese to English            | https://huggingface.co/spaces/zhongkaifu/mt_chs_enu     | https://huggingface.co/zhongkaifu/mt_chs_enu    |
+| Machine Translation from Japanese or Korean to Chinese | https://huggingface.co/spaces/zhongkaifu/mt_jpnkor_chs  | https://huggingface.co/zhongkaifu/mt_jpnkor_chs |
+| Chinese Medical Question and Answer Demo               | https://huggingface.co/spaces/zhongkaifu/medical_qa_chs | https://huggingface.co/zhongkaifu/qa_med_chs    |
 
-# Release Package  
-You can download the release package from (here)[https://github.com/zhongkaifu/Seq2SeqSharp/releases/tag/RELEASE_2_5_0] . The release package includes Seq2SeqSharp binary files, model files and test files. For models, the release package includes many different models trained by Seq2SeqSharp, such as machine translation models between English and Chinese, Japanese, German, question-answer model for medical domain in Chinese and others. These models were trained using Transformer layers. The training config files are also included in the package. Test input file contains one sentence per line, and the corresponding reference file has one sentence per line. All sentences were already encoded to subwords by SentencePiece, so the package also includes the model and vocabulary of SentencePiece.  
+To deploy binary files and models, you can check Dockerfile in Hugging Face Space urls or "Build & Deployment" section in this document.  
 
-(SentencePiece)[https://github.com/google/sentencepiece] is a subword level tokenization tool from Google. Given raw text, it can build model and vocabulary at subword level, encode text from word level to subword level or decode subword text back to word level. Subword level tokenization could significantly reduce vocabulary size which is useful for OOV and decoding performance improvement for many systems, especially low resource systems. Subword level tokenization and SentencePiece are optional for Seq2SeqSharp. You can tokenize input text to any type of tokens and send them to Seq2SeqSharp or let Seq2SeqSharp generate them.  
-
-The model in the release package was trained by training corpus processed by SentencePiece, so inputs and outputs text of this model needs to be pre-processed by SentencePiece. Again, you could train your model with/without SentencePiece. It's totally optional.  
-
-Here are steps on how to play it.  
-
-0. Preparation  
-
-   0.1 Install Nvidia driver and Cuda 11.4  
-
-      Windows: Download (Nvidia driver)[https://www.nvidia.com/Download/index.aspx] and (Cuda 11.4)[https://developer.nvidia.com/cuda-11.1.0-download-archive], and then install them.  
-
-      Linux: You can use apt to update drivers and cuda, for example: sudo apt install nvidia-driver-470  
-
-   0.2 Install dotNet core  
-
-      Windows: Download (.NET Core)[https://docs.microsoft.com/en-us/dotnet/core/] and install.  
-
-      Linux: You can use the following apt-get commands to download and install it:  
-
-         sudo apt-get update  
-
-         sudo apt-get install -y apt-transport-https  
-
-         sudo apt-get update  
-
-         sudo apt-get install -y aspnetcore-runtime-6.0  
-
-
-   0.3 Install SentencePiece (optional)  
-
-      You can follow instructions on (SentencePiece github)[https://github.com/google/sentencepiece] to download and install it. It supports both Windows and Linux.  
-
-
-1. Run SentencePiece to encode raw input English text to subword (optional)  
-
-   You can run the following example command for encoding: spm_encode --model=enuSpm.model test_raw.txt > test_spm.txt  
-
-   The test input files in the release package are already encoded, so you do not have to do it.   
-
-
-
-2. Run Seq2SeqSharp to translate the above input text from English to Chinese  
-
-   You can run the following command for translation.  
-
-      Seq2SeqConsole.exe -TaskName Test -ModelFilePath seq2seq_mt.model -InputTestFile test_spm.txt -OutputTestFile out.txt -MaxSrcSentLength 100 -MaxTgtSentLength 100 -ProcessorType CPU  
-
-
-3. Run SentencePiece to decode output Chinese text (optional)  
-
-   You can run the following command for decoding: spm_decode --model=chsSpm.model out.txt > out_raw.txt    
-
-
-4. Check quality by comparing output Chinese text with reference text   
-
-# Applications in the release package  
-The release package includes some out of the box applications and you can easily call them for running. These test scripts are located at root path in the package, the corresponding models and test files are in model folder and data/test folder.  
-The followings are different tasks included in the package:  
-| Type                    |   Test Script           |   Model File                 |   Input File |  Trained & Tested By |  Comments      |
-| ----------------------- | ----------------------- | ---------------------------- | ------------ | -------------------- | --------------- |
-| Machine Translation     | test_%src%_enu.bat      | seq2seq_mt_%src%_enu.model   | test_%src%_raw.txt |  Seq2SeqConsole      | Machine Translation from %src% to English(ENU). Each model for one language pair. |
-| Machine Translation     | test_enu_%tgt%.bat      | seq2seq_mt_enu_%tgt%.model   | test_enu_raw.txt   |  Seq2SeqConsole      | Machine Translation from English(ENU) to %tgt%. Each model for one language pair. |
-| Machine Translation     | test_enu_%cjk%.bat      | seq2seq_mt_enu_%cjk%.model   | test_enu_raw.txt <br> test_output_prompt_%cjk%.txt as prompt files for decoding |  Seq2SeqConsole      | Machine Translation from English(ENU) to %cjk%. The single model serves all three language pairs. | 
-| Question Answer         | test_medical_qa_chs.bat | seq2seq_medical_qa_chs.model | test_medicalQA_chs_raw.txt |  Seq2SeqConsole      | Given medical question in Chinese, the model will output the corresponding answer. |
-| Named Entity Recognizer | test_ner_enu.bat        | seq_ner_enu.model            | test_ner_enu.txt   |  SeqLabelConsole     | Named entity recognizer for person, originazation and location in English. |
-| Named Entity Recognizer | train_ner_enu.bat       | seq_ner_enu.model            | train_enu.ner.snt as training set <br> train_ner_opts as config file for training | SeqLabelConsole | Train named entity recognier model for person, originazation and location in English. |
-| Fiction Generation      | test_fiction.bat        | seq2seq_fiction.model        | test_fiction.txt <br> test_fiction_prompt.txt as prompt files for decoding | Seq2SeqConsole | Given texts as context and prompt, asking model to write fiction. | 
-
-Note: %src% and %tgt% can be Chinese(CHS), Japanese(JPN), Korean(KOR), Russian(RUS), German(DEU), French(FRA), Italian(ITA) in above table, and %cjk% can be Chinese(CHS), Japanese(JPN), Korean(KOR)  
-
-Besides above command line application, the release package also includes a web application called SeqWebApps. It is located in webapp folder and configured for fiction generation task.  
-
-Here is an example that asking model to continue writing after "May the force be with you.".  
+Here is an example that asking model to continue writing story after "May the force be with you.".  
 ![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Images/FictionGeneration_enu.gif)  
 
-Here is another example of Chinese martial arts novel.  
-![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Images/FictionGeneration.gif)  
-
-You can also visit NLG demo (Translation from English to Chinese) in Huggingface website [https://huggingface.co/spaces/zhongkaifu/nlg_demo]  
-
-# Build From Source Code  
-Besides using the release package, you could also build Seq2SeqSharp from source code. It has just two steps:  
-
-1. Clone the project from github: git clone https://github.com/zhongkaifu/Seq2SeqSharp.git  
-2. Build all projects: dotnet build Seq2SeqSharp.sln --configuration Release  
-
-# Deployment  
-You can deploy Seq2SeqSharp and its tool by many different ways. Here is an example that creating Docker image for SeqWebApps.  
+# Build & Deployment  
+You can build and deploy Seq2SeqSharp and its tool by many different ways. Here is an example that creating Docker image for SeqWebApps.  
 Dockerfile:  
 ```
 FROM python:3.9
@@ -543,7 +467,7 @@ CMD ["dotnet","/code/bin/SeqWebApps.dll"]
 ```
 
 # Using different CUDA versions and .NET versions  
-Seq2SeqSharp uses CUDA 11.x and .NET 7.0 by default, but you can still use different versions of them. It has already been tested on .NET core 3.1, CUDA 10.x and some other versions.  
+Seq2SeqSharp uses CUDA 12.x and .NET 7.0 by default, but you can still use different versions of them. It has already been tested on .NET core 3.1, CUDA 10.x and some other versions.  
 For different .NET versions, you need to modify target framework in *.csproj files. Here is an example to use .net core 3.1 as target framework in Seq2SeqSharp.csproj file.  
 ```xml
     <PropertyGroup>  
@@ -553,7 +477,6 @@ For different .NET versions, you need to modify target framework in *.csproj fil
 
 # Using Intel MKL to speed up training and inference for CPUs  
 Seq2SeqSharp can use Intel MKL to speed up performance for training and inference. To use Intel MKL, set ProcessorType to CPU_MKL, and copy files in dll folder to your current working directory.  
-
 
 # Build and run Seq2SeqSharp in Nvidia Jetson  
 Nvidia Jetson is an advanced platform for edge AI computing. Here is an example that running Seq2SeqSharp on Jetson Nano for Chinese medical QA task.  
