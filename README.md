@@ -133,19 +133,6 @@ Parameters:
 
 Example: Seq2SeqConsole.exe -Task Test -ModelFilePath seq2seq.model -InputTestFile test.txt -OutputFile result.txt -ProcessorType CPU -BeamSearchSize 5 -MaxSrcSentLength 100 -MaxTgtSentLength 100  
 
-Here is the command line to visualize network  
-**Seq2SeqConsole.exe -Task VisualizeNetwork [parameters...]**  
-Parameters:  
-**-VisNNFile**: The output PNG file to visualize network  
-**-EncoderType**: The type of encoder. BiLSTM and Transformer are built-in and you can implement your own network and visualize it  
-**-EncoderLayerDepth**: The network depth in encoder. The default depth is 1.  
-**-DecoderLayerDepth**: The network depth in decoder. The default depth is 1.  
-
-Example: Seq2SeqConsole.exe -Task VisualizeNetwork -VisNNFile abc.png -EncoderType Transformer -EncoderLayerDepth 2 -DecoderLayerDepth 2  
-
-Then it will visualize the network looks like below:  
-![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Images/NetworkViz.png)
-
 You can also keep all parameters into a json file and run Seq2SeqConsole.exe -ConfigFilePath <config_file_path> Here is an example for training.  
 ```json
 {
@@ -250,7 +237,7 @@ For example: given the input sentence "▁i ▁would ▁like ▁to ▁drink ▁w
 
 ## GPTConsole for GPT decoder only model training and testing  
 GPTConsole is a command line tool for GPT style model training and testing. Given text in input file per line, the model will continue generating the rest of text.  
-
+This tool is pretty similiar to Seq2SeqConsole and most of parameters are reusable. The main difference is that GPTConsole does not have settings for source side and encoders. Its all settings are for target side and decoder only.  
 
 ## SeqClassification for sequence-classification task  
 SeqClassification is used to classify input sequence to a certain category.  Given an input sequence, the tool will add a [CLS] tag at the beginning of sequence, and then send it to the encoder. At top layer of the encoder, it will run softmax against [CLS] and decide which category the sequence belongs to.  
@@ -500,42 +487,7 @@ The tags in the embedding are in source or target vocabulary. They can be recurs
 
 # Build Your Layers  
 Benefit from automatic differentiation, tensor based compute graph and other features, you can easily build your customized layers by a few code. The only thing you need to implment is forward part, and the framework will automatically build the corresponding backward part for you, and make the network could run on multi-GPUs or CPUs.  
-Here is an example about **attentioned based LSTM cells**.  
-```c#
-        /// <summary>
-        /// Update LSTM-Attention cells according to given weights
-        /// </summary>
-        /// <param name="context">The context weights for attention</param>
-        /// <param name="input">The input weights</param>
-        /// <param name="computeGraph">The compute graph to build workflow</param>
-        /// <returns>Update hidden weights</returns>
-        public IWeightTensor Step(IWeightTensor context, IWeightTensor input, IComputeGraph g)
-        {
-            var computeGraph = g.CreateSubGraph(m_name);
-
-            var cell_prev = Cell;
-            var hidden_prev = Hidden;
-
-            var hxhc = computeGraph.ConcatColumns(input, hidden_prev, context);
-            var hhSum = computeGraph.Affine(hxhc, m_Wxhc, m_b);
-            var hhSum2 = layerNorm1.Process(hhSum, computeGraph);
-
-            (var gates_raw, var cell_write_raw) = computeGraph.SplitColumns(hhSum2, m_hdim * 3, m_hdim);
-            var gates = computeGraph.Sigmoid(gates_raw);
-            var cell_write = computeGraph.Tanh(cell_write_raw);
-
-            (var input_gate, var forget_gate, var output_gate) = computeGraph.SplitColumns(gates, m_hdim, m_hdim, m_hdim);
-
-            // compute new cell activation: ct = forget_gate * cell_prev + input_gate * cell_write
-            Cell = computeGraph.EltMulMulAdd(forget_gate, cell_prev, input_gate, cell_write);
-            var ct2 = layerNorm2.Process(Cell, computeGraph);
-
-            Hidden = computeGraph.EltMul(output_gate, computeGraph.Tanh(ct2));
-
-            return Hidden;
-        }
-```
-Another example about **scaled multi-heads attention** component which is the core part in **Transformer** model.  
+Here is an example about **scaled multi-heads attention** component which is the core part in **Transformer** model.  
 ```c#
         /// <summary>
         /// Scaled multi-heads attention component with skip connectioned feed forward layers
