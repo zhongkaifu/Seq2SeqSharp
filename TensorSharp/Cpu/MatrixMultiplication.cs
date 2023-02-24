@@ -10,6 +10,7 @@
 
 using AdvUtils;
 using System;
+using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using TensorSharp.Core;
 using TensorSharp.Cpu.LinearAlgebra;
@@ -63,6 +64,31 @@ namespace TensorSharp.Cpu
 
     unsafe public static class MatrixMultiplication
     {
+        const string mklDllName = "mkl_rt.2.dll";
+        internal const string mklDllNameLinux = "mkl_rt";
+
+        static MatrixMultiplication()
+        {
+            NativeLibrary.SetDllImportResolver(typeof(MatrixMultiplication).Assembly, ImportResolver);
+        }
+
+        private static IntPtr ImportResolver(string libraryName, System.Reflection.Assembly assembly, DllImportSearchPath? searchPath)
+        {
+            IntPtr libHandle = IntPtr.Zero;
+
+            if (libraryName == mklDllName)
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    NativeLibrary.TryLoad(mklDllNameLinux, assembly, DllImportSearchPath.SafeDirectories, out libHandle);
+                }
+            }
+            //On Windows, use the default library name
+            return libHandle;
+        }
+
+
+
         public static Transpose ConvertBlasOp(BlasOp op)
         {
             if (op == BlasOp.NonTranspose)
@@ -547,11 +573,8 @@ namespace TensorSharp.Cpu
             }
         }
 
-        const string mklDllName = "mkl_rt.2.dll";
-        [DllImport(mklDllName, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(mklDllName)]
         public static extern unsafe void cblas_sgemm(Order order, byte transa, byte transb, int m, int n, int k, float alpha, float* a, int lda, float* b, int ldb, float beta, float* c, int ldc);
-
-
 
         private static void GemmOp(BlasOp transA, BlasOp transB, float alpha, Tensor a, Tensor b, float beta, Tensor c)
         {
@@ -586,20 +609,29 @@ namespace TensorSharp.Cpu
 
                 if (c.ElementType == DType.Float32)
                 {
-                    float* aPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(a);
-                    float* bPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(b);
-                    float* cPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(c);
+                    try
+                    {
+                        float* aPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(a);
+                        float* bPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(b);
+                        float* cPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(c);
 
-                    if (a.Allocator.BlasEnum == BlasEnum.MKL || b.Allocator.BlasEnum == BlasEnum.MKL || c.Allocator.BlasEnum == BlasEnum.MKL)
-                    {
-                        transa = (byte)ConvertBlasOp(transA);
-                        transb = (byte)ConvertBlasOp(transB);
-                        cblas_sgemm(Order.Column, transa, transb, m, n, k, alpha, aPtrSingle, lda, bPtrSingle, ldb, beta, cPtrSingle, ldc);
+                        if (a.Allocator.BlasEnum == BlasEnum.MKL || b.Allocator.BlasEnum == BlasEnum.MKL || c.Allocator.BlasEnum == BlasEnum.MKL)
+                        {
+                            transa = (byte)ConvertBlasOp(transA);
+                            transb = (byte)ConvertBlasOp(transB);
+                            cblas_sgemm(Order.Column, transa, transb, m, n, k, alpha, aPtrSingle, lda, bPtrSingle, ldb, beta, cPtrSingle, ldc);
+                        }
+                        else
+                        {
+                            SGEMM sgemm = new SGEMM();
+                            sgemm.Run(System.Text.ASCIIEncoding.ASCII.GetString(&transa, 1), System.Text.ASCIIEncoding.ASCII.GetString(&transb, 1), m, n, k, alpha, aPtrSingle, lda, bPtrSingle, ldb, beta, cPtrSingle, ldc);
+                        }
                     }
-                    else
+                    catch (Exception err)
                     {
-                        SGEMM sgemm = new SGEMM();
-                        sgemm.Run(System.Text.ASCIIEncoding.ASCII.GetString(&transa, 1), System.Text.ASCIIEncoding.ASCII.GetString(&transb, 1), m, n, k, alpha, aPtrSingle, lda, bPtrSingle, ldb, beta, cPtrSingle, ldc);
+                        Logger.WriteLine($"Error message: {err.Message}");
+                        Logger.WriteLine($"Call stack: {err.StackTrace}");
+                        throw;
                     }
                 }
                 else if (c.ElementType == DType.Float64)
@@ -618,7 +650,7 @@ namespace TensorSharp.Cpu
             }
         }
 
-        [DllImport(mklDllName, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(mklDllName)]
         public static extern unsafe void cblas_sgemm_batch_strided(Order order, byte transa, byte transb, int m, int n, int k, float alpha, float* a, int lda, int stra, float* b, int ldb, int strb, float beta, float* c, int ldc, int stridec, int batch_size);
 
         private static void GemmOpBatch(BlasOp transA, BlasOp transB, float alpha, Tensor a, Tensor b, float beta, Tensor c)
@@ -658,22 +690,22 @@ namespace TensorSharp.Cpu
 
                 if (c.ElementType == DType.Float32)
                 {
-                    float* aPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(a);
-                    float* bPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(b);
-                    float* cPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(c);
+                    try
+                    {
+                        float* aPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(a);
+                        float* bPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(b);
+                        float* cPtrSingle = (float*)CpuNativeHelpers.GetBufferStart(c);
 
-                    //CublasStatus _statusF32 = CudaBlasNativeMethods.cublasSgemmStridedBatched(blas.Value.CublasHandle,
-                    //    transa, transb, m, n, k, ref alpha, aPtrSingle, lda, stra, bPtrSingle, ldb, strb, ref beta, cPtrSingle, ldc, strc, batchSize);
-                    //if (_statusF32 != CublasStatus.Success)
-                    //{
-                    //    throw new CudaBlasException(_statusF32);
-                    //}
-
-                    transa = (byte)ConvertBlasOp(transA);
-                    transb = (byte)ConvertBlasOp(transB);
-                    cblas_sgemm_batch_strided(Order.Column, transa, transb, m, n, k, alpha, aPtrSingle, lda, stra, bPtrSingle, ldb, strb, beta, cPtrSingle, ldc, strc, batchSize);
-
-                    //     transa, transb, m, n, k, ref alpha, aPtrSingle, lda, stra, bPtrSingle, ldb, strb, ref beta, cPtrSingle, ldc, strc, batchSize);
+                        transa = (byte)ConvertBlasOp(transA);
+                        transb = (byte)ConvertBlasOp(transB);
+                        cblas_sgemm_batch_strided(Order.Column, transa, transb, m, n, k, alpha, aPtrSingle, lda, stra, bPtrSingle, ldb, strb, beta, cPtrSingle, ldc, strc, batchSize);
+                    }
+                    catch (Exception err)
+                    {
+                        Logger.WriteLine($"Error message: {err.Message}");
+                        Logger.WriteLine($"Call stack: {err.StackTrace}");
+                        throw;
+                    }
                 }
                 //else if (c.ElementType == DType.Float64)
                 //{
