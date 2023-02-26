@@ -50,16 +50,6 @@
         <option value="9" selected=@(_config["RepeatPenalty"] == "9")>9</option>
     </select>
 
-
-    <label id="promptContextSize">Context size:</label>
-    <select id="ddlContextSize">
-        <option value="128" selected=@(_config["ContextSize"] == "128")>128</option>
-        <option value="256" selected=@(_config["ContextSize"] == "256")>256</option>
-        <option value="384" selected=@(_config["ContextSize"] == "384")>384</option>
-        <option value="512" selected=@(_config["ContextSize"] == "512")>512</option>
-        <option value="768" selected=@(_config["ContextSize"] == "768")>768</option>
-    </select>
-
     <label id="randomOutput">Random output text:</label>
     <input type="checkbox" id="cbRandomOutput" @(_config["Random"])/>
 
@@ -119,7 +109,7 @@ var rq = null;
                     data: {
                         "srcInput": $("#txtName").val(), "tgtInput": "", "num": $("#ddlOutputTokenNum").val(),
                         "random": $('#cbRandomOutput').is(':checked'), "repeatPenalty": $("#ddlRepeatPenalty").val(),
-                        "contextSize": $("#ddlContextSize").val(), "clientIP": $("#clientIP").text(), 
+                        "clientIP": $("#clientIP").text(), 
                         "useSrcAsPrompt": $('#cbUseSrcAsPrompt').is(':checked')
                     },
                     beforeSend: function () {
@@ -158,7 +148,7 @@ var rq = null;
                     data: {
                         "srcInput": $("#txtName").val(), "tgtInput": $("#outputText").text(),
                         "random": $('#cbRandomOutput').is(':checked'), "repeatPenalty": $("#ddlRepeatPenalty").val(),
-                        "contextSize": $("#ddlContextSize").val(), "clientIP": $("#clientIP").text(),
+                        "clientIP": $("#clientIP").text(),
                         "feedBackType": "1"
                     },
                     success: function (response) {
@@ -178,7 +168,7 @@ var rq = null;
                     data: {
                         "srcInput": $("#txtName").val(), "tgtInput": $("#outputText").text(),
                         "random": $('#cbRandomOutput').is(':checked'), "repeatPenalty": $("#ddlRepeatPenalty").val(),
-                        "contextSize": $("#ddlContextSize").val(), "clientIP": $("#clientIP").text(),
+                        "clientIP": $("#clientIP").text(),
                         "feedBackType": "0"
                     },
                     success: function (response) {
@@ -199,7 +189,7 @@ var rq = null;
                     url: "/Home/GenerateText",
                     data: { "srcInput": $("#txtName").val(), "tgtInput": $("#outputText").text(), "num": $("#ddlOutputTokenNum").val(), 
                     "random": $('#cbRandomOutput').is(':checked'), "repeatPenalty": $("#ddlRepeatPenalty").val(), 
-                    "contextSize": $("#ddlContextSize").val() , "clientIP": $("#clientIP").text(),
+                    "clientIP": $("#clientIP").text(),
                     "useSrcAsPrompt": false
                     },
                     beforeSend: function () {
