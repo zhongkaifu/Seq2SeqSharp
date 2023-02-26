@@ -35,9 +35,12 @@ namespace Seq2SeqWebApps
         static ModelType m_modelType = ModelType.EncoderDecoder;
 
         static public int MaxTokenToGenerate => opts.MaxTgtSentLength;
+        static Dictionary<string, string> m_wordMappings = null;
+        static object locker = new object();
 
         static public void Initialization(string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, ProcessorTypeEnums processorType, string deviceIds, SentencePiece? srcSpm, SentencePiece? tgtSpm,
-            Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum, float topPSampling, float repeatPenalty, float memoryUsageRatio, string mklInstructions, int beamSearchSize, string blockedTokens, ModelType modelType)
+            Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum, float topPSampling, float repeatPenalty, float memoryUsageRatio, string mklInstructions, int beamSearchSize, string blockedTokens, ModelType modelType,
+            string wordMappingFilePath)
         {
             opts = new Seq2SeqOptions();
             opts.ModelFilePath = modelFilePath;
@@ -54,6 +57,27 @@ namespace Seq2SeqWebApps
             m_srcSpm = srcSpm;
             m_tgtSpm = tgtSpm;
             m_modelType = modelType;
+
+            if (String.IsNullOrEmpty(wordMappingFilePath) == false)
+            {
+                Logger.WriteLine($"Loading word mapping file from '{wordMappingFilePath}'");
+                m_wordMappings = new Dictionary<string, string>();
+                foreach (var line in File.ReadLines(wordMappingFilePath))
+                {
+                    string[] items = line.Split('\t');
+
+                    if (m_wordMappings.ContainsKey(items[1]) == false)
+                    {
+                        m_wordMappings.Add(items[1], items[0]);
+                    }
+                    else
+                    {
+                        Logger.WriteLine(Logger.Level.warn, $"Word '{items[1]}' has been mapped to '{m_wordMappings[items[1]]}', so it cannot be remapped to '{items[0]}'");
+                    }
+                }
+
+            }
+
 
             if (opts.ProcessorType == ProcessorTypeEnums.CPU)
             {
@@ -116,10 +140,21 @@ namespace Seq2SeqWebApps
                 throw new ArgumentNullException($"The {nameof(Seq2SeqInstance)} is null.");
             }
 
+            if (m_wordMappings != null)
+            {
+                lock (locker)
+                {
+                    foreach (var pair in m_wordMappings)
+                    {
+                        rawSrcInput = rawSrcInput.Replace(pair.Key, pair.Value);
+                    }
+                }
+            }
+
+
             if (m_modelType == ModelType.DecoderOnly && String.IsNullOrEmpty(rawTgtInput))
             {
                 rawTgtInput = rawSrcInput;
-
             }
 
             var srcInput = (m_srcSpm != null) ? m_srcSpm.Encode(rawSrcInput) : rawSrcInput;

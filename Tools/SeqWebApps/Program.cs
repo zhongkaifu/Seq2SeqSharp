@@ -28,6 +28,8 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
     var beamSearchSize = String.IsNullOrEmpty(Configuration["Seq2Seq:BeamSearchSize"]) ? 1 : int.Parse(Configuration["Seq2Seq:BeamSearchSize"]);
     var blockedTokens = String.IsNullOrEmpty(Configuration["Seq2Seq:BlockedTokens"]) ? "" : Configuration["Seq2Seq:BlockedTokens"];
     var modelType = String.IsNullOrEmpty(Configuration["Seq2Seq:ModelType"]) ? ModelType.EncoderDecoder : Configuration["Seq2Seq:ModelType"].ToEnum<ModelType>();
+    var wordMappingFilePath = Configuration["Seq2Seq:WordMappingFilePath"];
+
     Logger.Verbose = String.IsNullOrEmpty(Configuration["Seq2Seq:LogVerbose"]) ? Logger.LogVerbose.Normal : Configuration["Seq2Seq:LogVerbose"].ToEnum<Logger.LogVerbose>();
 
     SentencePiece? srcSpm = null;
@@ -56,7 +58,8 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
                                    mklInstructions: mklInstructions,
                                    beamSearchSize: beamSearchSize,
                                    blockedTokens: blockedTokens,
-                                   modelType: modelType);
+                                   modelType: modelType,
+                                   wordMappingFilePath: wordMappingFilePath);
 }
 
 

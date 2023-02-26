@@ -56,7 +56,6 @@ namespace SeqWebApps.Controllers
                     
         }
 
-
         [HttpPost]
         public IActionResult GenerateText(string srcInput, string tgtInput, int num, bool random, float repeatPenalty, string clientIP)
         {
@@ -66,6 +65,11 @@ namespace SeqWebApps.Controllers
                 {
                     Logger.WriteLine($"New Request: Random = '{random}', repeatPenalty = '{repeatPenalty}', clientIP = '{clientIP}', Source = '{srcInput}'");
                     tgtInput = "";
+                }
+
+                if (String.IsNullOrEmpty(clientIP))
+                {
+                    clientIP = "unknown_" + DateTime.Now.Microsecond.ToString();
                 }
 
                 lock (locker)
