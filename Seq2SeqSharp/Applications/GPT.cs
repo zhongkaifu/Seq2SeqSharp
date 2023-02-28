@@ -218,7 +218,11 @@ namespace Seq2SeqSharp
                             cachedTensors = null;
                         }
 
-                        Logger.WriteLine(Logger.Level.warn, $"We have out of memory while generating '{i}th' tokens, so terminate decoding for current sequences.");
+                        if (Logger.Verbose == Logger.LogVerbose.Debug)
+                        {
+                            Logger.WriteLine(Logger.Level.warn, $"We have out of memory while generating '{i}th' tokens, so terminate decoding for current sequences.");
+                        }
+
                         nr.Status = NetworkResultStatus.OOM;
                         break;
                     }
