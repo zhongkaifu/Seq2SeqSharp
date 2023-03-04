@@ -40,7 +40,7 @@ namespace Seq2SeqWebApps
 
         static public void Initialization(string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, ProcessorTypeEnums processorType, string deviceIds, SentencePiece? srcSpm, SentencePiece? tgtSpm,
             Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum, float topPSampling, float repeatPenalty, float memoryUsageRatio, string mklInstructions, int beamSearchSize, string blockedTokens, ModelType modelType,
-            string wordMappingFilePath)
+            string wordMappingFilePath, bool enableTensorCore)
         {
             opts = new Seq2SeqOptions();
             opts.ModelFilePath = modelFilePath;
@@ -53,6 +53,7 @@ namespace Seq2SeqWebApps
             opts.MemoryUsageRatio = memoryUsageRatio;
             opts.MKLInstructions = mklInstructions;
             opts.BeamSearchSize = beamSearchSize;
+            opts.EnableTensorCore = enableTensorCore;
 
             m_srcSpm = srcSpm;
             m_tgtSpm = tgtSpm;

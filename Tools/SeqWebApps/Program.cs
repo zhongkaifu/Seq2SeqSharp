@@ -29,6 +29,7 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
     var blockedTokens = String.IsNullOrEmpty(Configuration["Seq2Seq:BlockedTokens"]) ? "" : Configuration["Seq2Seq:BlockedTokens"];
     var modelType = String.IsNullOrEmpty(Configuration["Seq2Seq:ModelType"]) ? ModelType.EncoderDecoder : Configuration["Seq2Seq:ModelType"].ToEnum<ModelType>();
     var wordMappingFilePath = Configuration["Seq2Seq:WordMappingFilePath"];
+    var enableTensorCore = string.IsNullOrEmpty(Configuration["Seq2Seq:EnableTensorCore"]) ? true : bool.Parse(Configuration["Seq2Seq:EnableTensorCore"]);
 
     Logger.Verbose = String.IsNullOrEmpty(Configuration["Seq2Seq:LogVerbose"]) ? Logger.LogVerbose.Normal : Configuration["Seq2Seq:LogVerbose"].ToEnum<Logger.LogVerbose>();
 
@@ -59,7 +60,8 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
                                    beamSearchSize: beamSearchSize,
                                    blockedTokens: blockedTokens,
                                    modelType: modelType,
-                                   wordMappingFilePath: wordMappingFilePath);
+                                   wordMappingFilePath: wordMappingFilePath,
+                                   enableTensorCore: enableTensorCore);
 }
 
 

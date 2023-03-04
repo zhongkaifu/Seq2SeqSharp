@@ -13,6 +13,7 @@ using System;
 using TensorSharp;
 using TensorSharp.Cpu;
 using TensorSharp.CUDA;
+using TensorSharp.CUDA.MatrixMul;
 
 namespace Seq2SeqSharp
 {
@@ -23,11 +24,12 @@ namespace Seq2SeqSharp
         private static int[] m_deviceIds;
         private static ProcessorTypeEnums m_archType;
 
-        public static void InitDevices(ProcessorTypeEnums archType, int[] ids, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, string mklInstructions = "AVX2")
+        public static void InitDevices(ProcessorTypeEnums archType, int[] ids, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, string mklInstructions = "AVX2", bool enableTensorCore = true)
         {
             m_archType = archType;
             m_deviceIds = ids;
             m_allocator = new IAllocator[m_deviceIds.Length];
+            CudaMatrixMulMM.EnableTensorCore = enableTensorCore;
 
             if (m_archType == ProcessorTypeEnums.GPU)
             {
