@@ -7447,7 +7447,7 @@ namespace ManagedCuda.CudaBlas
         /// <param name="Ctype"></param>
         public void GemmStridedBatched(Operation transa, Operation transb, int m, int n, int k, IntPtr alpha,
                                    CUdeviceptr A, cudaDataType Atype, int lda, long strideA, CUdeviceptr B, cudaDataType Btype, int ldb, long strideB,
-                                   IntPtr beta, CUdeviceptr C, cudaDataType Ctype, int ldc, long strideC, int batchCount, cudaDataType computeType, GemmAlgo algo)
+                                   IntPtr beta, CUdeviceptr C, cudaDataType Ctype, int ldc, long strideC, int batchCount, ComputeType computeType, GemmAlgo algo)
         {
             _status = CudaBlasNativeMethods.cublasGemmStridedBatchedEx(_blasHandle, transa, transb, m, n, k, alpha, A,
                 Atype, lda, strideA, B, Btype, ldb, strideB, beta, C, Ctype, ldc, strideC, batchCount, computeType, algo);

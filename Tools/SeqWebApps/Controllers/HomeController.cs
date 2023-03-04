@@ -45,7 +45,7 @@ namespace SeqWebApps.Controllers
                 Logger.WriteLine($"ThumbUp: Random = '{random}', repeatPenalty = '{repeatPenalty}', clientIP = '{clientIP}', Source = '{srcInput}', Target = '{tgtInput}'");
                 lock (locker)
                 {
-                    System.IO.File.AppendAllLines(thumbUpFilePath, new string[] { srcInput + "\n" + tgtInput });
+                    System.IO.File.AppendAllLines(thumbUpFilePath, new string[] { tgtInput });
                 }
             }
             else

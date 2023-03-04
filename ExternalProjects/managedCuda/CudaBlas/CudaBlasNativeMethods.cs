@@ -5593,7 +5593,7 @@ namespace ManagedCuda.CudaBlas
                                                                  int ldc,
                                                                  long strideC,
                                                                  int batchCount,
-                                                                 cudaDataType computeType,
+                                                                 ComputeType computeType,
                                                                  GemmAlgo algo);
 
         /// <summary>

@@ -187,7 +187,7 @@ namespace Seq2SeqSharp
                 string cacheKey = GenerateCacheKey(srcSnts);
                 if (!m_memoryCache.TryGetValue(cacheKey, out encOutput))
                 {
-                    encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcTokensList, originalSrcLengths);
+                    encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcTokensList, originalSrcLengths); // Shape: [batchsize * seqLen, embedding_dim]
 
                     var cacheEntryOptions = new MemoryCacheEntryOptions().SetSize(1);
                     m_memoryCache.Set(cacheKey, encOutput.CopyWeightsRef($"cache_{encOutput.Name}", false, graphToBind: null), cacheEntryOptions);
