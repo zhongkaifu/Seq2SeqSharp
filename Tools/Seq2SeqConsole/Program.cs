@@ -217,6 +217,20 @@ namespace Seq2SeqConsole
 
                     ss.UpdateVocabs(srcVocab, tgtVocab);
                 }
+                else if (opts.Task == ModeEnums.VQModel)
+                {
+                    if (opts.VQSize == 0)
+                    {
+                        Logger.WriteLine(Logger.Level.err, $"Codebook size (VQSize in options) must be greater than 0 for model vector quantization.");
+                    }
+                    else
+                    {
+                        Logger.WriteLine($"Model vector quantization for '{opts.ModelFilePath}'. Codebook size = '{opts.VQSize}'");
+                    }
+
+                    ss = new Seq2Seq(opts);
+                    ss.VQModel();
+                }
                 else
                 {
                     Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Task '{opts.Task}' is not supported.");

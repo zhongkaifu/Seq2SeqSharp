@@ -29,7 +29,6 @@ namespace Seq2SeqSharp.Models
             : base(m)
         {
             ClsVocabs = m.ClsVocabs?.Select(v => v.ToVocab()).ToList();
-            Name2Weights = m.Name2Weights;
         }
         public static SeqSimilarityModel Create(Model_4_ProtoBufSerializer m) => new SeqSimilarityModel(m);
     }

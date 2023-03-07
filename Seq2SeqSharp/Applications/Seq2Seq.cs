@@ -132,6 +132,12 @@ namespace Seq2SeqSharp
             return (true);
         }
 
+        public void VQModel()
+        {
+            m_modelMetaData.VQSize = m_options.VQSize;
+            SaveModel(createBackupPrevious: true, suffix: ".vq");
+        }
+
         /// <summary>
         /// Get networks on specific devices
         /// </summary>

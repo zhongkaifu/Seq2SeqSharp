@@ -25,6 +25,8 @@ namespace Seq2SeqSharp.Models
         public int DecoderLayerDepth { get; set; }
         public int EncoderLayerDepth { get; set; }
 
+        public ActivateFuncEnums ActivateFunc { get; set; }
+
         public int ExpertNum { get; set; }
         public int ExpertsPerTokenFactor { get; set; }
         public DecoderTypeEnums DecoderType { get; set; }
@@ -75,8 +77,11 @@ namespace Seq2SeqSharp.Models
             }
         }
 
-
         public Dictionary<string, float[]> Name2Weights { get; set; }
+
+        public int VQSize { get; set; }
+        public Dictionary<string, byte[]> Name2WeightsVQ { get; set; }       
+        public Dictionary<string, double[]> Name2CodeBook { get; set; }
 
         public Model() { }
         public Model(Options opts,Vocab srcVocab)
@@ -92,8 +97,12 @@ namespace Seq2SeqSharp.Models
             MaxSegmentNum = opts.MaxSegmentNum;
             ExpertNum = opts.ExpertNum;
             ExpertsPerTokenFactor = opts.ExpertsPerTokenFactor;
+            ActivateFunc = opts.ActivateFunc;
+            VQSize = opts.VQSize;
 
             Name2Weights = new Dictionary<string, float[]>();
+            Name2WeightsVQ = new Dictionary<string, byte[]>();
+            Name2CodeBook = new Dictionary<string, double[]>();
         }
 
         public Model(Model_4_ProtoBufSerializer m)
@@ -110,34 +119,114 @@ namespace Seq2SeqSharp.Models
             ExpertNum = m.ExpertNum;
             ExpertsPerTokenFactor = m.ExpertsPerTokenFactor;
             SimilarityType = m.SimilarityType;
+            ActivateFunc = m.ActivateFunc;
+            VQSize = m.VQSize;
 
-            Name2Weights = new Dictionary<string, float[]>();
+            Name2Weights = m.Name2Weights;
+            Name2WeightsVQ = m.Name2WeightsVQ;
+            Name2CodeBook = m.Name2CodeBook;
 
+            if (Name2Weights == null)
+            {
+                Name2Weights = new Dictionary<string, float[]>();
+            }
+
+            if (Name2WeightsVQ == null)
+            {
+                Name2WeightsVQ = new Dictionary<string, byte[]>();
+            }
+
+            if (Name2CodeBook == null)
+            {
+                Name2CodeBook = new Dictionary<string, double[]>();
+            }
         }
 
         public void AddWeights(string name, float[] weights)
         {
-            Name2Weights.Add(name, weights);
+            Logger.WriteLine($"Adding weights '{name}' to the model.");
+
+            if (VQSize > 0)
+            {
+                VectorQuantization vq = new VectorQuantization();
+                foreach (var v in weights)
+                {
+                    vq.Add(v);
+                }
+
+                for (int i = weights.Length; i < VQSize; i++)
+                {
+                    vq.Add(0);
+                }
+
+                double distortion = vq.BuildCodebook(VQSize);
+
+                Name2CodeBook.Add(name, vq.CodeBook);
+
+                byte[] bweights = new byte[weights.Length];
+                for (int i = 0; i < weights.Length; i++)
+                {
+                    bweights[i] = (byte)vq.ComputeVQ(weights[i]);
+                }
+
+                Name2WeightsVQ.Add(name, bweights);
+            }
+            else
+            {
+                Name2Weights.Add(name, weights);
+            }
         }
 
         public float[] GetWeights(string name)
         {
-            if (Name2Weights.ContainsKey(name) == false)
+            float[] weight = null;
+            if (VQSize > 0)
             {
-                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Weight '{name}' doesn't exist in the model.");
-                return null;
+                if (Name2WeightsVQ.ContainsKey(name) == false)
+                {
+                    Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Weight '{name}' doesn't exist in the model.");
+                    return null;
+                }
+
+                var codeBook = Name2CodeBook[name];
+
+                weight = new float[Name2WeightsVQ[name].Length];
+                for (int i = 0; i < Name2WeightsVQ[name].Length; i++)
+                {
+                    weight[i] = (float)codeBook[Name2WeightsVQ[name][i]];
+                }
+            }
+            else
+            {
+                if (Name2Weights.ContainsKey(name) == false)
+                {
+                    Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Weight '{name}' doesn't exist in the model.");
+                    return null;
+                }
+
+                weight = Name2Weights[name];
             }
 
-            return Name2Weights[name];
+            return weight;
         }
 
         public void DeleteWeights(string name)
-        {                      
-            Name2Weights.Remove(name);
+        {
+            if (VQSize > 0)
+            {
+                Name2WeightsVQ.Remove(name);
+                Name2CodeBook.Remove(name);
+            }
+            else
+            {
+                Name2Weights.Remove(name);
+            }
         }
 
         public void ClearWeights()
         {
+            Name2WeightsVQ.Clear();
+            Name2CodeBook.Clear();
             Name2Weights.Clear();
         }
 
@@ -157,6 +246,7 @@ namespace Seq2SeqSharp.Models
             Logger.WriteLine($"Pointer Generator: '{PointerGenerator}'");
             Logger.WriteLine($"Expert Size: '{ExpertNum}");
             Logger.WriteLine($"Experts per token factor: '{ExpertsPerTokenFactor}'");
+            Logger.WriteLine($"Codebook size for model vector quantization: '{VQSize}'");
 
 
             if (!SimilarityType.IsNullOrEmpty())

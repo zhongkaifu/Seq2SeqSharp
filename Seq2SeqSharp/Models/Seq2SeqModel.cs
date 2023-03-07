@@ -36,7 +36,6 @@ namespace Seq2SeqSharp
             : base(m)
         {
             ClsVocabs = m.ClsVocabs?.Select(v => v.ToVocab()).ToList();
-            Name2Weights = m.Name2Weights;
 
             DecoderEmbeddingDim = m.DecoderEmbeddingDim;
             DecoderLayerDepth = m.DecoderLayerDepth;

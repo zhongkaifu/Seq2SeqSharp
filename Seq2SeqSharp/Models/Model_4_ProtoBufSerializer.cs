@@ -234,12 +234,31 @@ namespace Seq2SeqSharp.Models
         public Model_4_ProtoBufSerializer(Model m)
         {
             Name2Weights = m.Name2Weights;
+            if (Name2Weights == null)
+            {
+                Name2Weights = new Dictionary<string, float[]>();
+            }
+
+            VQSize = m.VQSize;
+            Name2WeightsVQ = m.Name2WeightsVQ;
+            if (Name2WeightsVQ == null)
+            {
+                Name2WeightsVQ = new Dictionary<string, byte[]>();
+            }
+
+            Name2CodeBook = m.Name2CodeBook;
+            if (Name2CodeBook == null)
+            {
+                Name2CodeBook = new Dictionary<string, double[]>();
+            }
+
             DecoderEmbeddingDim = m.DecoderEmbeddingDim;
             EncoderEmbeddingDim = m.EncoderEmbeddingDim;
             DecoderLayerDepth = m.DecoderLayerDepth;
             EncoderLayerDepth = m.EncoderLayerDepth;
             DecoderType = m.DecoderType;
             EncoderType = m.EncoderType;
+            ActivateFunc = m.ActivateFunc;
             HiddenDim = m.HiddenDim;
             EnableSegmentEmbeddings = m.EnableSegmentEmbeddings;
             MultiHeadNum = m.MultiHeadNum;
@@ -253,7 +272,7 @@ namespace Seq2SeqSharp.Models
             MaxSegmentNum = m.MaxSegmentNum;
             PointerGenerator = m.PointerGenerator;
             ExpertNum = m.ExpertNum;
-            ExpertsPerTokenFactor = m.ExpertsPerTokenFactor;
+            ExpertsPerTokenFactor = m.ExpertsPerTokenFactor;            
         }
         public static Model_4_ProtoBufSerializer Create(Model m) => new Model_4_ProtoBufSerializer(m);
 
@@ -275,11 +294,12 @@ namespace Seq2SeqSharp.Models
         [ProtoMember(16)] public string SimilarityType { get; set; }
         [ProtoMember(17)] public bool EnableTagEmbeddings { get; set; }
         [ProtoMember(19)] public int MaxSegmentNum { get; set; }
-
         [ProtoMember(20)] public bool PointerGenerator { get; set; }
-
         [ProtoMember(21)] public int ExpertNum { get; set; }
-
         [ProtoMember(22)] public int ExpertsPerTokenFactor { get; set; }
+        [ProtoMember(23)] public ActivateFuncEnums ActivateFunc { get; set; }
+        [ProtoMember(24)] public int VQSize { get; set; }
+        [ProtoMember(25)] public Dictionary<string, byte[]> Name2WeightsVQ { get; set; }
+        [ProtoMember(26)] public Dictionary<string, double[]> Name2CodeBook { get; set; }
     }
 }

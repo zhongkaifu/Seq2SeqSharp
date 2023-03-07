@@ -131,8 +131,6 @@ namespace Seq2SeqSharp
             layerNorm2.Save(stream);
             feedForwardLayer1.Save(stream);
             feedForwardLayer2.Save(stream);
-
-            stream.AddWeights($"{m_name}.ActivateFunc", new float[1] { (float)m_activateFunc});
         }
 
 
@@ -141,10 +139,6 @@ namespace Seq2SeqSharp
             layerNorm2.Load(stream);
             feedForwardLayer1.Load(stream);
             feedForwardLayer2.Load(stream);
-
-            m_activateFunc = (ActivateFuncEnums)stream.GetWeights($"{m_name}.ActivateFunc")[0];
-            Logger.WriteLine($"Loading '{m_name}' activate function setting '{m_activateFunc}'");
-
         }
 
         public INeuralUnit CloneToDeviceAt(int deviceId)

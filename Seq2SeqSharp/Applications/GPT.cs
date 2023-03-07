@@ -88,9 +88,14 @@ namespace Seq2SeqSharp
                 m_modelMetaData.TgtVocab = tgtVocab;
             }
 
-            SaveModel(createBackupPrevious: true);
+            SaveModel(createBackupPrevious: true, suffix:".updatevocab");
         }
 
+        public void VQModel()
+        {
+            m_modelMetaData.VQSize = m_options.VQSize;
+            SaveModel(createBackupPrevious: true, suffix: ".vq");
+        }
 
         protected override Seq2SeqModel LoadModelImpl() => base.LoadModelRoutine<Model_4_ProtoBufSerializer>(CreateTrainableParameters, Seq2SeqModel.Create);
 

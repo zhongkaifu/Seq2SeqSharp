@@ -518,7 +518,7 @@ namespace Seq2SeqSharp.Tools
             var weights = model.GetWeights(Name);           
             if (weights != null)
             {
-                SetWeightArray(weights);
+                SetWeightArray(weights);            
             }
         }
 

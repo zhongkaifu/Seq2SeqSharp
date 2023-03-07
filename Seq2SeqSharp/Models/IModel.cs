@@ -20,6 +20,10 @@ namespace Seq2SeqSharp
         public int DecoderLayerDepth { get; set; }
         public int EncoderLayerDepth { get; set; }
 
+        public int VQSize { get; set; }
+
+        public ActivateFuncEnums ActivateFunc { get; set; }
+
         public int ExpertNum { get; set; }
         public int ExpertsPerTokenFactor { get; set; }
         public DecoderTypeEnums DecoderType { get; set; }

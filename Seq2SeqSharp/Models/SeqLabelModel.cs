@@ -29,7 +29,6 @@ namespace Seq2SeqSharp
             : base(m)
         {
             ClsVocabs = m.ClsVocabs?.Select(v => v.ToVocab()).ToList();
-            Name2Weights = m.Name2Weights;
         }
         public static SeqLabelModel Create(Model_4_ProtoBufSerializer m) => new SeqLabelModel(m);
     }

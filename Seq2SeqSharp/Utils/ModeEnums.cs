@@ -8,6 +8,7 @@
         Alignment,
         DumpVocab,
         UpdateVocab,
+        VQModel,
         Help
     }
 }
