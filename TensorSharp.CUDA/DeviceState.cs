@@ -25,11 +25,11 @@ namespace TensorSharp.CUDA
         public readonly ScratchSpace ScratchSpace;
 
 
-        public DeviceState(int deviceId, float memoryUsageRatio = 0.9f)
+        public DeviceState(int deviceId, float memoryUsageRatio = 0.9f, CudaMemoryDeviceAllocatorType allocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool)
         {
             CudaContext = new CudaContext(deviceId);
             DeviceInfo = CudaContext.GetDeviceInfo();
-            Logger.WriteLine($"Cuda device '{deviceId}' DeviceName = '{DeviceInfo.DeviceName}' MultiProcessorCount = '{DeviceInfo.MultiProcessorCount}' MaxBlocksPerMultiProcessor = '{DeviceInfo.MaxBlocksPerMultiProcessor}' MaxThreadsPerMultiProcessor = '{DeviceInfo.MaxThreadsPerMultiProcessor}' MaxSharedMemoryPerMultiprocessor = '{DeviceInfo.MaxSharedMemoryPerMultiprocessor}'");
+            Logger.WriteLine($"Cuda device '{deviceId}' DeviceName = '{DeviceInfo.DeviceName}' MultiProcessorCount = '{DeviceInfo.MultiProcessorCount}' MaxBlocksPerMultiProcessor = '{DeviceInfo.MaxBlocksPerMultiProcessor}' MaxThreadsPerMultiProcessor = '{DeviceInfo.MaxThreadsPerMultiProcessor}' MaxSharedMemoryPerMultiprocessor = '{DeviceInfo.MaxSharedMemoryPerMultiprocessor}' MemoryAllocatorType = '{allocatorType}'");
 
             BlasHandles = new ObjectPool<CudaBlas>(1, () =>
             {
@@ -38,7 +38,19 @@ namespace TensorSharp.CUDA
             },
                 blas => blas.Dispose());
 
-            MemoryAllocator = new PoolingDeviceAllocator(CudaContext, memoryUsageRatio);
+            if (allocatorType == CudaMemoryDeviceAllocatorType.Basic)
+            {
+                MemoryAllocator = new BasicDeviceAllocator(CudaContext);
+            }
+            else if (allocatorType == CudaMemoryDeviceAllocatorType.CudaMemoryPool)
+            {
+                MemoryAllocator = new CudaMemoryPoolDeviceAllocator(CudaContext);
+            }
+            else
+            {
+                MemoryAllocator = new PoolingDeviceAllocator(CudaContext, memoryUsageRatio);
+            }
+
             ScratchSpace = AllocScratchSpace(CudaContext, DeviceInfo);
         }
 

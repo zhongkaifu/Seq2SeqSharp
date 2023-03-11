@@ -101,6 +101,7 @@ namespace Seq2SeqSharp
         public (IWeightTensor, IWeightTensor) Decode(IWeightTensor tgtInputs, IWeightTensor tgtSelfMask, int batchSize, IComputeGraph g, Dictionary<string, IWeightTensor> cachedTensors = null)
         {
             IWeightTensor attnProbs = null;
+            IWeightTensor tgtInputsFinal = null;
             using (IComputeGraph subg = g.CreateSubGraph($"{m_name}_GPTDecoder"))
             {
                 int seqLenQ = tgtInputs.Rows / batchSize;
@@ -112,13 +113,17 @@ namespace Seq2SeqSharp
 
                 for (int k = 0; k < m_selfAttns.Count; k++)
                 {
-                    (tgtInputs, attnProbs) = m_selfAttns[k].Perform(tgtInputs, selfMaskTensor, batchSize, subg, outputAttenWeights: false, cachedTensors: cachedTensors);
-                    tgtInputs = m_feedForwards[k].Process(tgtInputs, batchSize, subg, cachedTensors: cachedTensors);
+                    (var tgtInputs2, attnProbs) = m_selfAttns[k].Perform(tgtInputs, selfMaskTensor, batchSize, subg, outputAttenWeights: false, cachedTensors: cachedTensors);
+                    tgtInputs.ReleaseWeight();
+
+                    tgtInputs = m_feedForwards[k].Process(tgtInputs2, batchSize, subg, cachedTensors: cachedTensors);
+                    tgtInputs2.ReleaseWeight();
                 }
 
-                tgtInputs = layerNorm.Norm(tgtInputs, subg);
+                tgtInputsFinal = layerNorm.Norm(tgtInputs, subg);
+                tgtInputs.ReleaseWeight();
 
-                tgtInputs.UnbindFromComputeGraph();
+                tgtInputsFinal.UnbindFromComputeGraph();
                 if (attnProbs != null)
                 {
                     attnProbs.UnbindFromComputeGraph();
@@ -130,7 +135,7 @@ namespace Seq2SeqSharp
                 }
             }
 
-            return (tgtInputs, attnProbs);
+            return (tgtInputsFinal, attnProbs);
         }
 
         public INeuralUnit CloneToDeviceAt(int deviceId)

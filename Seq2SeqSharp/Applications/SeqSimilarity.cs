@@ -40,7 +40,7 @@ namespace Seq2SeqSharp.Applications
 
         public SeqSimilarity(SeqSimilarityOptions options, Vocab srcVocab = null, Vocab clsVocab = null)
            : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions,
-                 runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq, maxDegressOfParallelism: options.TaskParallelism)
+                 runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq, maxDegressOfParallelism: options.TaskParallelism, cudaMemoryAllocatorType: options.CudaMemoryAllocatorType)
         {
             m_shuffleType = options.ShuffleType;
             m_options = options;

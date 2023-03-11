@@ -11,6 +11,7 @@
 using AdvUtils;
 using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
+using TensorSharp.CUDA.ContextState;
 
 namespace Seq2SeqSharp.Applications
 {
@@ -102,6 +103,9 @@ namespace Seq2SeqSharp.Applications
 
         [Arg("The ratio of memory usage", nameof(MemoryUsageRatio))]
         public float MemoryUsageRatio = 0.95f;
+
+        [Arg("The memory allocator type in Cuda. It supports Basic, CudaMemoryPool and CustomMemoryPool. Default is CudaMemoryPool (Cuda 11.2 or above is required)", nameof(CudaMemoryDeviceAllocatorType))]
+        public CudaMemoryDeviceAllocatorType CudaMemoryAllocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool;
 
         [Arg("The trained model file path.", nameof(ModelFilePath))]
         public string ModelFilePath = "Seq2Seq.Model";

@@ -13,6 +13,7 @@ using System;
 using TensorSharp;
 using TensorSharp.Cpu;
 using TensorSharp.CUDA;
+using TensorSharp.CUDA.ContextState;
 using TensorSharp.CUDA.MatrixMul;
 
 namespace Seq2SeqSharp
@@ -24,7 +25,7 @@ namespace Seq2SeqSharp
         private static int[] m_deviceIds;
         private static ProcessorTypeEnums m_archType;
 
-        public static void InitDevices(ProcessorTypeEnums archType, int[] ids, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, string mklInstructions = "AVX2", bool enableTensorCore = true)
+        public static void InitDevices(ProcessorTypeEnums archType, int[] ids, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, string mklInstructions = "AVX2", bool enableTensorCore = true, CudaMemoryDeviceAllocatorType allocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool)
         {
             m_archType = archType;
             m_deviceIds = ids;
@@ -33,7 +34,7 @@ namespace Seq2SeqSharp
 
             if (m_archType == ProcessorTypeEnums.GPU)
             {
-                m_cudaContext = new TSCudaContext(m_deviceIds, memoryUsageRatio, compilerOptions);
+                m_cudaContext = new TSCudaContext(m_deviceIds, memoryUsageRatio, compilerOptions, allocatorType);
                 m_cudaContext.Precompile(Console.Write);
                 m_cudaContext.CleanUnusedPTX();
 

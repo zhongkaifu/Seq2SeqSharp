@@ -35,14 +35,14 @@ namespace TensorSharp.CUDA
         private readonly CudaKernelCache kernelCache = new CudaKernelCache();
 
 
-        public TSCudaContext(int[] deviceIds, float memoryUsageRatio = 0.9f, string[] compilerOptions = null)
+        public TSCudaContext(int[] deviceIds, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, CudaMemoryDeviceAllocatorType allocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool)
         {
             this.deviceIds = deviceIds;
 
             devices = new DeviceState[deviceIds.Length];
             for (int i = 0; i < deviceIds.Length; i++)
             {
-                devices[i] = new DeviceState(deviceIds[i], memoryUsageRatio);
+                devices[i] = new DeviceState(deviceIds[i], memoryUsageRatio, allocatorType);
             }
             p2pAccess = EnablePeerAccess(devices.Select(x => x.CudaContext).ToArray(), devices[0].CudaContext);
 

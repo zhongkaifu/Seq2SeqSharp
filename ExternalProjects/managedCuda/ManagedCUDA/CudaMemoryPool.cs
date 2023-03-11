@@ -204,12 +204,25 @@ namespace ManagedCuda
 			return new CudaDeviceVariable<T>(devPtr, false, bytesize);
 		}
 
+        public CUdeviceptr MemAllocFromPoolAsync(SizeT bytesize, CUstream hStream)   
+        {
+            var devPtr = new CUdeviceptr();
+            res = DriverAPINativeMethods.MemoryManagement.cuMemAllocFromPoolAsync(ref devPtr,
+                bytesize, _memoryPool, hStream);
+            Debug.WriteLine("{0:G}, {1}: {2}", DateTime.Now, "cuMemAllocFromPoolAsync", res);
+            if (res != CUResult.Success)
+                throw new CudaException(res);
+
+			return devPtr;
+        }
+
+        
 		/// <summary>
-		/// Returns the accessibility of a pool from a device<para/>
-		/// Returns the accessibility of the pool's memory from the specified location.
-		/// </summary>
-		/// <param name="location">the location accessing the pool</param>
-		public CUmemAccess_flags GetAccess(CUmemLocation location)
+        /// Returns the accessibility of a pool from a device<para/>
+        /// Returns the accessibility of the pool's memory from the specified location.
+        /// </summary>
+        /// <param name="location">the location accessing the pool</param>
+        public CUmemAccess_flags GetAccess(CUmemLocation location)
 		{
 			var flags = new CUmemAccess_flags();
 			res = DriverAPINativeMethods.MemoryManagement.cuMemPoolGetAccess(ref flags, _memoryPool,

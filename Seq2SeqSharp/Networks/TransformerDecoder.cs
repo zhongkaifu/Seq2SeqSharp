@@ -130,9 +130,14 @@ namespace Seq2SeqSharp
 
                 for (int k = 0; k < m_selfAttns.Count; k++)
                 {
-                    (tgtInputs, attnProbs) = m_selfAttns[k].Perform(tgtInputs, selfMaskTensor, batchSize, subg, outputAttenWeights: false, cachedTensors: cachedTensors);
-                    (tgtInputs, attnProbs) = m_encAttns[k].Perform(tgtInputs, encOutputBatchFirst, encOutputBatchFirst, crossMaskTensor, batchSize, subg, outputAttenWeights: (outputAttnWeights && k == m_selfAttns.Count - 1), cachedTensors: cachedTensors);
-                    tgtInputs = m_feedForwards[k].Process(tgtInputs, batchSize, subg, cachedTensors: cachedTensors);
+                    (var tgtInputs2, attnProbs) = m_selfAttns[k].Perform(tgtInputs, selfMaskTensor, batchSize, subg, outputAttenWeights: false, cachedTensors: cachedTensors);
+                    tgtInputs.ReleaseWeight();
+
+                    (var tgtInputs3, attnProbs) = m_encAttns[k].Perform(tgtInputs2, encOutputBatchFirst, encOutputBatchFirst, crossMaskTensor, batchSize, subg, outputAttenWeights: (outputAttnWeights && k == m_selfAttns.Count - 1), cachedTensors: cachedTensors);
+                    tgtInputs2.ReleaseWeight();
+
+                    tgtInputs = m_feedForwards[k].Process(tgtInputs3, batchSize, subg, cachedTensors: cachedTensors);
+                    tgtInputs3.ReleaseWeight();
                 }
 
                 tgtInputs = layerNorm.Norm(tgtInputs, subg);

@@ -44,7 +44,7 @@ namespace Seq2SeqSharp.Applications
         public Seq2SeqClassification(Seq2SeqClassificationOptions options, Vocab srcVocab = null, Vocab tgtVocab = null, Vocab clsVocab = null)
             : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions, 
                   runValidEveryUpdates: options.RunValidEveryUpdates, primaryTaskId: options.PrimaryTaskId, updateFreq: options.UpdateFreq, 
-                  startToRunValidAfterUpdates: options.StartValidAfterUpdates, maxDegressOfParallelism: options.TaskParallelism)
+                  startToRunValidAfterUpdates: options.StartValidAfterUpdates, maxDegressOfParallelism: options.TaskParallelism, cudaMemoryAllocatorType: options.CudaMemoryAllocatorType)
         {
             m_shuffleType = options.ShuffleType;
             m_options = options;

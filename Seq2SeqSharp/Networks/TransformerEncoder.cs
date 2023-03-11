@@ -110,8 +110,11 @@ namespace Seq2SeqSharp
                 IWeightTensor attnProbs = null;
                 for (int k = 0; k < m_encoders.Count; k++)
                 {
-                    (inputs, attnProbs) = m_encoders[k].Perform(inputs, maskTensor, batchSize, subg, outputAttenWeights: false);
-                    inputs = m_feedForwards[k].Process(inputs, batchSize, subg);
+                    (var inputs2, attnProbs) = m_encoders[k].Perform(inputs, maskTensor, batchSize, subg, outputAttenWeights: false);
+                    inputs.ReleaseWeight();
+
+                    inputs = m_feedForwards[k].Process(inputs2, batchSize, subg);
+                    inputs2.ReleaseWeight();
                 }
 
                 inputs = layerNorm.Norm(inputs, subg);
