@@ -39,54 +39,6 @@ namespace TensorSharp
             return TensorConcatenation.Concat(result, dimension, inputs);
         }
 
-        //public static void FillOneHot(Tensor result, int labelCount, int[] labels)
-        //{
-        //    if (result.Storage is Cpu.CpuStorage)
-        //    {
-        //        DoFillOneHot(result, labelCount, labels);
-        //    }
-        //    else
-        //    {
-        //        //If the result is not on the CPU, it is much faster to build the tensor on the CPU and then copy
-        //        //An alternative to this would be building a specific GPU kernel for this operation
-        //        Cpu.CpuAllocator cpuAlloc = new Cpu.CpuAllocator(BlasEnum.DotNet);
-        //        using (Tensor cpuResult = new Tensor(cpuAlloc, result.ElementType, result.Sizes))
-        //        {
-        //            DoFillOneHot(cpuResult, labelCount, labels);
-        //            Ops.Copy(result, cpuResult);
-        //        }
-        //    }
-        //}
-
-        private static void DoFillOneHot(Tensor result, int labelCount, int[] labels)
-        {
-            if (result.DimensionCount != 2)
-            {
-                throw new InvalidOperationException("result must be a 2D tensor");
-            }
-
-            if (result.Sizes[0] != labels.Length)
-            {
-                throw new InvalidOperationException("first dimension of result must equal the number of samples");
-            }
-
-            if (result.Sizes[1] > labelCount)
-            {
-                throw new InvalidOperationException("second dimension of result must be at least as large as labelCount");
-            }
-
-            Ops.Fill(result, 0);
-            for (int i = 0; i < labels.Length; ++i)
-            {
-                if (labels[i] < 0 || labels[i] >= labelCount)
-                {
-                    throw new InvalidOperationException("label at index " + i + " is out of range 0 <= x < labelCount");
-                }
-
-                result.SetElementAsFloat(1.0f, i, labels[i]);
-            }
-        }
-
         public static void Copy(Tensor result, Tensor src) { OpRegistry.Invoke("copy", result, src); }
         public static void Fill(Tensor result, float value) { OpRegistry.Invoke("fill", result, value); }
 

@@ -152,7 +152,7 @@ namespace Seq2SeqSharp
             }
             relPosWeights = g.View(relPosWeights, dims: new long[] { 1, newTokensIdx, seqLenQ });
             relPosWeights = g.Expand(relPosWeights, dims: new long[] { batchSize * m_multiHeadNum, newTokensIdx, seqLenQ });
-            attn = g.Add(attn, relPosWeights);
+            attn = g.Add(attn, relPosWeights, inPlace: true);
 
 
             // Add mask

@@ -298,7 +298,7 @@ namespace Seq2SeqSharp.Applications
             }
 
             IWeightTensor ffLayer = decoderFFLayer.Process(decOutput, batchSize, g);
-            IWeightTensor probs = (lossType == LossEnums.NegativeLogLikelihood && isTraining) ? g.LogSoftmax(ffLayer) : g.Softmax(ffLayer);
+            IWeightTensor probs = (lossType == LossEnums.NegativeLogLikelihood && isTraining) ? g.LogSoftmax(ffLayer) : g.Softmax(ffLayer, inPlace: true);
             IWeightTensor probsCopy = null;
             if (pointerGenerator != null)
             {
@@ -474,7 +474,7 @@ namespace Seq2SeqSharp.Applications
             }
 
             IWeightTensor ffLayer = decoderFFLayer.Process(decOutput, batchSize, g);
-            IWeightTensor probs = (lossType == LossEnums.NegativeLogLikelihood && isTraining) ? g.LogSoftmax(ffLayer) : g.Softmax(ffLayer);
+            IWeightTensor probs = (lossType == LossEnums.NegativeLogLikelihood && isTraining) ? g.LogSoftmax(ffLayer) : g.Softmax(ffLayer, inPlace: true);
            
             if (isTraining)
             {
