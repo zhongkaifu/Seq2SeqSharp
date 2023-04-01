@@ -83,18 +83,26 @@ namespace TensorSharp.CUDA
             [OpArgStorageType(typeof(CudaStorage))] Tensor result,
             [OpArgStorageType(typeof(CudaStorage))] Tensor src)
         {
-            long totalElements = result.ElementCount();
-            if (totalElements != src.ElementCount())
+            try
             {
-                throw new InvalidOperationException("Tensors must have equal numbers of elements");
-            }
+                long totalElements = result.ElementCount();
+                if (totalElements != src.ElementCount())
+                {
+                    throw new InvalidOperationException("Tensors must have equal numbers of elements");
+                }
 
-            if (src.DimensionCount == 0)
+                if (src.DimensionCount == 0)
+                {
+                    return;
+                }
+
+                copyOps.CopyGpu(result, src, totalElements);
+            }
+            catch (Exception err)
             {
-                return;
+                Logger.WriteLine(Logger.Level.err, $"Error Message = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                throw;
             }
-
-            copyOps.CopyGpu(result, src, totalElements);
         }
 
         [RegisterOpArgCount("copy")]
