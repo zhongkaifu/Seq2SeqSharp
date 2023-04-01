@@ -18,6 +18,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using AdvUtils;
+using ManagedCuda.BasicTypes;
 using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Metrics;
@@ -507,13 +508,17 @@ namespace Seq2SeqSharp.Tools
                                 ISntPairBatch sntPairBatch = sntPairBatch_i.GetRange(k * batchSegSize, batchSegSize);
 
                                 List<NetworkResult> nrs;
-                                 // Create a new computing graph instance
-                                 using (IComputeGraph computeGraph_deviceIdx = CreateComputGraph(deviceIdx))
+                                // Create a new computing graph instance
+                                using (IComputeGraph computeGraph_deviceIdx = CreateComputGraph(deviceIdx))
                                 {
-                                     // Run forward part
-                                     nrs = ForwardOnSingleDevice(computeGraph_deviceIdx, sntPairBatch, decodingOptions, isTraining);
-                                     // Run backward part and compute gradients
-                                     computeGraph_deviceIdx.Backward();
+                                    // Run forward part
+                                    using (IComputeGraph g = computeGraph_deviceIdx.CreateSubGraph($"Forward_{deviceIdx}"))
+                                    {
+                                        nrs = ForwardOnSingleDevice(g, sntPairBatch, decodingOptions, isTraining);
+                                    }
+
+                                    // Run backward part and compute gradients
+                                    computeGraph_deviceIdx.Backward();
                                 }
 
                                 lock (locker)

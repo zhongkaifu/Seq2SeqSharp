@@ -25,13 +25,15 @@ namespace Seq2SeqSharp.Applications
         // Beam search size. Default is 1
         public int BeamSearchSize = 1;
 
+        public float Temperature = 1.0f;
+
+        public float TopP = 1.0f;
+
         // Decoding strategies. It supports GreedySearch and Sampling. Default is GreedySearch
         public DecodingStrategyEnums DecodingStrategy = DecodingStrategyEnums.GreedySearch;
 
         // It indicates if aligments to source sequence should be outputted
         public bool OutputAligmentsToSrc = false;
-
-        public bool RandomSelectOutputToken = false;
 
         public List<int> BlockedTokens = null;
     }

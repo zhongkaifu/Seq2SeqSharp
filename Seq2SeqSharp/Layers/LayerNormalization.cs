@@ -1,7 +1,16 @@
-﻿using Seq2SeqSharp.Tools;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
-using System.IO;
 
 namespace Seq2SeqSharp
 {
@@ -10,16 +19,18 @@ namespace Seq2SeqSharp
     {
         private readonly IWeightTensor m_alpha;
         private readonly IWeightTensor m_beta;
+        private readonly float m_epsilon;
 
-        public LayerNormalization(string name, int dim, int deviceId, bool isTrainable, float learningRateFactor = 1.0f)
+        public LayerNormalization(string name, int dim, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, float epsilon = 1e-06f)
         {
             m_alpha = new WeightTensor(new long[2] { 1, dim }, 1.0f, deviceId, name: $"{name}.{nameof(m_alpha)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor);
             m_beta = new WeightTensor(new long[2] { 1, dim }, 0, deviceId, name: $"{name}.{nameof(m_beta)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor);
+            m_epsilon = epsilon;
         }
 
         public IWeightTensor Norm(IWeightTensor input, IComputeGraph g)
         {
-            return g.LayerNorm(input, m_alpha, m_beta, 1e-06f);
+            return g.LayerNorm(input, m_alpha, m_beta, m_epsilon);
         }
 
         ///// <summary>

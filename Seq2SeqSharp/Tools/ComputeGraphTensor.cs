@@ -14,6 +14,7 @@ using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -1204,7 +1205,7 @@ namespace Seq2SeqSharp.Tools
         /// <param name="seqs"></param>
         /// <param name="topP"></param>
         /// <returns>The sampled index</returns>
-        public IWeightTensor SampleIndicue(IWeightTensor w, List<List<int>> seqs, float repeatPenalty = 1.0f, bool randomSelect = false, List<int> blockedTokens = null)
+        public IWeightTensor SampleIndicue(IWeightTensor w, List<List<int>> seqs, float topP = 1.0f, List<int> blockedTokens = null)
         {
             int K = seqs[0].Count + 1;
 
@@ -1216,7 +1217,12 @@ namespace Seq2SeqSharp.Tools
             float[] weights = w1.GetElementsAsFloat((int)w1.GetStorageSize());
             float[] weightsIdx = w1Idx.GetElementsAsFloat((int)w1Idx.GetStorageSize());
 
+
+            //WeightTensor m = w as WeightTensor;
+            //float[] weights = m.ToWeightArray();
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { m.Rows, 1 }, m_deviceId, name: $"{GetHashString(m.Name)}.Sample", graphToBind: this, needGradient: m.NeedGradient);
+
+            Random rnd = new Random(DateTime.Now.Millisecond);
             float[] indices = new float[m.Rows];
 
             for (int i = 0; i < m.Rows; i++)
@@ -1239,10 +1245,7 @@ namespace Seq2SeqSharp.Tools
                         tokenIdCount[seq[j]]++;
                     }
                 }
-
-                float maxWeight = float.MinValue;
-                int maxWeightIndice = -1;
-
+                SortedDictionary<float, List<int>> weight2tokenId = new SortedDictionary<float, List<int>>();          
                 for (int j = 0; j < K; j++)
                 {
                     float weight = weights[offset + j];
@@ -1250,35 +1253,60 @@ namespace Seq2SeqSharp.Tools
 
                     if (blockedTokens != null && blockedTokens.Contains(idx))
                     {
-                        // Ignore tokens in block list
                         continue;
                     }
 
-                    // Decay weights if tokens has already been generated before
                     if (tokenId2Distance.ContainsKey(idx))
                     {
-                        var rp = (float)Math.Pow((float)tokenId2Distance[idx] / (float)seq.Count, Math.Log(tokenIdCount[idx] + 1.0f));
-
-                        if (randomSelect)
-                        {
-                            rp = RandomGenerator.floatRandom(Math.Min(0.0f, rp / repeatPenalty), rp);
-                        }
-                        else
-                        {
-                            rp = rp / repeatPenalty;
-                        }
-
-                        weight = (float)(weight * Math.Log(tokenId2Distance[idx], seq.Count) * rp);
+                        weight = (float)(weight * ((float)tokenId2Distance[idx] / (float)seq.Count));
                     }
 
-                    if (weight > maxWeight)
+
+                    if (weight2tokenId.ContainsKey(weight) == false)
                     {
-                        maxWeight = weight;
-                        maxWeightIndice = idx;
+                        weight2tokenId.Add(weight, new List<int>());
+                    }
+                    weight2tokenId[weight].Add(idx);
+
+                }
+
+                float acc = 0.0f;
+                List<int> outputCands = new List<int>();
+                List<float> accProbs = new List<float>();
+
+                foreach (var pair in weight2tokenId.Reverse())
+                {
+                    float prob = pair.Key;
+                    foreach (var idx in pair.Value)
+                    {
+                        acc += prob;
+                        outputCands.Add(idx);
+                        accProbs.Add(acc);
+
+                        if (acc >= topP)
+                        {
+                            break;
+                        }
+
+
+                    }
+
+                    if (acc >= topP)
+                    {
+                        break;
                     }
                 }
 
-                indices[i] = maxWeightIndice;
+                float rndValue = (float)rnd.NextDouble();
+                for (int k = 0; k < accProbs.Count; k++)
+                {
+                    if (accProbs[k] / acc >= rndValue)
+                    {
+                        indices[i] = outputCands[k];
+                        break;
+                    }
+                }
+
             }
 
             res.SetWeightArray(indices);
@@ -1290,10 +1318,8 @@ namespace Seq2SeqSharp.Tools
             }
 
 
-            w1.Dispose();
-            w1Idx.Dispose();
-
             return res;
+
 
         }
 
@@ -1533,16 +1559,16 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                idx.UnbindFromComputeGraph();
-
+                var tIdxWeights = idx.TWeight.CopyRef();
                 void backward()
                 {
                     if (src.NeedGradient)
                     {
                         res.ReleaseWeight();
-                        Ops.IndexSelect(src.TGradient, res.TGradient, idx.TWeight, true);
+                        Ops.IndexSelect(src.TGradient, res.TGradient, tIdxWeights, true);
                     }
 
+                    tIdxWeights.Dispose();
                     res.Dispose();                  
                 }
                 m_backprop.Add(backward);
@@ -2016,12 +2042,12 @@ namespace Seq2SeqSharp.Tools
                         Ops.LayerNormGrad(srcT.TGradient, alphaT.TGradient, betaT.TGradient, res.TGradient, resTWeight, srcTWeight, alphaT.TWeight, betaT.TWeight, eps);
                     }
                     srcTWeight.Dispose();
+                    resTWeight.Dispose();
+
                     res.Dispose();
                 }
                 m_backprop.Add(backward);
 
-                res.UnbindFromComputeGraph();
-                srcT.UnbindFromComputeGraph();
                 alphaT.UnbindFromComputeGraph();
                 betaT.UnbindFromComputeGraph();
             }

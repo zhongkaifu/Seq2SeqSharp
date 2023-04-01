@@ -39,7 +39,7 @@ namespace Seq2SeqWebApps
         static object locker = new object();
 
         static public void Initialization(string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, ProcessorTypeEnums processorType, string deviceIds, SentencePiece? srcSpm, SentencePiece? tgtSpm,
-            Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum, float topPSampling, float repeatPenalty, float memoryUsageRatio, string mklInstructions, int beamSearchSize, string blockedTokens, ModelType modelType,
+            Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum, float memoryUsageRatio, string mklInstructions, int beamSearchSize, string blockedTokens, ModelType modelType,
             string wordMappingFilePath, bool enableTensorCore)
         {
             opts = new Seq2SeqOptions();
@@ -49,7 +49,6 @@ namespace Seq2SeqWebApps
             opts.ProcessorType = processorType;
             opts.DeviceIds = deviceIds;
             opts.DecodingStrategy = decodingStrategyEnum;
-            opts.DecodingRepeatPenalty = repeatPenalty;
             opts.MemoryUsageRatio = memoryUsageRatio;
             opts.MKLInstructions = mklInstructions;
             opts.BeamSearchSize = beamSearchSize;
@@ -129,7 +128,7 @@ namespace Seq2SeqWebApps
             return (false, sent);
         }
 
-        static public string Call(string rawSrcInput, string rawTgtInput, int tokenNumToGenerate, bool random, float repeatPenalty)
+        static public string Call(string rawSrcInput, string rawTgtInput, int tokenNumToGenerate, float topP, float temperature)
         {
             if (opts == null)
             {
@@ -195,16 +194,19 @@ namespace Seq2SeqWebApps
             List<List<List<string>>> tgtGroupBatchTokens = new List<List<List<string>>>();
             tgtGroupBatchTokens.Add(batchTokens2);
 
-
             DecodingOptions decodingOptions = opts.CreateDecodingOptions();
             decodingOptions.MaxTgtSentLength = tokenNumToGenerate;
-            decodingOptions.RepeatPenalty = repeatPenalty;
-            decodingOptions.RandomSelectOutputToken = random;
             decodingOptions.BlockedTokens = m_blockedTokens;
+            decodingOptions.TopP = topP;
+            decodingOptions.Temperature= temperature;
 
-            if (repeatPenalty == 0)
+            if (temperature == 0.0f)
             {
-                decodingOptions.DecodingStrategy = Seq2SeqSharp.Utils.DecodingStrategyEnums.GreedySearch;
+                decodingOptions.DecodingStrategy = DecodingStrategyEnums.GreedySearch;
+            }
+            else
+            {
+                decodingOptions.DecodingStrategy = DecodingStrategyEnums.Sampling;
             }
 
             try
@@ -226,18 +228,18 @@ namespace Seq2SeqWebApps
                 bool isEnded = (rst.EndsWith("</s>") || rst == tgtInput || (nrs[0].Status == NetworkResultStatus.OOM && rst == tgtInput));
 
                 rst = (m_tgtSpm != null) ? m_tgtSpm.Decode(rst) : rst;
-                (bool isRepeat, rst) = CheckRepeatSentence(rst);
+                //(bool isRepeat, rst) = CheckRepeatSentence(rst);
 
-                if (isRepeat)
-                {
-                    rst = rst + " !!! Found repeat sentences, try to use larger value of penalty for repeat. !!!";
-                    isEnded = true;
-                }
+                //if (isRepeat)
+                //{
+                //    rst = rst + " !!! Found repeat sentences, try to use larger value of penalty for repeat. !!!";
+                //    isEnded = true;
+                //}
 
                 if (isEnded)
                 {
                     rst += " EOS";
-                    Logger.WriteLine($"Completed text generation: Source Input Text = '{rawSrcInput}', IsRandomSample = '{random}', Repeat Penalty = '{repeatPenalty}', Output Text = '{rst}'");
+                    Logger.WriteLine($"Completed text generation: Source Input Text = '{rawSrcInput}', Output Text = '{rst}'");
                 }
 
                 return rst;

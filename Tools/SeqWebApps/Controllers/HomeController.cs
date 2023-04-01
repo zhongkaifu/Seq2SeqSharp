@@ -37,12 +37,12 @@ namespace SeqWebApps.Controllers
         }
 
         [HttpPost]
-        public void SubmitFeedback(string srcInput, string tgtInput, bool random, float repeatPenalty, string clientIP, int feedBackType)
+        public void SubmitFeedback(string srcInput, string tgtInput, float topP, float temperature, string clientIP, int feedBackType)
         {
             if (feedBackType == 1)
             {
                 //Thumb Up
-                Logger.WriteLine($"ThumbUp: Random = '{random}', repeatPenalty = '{repeatPenalty}', clientIP = '{clientIP}', Source = '{srcInput}', Target = '{tgtInput}'");
+                Logger.WriteLine($"ThumbUp: topP = '{topP}', temperature = '{temperature}', clientIP = '{clientIP}', Source = '{srcInput}', Target = '{tgtInput}'");
                 lock (locker)
                 {
                     System.IO.File.AppendAllLines(thumbUpFilePath, new string[] { tgtInput });
@@ -51,19 +51,19 @@ namespace SeqWebApps.Controllers
             else
             {
                 //Thumb Down
-                Logger.WriteLine($"ThumbDown: Random = '{random}', repeatPenalty = '{repeatPenalty}', clientIP = '{clientIP}', Source = '{srcInput}', Target = '{tgtInput}'");
+                Logger.WriteLine($"ThumbDown: topP = '{topP}', temperature = '{temperature}', clientIP = '{clientIP}', Source = '{srcInput}', Target = '{tgtInput}'");
             }
                     
         }
 
         [HttpPost]
-        public IActionResult GenerateText(string srcInput, string tgtInput, int num, bool random, float repeatPenalty, string clientIP)
+        public IActionResult GenerateText(string srcInput, string tgtInput, int num, float topP, float temperature, string clientIP)
         {
             try
             {
                 if (tgtInput == null)
                 {
-                    Logger.WriteLine($"New Request: Random = '{random}', repeatPenalty = '{repeatPenalty}', clientIP = '{clientIP}', Source = '{srcInput}'");
+                    Logger.WriteLine($"New Request: topP = '{topP}', temperature = '{temperature}', clientIP = '{clientIP}', Source = '{srcInput}'");
                     tgtInput = "";
                 }
 
@@ -94,7 +94,7 @@ namespace SeqWebApps.Controllers
 
                 TextGenerationModel textGeneration = new TextGenerationModel
                 {
-                    Output = CallBackend(srcInput, tgtInput, num, random, repeatPenalty),
+                    Output = CallBackend(srcInput, tgtInput, num, topP, temperature),
                     DateTime = DateTime.Now.ToString()
                 };
 
@@ -119,7 +119,7 @@ namespace SeqWebApps.Controllers
         }
 
 
-        private string CallBackend(string srcInputText, string tgtInputText, int tokenNumToGenerate, bool random, float repeatPenalty)
+        private string CallBackend(string srcInputText, string tgtInputText, int tokenNumToGenerate, float topP, float temperature)
         {
             if (String.IsNullOrEmpty(srcInputText))
             {
@@ -141,7 +141,7 @@ namespace SeqWebApps.Controllers
             srcInputText = String.Join(" ", srcLines);
             tgtInputText = String.Join(" ", tgtLines);
 
-            string outputText = Seq2SeqInstance.Call(srcInputText, tgtInputText, tokenNumToGenerate, random, repeatPenalty);            
+            string outputText = Seq2SeqInstance.Call(srcInputText, tgtInputText, tokenNumToGenerate, topP, temperature);            
             var outputSents = SplitSents(outputText);
             return String.Join("<br />", outputSents);
 

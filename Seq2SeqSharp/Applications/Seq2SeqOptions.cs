@@ -66,8 +66,8 @@ namespace Seq2SeqSharp
         {
             DecodingOptions decodingOptions = new DecodingOptions();
             decodingOptions.DecodingStrategy = DecodingStrategy;
-            decodingOptions.RepeatPenalty = DecodingRepeatPenalty;
-
+            decodingOptions.TopP = DecodingTopP;
+            decodingOptions.Temperature = DecodingTemperature;
             decodingOptions.BeamSearchSize = BeamSearchSize;
 
             decodingOptions.MaxSrcSentLength = MaxSrcSentLength;

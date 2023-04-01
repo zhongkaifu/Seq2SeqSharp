@@ -298,6 +298,12 @@ namespace Seq2SeqSharp.Applications
             }
 
             IWeightTensor ffLayer = decoderFFLayer.Process(decOutput, batchSize, g);
+
+            if (isTraining == false && decodingOptions.DecodingStrategy == DecodingStrategyEnums.Sampling && decodingOptions.Temperature != 1.0f)
+            {
+                ffLayer = g.Div(ffLayer, decodingOptions.Temperature, inPlace: true);
+            }
+
             IWeightTensor probs = (lossType == LossEnums.NegativeLogLikelihood && isTraining) ? g.LogSoftmax(ffLayer) : g.Softmax(ffLayer, inPlace: true);
             IWeightTensor probsCopy = null;
             if (pointerGenerator != null)
@@ -358,7 +364,7 @@ namespace Seq2SeqSharp.Applications
                 {
                     // Output "i"th target word
                     using var targetIdxTensor = (decodingOptions.DecodingStrategy == DecodingStrategyEnums.GreedySearch) ? g.Argmax(probs, 1) : 
-                                                g.SampleIndicue(probs, tgtSeqs, decodingOptions.RepeatPenalty, decodingOptions.RandomSelectOutputToken, blockedTokens);
+                                                g.SampleIndicue(probs, tgtSeqs, decodingOptions.TopP, decodingOptions.BlockedTokens);
                     IWeightTensor gatherTensor = null;
                     if (outputSentScore)
                     {
@@ -474,6 +480,12 @@ namespace Seq2SeqSharp.Applications
             }
 
             IWeightTensor ffLayer = decoderFFLayer.Process(decOutput, batchSize, g);
+
+            if (isTraining == false && decodingOptions.DecodingStrategy == DecodingStrategyEnums.Sampling && decodingOptions.Temperature != 1.0f)
+            {
+                ffLayer = g.Div(ffLayer, decodingOptions.Temperature, inPlace: true);
+            }
+
             IWeightTensor probs = (lossType == LossEnums.NegativeLogLikelihood && isTraining) ? g.LogSoftmax(ffLayer) : g.Softmax(ffLayer, inPlace: true);
            
             if (isTraining)
@@ -492,7 +504,7 @@ namespace Seq2SeqSharp.Applications
                 {
                     // Output "i"th target word
                     using var targetIdxTensor = (decodingOptions.DecodingStrategy == DecodingStrategyEnums.GreedySearch) ? g.Argmax(probs, 1) :
-                                                g.SampleIndicue(probs, tgtSeqs, decodingOptions.RepeatPenalty, decodingOptions.RandomSelectOutputToken, blockedTokens);
+                                                g.SampleIndicue(probs, tgtSeqs, decodingOptions.TopP, decodingOptions.BlockedTokens);
                     IWeightTensor gatherTensor = null;
                     if (outputSentScore)
                     {

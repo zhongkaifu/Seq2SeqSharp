@@ -21,8 +21,6 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
     var processorType = String.IsNullOrEmpty(Configuration["Seq2Seq:ProcessorType"]) ? ProcessorTypeEnums.CPU : (Configuration["Seq2Seq:ProcessorType"].ToEnum<ProcessorTypeEnums>());
     var deviceIds = String.IsNullOrEmpty(Configuration["Seq2Seq:DeviceIds"]) ? "0" : Configuration["Seq2Seq:DeviceIds"];
     var decodingStrategyEnum = String.IsNullOrEmpty(Configuration["Seq2Seq:TokenGenerationStrategy"]) ? DecodingStrategyEnums.Sampling : Configuration["Seq2Seq:TokenGenerationStrategy"].ToEnum<DecodingStrategyEnums>();
-    var repeatPenalty = String.IsNullOrEmpty(Configuration["Seq2Seq:RepeatPenalty"]) ? 1.0f : float.Parse(Configuration["Seq2Seq:RepeatPenalty"]);
-    var topPSampling = String.IsNullOrEmpty(Configuration["Seq2Seq:TopPSampling"]) ? 1.0f : float.Parse(Configuration["Seq2Seq:TopPSampling"]);
     var gpuMemoryUsageRatio = String.IsNullOrEmpty(Configuration["Seq2Seq:GPUMemoryUsageRatio"]) ? 0.99f : float.Parse(Configuration["Seq2Seq:GPUMemoryUsageRatio"]);
     var mklInstructions = String.IsNullOrEmpty(Configuration["Seq2Seq:MKLInstructions"]) ? "" : Configuration["Seq2Seq:MKLInstructions"];
     var beamSearchSize = String.IsNullOrEmpty(Configuration["Seq2Seq:BeamSearchSize"]) ? 1 : int.Parse(Configuration["Seq2Seq:BeamSearchSize"]);
@@ -53,8 +51,6 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
                                    srcSpm,
                                    tgtSpm,
                                    decodingStrategyEnum,
-                                   topPSampling,
-                                   repeatPenalty,
                                    memoryUsageRatio: gpuMemoryUsageRatio,
                                    mklInstructions: mklInstructions,
                                    beamSearchSize: beamSearchSize,
