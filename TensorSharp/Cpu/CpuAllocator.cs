@@ -7,6 +7,8 @@ namespace TensorSharp.Cpu
     {
         private BlasEnum m_blasEnum;
         public BlasEnum BlasEnum => m_blasEnum;
+        public int DeviceId => 0;
+
         public CpuAllocator(BlasEnum blasEnum, string mklInstructions = "AVX2")
         {
             m_blasEnum = blasEnum;
