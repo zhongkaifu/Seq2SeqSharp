@@ -12,12 +12,12 @@ namespace TensorSharp.CUDA.ContextState
     {
         private readonly CudaContext context;
         private readonly CudaMemoryPool pool;
-        private readonly CudaStream stream;
+      //  private readonly CudaStream stream;
 
         public CudaMemoryPoolDeviceAllocator(CudaContext cudaContext)
         {
             context = cudaContext;
-            stream = new CudaStream();
+        //    stream = new CudaStream();
             pool = new CudaMemoryPool(cudaContext.Device, true);
         }
 
@@ -30,8 +30,8 @@ namespace TensorSharp.CUDA.ContextState
         {
             try
             {
-                CUdeviceptr buffer = pool.MemAllocFromPoolAsync(byteCount, stream.Stream);
-                return new CudaMemoryPoolDeviceMemory(buffer, () => context.FreeMemoryAsync(buffer, stream.Stream));
+                CUdeviceptr buffer = pool.MemAllocFromPoolAsync(byteCount, CUstream.NullStream);
+                return new CudaMemoryPoolDeviceMemory(buffer, () => context.FreeMemoryAsync(buffer, CUstream.NullStream));
             }
             catch (Exception ex)
             {
