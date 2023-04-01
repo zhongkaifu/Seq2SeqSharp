@@ -73,8 +73,14 @@ namespace TensorSharp.CUDA.KernelOps
 
             if (canMemcpy)
             {
-                CUResult res = DriverAPINativeMethods.AsynchronousMemcpy_v2.cuMemcpyAsync(
-                    resultPtr, srcPtr, totalElements * src.ElementType.Size(), CUstream.NullStream);
+                //CUResult res = DriverAPINativeMethods.AsynchronousMemcpy_v2.cuMemcpyAsync(
+                //    resultPtr, srcPtr, totalElements * src.ElementType.Size(), CUstream.NullStream);
+
+
+                CUResult res = DriverAPINativeMethods.SynchronousMemcpy_v2.cuMemcpyPeer(resultPtr, 
+                    resultContext.Context, srcPtr, srcContext.Context, totalElements * src.ElementType.Size());
+
+
                 if (res != CUResult.Success)
                 {
                     throw new CudaException(res);
