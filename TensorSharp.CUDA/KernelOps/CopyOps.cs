@@ -69,8 +69,7 @@ namespace TensorSharp.CUDA.KernelOps
                 srcContext.SetCurrent();
             }
 
-            bool canMemcpy = (CanMemcpy(result, src, totalElements) 
-                && (result.Storage.Allocator.DeviceId == src.Storage.Allocator.DeviceId));
+            bool canMemcpy = CanMemcpy(result, src, totalElements);
 
             if (canMemcpy)
             {
