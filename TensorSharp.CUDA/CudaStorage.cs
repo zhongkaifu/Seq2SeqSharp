@@ -101,6 +101,7 @@ namespace TensorSharp.CUDA
         public override float[] GetElementsAsFloat(long index, int length)
         {
             CUdeviceptr ptr = DevicePtrAtElement(index);
+            context.SetCurrent();
 
             if (ElementType == DType.Float32) { float[] result = new float[length]; context.CopyToHost(result, ptr); return result; }
             else
