@@ -168,6 +168,16 @@ namespace Seq2SeqSharp.Tools
                         break;
                     }
 
+                    if (String.IsNullOrEmpty(rawSntPair.SrcSnt))
+                    {
+                        throw new InvalidDataException($"Source Line is empty. The data set is corrupted. SourceLine = '{rawSntPair.SrcSnt}', TargetLine = '{rawSntPair.TgtSnt}'");
+                    }
+
+                    if (String.IsNullOrEmpty(rawSntPair.TgtSnt))
+                    {
+                        throw new InvalidDataException($"Target Line is empty. The data set is corrupted. SourceLine = '{rawSntPair.SrcSnt}', TargetLine = '{rawSntPair.TgtSnt}'");
+                    }
+
                     if (m_showTokenDist)
                     {
                         if (dictSrcLenDist.ContainsKey(rawSntPair.SrcTokenSize / 100) == false)
