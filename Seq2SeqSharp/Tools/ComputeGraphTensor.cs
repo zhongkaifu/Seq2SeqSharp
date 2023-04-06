@@ -1925,14 +1925,16 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
+                Tensor iTWeight = i.TWeight.CopyRef();
                 void backward()
                 {
                     if (s.NeedGradient)
                     {
                         res.ReleaseWeight();
-                        using var tmp = Ops.Gather(null, res.TGradient, dim, i.TWeight);
+                        using var tmp = Ops.Gather(null, res.TGradient, dim, iTWeight);
                         s.CopyOrAddGradient(tmp);
                     }
+                    iTWeight.Dispose();
                     res.Dispose();
                 }
                 m_backprop.Add(backward);
