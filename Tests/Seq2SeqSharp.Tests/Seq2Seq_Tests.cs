@@ -59,66 +59,66 @@ public class Seq2Seq_Tests
 
     }
 
-    //[TestMethod]
-    //[DeploymentItem("seq2seq_mt_enu_chs_tiny_test.model")]
-    //public void TestSeq2SeqInference()
-    //{
-    //    var opts = new Seq2SeqOptions();
-    //    opts.ModelFilePath = "seq2seq_mt_enu_chs_tiny_test.model";
-    //    opts.MaxValidSrcSentLength = 110;
-    //    opts.MaxValidTgtSentLength = 110;
-    //    opts.ProcessorType = ProcessorTypeEnums.CPU;
-    //    opts.DeviceIds = "0";
+    [TestMethod]
+    [DeploymentItem("mt_enu_chs.model")]
+    public void TestSeq2SeqInference()
+    {
+        var opts = new Seq2SeqOptions();
+        opts.ModelFilePath = "mt_enu_chs.model";
+        opts.MaxValidSrcSentLength = 110;
+        opts.MaxValidTgtSentLength = 110;
+        opts.ProcessorType = ProcessorTypeEnums.CPU;
+        opts.DeviceIds = "0";
 
-    //    var seq2seq = new Seq2Seq(opts);
-    //    DecodingOptions decodingOptions = opts.CreateDecodingOptions();
+        var seq2seq = new Seq2Seq(opts);
+        DecodingOptions decodingOptions = opts.CreateDecodingOptions();
 
-    //    List<List<List<string>>> groupBatchTokens = BuildInputGroupBatchTokens("▁yes , ▁solutions ▁do ▁exist .");
-    //    var nrs = seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, null, decodingOptions);
-    //    var out_tokens = nrs[0].Output[0][0];
-    //    var output = string.Join(" ", out_tokens);
-    //    Assert.IsTrue(output == "<s> ▁是的 , 解决方案 是 。 </s>");
-
-
-    //    groupBatchTokens = BuildInputGroupBatchTokens("▁a ▁question ▁of ▁climate .");
-    //    nrs = seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, null, decodingOptions);
-    //    out_tokens = nrs[0].Output[0][0];
-    //    output = string.Join(" ", out_tokens);
-    //    Assert.IsTrue(output == "<s> ▁ 气候变化 问题 。 </s>");
-
-    //}
-
-    //[TestMethod]
-    //[DeploymentItem("seq2seq_mt_enu_chs_tiny_test.model")]
-    //public void TestSeq2SeqInferenceWithPrompt()
-    //{
-    //    var opts = new Seq2SeqOptions();
-    //    opts.ModelFilePath = "seq2seq_mt_enu_chs_tiny_test.model";
-    //    opts.MaxValidSrcSentLength = 110;
-    //    opts.MaxValidTgtSentLength = 110;
-    //    opts.ProcessorType = ProcessorTypeEnums.CPU;
-    //    opts.DeviceIds = "0";
-
-    //    var seq2seq = new Seq2Seq(opts);
-    //    DecodingOptions decodingOptions = opts.CreateDecodingOptions();
-
-    //    List<List<List<string>>> groupBatchTokens = BuildInputGroupBatchTokens("▁yes , ▁solutions ▁do ▁exist .");
-    //    List<List<List<string>>> promptGroupBatchTokens = BuildInputGroupBatchTokens("好");
-
-    //    var nrs = seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, promptGroupBatchTokens, decodingOptions);
-    //    var out_tokens = nrs[0].Output[0][0];
-    //    var output = string.Join(" ", out_tokens);
-    //    Assert.IsTrue(output == "<s> 好 , 解决方案 是 。 </s>");
+        List<List<List<string>>> groupBatchTokens = BuildInputGroupBatchTokens("▁Would ▁you ▁do ▁me ▁a ▁favor ▁by ▁moving ▁that ▁chair ▁over ▁to ▁the ▁corner ▁so ▁that ▁I ▁can ▁sweep ▁the ▁floor ?");
+        var nrs = seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, null, decodingOptions);
+        var out_tokens = nrs[0].Output[0][0];
+        var output = string.Join(" ", out_tokens);
+        Assert.IsTrue(output == "<s> ▁ 你是否 帮我 把 椅子 移 到 角落 里 去 , 这样 我 就可以 把 地板 打 扫 ? </s>");
 
 
-    //    groupBatchTokens = BuildInputGroupBatchTokens("▁a ▁question ▁of ▁climate .");
-    //    promptGroupBatchTokens = BuildInputGroupBatchTokens("关于");
-    //    nrs = seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, promptGroupBatchTokens, decodingOptions);
-    //    out_tokens = nrs[0].Output[0][0];
-    //    output = string.Join(" ", out_tokens);
-    //    Assert.IsTrue(output == "<s> 关于 气候变化 问题 。 </s>");
+        groupBatchTokens = BuildInputGroupBatchTokens("▁As ▁the ▁saying ▁goes : ▁\" good ▁always ▁triumph s ▁over ▁evil \". ▁But ▁there ' s ▁another ▁saying ▁that : ▁\" the ▁fight ▁against ▁evil ▁is ▁a ▁constant ▁struggle \".");
+        nrs = seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, null, decodingOptions);
+        out_tokens = nrs[0].Output[0][0];
+        output = string.Join(" ", out_tokens);
+        Assert.IsTrue(output == "<s> ▁ 俗 话说 :“ 善 总是 战胜 邪恶 ”, 但 又 有人说 :“ 反 击 邪恶 是 一场 持续 的 斗争 。 </s>");
 
-    //}
+    }
+
+    [TestMethod]
+    [DeploymentItem("mt_enu_chs.model")]
+    public void TestSeq2SeqInferenceWithPrompt()
+    {
+        var opts = new Seq2SeqOptions();
+        opts.ModelFilePath = "mt_enu_chs.model";
+        opts.MaxValidSrcSentLength = 110;
+        opts.MaxValidTgtSentLength = 110;
+        opts.ProcessorType = ProcessorTypeEnums.CPU;
+        opts.DeviceIds = "0";
+
+        var seq2seq = new Seq2Seq(opts);
+        DecodingOptions decodingOptions = opts.CreateDecodingOptions();
+
+        List<List<List<string>>> groupBatchTokens = BuildInputGroupBatchTokens("▁Would ▁you ▁do ▁me ▁a ▁favor ▁by ▁moving ▁that ▁chair ▁over ▁to ▁the ▁corner ▁so ▁that ▁I ▁can ▁sweep ▁the ▁floor ?");
+        List<List<List<string>>> promptGroupBatchTokens = BuildInputGroupBatchTokens("<s> ▁ 你是否");
+
+        var nrs = seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, promptGroupBatchTokens, decodingOptions);
+        var out_tokens = nrs[0].Output[0][0];
+        var output = string.Join(" ", out_tokens);
+        Assert.IsTrue(output == "<s> ▁ 你是否 帮我 把 椅子 移 到 角落 里 去 , 这样 我 就可以 把 地板 打 扫 ? </s>");
+
+
+        groupBatchTokens = BuildInputGroupBatchTokens("▁luxury ▁for ▁the ▁skin ▁with ▁an ▁exceptionally ▁smooth ▁look");
+        promptGroupBatchTokens = BuildInputGroupBatchTokens("肌 肤");
+        nrs = seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, promptGroupBatchTokens, decodingOptions);
+        out_tokens = nrs[0].Output[0][0];
+        output = string.Join(" ", out_tokens);
+        Assert.IsTrue(output == "<s> 肌 肤 的 奢 华 外观 与 外观 相 结合 </s>");
+
+    }
 
 
     private static List<List<List<string>>> BuildInputGroupBatchTokens(string input)
@@ -139,7 +139,7 @@ public class Seq2Seq_Tests
         Seq2SeqOptions opts = CreateOptions(trainFolderPath, validFolderPath);
 
         // Load training corpus
-        var trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, maxTokenSizePerBatch: opts.MaxTokenSizePerBatch, 
+        var trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, maxTokenSizePerBatch: opts.MaxTokenSizePerBatch,
             maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence);
 
         // Build vocabularies for training
@@ -164,7 +164,7 @@ public class Seq2Seq_Tests
         Seq2SeqOptions opts = CreateOptions(trainFolderPath, validFolderPath);
 
         // Load training corpus
-        var trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, maxTokenSizePerBatch: opts.MaxTokenSizePerBatch, 
+        var trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, maxTokenSizePerBatch: opts.MaxTokenSizePerBatch,
             maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence);
 
         foreach (var batch in trainCorpus)
@@ -196,7 +196,7 @@ public class Seq2Seq_Tests
         DecodingOptions decodingOptions = opts.CreateDecodingOptions();
 
         // Load training corpus
-        var trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, maxTokenSizePerBatch: opts.MaxTokenSizePerBatch, 
+        var trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, maxTokenSizePerBatch: opts.MaxTokenSizePerBatch,
             maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence);
 
         // Load valid corpus

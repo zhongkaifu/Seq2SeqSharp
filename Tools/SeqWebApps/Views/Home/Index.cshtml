@@ -38,32 +38,32 @@
 
     <label id="promptTopP">TopP:</label>
     <select id="ddlTopP">
-        <option value="0.0">0.0</option>
-        <option value="0.1">0.1</option>
-        <option value="0.2">0.2</option>
-        <option value="0.3">0.3</option>
-        <option value="0.4">0.4</option>
-        <option value="0.5" selected="selected">0.5</option>
-        <option value="0.6">0.6</option>
-        <option value="0.7">0.7</option>
-        <option value="0.8">0.8</option>
-        <option value="0.9">0.9</option>
-        <option value="1.0">1.0</option>
+        <option value="0.0" selected=@(_config["TopP"] == "0.0")>0.0</option>
+        <option value="0.1" selected=@(_config["TopP"] == "0.1")>0.1</option>
+        <option value="0.2" selected=@(_config["TopP"] == "0.2")>0.2</option>
+        <option value="0.3" selected=@(_config["TopP"] == "0.3")>0.3</option>
+        <option value="0.4" selected=@(_config["TopP"] == "0.4")>0.4</option>
+        <option value="0.5" selected=@(_config["TopP"] == "0.5")>0.5</option>
+        <option value="0.6" selected=@(_config["TopP"] == "0.6")>0.6</option>
+        <option value="0.7" selected=@(_config["TopP"] == "0.7")>0.7</option>
+        <option value="0.8" selected=@(_config["TopP"] == "0.8")>0.8</option>
+        <option value="0.9" selected=@(_config["TopP"] == "0.9")>0.9</option>
+        <option value="1.0" selected=@(_config["TopP"] == "1.0")>1.0</option>
     </select>
 
     <label id="promptTemperature">Temperature:</label>
     <select id="ddlTemperature">
-        <option value="0.0">0.0</option>
-        <option value="0.1">0.1</option>
-        <option value="0.2">0.2</option>
-        <option value="0.3">0.3</option>
-        <option value="0.4">0.4</option>
-        <option value="0.5">0.5</option>
-        <option value="0.6">0.6</option>
-        <option value="0.7">0.7</option>
-        <option value="0.8">0.8</option>
-        <option value="0.9">0.9</option>
-        <option value="1.0" selected="selected">1.0</option>
+        <option value="0.0" selected=@(_config["Temperature"] == "0.0")>0.0</option>
+        <option value="0.1" selected=@(_config["Temperature"] == "0.1")>0.1</option>
+        <option value="0.2" selected=@(_config["Temperature"] == "0.2")>0.2</option>
+        <option value="0.3" selected=@(_config["Temperature"] == "0.3")>0.3</option>
+        <option value="0.4" selected=@(_config["Temperature"] == "0.4")>0.4</option>
+        <option value="0.5" selected=@(_config["Temperature"] == "0.5")>0.5</option>
+        <option value="0.6" selected=@(_config["Temperature"] == "0.6")>0.6</option>
+        <option value="0.7" selected=@(_config["Temperature"] == "0.7")>0.7</option>
+        <option value="0.8" selected=@(_config["Temperature"] == "0.8")>0.8</option>
+        <option value="0.9" selected=@(_config["Temperature"] == "0.9")>0.9</option>
+        <option value="1.0" selected=@(_config["Temperature"] == "1.0")>1.0</option>
     </select>
 
     <input type="button" id="btnGet" value="Generate Text" />
