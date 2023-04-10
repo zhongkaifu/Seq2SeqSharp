@@ -1124,7 +1124,7 @@ namespace Seq2SeqSharp.Tools
             List<IWeightTensor> result = new List<IWeightTensor>();
             foreach (KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network)
             {
-                result.AddRange(pair.Value.GetNeuralUnitOnDefaultDevice().GetParams());
+                result.AddRange(pair.Value.GetWeightsOnDefaultDevice());
             }
 
             return result;

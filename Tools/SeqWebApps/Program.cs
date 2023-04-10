@@ -16,8 +16,9 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
     Logger.WriteLine($"Loading Seq2Seq model '{Configuration["Seq2Seq:ModelFilePath"]}'");
 
     var modelFilePath = Configuration["Seq2Seq:ModelFilePath"];
-    var maxTestSrcSentLength = String.IsNullOrEmpty(Configuration["Seq2Seq:MaxSrcTokenSize"]) ? 4096 : int.Parse(Configuration["Seq2Seq:MaxSrcTokenSize"]);
-    var maxTestTgtSentLength = String.IsNullOrEmpty(Configuration["Seq2Seq:MaxTgtTokenSize"]) ? 4096 : int.Parse(Configuration["Seq2Seq:MaxTgtTokenSize"]);
+    var maxTestSrcSentLength = String.IsNullOrEmpty(Configuration["Seq2Seq:MaxSrcTokenSize"]) ? 1024 : int.Parse(Configuration["Seq2Seq:MaxSrcTokenSize"]);
+    var maxTestTgtSentLength = String.IsNullOrEmpty(Configuration["Seq2Seq:MaxTgtTokenSize"]) ? 1024 : int.Parse(Configuration["Seq2Seq:MaxTgtTokenSize"]);
+    var maxTokenToGeneration = String.IsNullOrEmpty(Configuration["Seq2Seq:MaxTokenToGeneration"]) ? 8192 : int.Parse(Configuration["Seq2Seq:MaxTokenToGeneration"]);
     var processorType = String.IsNullOrEmpty(Configuration["Seq2Seq:ProcessorType"]) ? ProcessorTypeEnums.CPU : (Configuration["Seq2Seq:ProcessorType"].ToEnum<ProcessorTypeEnums>());
     var deviceIds = String.IsNullOrEmpty(Configuration["Seq2Seq:DeviceIds"]) ? "0" : Configuration["Seq2Seq:DeviceIds"];
     var decodingStrategyEnum = String.IsNullOrEmpty(Configuration["Seq2Seq:TokenGenerationStrategy"]) ? DecodingStrategyEnums.Sampling : Configuration["Seq2Seq:TokenGenerationStrategy"].ToEnum<DecodingStrategyEnums>();
@@ -46,6 +47,7 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
     Seq2SeqInstance.Initialization(modelFilePath,
                                    maxTestSrcSentLength,
                                    maxTestTgtSentLength,
+                                   maxTokenToGeneration,
                                    processorType,
                                    deviceIds,
                                    srcSpm,

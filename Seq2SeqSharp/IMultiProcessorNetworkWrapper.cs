@@ -8,6 +8,9 @@
 // Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
+using Seq2SeqSharp.Tools;
+using System.Collections.Generic;
+
 namespace Seq2SeqSharp
 {
     public interface IMultiProcessorNetworkWrapper
@@ -16,7 +19,7 @@ namespace Seq2SeqSharp
         void Load(IModel model);
         void SyncWeights();
         void SumGradientsToNetworkOnDefaultDevice();
-        INeuralUnit GetNeuralUnitOnDefaultDevice();
+        List<IWeightTensor> GetWeightsOnDefaultDevice();
         void ZeroGradientsOnAllDevices();
         void ReleaseGradientsOnAllDevices();
     }

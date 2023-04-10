@@ -132,19 +132,42 @@ namespace SeqWebApps.Controllers
             }
 
 
-            srcInputText = srcInputText.Replace("<br />", "");
-            tgtInputText = tgtInputText.Replace("<br />", "");
+            srcInputText = srcInputText.Replace("<br />", "").Replace("\n", "");
+            tgtInputText = tgtInputText.Replace("<br />", "").Replace("\n", "");
 
-            string[] srcLines = srcInputText.Split("\n");
-            string[] tgtLines = tgtInputText.Split("\n");
+            List<string> prefixTgtInputSents = null;
+            if (tgtInputText.Length > Seq2SeqInstance.MaxTgtSentLength)
+            {
+                List<string> tgtInputSents = SplitSents(tgtInputText);
+                int tgtLength = tgtInputText.Length;
+                prefixTgtInputSents= new List<string>();
 
-            srcInputText = String.Join(" ", srcLines);
-            tgtInputText = String.Join(" ", tgtLines);
+                while (tgtLength > Seq2SeqInstance.MaxTgtSentLength)
+                {
+                    prefixTgtInputSents.Add(tgtInputSents[0]);
+                    tgtLength -= tgtInputSents[0].Length;
+
+                    tgtInputSents.RemoveAt(0);
+                }
+
+                tgtInputText = String.Join("", tgtInputSents);
+            }
 
             string outputText = Seq2SeqInstance.Call(srcInputText, tgtInputText, tokenNumToGenerate, topP, temperature);            
             var outputSents = SplitSents(outputText);
-            return String.Join("<br />", outputSents);
 
+            if (prefixTgtInputSents != null) 
+            {
+                outputSents.InsertRange(0, prefixTgtInputSents);
+            }
+
+            outputText = String.Join("<br />", outputSents);
+            if (outputText.Length >= Seq2SeqInstance.MaxTokenToGenerate && outputText.Contains("EOS") == false)
+            {
+                outputText += " EOS";
+            }
+
+            return outputText;
         }
 
         private static string[] Split(string text, char[] seps)

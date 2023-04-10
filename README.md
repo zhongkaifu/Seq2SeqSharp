@@ -414,16 +414,29 @@ RUN rm packages-microsoft-prod.deb
 
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh
 
+# Install .NET SDK
 RUN apt-get update
 RUN apt-get install -y dotnet-sdk-7.0
 RUN apt-get install -y aspnetcore-runtime-7.0
 RUN apt-get install -y cmake
 RUN apt-get install -y git-lfs
 
+# Install Intel MKL
+RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
+RUN apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
+RUN sh -c 'echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list'
+RUN apt-get update
+RUN apt-get install -y intel-mkl-64bit-2020.4.912
+RUN echo "/opt/intel/lib/intel64"     >  /etc/ld.so.conf.d/mkl.conf
+RUN echo "/opt/intel/mkl/lib/intel64" >> /etc/ld.so.conf.d/mkl.conf
+RUN ldconfig
+
+# Clone Seq2SeqSharp
 RUN git clone https://github.com/zhongkaifu/Seq2SeqSharp.git
 WORKDIR /code/Seq2SeqSharp
 RUN dotnet build Seq2SeqSharp.sln --configuration Release
 
+# Build customized SentencePiece
 WORKDIR /code/Seq2SeqSharp/ExternalProjects
 RUN unzip SentencePiece.zip
 WORKDIR /code/Seq2SeqSharp/ExternalProjects/SentencePiece
@@ -436,20 +449,20 @@ RUN ldconfig -v
 
 WORKDIR /code
 
-#RUN git clone https://huggingface.co/zhongkaifu/mt_enu_chs
-
 RUN mkdir -p /code/bin
 RUN chmod 777 /code/bin
 WORKDIR /code/bin
 
+# Deploy models, vocabulary and config files
 RUN cp -r /code/Seq2SeqSharp/Tools/SeqWebApps/bin/Release/net7.0/* .
-RUN wget https://github.com/zhongkaifu/Models/releases/download/MT_ENU_CHS/mt_enu_chs.model
-RUN wget https://huggingface.co/zhongkaifu/mt_enu_chs/resolve/main/enuSpm.model
-RUN wget https://huggingface.co/zhongkaifu/mt_enu_chs/resolve/main/cjkSpm.model
+RUN wget https://huggingface.co/zhongkaifu/story_writing/resolve/main/story_base.model
+RUN wget https://huggingface.co/zhongkaifu/story_writing/resolve/main/chsYBSpm.model
 RUN rm appsettings.json
-RUN wget https://huggingface.co/zhongkaifu/mt_enu_chs/resolve/main/appsettings.json
-#RUN cp /code/mt_enu_chs/appsettings.json .
+RUN wget https://huggingface.co/zhongkaifu/story_writing/resolve/main/appsettings.json
 
+ENV MKL_ENABLE_INSTRUCTIONS=AVX2
+
+# Run application
 CMD ["dotnet","/code/bin/SeqWebApps.dll"]
 ```
 

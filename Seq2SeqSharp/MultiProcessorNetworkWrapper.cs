@@ -9,6 +9,9 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
 using AdvUtils;
+using Microsoft.Extensions.Logging.Abstractions;
+using Seq2SeqSharp.Tools;
+using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -19,15 +22,18 @@ namespace Seq2SeqSharp
     {
         private readonly T[] m_networks;
         private readonly int m_defaultDeviceId;
-        private readonly T m_networkOnDefaultDevice;
+    //    private readonly T m_networkOnDefaultDevice;
         private readonly bool m_isStaticWeights;
         private bool m_weightsSynced;
+
+        private Dictionary<string, int> m_weightName2DefaultDeviceId = new Dictionary<string, int>();
+        private Dictionary<int, T> m_deviceId2Network = new Dictionary<int, T>();
 
         public MultiProcessorNetworkWrapper(T networkOnDefaultDevice, int[] deviceIds, bool isStaticWeights = false)
         {
             m_networks = new T[deviceIds.Length];
             m_defaultDeviceId = networkOnDefaultDevice.GetDeviceId();
-            m_networkOnDefaultDevice = networkOnDefaultDevice;
+            //  m_networkOnDefaultDevice = networkOnDefaultDevice;
             m_isStaticWeights = isStaticWeights;
             m_weightsSynced = false;
 
@@ -41,7 +47,31 @@ namespace Seq2SeqSharp
                 {
                     m_networks[i] = (T)networkOnDefaultDevice.CloneToDeviceAt(deviceIds[i]);
                 }
+
+                m_deviceId2Network.Add(deviceIds[i], m_networks[i]);
             }
+
+            var raDeviceIds = new RoundArray<int>(deviceIds);
+            var weights = networkOnDefaultDevice.GetParams();
+            foreach (var weight in weights)
+            {
+                m_weightName2DefaultDeviceId.Add(weight.Name, raDeviceIds.GetNextItem());
+            }
+        }
+
+
+        private IWeightTensor GetWeightFromNetwork(T network, string weightName)
+        {
+            var weights = network.GetParams();
+            foreach (var weight in weights)
+            {
+                if (weight.Name == weightName)
+                {
+                    return weight;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -54,28 +84,39 @@ namespace Seq2SeqSharp
                 return;
             }
 
-            List<Tools.IWeightTensor> tensorsOnDefaultDevice = m_networkOnDefaultDevice.GetParams();
-            Parallel.ForEach(m_networks, network =>
+
+            foreach (var pair in m_weightName2DefaultDeviceId)
             {
-                try
+                var weightName = pair.Key;
+                int weightDefaultDeviceId = pair.Value;
+
+                // Get weights on the default device
+                IWeightTensor weightOnDefaultDevice = GetWeightFromNetwork(m_deviceId2Network[weightDefaultDeviceId], weightName);
+                if (weightOnDefaultDevice == null)
                 {
-                    if (network.Equals(m_networkOnDefaultDevice) == false)
+                    throw new NullReferenceException($"Weight '{weightName}' should be on its default device '{weightDefaultDeviceId}', but we didn't find it.");
+                }
+
+                Parallel.ForEach(m_deviceId2Network, pair =>
+                {
+                    try
                     {
-                        List<Tools.IWeightTensor> tensors = network.GetParams();
-
-                        for (int j = 0; j < tensors.Count; j++)
+                        int deviceId = pair.Key;
+                        T network = pair.Value;
+                        if (deviceId != weightDefaultDeviceId)
                         {
-                            tensors[j].CopyWeightsFrom(tensorsOnDefaultDevice[j]);
+                            IWeightTensor weight = GetWeightFromNetwork(network, weightName);
+                            weight.CopyWeightsFrom(weightOnDefaultDevice);
                         }
-                    }
-                }
-                catch (Exception err)
-                {
-                    Logger.WriteLine(Logger.Level.err, $"Error Message = '{err.Message}', Call Stack = '{err.StackTrace}'");
-                    throw;
-                }
 
-            });
+                    }
+                    catch (Exception err)
+                    {
+                        Logger.WriteLine(Logger.Level.err, $"Error Message = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                        throw;
+                    }
+                });
+            }
 
             m_weightsSynced = true;
         }
@@ -90,21 +131,38 @@ namespace Seq2SeqSharp
                 return;
             }
 
-            List<Tools.IWeightTensor> tensorsOnDefaultDevice = m_networkOnDefaultDevice.GetParams();
-            Parallel.ForEach(m_networks, network =>
+            foreach (var pair in m_weightName2DefaultDeviceId)
             {
-                if (network.Equals(m_networkOnDefaultDevice) == false)
-                {
-                    List<Tools.IWeightTensor> tensors = network.GetParams();
+                var weightName = pair.Key;
+                int weightDefaultDeviceId = pair.Value;
 
-                    for (int j = 0; j < tensors.Count; j++)
-                    {
-                        tensorsOnDefaultDevice[j].AddGradientFrom(tensors[j]);
-                    }
+                // Get weights on the default device
+                IWeightTensor weightOnDefaultDevice = GetWeightFromNetwork(m_deviceId2Network[weightDefaultDeviceId], weightName);
+                if (weightOnDefaultDevice == null)
+                {
+                    throw new NullReferenceException($"Weight '{weightName}' should be on its default device '{weightDefaultDeviceId}', but we didn't find it.");
                 }
 
-            });
+                Parallel.ForEach(m_deviceId2Network, pair =>
+                {
+                    try
+                    {
+                        int deviceId = pair.Key;
+                        T network = pair.Value;
+                        if (deviceId != weightDefaultDeviceId)
+                        {
+                            IWeightTensor weight = GetWeightFromNetwork(network, weightName);
+                            weightOnDefaultDevice.AddGradientFrom(weight);
+                        }
 
+                    }
+                    catch (Exception err)
+                    {
+                        Logger.WriteLine(Logger.Level.err, $"Error Message = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                        throw;
+                    }
+                });
+            }
         }
 
         /// <summary>
@@ -156,7 +214,7 @@ namespace Seq2SeqSharp
         {
             if (m_isStaticWeights == false)
             {
-                m_networkOnDefaultDevice.Save(model);
+                m_networks[0].Save(model);
             }
         }
 
@@ -176,14 +234,21 @@ namespace Seq2SeqSharp
             }
         }
 
-        public T GetNetworkOnDefaultDevice()
+        public List<IWeightTensor> GetWeightsOnDefaultDevice()
         {
-            return m_networkOnDefaultDevice;
-        }
+            List<IWeightTensor> weightsOnDeviceIds = new List<IWeightTensor>();
+            foreach (var pair in m_weightName2DefaultDeviceId)
+            {
+                var weightName = pair.Key;
+                int weightDefaultDeviceId = pair.Value;
 
-        public INeuralUnit GetNeuralUnitOnDefaultDevice()
-        {
-            return GetNetworkOnDefaultDevice();
+                // Get weights on the default device
+                IWeightTensor weightOnDefaultDevice = GetWeightFromNetwork(m_deviceId2Network[weightDefaultDeviceId], weightName);
+
+                weightsOnDeviceIds.Add(weightOnDefaultDevice);
+            }
+
+            return weightsOnDeviceIds;
         }
 
         /// <summary>
@@ -193,10 +258,10 @@ namespace Seq2SeqSharp
         /// <returns></returns>
         public T GetNetworkOnDevice(int deviceIdIdx)
         {
-            if (deviceIdIdx == -1)
-            {
-                return m_networkOnDefaultDevice;
-            }
+            //if (deviceIdIdx == -1)
+            //{
+            //    return m_networkOnDefaultDevice;
+            //}
             return m_networks[deviceIdIdx];
         }
     }

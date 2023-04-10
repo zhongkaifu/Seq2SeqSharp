@@ -34,11 +34,14 @@ namespace Seq2SeqWebApps
         static List<int>? m_blockedTokens = null;
         static ModelType m_modelType = ModelType.EncoderDecoder;
 
-        static public int MaxTokenToGenerate => opts.MaxTgtSentLength;
+        static public int MaxTokenToGenerate;
+        static public int MaxSrcSentLength => opts.MaxSrcSentLength;
+        static public int MaxTgtSentLength => opts.MaxTgtSentLength;
+
         static Dictionary<string, string> m_wordMappings = null;
         static object locker = new object();
 
-        static public void Initialization(string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, ProcessorTypeEnums processorType, string deviceIds, SentencePiece? srcSpm, SentencePiece? tgtSpm,
+        static public void Initialization(string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, int maxTokenToGeneration, ProcessorTypeEnums processorType, string deviceIds, SentencePiece? srcSpm, SentencePiece? tgtSpm,
             Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum, float memoryUsageRatio, string mklInstructions, int beamSearchSize, string blockedTokens, ModelType modelType,
             string wordMappingFilePath, bool enableTensorCore)
         {
@@ -53,6 +56,8 @@ namespace Seq2SeqWebApps
             opts.MKLInstructions = mklInstructions;
             opts.BeamSearchSize = beamSearchSize;
             opts.EnableTensorCore = enableTensorCore;
+
+            MaxTokenToGenerate = maxTokenToGeneration;
 
             m_srcSpm = srcSpm;
             m_tgtSpm = tgtSpm;
@@ -79,7 +84,7 @@ namespace Seq2SeqWebApps
             }
 
 
-            if (opts.ProcessorType == ProcessorTypeEnums.CPU)
+            if (opts.ProcessorType != ProcessorTypeEnums.GPU)
             {
                 sm = new Semaphore(Environment.ProcessorCount, Environment.ProcessorCount);
             }
@@ -159,12 +164,6 @@ namespace Seq2SeqWebApps
 
             var srcInput = (m_srcSpm != null) ? m_srcSpm.Encode(rawSrcInput) : rawSrcInput;
             List<string> srcTokens = srcInput.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
-            if (srcTokens.Count > opts.MaxSrcSentLength)
-            {
-                srcTokens = srcTokens.GetRange(0, opts.MaxSrcSentLength);
-            }
-
-
             List<List<String>> batchTokens = new List<List<string>>();
             batchTokens.Add(srcTokens);
 
@@ -174,19 +173,7 @@ namespace Seq2SeqWebApps
 
             var tgtInput = (m_tgtSpm != null) ? m_tgtSpm.Encode(rawTgtInput) : rawTgtInput;
             List<string> tgtTokens = tgtInput.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
-            if (tgtTokens.Count > opts.MaxTgtSentLength)
-            {
-                tgtTokens = tgtTokens.GetRange(tgtTokens.Count - opts.MaxTgtSentLength, opts.MaxTgtSentLength);
-            }
-
             tokenNumToGenerate += tgtTokens.Count;
-
-            if (tokenNumToGenerate > opts.MaxTgtSentLength)
-            {
-                //The target text is too long, so we won't generate any more text for it.
-                Logger.WriteLine($"Given target text '{rawTgtInput}' is too long, so we won't generate any more text for it.");
-                return rawTgtInput + " EOS";
-            }
 
             List<List<String>> batchTokens2 = new List<List<string>>();
             batchTokens2.Add(tgtTokens);
