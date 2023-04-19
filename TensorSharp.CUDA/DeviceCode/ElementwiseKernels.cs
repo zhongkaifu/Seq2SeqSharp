@@ -1,10 +1,20 @@
-﻿namespace TensorSharp.CUDA.DeviceCode
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+namespace TensorSharp.CUDA.DeviceCode
 {
     [Precompile]
     public class ElementwiseKernels : CudaCode
     {
         public ElementwiseKernels()
-            : base(GetFullCode(), "General", "ReduceApplyUtils", "PointwiseApply", "Math")
+            : base(GetFullCode(), "General", "ReduceApplyUtils", "PointwiseApply", "Math", "Fp16")
         {
         }
 
@@ -29,7 +39,15 @@
 
             AppendTTTTTFunc(result, "mulmuladd", "MulMulAdd");
             AppendTTTTFunc(result, "addmul", "AddMul");
+
+            //x + y * z
             AppendTTTSFunc(result, "addmulv", "AddMul");
+
+
+            result.AddApplyTTSHalf("t1_addmulv", "*a = __hadd(*a, __hmul(*b, c));");
+            result.AddApplyTTTSHalf("t2_addmulv", "*a = __hadd(*b, __hmul(*c, d));");
+
+
 
             AppendTTTTFunc(result, "adddiv", "AddDiv");
 
@@ -44,6 +62,9 @@
 
             result.AddApplyTSS("t1_clamp", "*a = Clamp(*a, b, c);");
             result.AddApplyTTSS("t2_clamp", "*a = Clamp(*b, c, d);");
+
+            result.AddApplyTT("t2_float2half", "*a = __float2half(*b);", new DType[] {DType.Float16, DType.Float32 });
+            result.AddApplyTT("t2_half2float", "*a = __half2float(*b);", new DType[] { DType.Float32, DType.Float16 });
 
             return result.ToString();
         }

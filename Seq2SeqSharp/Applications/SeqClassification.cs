@@ -18,6 +18,7 @@ using Seq2SeqSharp.Layers;
 using Seq2SeqSharp.Models;
 using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
+using TensorSharp;
 
 namespace Seq2SeqSharp.Applications
 {
@@ -42,11 +43,8 @@ namespace Seq2SeqSharp.Applications
             m_shuffleType = options.ShuffleType;
             m_options = options;
 
-            // Model must exist if current task is not for training
-            if ((m_options.Task != ModeEnums.Train) && !File.Exists(m_options.ModelFilePath))
-            {
-                throw new FileNotFoundException($"Model '{m_options.ModelFilePath}' doesn't exist.");
-            }
+            // Check if options are valided.
+            m_options.ValidateOptions();
 
             if (File.Exists(m_options.ModelFilePath))
             {
@@ -85,7 +83,8 @@ namespace Seq2SeqSharp.Applications
             (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, model.HiddenDim, m_options.MaxSentLength, model);
 
             Logger.WriteLine($"Creating embeddings. Shape = '({model.SrcVocab.Count} ,{model.EncoderEmbeddingDim})'");
-            m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { model.SrcVocab.Count, model.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SrcEmbeddings", isTrainable: m_options.IsEmbeddingTrainable), DeviceIds);
+            m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { model.SrcVocab.Count, model.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SrcEmbeddings", 
+                isTrainable: m_options.IsEmbeddingTrainable), DeviceIds);
 
             return true;
         }

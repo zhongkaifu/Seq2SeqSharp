@@ -15,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using TensorSharp;
+using Seq2SeqSharp.Utils;
 
 namespace Seq2SeqSharp.Tests;
 
@@ -25,7 +26,7 @@ public class ComputeGraph_Tests
 
     private WeightTensor BuildRandomTensor(long[] shape, string name, bool isTrainable = true)
     {
-        var tensorA = new WeightTensor(shape, 1, 0, name: name, isTrainable: isTrainable);
+        var tensorA = new WeightTensor(shape, 1, 0, name: name, isTrainable: isTrainable, dtype: DType.Float32);
 
         //Build test data and ground truth data
         float[] arrayA = new float[tensorA.ElementCount];
@@ -40,7 +41,7 @@ public class ComputeGraph_Tests
 
     private WeightTensor BuildRandomLabelTensor(int batchSize, int categoryNum, string name)
     {
-        var tensorIdx = new WeightTensor(new long[] {batchSize, 1 }, 1, 0, name: name, isTrainable: false);
+        var tensorIdx = new WeightTensor(new long[] {batchSize, 1 }, 1, 0, name: name, isTrainable: false, dtype: DType.Float32);
 
         //Build ground truth labels
         float[] arrayIdx = new float[batchSize];
@@ -60,8 +61,8 @@ public class ComputeGraph_Tests
 
         var graph = new ComputeGraphTensor(new WeightTensorFactory(), 0, true);
 
-        var tensorA = new WeightTensor(new long[2] { 2, 2 }, 1, 0, name: "tensorA", isTrainable: true);
-        var tensorB = new WeightTensor(new long[2] { 2, 2 }, 2, 0, name: "tensorB", isTrainable: true);
+        var tensorA = new WeightTensor(new long[2] { 2, 2 }, 1, 0, name: "tensorA", isTrainable: true, dtype: DType.Float32);
+        var tensorB = new WeightTensor(new long[2] { 2, 2 }, 2, 0, name: "tensorB", isTrainable: true, dtype: DType.Float32);
 
         var tensorSum = graph.Add(tensorA, tensorB);
 
@@ -78,8 +79,8 @@ public class ComputeGraph_Tests
 
         var graph = new ComputeGraphTensor(new WeightTensorFactory(), 0, true);
 
-        var tensorA = new WeightTensor(new long[2] { 2, 2 }, 1, 0, name: "tensorA", isTrainable: true);
-        var tensorB = new WeightTensor(new long[2] { 2, 2 }, 2, 0, name: "tensorB", isTrainable: true);
+        var tensorA = new WeightTensor(new long[2] { 2, 2 }, 1, 0, name: "tensorA", isTrainable: true, dtype: DType.Float32);
+        var tensorB = new WeightTensor(new long[2] { 2, 2 }, 2, 0, name: "tensorB", isTrainable: true, dtype: DType.Float32);
 
         var tensorSum = graph.Add(tensorA, tensorB);
         tensorSum.CopyWeightsToGradients(tensorSum);
@@ -104,8 +105,8 @@ public class ComputeGraph_Tests
 
         var graph = new ComputeGraphTensor(new WeightTensorFactory(), 0, true);
 
-        var tensorA = new WeightTensor(new long[2] { batchSize, vocabSize }, 1, 0, name: "tensorA", isTrainable: true);
-        var tensorB = new WeightTensor(new long[2] { batchSize, vocabSize }, 1, 0, name: "tensorB", isTrainable: true);
+        var tensorA = new WeightTensor(new long[2] { batchSize, vocabSize }, 1, 0, name: "tensorA", isTrainable: true, dtype: DType.Float32);
+        var tensorB = new WeightTensor(new long[2] { batchSize, vocabSize }, 1, 0, name: "tensorB", isTrainable: true, dtype: DType.Float32);
         var tensorIdx = BuildRandomLabelTensor(batchSize, vocabSize, "tensorIdx");
 
         var tensorANeg = graph.Mul(tensorA, -1.0f);
@@ -233,7 +234,7 @@ public class ComputeGraph_Tests
         var tensorSrc = BuildRandomTensor(shape: new long[2] { batchSize, vocabSize }, name: "tensorSrc", isTrainable: true);
         var tensorSrcWeights = tensorSrc.ToWeightArray();
 
-        var tensorRst = new WeightTensor(new long[2] { batchSize, vocabSize }, 1, 0, name: "tensorRst", isTrainable: true);
+        var tensorRst = new WeightTensor(new long[2] { batchSize, vocabSize }, 1, 0, name: "tensorRst", isTrainable: true, dtype: DType.Float32);
 
         Ops.Sigmoid(tensorRst.TWeight, tensorSrc.TWeight);
 

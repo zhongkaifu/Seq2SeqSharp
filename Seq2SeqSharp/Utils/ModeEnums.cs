@@ -1,4 +1,4 @@
-﻿namespace Seq2SeqSharp
+﻿namespace Seq2SeqSharp.Utils
 {
     public enum ModeEnums
     {

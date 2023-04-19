@@ -1,9 +1,18 @@
-﻿using AdvUtils;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using AdvUtils;
 using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Threading;
+using TensorSharp;
 
 namespace Seq2SeqSharp
 {
@@ -36,7 +45,7 @@ namespace Seq2SeqSharp
 
         private readonly int k_coverageModelDim = 16;
 
-        public AttentionUnit(string name, int hiddenDim, int contextDim, int deviceId, bool enableCoverageModel, bool isTrainable)
+        public AttentionUnit(string name, int hiddenDim, int contextDim, int deviceId, bool enableCoverageModel, bool isTrainable, DType elementType = DType.Float32)
         {
             m_name = name;
             m_hiddenDim = hiddenDim;
@@ -47,17 +56,17 @@ namespace Seq2SeqSharp
 
             Logger.WriteLine($"Creating attention unit '{name}' HiddenDim = '{hiddenDim}', ContextDim = '{contextDim}', DeviceId = '{deviceId}', EnableCoverageModel = '{enableCoverageModel}'");
 
-            m_Ua = new WeightTensor(new long[2] { contextDim, hiddenDim }, deviceId, normType: NormType.Uniform, name: $"{name}.{nameof(m_Ua)}", isTrainable: isTrainable);
-            m_Wa = new WeightTensor(new long[2] { hiddenDim, hiddenDim }, deviceId, normType: NormType.Uniform, name: $"{name}.{nameof(m_Wa)}", isTrainable: isTrainable);
-            m_bUa = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(m_bUa)}", isTrainable: isTrainable);
-            m_bWa = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(m_bWa)}", isTrainable: isTrainable);
-            m_V = new WeightTensor(new long[2] { hiddenDim, 1 }, deviceId, normType: NormType.Uniform, name: $"{name}.{nameof(m_V)}", isTrainable: isTrainable);
+            m_Ua = new WeightTensor(new long[2] { contextDim, hiddenDim }, deviceId, normType: NormType.Uniform, name: $"{name}.{nameof(m_Ua)}", isTrainable: isTrainable, dtype: elementType);
+            m_Wa = new WeightTensor(new long[2] { hiddenDim, hiddenDim }, deviceId, normType: NormType.Uniform, name: $"{name}.{nameof(m_Wa)}", isTrainable: isTrainable, dtype: elementType);
+            m_bUa = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(m_bUa)}", isTrainable: isTrainable, dtype: elementType);
+            m_bWa = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(m_bWa)}", isTrainable: isTrainable, dtype: elementType);
+            m_V = new WeightTensor(new long[2] { hiddenDim, 1 }, deviceId, normType: NormType.Uniform, name: $"{name}.{nameof(m_V)}", isTrainable: isTrainable, dtype: elementType);
 
             if (m_enableCoverageModel)
             {
-                m_Wc = new WeightTensor(new long[2] { k_coverageModelDim, hiddenDim }, deviceId, normType: NormType.Uniform, name: $"{name}.{nameof(m_Wc)}", isTrainable: isTrainable);
-                m_bWc = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(m_bWc)}", isTrainable: isTrainable);
-                m_coverage = new LSTMCell(name: $"{name}.{nameof(m_coverage)}", hdim: k_coverageModelDim, inputDim: 1 + contextDim + hiddenDim, deviceId: deviceId, isTrainable: isTrainable);
+                m_Wc = new WeightTensor(new long[2] { k_coverageModelDim, hiddenDim }, deviceId, normType: NormType.Uniform, name: $"{name}.{nameof(m_Wc)}", isTrainable: isTrainable, dtype: elementType);
+                m_bWc = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(m_bWc)}", isTrainable: isTrainable, dtype: elementType);
+                m_coverage = new LSTMCell(name: $"{name}.{nameof(m_coverage)}", hdim: k_coverageModelDim, inputDim: 1 + contextDim + hiddenDim, deviceId: deviceId, isTrainable: isTrainable, elementType: elementType);
             }
         }
 

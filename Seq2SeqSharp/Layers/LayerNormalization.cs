@@ -23,14 +23,15 @@ namespace Seq2SeqSharp
 
         public LayerNormalization(string name, int dim, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, float epsilon = 1e-06f)
         {
-            m_alpha = new WeightTensor(new long[2] { 1, dim }, 1.0f, deviceId, name: $"{name}.{nameof(m_alpha)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor);
-            m_beta = new WeightTensor(new long[2] { 1, dim }, 0, deviceId, name: $"{name}.{nameof(m_beta)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor);
+            m_alpha = new WeightTensor(new long[2] { 1, dim }, 1.0f, deviceId, name: $"{name}.{nameof(m_alpha)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: TensorSharp.DType.Float32);
+            m_beta = new WeightTensor(new long[2] { 1, dim }, 0, deviceId, name: $"{name}.{nameof(m_beta)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: TensorSharp.DType.Float32);
             m_epsilon = epsilon;
         }
 
         public IWeightTensor Norm(IWeightTensor input, IComputeGraph g)
         {
-            return g.LayerNorm(input, m_alpha, m_beta, m_epsilon);
+            var result = g.LayerNorm(input, m_alpha, m_beta, m_epsilon);
+            return result;
         }
 
         ///// <summary>

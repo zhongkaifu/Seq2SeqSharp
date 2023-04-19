@@ -12,6 +12,7 @@ using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TensorSharp;
 
 namespace Seq2SeqSharp
 {
@@ -21,10 +22,8 @@ namespace Seq2SeqSharp
     public class AttentionDecoder : IDecoder
     {
         private readonly List<LSTMAttentionDecoderCell> m_decoders = new List<LSTMAttentionDecoderCell>();
-     //   private readonly FeedForwardLayer m_decoderFFLayer;
         private readonly int m_hdim;
         private readonly int m_embDim;
-      //  private readonly int m_outputDim;
         private readonly float m_dropoutRatio;
         private readonly int m_depth;
         private readonly int m_context;
@@ -34,7 +33,7 @@ namespace Seq2SeqSharp
         private readonly bool m_enableCoverageModel;
         private readonly bool m_isTrainable;
 
-        public AttentionDecoder(string name, int hiddenDim, int embeddingDim, int contextDim, float dropoutRatio, int depth, int deviceId, bool enableCoverageModel, bool isTrainable)
+        public AttentionDecoder(string name, int hiddenDim, int embeddingDim, int contextDim, float dropoutRatio, int depth, int deviceId, bool enableCoverageModel, bool isTrainable, DType elementType = DType.Float32)
         {
             m_name = name;
             m_hdim = hiddenDim;
@@ -42,21 +41,17 @@ namespace Seq2SeqSharp
             m_context = contextDim;
             m_depth = depth;
             m_deviceId = deviceId;
-       //     m_outputDim = outputDim;
             m_dropoutRatio = dropoutRatio;
             m_enableCoverageModel = enableCoverageModel;
             m_isTrainable = isTrainable;
 
-            m_attentionLayer = new AttentionUnit($"{name}.AttnUnit", hiddenDim, contextDim, deviceId, enableCoverageModel, isTrainable: isTrainable);
+            m_attentionLayer = new AttentionUnit($"{name}.AttnUnit", hiddenDim, contextDim, deviceId, enableCoverageModel, isTrainable: isTrainable, elementType: elementType);
 
-            m_decoders.Add(new LSTMAttentionDecoderCell($"{name}.LSTMAttn_0", hiddenDim, embeddingDim, contextDim, deviceId, isTrainable));
+            m_decoders.Add(new LSTMAttentionDecoderCell($"{name}.LSTMAttn_0", hiddenDim, embeddingDim, contextDim, deviceId, isTrainable, elementType: elementType));
             for (int i = 1; i < depth; i++)
             {
-                m_decoders.Add(new LSTMAttentionDecoderCell($"{name}.LSTMAttn_{i}", hiddenDim, hiddenDim, contextDim, deviceId, isTrainable));
+                m_decoders.Add(new LSTMAttentionDecoderCell($"{name}.LSTMAttn_{i}", hiddenDim, hiddenDim, contextDim, deviceId, isTrainable, elementType: elementType));
             }
-
-       //     m_decoderFFLayer = new FeedForwardLayer($"{name}.FeedForward", hiddenDim, outputDim, 0.0f, deviceId: deviceId, isTrainable: isTrainable);
-
         }
 
         public int GetDeviceId()
@@ -97,7 +92,6 @@ namespace Seq2SeqSharp
             }
 
             IWeightTensor eOutput = g.Dropout(V, batchSize, m_dropoutRatio, false);
-         //   eOutput = m_decoderFFLayer.Process(eOutput, batchSize, g);
 
             return eOutput;
         }

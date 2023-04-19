@@ -1,4 +1,14 @@
-﻿using AdvUtils;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using AdvUtils;
 using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Concurrent;
@@ -6,6 +16,8 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using TensorSharp;
+using TensorSharp.Cpu;
+using TensorSharp.CUDA;
 
 namespace Seq2SeqSharp.Optimizer
 {
@@ -18,10 +30,11 @@ namespace Seq2SeqSharp.Optimizer
         private readonly ConcurrentDictionary<string, Tensor> m_cacheName2V;
         private readonly ConcurrentDictionary<string, Tensor> m_cacheName2M;
         private readonly float m_clipval;
+        private readonly bool m_saveGPUMemoryMode = false;
 
-        public AdamOptimizer(float clipval, float beta1 = 0.9f, float beta2 = 0.98f)
+        public AdamOptimizer(float clipval, float beta1 = 0.9f, float beta2 = 0.98f, bool saveGPUMemoryMode = false)
         {
-            Logger.WriteLine($"Creating Adam optimizer. GradClip = '{clipval}', Beta1 = '{beta1}', Beta2 = '{beta2}'");
+            Logger.WriteLine($"Creating Adam optimizer. GradClip = '{clipval}', Beta1 = '{beta1}', Beta2 = '{beta2}', SaveGPUMemoryMode = '{m_saveGPUMemoryMode}'");
 
             m_cacheName2V = new ConcurrentDictionary<string, Tensor>();
             m_cacheName2M = new ConcurrentDictionary<string, Tensor>();
@@ -29,6 +42,7 @@ namespace Seq2SeqSharp.Optimizer
             m_clipval = clipval;
             m_beta1 = beta1;
             m_beta2 = beta2;
+            m_saveGPUMemoryMode = saveGPUMemoryMode;
         }
 
         public void UpdateWeights(List<IWeightTensor> model, int batchSize, float step_size, float regc, int iter)
@@ -61,10 +75,10 @@ namespace Seq2SeqSharp.Optimizer
 
                 if (m_cacheName2V.ContainsKey(item.Name) == false)
                 {
-                    m_cacheName2V[item.Name] = new Tensor(item.Allocator, DType.Float32, item.Sizes);
+                    m_cacheName2V[item.Name] = new Tensor(m_saveGPUMemoryMode ? new CpuAllocator(BlasEnum.DotNet) : item.Allocator, DType.Float32, item.Sizes);
                     Ops.Fill(m_cacheName2V[item.Name], 0.0f);
 
-                    m_cacheName2M[item.Name] = new Tensor(item.Allocator, DType.Float32, item.Sizes);
+                    m_cacheName2M[item.Name] = new Tensor(m_saveGPUMemoryMode ? new CpuAllocator(BlasEnum.DotNet) : item.Allocator, DType.Float32, item.Sizes);
                     Ops.Fill(m_cacheName2M[item.Name], 0.0f);
 
                     Logger.WriteLine($"Added weight '{item.Name}' to optimizer. Learning rate factor = '{item.LearningRateFactor}'");
@@ -86,16 +100,28 @@ namespace Seq2SeqSharp.Optimizer
         {
             try
             {
-                //float clip_coef = 1.0f;
+                if ((m.Allocator is CudaAllocator) && m_saveGPUMemoryMode)
+                {
+                    Tensor t1 = new Tensor(m.Allocator, m_cacheName2V[m.Name].ElementType, m_cacheName2V[m.Name].Sizes);
+                    Ops.Copy(t1, m_cacheName2V[m.Name]);
 
-                //float normVal = Ops.NormAll(m.TGradient, 2.0f);
-                //float clip_coef = 0.5f / (normVal + 1e-6f);
-                //if (clip_coef > 1.0f)
-                //{
-                //    clip_coef = 1.0f;
-                //}
+                    Tensor t2 = new Tensor(m.Allocator, m_cacheName2M[m.Name].ElementType, m_cacheName2M[m.Name].Sizes);
+                    Ops.Copy(t2, m_cacheName2M[m.Name]);
 
-                Ops.Adam(m.TWeight, m.TGradient, m_cacheName2V[m.Name], m_cacheName2M[m.Name], batchSize, step_size, m_clipval, regc, m_beta2, m_beta1, iter, m_smoothEps);
+
+                    Ops.Adam(m.TWeight, m.TGradient, t1, t2, batchSize, step_size, m_clipval, regc, m_beta2, m_beta1, iter, m_smoothEps);
+
+                    Ops.Copy(m_cacheName2V[m.Name], t1);
+                    t1.Dispose();
+
+                    Ops.Copy(m_cacheName2M[m.Name], t2);
+                    t2.Dispose();
+                }
+                else
+                {              
+                    Ops.Adam(m.TWeight, m.TGradient, m_cacheName2V[m.Name], m_cacheName2M[m.Name], batchSize, step_size, m_clipval, regc, m_beta2, m_beta1, iter, m_smoothEps);
+                }
+
             }
             catch (Exception err)
             {

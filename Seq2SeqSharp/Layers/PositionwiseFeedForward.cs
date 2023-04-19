@@ -13,6 +13,7 @@ using Seq2SeqSharp.Layers;
 using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
 using System.Collections.Generic;
+using TensorSharp;
 
 namespace Seq2SeqSharp
 {
@@ -24,20 +25,22 @@ namespace Seq2SeqSharp
 
         private readonly string m_name;
         private readonly float m_dropoutRatio;
+        private readonly DType m_elementType;
 
         private ActivateFuncEnums m_activateFunc;
 
-        public PositionwiseFeedForward(string name, int hiddenDim, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.Relu)
+        public PositionwiseFeedForward(string name, int hiddenDim, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.Relu, DType elementType = DType.Float32)
         {
             m_name = name;
             m_dropoutRatio = dropoutRatio;
             m_activateFunc = activateFunc;
+            m_elementType= elementType;
 
             Logger.WriteLine($"Creating positionwise feed forward layer. Name = '{name}', HiddenDim = '{hiddenDim}', DeviceId = '{deviceId}', Dropout ratio = '{dropoutRatio}', IsTrainable = '{isTrainable}', Learning rate factor = '{learningRateFactor}', Activate Function = '{activateFunc}'");
 
             layerNorm2 = new LayerNormalization($"{name}.{nameof(layerNorm2)}", hiddenDim, deviceId, isTrainable, learningRateFactor: learningRateFactor);
-            feedForwardLayer1 = new FeedForwardLayer($"{name}.{nameof(feedForwardLayer1)}", hiddenDim, hiddenDim * 4, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor);
-            feedForwardLayer2 = new FeedForwardLayer($"{name}.{nameof(feedForwardLayer2)}", hiddenDim * 4, hiddenDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor);
+            feedForwardLayer1 = new FeedForwardLayer($"{name}.{nameof(feedForwardLayer1)}", hiddenDim, hiddenDim * 4, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, elementType: elementType);
+            feedForwardLayer2 = new FeedForwardLayer($"{name}.{nameof(feedForwardLayer2)}", hiddenDim * 4, hiddenDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, elementType: elementType);
         }
 
 
@@ -82,11 +85,13 @@ namespace Seq2SeqSharp
             }
 
             var inputNorm = layerNorm2.Norm(input, g);
+
             //Feed forward
             var ffnResult = feedForwardLayer1.Process(inputNorm, batchSize, g);
             // Activate function
-            var reluFFNResult = ((m_activateFunc == ActivateFuncEnums.Swish) ? g.Swish(ffnResult, inPlace: true) : g.Relu(ffnResult, inPlace: true));
-            var ffn2Result = feedForwardLayer2.Process(reluFFNResult, batchSize, g); // Shape: [batchSize * newTokenIdx, input_dim]
+            var actFFNResult = ((m_activateFunc == ActivateFuncEnums.Swish) ? g.Swish(ffnResult, inPlace: true) : g.Relu(ffnResult, inPlace: true));
+            var ffn2Result = feedForwardLayer2.Process(actFFNResult, batchSize, g); // Shape: [batchSize * newTokenIdx, input_dim]
+
             //Skip connection and layer normaliztion
             var addFFNResult = graph.Add(ffn2Result, input, inPlace: true); // Shape: [batchSize * newTokenIdx, input_dim]
 

@@ -14,6 +14,7 @@ using Seq2SeqSharp.Tools;
 using System;
 using System.Linq;
 using TensorSharp;
+using Seq2SeqSharp.Utils;
 
 namespace Seq2SeqSharp.Tests
 {

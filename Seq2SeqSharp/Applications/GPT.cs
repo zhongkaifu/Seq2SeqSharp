@@ -19,8 +19,9 @@ using Seq2SeqSharp.Layers;
 using Seq2SeqSharp.Models;
 using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
+using TensorSharp;
 
-namespace Seq2SeqSharp
+namespace Seq2SeqSharp.Applications
 {
     public class GPT : BaseSeq2SeqFramework<Seq2SeqModel>
     {
@@ -46,16 +47,13 @@ namespace Seq2SeqSharp
             m_shuffleType = options.ShuffleType;
             m_options = options;
 
+            // Check if options are valided.
+            m_options.ValidateOptions();
+
             m_memoryCache = new MemoryCache(new MemoryCacheOptions
             {
                 SizeLimit = 1024
             });
-
-            // Model must exist if current task is not for training
-            if ((m_options.Task != ModeEnums.Train) && !File.Exists(m_options.ModelFilePath))
-            {
-                throw new FileNotFoundException($"Model '{m_options.ModelFilePath}' doesn't exist.");
-            }
 
             if (File.Exists(m_options.ModelFilePath))
             {
@@ -103,11 +101,15 @@ namespace Seq2SeqSharp
         {
             Logger.WriteLine($"Creating encoders and decoders...");
             var raDeviceIds = new RoundArray<int>(DeviceIds);
-            m_decoder = Decoder.CreateDecoders(model, m_options, raDeviceIds);
+
+            DType elementType = (m_options.AMP && m_options.Task != ModeEnums.Train) ? DType.Float16 : DType.Float32;
+
+            m_decoder = Decoder.CreateDecoders(model, m_options, raDeviceIds, elementType);
             m_decoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("FeedForward_Decoder_0", model.HiddenDim, model.TgtVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),
-                isTrainable: true, learningRateFactor: m_options.DecoderStartLearningRateFactor), DeviceIds);
-            (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, model.HiddenDim, Math.Max(m_options.MaxTgtSentLength, m_options.MaxValidTgtSentLength), model);
-            m_tgtEmbedding = CreateTgtEmbeddings(model, raDeviceIds, m_options.IsTgtEmbeddingTrainable, m_options.DecoderStartLearningRateFactor);
+                isTrainable: true, learningRateFactor: m_options.DecoderStartLearningRateFactor, elementType), DeviceIds);
+
+            (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, model.HiddenDim, Math.Max(m_options.MaxTgtSentLength, m_options.MaxValidTgtSentLength), model, elementType);
+            m_tgtEmbedding = CreateTgtEmbeddings(model, raDeviceIds, m_options.IsTgtEmbeddingTrainable, m_options.DecoderStartLearningRateFactor, elementType);
 
             return (true);
         }
@@ -162,7 +164,7 @@ namespace Seq2SeqSharp
             if (isTraining)
             {
                 (var c, _) = Decoder.GPTDecode(tgtTokensList, computeGraph, decoder as GPTDecoder, decoderFFLayer, tgtEmbedding, posEmbedding, m_modelMetaData.TgtVocab, m_shuffleType,
-                    m_options.DropoutRatio, decodingOptions, isTraining, lossType: m_options.LossType, focalLossGamma: m_options.FocalLossGamma, segmentEmbeddings: segmentEmbedding);
+                    m_options.DropoutRatio, decodingOptions, isTraining, lossType: m_options.LossType, focalLossGamma: m_options.FocalLossGamma, segmentEmbeddings: segmentEmbedding, amp: m_options.AMP);
                 nr.Cost = c;
                 nr.Output = null;
             }           
@@ -201,7 +203,7 @@ namespace Seq2SeqSharp
                             (var cost2, var bssSeqList) = Decoder.GPTDecode(batch2tgtTokens, g, decoder as GPTDecoder, decoderFFLayer, tgtEmbedding, posEmbedding,
                                                                             m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, decodingOptions, isTraining,
                                                                             outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus,
-                                                                            blockedTokens: decodingOptions.BlockedTokens, segmentEmbeddings: segmentEmbedding, cachedTensors: cachedTensors);
+                                                                            blockedTokens: decodingOptions.BlockedTokens, segmentEmbeddings: segmentEmbedding, cachedTensors: cachedTensors, amp: m_options.AMP);
 
                             bssSeqList = Decoder.SwapBeamAndBatch(bssSeqList); // Swap shape: (beam_search_size, batch_size) -> (batch_size, beam_search_size)
                             batch2beam2seq = Decoder.CombineBeamSearchResults(batch2beam2seq, bssSeqList);
@@ -275,6 +277,16 @@ namespace Seq2SeqSharp
         public void DumpVocabToFiles(string outputTgtVocab)
         {
             m_modelMetaData.TgtVocab.DumpVocab(outputTgtVocab);
+        }
+
+        public void Test(string inputTestFile, string outputFile, int batchSize, DecodingOptions decodingOptions, string srcSpmPath, string tgtSpmPath, string outputAlignmentFile = null)
+        {
+            Test<SeqCorpusBatch>(inputTestFile, outputFile, batchSize, decodingOptions, srcSpmPath, tgtSpmPath, outputAlignmentFile);
+        }
+
+        public void Test(string inputTestFile, string inputPromptFile, string outputFile, int batchSize, DecodingOptions decodingOptions, string srcSpmPath, string tgtSpmPath, string outputAlignmentFile = null)
+        {
+            Test<SeqCorpusBatch>(inputTestFile, inputPromptFile, outputFile, batchSize, decodingOptions, srcSpmPath, tgtSpmPath, outputAlignmentFile);
         }
     }
 }

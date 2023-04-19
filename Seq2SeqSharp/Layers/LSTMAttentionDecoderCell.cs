@@ -1,8 +1,18 @@
-﻿using AdvUtils;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using AdvUtils;
 using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
-using System.IO;
+using TensorSharp;
 
 namespace Seq2SeqSharp
 {
@@ -21,7 +31,7 @@ namespace Seq2SeqSharp
         private readonly LayerNormalization m_layerNorm1;
         private readonly LayerNormalization m_layerNorm2;
 
-        public LSTMAttentionDecoderCell(string name, int hiddenDim, int inputDim, int contextDim, int deviceId, bool isTrainable)
+        public LSTMAttentionDecoderCell(string name, int hiddenDim, int inputDim, int contextDim, int deviceId, bool isTrainable, DType elementType = DType.Float32)
         {
             m_name = name;
             m_hiddenDim = hiddenDim;
@@ -30,8 +40,8 @@ namespace Seq2SeqSharp
 
             Logger.WriteLine($"Create LSTM attention decoder cell '{name}' HiddemDim = '{hiddenDim}', InputDim = '{inputDim}', ContextDim = '{contextDim}', DeviceId = '{deviceId}'");
 
-            m_Wxhc = new WeightTensor(new long[2] { inputDim + hiddenDim + contextDim, hiddenDim * 4 }, deviceId, normType: NormType.Uniform, name: $"{name}.{nameof(m_Wxhc)}", isTrainable: isTrainable);
-            m_b = new WeightTensor(new long[2] { 1, hiddenDim * 4 }, 0, deviceId, name: $"{name}.{nameof(m_b)}", isTrainable: isTrainable);
+            m_Wxhc = new WeightTensor(new long[2] { inputDim + hiddenDim + contextDim, hiddenDim * 4 }, deviceId, normType: NormType.Uniform, name: $"{name}.{nameof(m_Wxhc)}", isTrainable: isTrainable, dtype: elementType);
+            m_b = new WeightTensor(new long[2] { 1, hiddenDim * 4 }, 0, deviceId, name: $"{name}.{nameof(m_b)}", isTrainable: isTrainable, dtype: elementType);
 
             m_layerNorm1 = new LayerNormalization($"{name}.{nameof(m_layerNorm1)}", hiddenDim * 4, deviceId, isTrainable);
             m_layerNorm2 = new LayerNormalization($"{name}.{nameof(m_layerNorm2)}", hiddenDim, deviceId, isTrainable);

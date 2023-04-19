@@ -11,7 +11,7 @@
 using AdvUtils;
 using Seq2SeqSharp.Applications;
 
-namespace Seq2SeqSharp
+namespace Seq2SeqSharp.Applications
 {
     public class Seq2SeqOptions : Options
     {

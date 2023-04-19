@@ -1,7 +1,16 @@
-﻿using ManagedCuda.BasicTypes;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using ManagedCuda.BasicTypes;
 using ManagedCuda.CudaBlas;
 using System;
-using System.Runtime.CompilerServices;
 using TensorSharp.Core;
 using TensorSharp.Cpu;
 
@@ -292,7 +301,7 @@ namespace TensorSharp.CUDA.MatrixMul
                 int lda = (int)a.Strides[1];
                 int ldb = (int)b.Strides[1];
                 int ldc = (int)c.Strides[1];
-            
+
                 if (c.ElementType == DType.Float32)
                 {
                     CUdeviceptr aPtrSingle = CudaHelpers.GetBufferStart(a);
@@ -315,7 +324,7 @@ namespace TensorSharp.CUDA.MatrixMul
                             float* pb = &beta;
                             IntPtr beta_ptr = (IntPtr)pb;
 
-                            _statusF32 = CudaBlasNativeMethods.cublasGemmEx(blas.Value.CublasHandle, transa, transb, m, n, k, alpha_ptr, aPtrSingle, cudaDataType.CUDA_R_32F, lda, bPtrSingle, cudaDataType.CUDA_R_32F, 
+                            _statusF32 = CudaBlasNativeMethods.cublasGemmEx(blas.Value.CublasHandle, transa, transb, m, n, k, alpha_ptr, aPtrSingle, cudaDataType.CUDA_R_32F, lda, bPtrSingle, cudaDataType.CUDA_R_32F,
                                 ldb, beta_ptr, cPtrSingle, cudaDataType.CUDA_R_32F, ldc, ComputeType.Compute32FFast16F, GemmAlgo.DefaultTensorOp);
                         }
                     }
@@ -325,6 +334,33 @@ namespace TensorSharp.CUDA.MatrixMul
                         throw new CudaBlasException(_statusF32);
                     }
                 }
+                else if (c.ElementType == DType.Float16)
+                {
+                    CublasStatus _statusF32 = CublasStatus.NotInitialized;
+                    CUdeviceptr aPtrSingle = CudaHelpers.GetBufferStart(a);
+                    CUdeviceptr bPtrSingle = CudaHelpers.GetBufferStart(b);
+                    CUdeviceptr cPtrSingle = CudaHelpers.GetBufferStart(c);
+
+                    unsafe
+                    {
+                        half ha = new half(alpha);
+                        half* pa = &(ha);
+                        IntPtr alpha_ptr = (IntPtr)pa;
+
+                        half hb = new half(beta);
+                        half* pb = &(hb);
+                        IntPtr beta_ptr = (IntPtr)pb;
+
+                        _statusF32 = CudaBlasNativeMethods.cublasGemmEx(blas.Value.CublasHandle, transa, transb, m, n, k, alpha_ptr, aPtrSingle, cudaDataType.CUDA_R_16F, lda, bPtrSingle, cudaDataType.CUDA_R_16F,
+                            ldb, beta_ptr, cPtrSingle, cudaDataType.CUDA_R_16F, ldc, ComputeType.Compute16F, GemmAlgo.DefaultTensorOp);
+                    }
+
+                    if (_statusF32 != CublasStatus.Success)
+                    {
+                        throw new CudaBlasException(_statusF32);
+                    }
+                }
+
                 else if (c.ElementType == DType.Float64)
                 {
                     CUdeviceptr aPtrDouble = CudaHelpers.GetBufferStart(a);
@@ -407,7 +443,8 @@ namespace TensorSharp.CUDA.MatrixMul
                             float* pb = &beta;
                             IntPtr beta_ptr = (IntPtr)pb;
 
-                            _statusF32 = CudaBlasNativeMethods.cublasGemmStridedBatchedEx(blas.Value.CublasHandle, transa, transb, m, n, k, alpha_ptr, aPtrSingle, cudaDataType.CUDA_R_32F, lda, stra, bPtrSingle, cudaDataType.CUDA_R_32F, ldb, strb, beta_ptr, cPtrSingle, cudaDataType.CUDA_R_32F, ldc, strc, batchSize, ComputeType.Compute32FFast16F, GemmAlgo.DefaultTensorOp);
+                            _statusF32 = CudaBlasNativeMethods.cublasGemmStridedBatchedEx(blas.Value.CublasHandle, transa, transb, m, n, k, alpha_ptr, aPtrSingle, cudaDataType.CUDA_R_32F, lda, stra, bPtrSingle, cudaDataType.CUDA_R_32F, 
+                                ldb, strb, beta_ptr, cPtrSingle, cudaDataType.CUDA_R_32F, ldc, strc, batchSize, ComputeType.Compute32FFast16F, GemmAlgo.DefaultTensorOp);
                         }
                     }
 
@@ -416,6 +453,35 @@ namespace TensorSharp.CUDA.MatrixMul
                         throw new CudaBlasException(_statusF32);
                     }
                 }
+                else if (c.ElementType == DType.Float16)
+                {
+                    CUdeviceptr aPtrSingle = CudaHelpers.GetBufferStart(a);
+                    CUdeviceptr bPtrSingle = CudaHelpers.GetBufferStart(b);
+                    CUdeviceptr cPtrSingle = CudaHelpers.GetBufferStart(c);
+
+                    CublasStatus _statusF32 = CublasStatus.NotInitialized;
+
+                    unsafe
+                    {
+                        half ha = new half(alpha);
+                        half* pa = &(ha);
+                        IntPtr alpha_ptr = (IntPtr)pa;
+
+                        half hb = new half(beta);
+                        half* pb = &(hb);
+                        IntPtr beta_ptr = (IntPtr)pb;
+
+                        _statusF32 = CudaBlasNativeMethods.cublasGemmStridedBatchedEx(blas.Value.CublasHandle, transa, transb, m, n, k, alpha_ptr, aPtrSingle, cudaDataType.CUDA_R_16F, lda, stra, bPtrSingle, cudaDataType.CUDA_R_16F, 
+                            ldb, strb, beta_ptr, cPtrSingle, cudaDataType.CUDA_R_16F, ldc, strc, batchSize, ComputeType.Compute16F, GemmAlgo.DefaultTensorOp);
+                    }
+
+
+                    if (_statusF32 != CublasStatus.Success)
+                    {
+                        throw new CudaBlasException(_statusF32);
+                    }
+                }
+
                 else if (c.ElementType == DType.Float64)
                 {
                     CUdeviceptr aPtrDouble = CudaHelpers.GetBufferStart(a);

@@ -1,12 +1,10 @@
 ﻿using AdvUtils;
-using Seq2SeqSharp;
 using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Tools;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
+using Seq2SeqSharp.Utils;
 
 namespace SeqWebAPIs
 {

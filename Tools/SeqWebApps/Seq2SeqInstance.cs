@@ -43,7 +43,7 @@ namespace Seq2SeqWebApps
 
         static public void Initialization(string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, int maxTokenToGeneration, ProcessorTypeEnums processorType, string deviceIds, SentencePiece? srcSpm, SentencePiece? tgtSpm,
             Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum, float memoryUsageRatio, string mklInstructions, int beamSearchSize, string blockedTokens, ModelType modelType,
-            string wordMappingFilePath, bool enableTensorCore)
+            string wordMappingFilePath, bool enableTensorCore, string compilerOptions, bool amp)
         {
             opts = new Seq2SeqOptions();
             opts.ModelFilePath = modelFilePath;
@@ -56,6 +56,8 @@ namespace Seq2SeqWebApps
             opts.MKLInstructions = mklInstructions;
             opts.BeamSearchSize = beamSearchSize;
             opts.EnableTensorCore = enableTensorCore;
+            opts.CompilerOptions = compilerOptions;
+            opts.AMP = amp;
 
             MaxTokenToGenerate = maxTokenToGeneration;
 

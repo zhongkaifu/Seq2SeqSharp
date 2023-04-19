@@ -1,10 +1,20 @@
-﻿namespace TensorSharp.CUDA.DeviceCode
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+namespace TensorSharp.CUDA.DeviceCode
 {
     [Precompile]
     public class ElementwiseOpKernels : CudaCode
     {
         public ElementwiseOpKernels()
-            : base(GetFullCode(), "General", "ReduceApplyUtils", "PointwiseApply", "Math")
+            : base(GetFullCode(), "General", "ReduceApplyUtils", "PointwiseApply", "Math", "Fp16")
         {
         }
 
@@ -16,7 +26,12 @@
             AppendTTSFunc(result, "sub", "sub_op");
             AppendTTSFunc(result, "rsub", "rsub_op");
             AppendTTSFunc(result, "mul", "mul_op");
+            AppendTTSHalfFunc(result, "mul", "__hmul");
+
             AppendTTSFunc(result, "div", "div_op");
+            AppendTTSHalfFunc(result, "div", "__hdiv");
+
+
             AppendTTSFunc(result, "rdiv", "rdiv_op");
             AppendTTSFunc(result, "mod", "Mod_op");
 
@@ -28,6 +43,9 @@
             AppendTTSFunc(result, "ne", "ne_op");
 
             AppendTTTFunc(result, "cadd", "add_op");
+            AppendTTTFunc(result, "cadd", "__hadd", DType.Float16);
+
+
             AppendTTTFunc(result, "csub", "sub_op");
             AppendTTTFunc(result, "cmul", "mul_op");
             AppendTTTFunc(result, "cdiv", "div_op");
@@ -41,15 +59,16 @@
             AppendTTTFunc(result, "cne", "ne_op");
 
 
-            AppendAtomicAdd(result, "atomicAdd");
+            AppendAtomicAdd(result, "atomicAdd", DType.Float32);
+            AppendAtomicAdd(result, "atomicAdd", DType.Float16);
 
             return result.ToString();
         }
 
 
-        private static void AppendAtomicAdd(PermutationGenerator pg, string kernelBaseName)
+        private static void AppendAtomicAdd(PermutationGenerator pg, string kernelBaseName, DType elementType = DType.Float32)
         {
-            pg.AddApplyTT("t1_" + kernelBaseName, "atomicAdd(a, *b);");
+            pg.AddApplyTT("t1_" + kernelBaseName, "atomicAdd(a, *b);", new DType[] { elementType, elementType });
         }
 
 
@@ -59,11 +78,16 @@
             pg.AddApplyTTS("t2_" + kernelBaseName, string.Format("*a = {0}(*b, c);", func));
         }
 
-
-        private static void AppendTTTFunc(PermutationGenerator pg, string kernelBaseName, string func)
+        private static void AppendTTSHalfFunc(PermutationGenerator pg, string kernelBaseName, string func)
         {
-            pg.AddApplyTT("t1_" + kernelBaseName, string.Format("*a = {0}(*a, *b);", func));
-            pg.AddApplyTTT("t2_" + kernelBaseName, string.Format("*a = {0}(*b, *c);", func));
+            pg.AddApplyTSHalf("t1_" + kernelBaseName, string.Format("*a = {0}(*a, b);", func));
+            pg.AddApplyTTSHalf("t2_" + kernelBaseName, string.Format("*a = {0}(*b, c);", func));
+        }
+
+        private static void AppendTTTFunc(PermutationGenerator pg, string kernelBaseName, string func, DType elementType = DType.Float32)
+        {
+            pg.AddApplyTT("t1_" + kernelBaseName, string.Format("*a = {0}(*a, *b);", func), new DType[] {elementType, elementType });
+            pg.AddApplyTTT("t2_" + kernelBaseName, string.Format("*a = {0}(*b, *c);", func), new DType[] {elementType, elementType, elementType });
         }
     }
 }

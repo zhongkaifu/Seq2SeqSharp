@@ -1,4 +1,14 @@
-﻿using TensorSharp.CUDA.RuntimeCompiler;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using TensorSharp.CUDA.RuntimeCompiler;
 
 namespace TensorSharp.CUDA.DeviceCode.Headers
 {
@@ -6,6 +16,7 @@ namespace TensorSharp.CUDA.DeviceCode.Headers
     public static class MathHeader
     {
         public const string Code = @"
+#include <cuda_fp16.h>
 
 #define INLINE_FUNC __device__ __forceinline__
 
@@ -61,12 +72,30 @@ template<typename T> INLINE_FUNC T Swish(T w) {
 	return w / (T(1) + expf(-w));
 }
 
+template<typename T> INLINE_FUNC T SwishHalf(T wh) {
+    float w = __half2float(wh);
+	float res = w / (1.0 + expf(-w));
+    return __float2half(res);
+}
+
+
+
 template<typename T> INLINE_FUNC T SwishD(T w, T resG) {
 
   T sig = T(1) / (T(1) + expf(-w));
   T grad = sig * (T(1) + w * (T(1) - sig));
   return resG * grad;
+}
 
+
+template<typename T> INLINE_FUNC T SwishDHalf(T wh, T resGh) {
+
+  float w = __half2float(wh);
+  float resG = __half2float(resGh);
+
+  float sig = 1.0 / (1.0 + expf(-w));
+  float grad = sig * (1.0 + w * (1.0 - sig));
+  return __float2half(resG * grad);
 }
 
 template<typename T> INLINE_FUNC T AddSwishD(T t, T w, T resG) {
@@ -74,6 +103,18 @@ template<typename T> INLINE_FUNC T AddSwishD(T t, T w, T resG) {
   T sig = T(1) / (T(1) + expf(-w));
   T grad = sig * (T(1) + w * (T(1) - sig));
   return t + resG * grad;
+
+}
+
+template<typename T> INLINE_FUNC T AddSwishDHalf(T th, T wh, T resGh) {
+
+  float t = __half2float(th);
+  float w = __half2float(wh);
+  float resG = __half2float(resGh);
+
+  float sig = 1.0 / (1.0 + expf(-w));
+  float grad = sig * (1.0 + w * (1.0 - sig));
+  return __float2half(t + resG * grad);
 
 }
 
@@ -137,8 +178,16 @@ template <typename T> INLINE_FUNC T relud(T w, T g) {
 template <typename T> INLINE_FUNC T addrelud(T t, T w, T g) {
 	if (w > T(0))
 		return t + g;
-	return t + T(0);
+	return t;
 }
+
+
+template <typename T> INLINE_FUNC T addreludhalf(T t, T w, T g) {
+	if (w > T(0))
+		return __hadd(t, g);
+	return t;
+}
+
 
 
 template <typename T> INLINE_FUNC T Clamp(T val, T min, T max) {

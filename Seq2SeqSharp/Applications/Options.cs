@@ -9,14 +9,21 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
 using AdvUtils;
+using Microsoft.Extensions.Options;
 using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
+using System;
+using System.IO;
 using TensorSharp.CUDA.ContextState;
 
 namespace Seq2SeqSharp.Applications
 {
     public class Options
     {
+
+        [Arg("Automatic mixed precision. Default is false", nameof(AMP))]
+        public bool AMP = false;
+
         [Arg("The batch size", nameof(BatchSize))]
         public int BatchSize = 1;
 
@@ -141,6 +148,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("The vocabulary file path for source side.", nameof(SrcVocab))]
         public string SrcVocab = null;
 
+        [Arg("Mode to save GPU memory. Default is false", nameof(SaveGPUMemoryMode))]
+        public bool SaveGPUMemoryMode = false;
+
         [Arg("Starting Learning rate", nameof(StartLearningRate))]
         public float StartLearningRate = 0.0006f;
 
@@ -218,5 +228,25 @@ namespace Seq2SeqSharp.Applications
 
         [Arg("The minimum token frequency in vocabulary", nameof(MinTokenFreqInVocab))]
         public int MinTokenFreqInVocab = 1;
+
+
+        public void ValidateOptions()
+        {
+            if (AMP == true && ProcessorType != ProcessorTypeEnums.GPU)
+            {
+                throw new ArgumentException($"AMP (automatic mixed precesion) is only available for GPUs now. AMP has not supported CPUs yet.");
+            }
+
+            if (ProcessorType == ProcessorTypeEnums.GPU && CompilerOptions.Contains("--include-path") == false)
+            {
+                throw new ArgumentException($"Option --include-path is required in CompilerOptions for GPU tasks. It should points to installed CUDA SDK include path in this machine.");
+            }
+
+            // Model must exist if current task is not for training
+            if (Task != ModeEnums.Train && !File.Exists(ModelFilePath))
+            {
+                throw new FileNotFoundException($"Model '{ModelFilePath}' doesn't exist for task '{Task}'");
+            }
+        }
     }
 }

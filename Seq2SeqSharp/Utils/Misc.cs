@@ -1,4 +1,14 @@
-﻿using System;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -6,6 +16,7 @@ using AdvUtils;
 using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Optimizer;
 using Seq2SeqSharp.Tools;
+using TensorSharp;
 using M = System.Runtime.CompilerServices.MethodImplAttribute;
 using O = System.Runtime.CompilerServices.MethodImplOptions;
 
@@ -95,7 +106,7 @@ namespace Seq2SeqSharp.Utils
             IOptimizer optimizer = null;
             if (string.Equals(opts.Optimizer, "Adam", StringComparison.InvariantCultureIgnoreCase))
             {
-                optimizer = new AdamOptimizer(opts.GradClip, opts.Beta1, opts.Beta2);
+                optimizer = new AdamOptimizer(opts.GradClip, opts.Beta1, opts.Beta2, opts.SaveGPUMemoryMode);
             }
             else
             {
@@ -105,7 +116,7 @@ namespace Seq2SeqSharp.Utils
             return optimizer;
         }
 
-        public static (MultiProcessorNetworkWrapper<IWeightTensor>, MultiProcessorNetworkWrapper<IWeightTensor>) CreateAuxEmbeddings(RoundArray<int> raDeviceIds, int hiddenDim, int maxSentLength, IModel modelMetaData)
+        public static (MultiProcessorNetworkWrapper<IWeightTensor>, MultiProcessorNetworkWrapper<IWeightTensor>) CreateAuxEmbeddings(RoundArray<int> raDeviceIds, int hiddenDim, int maxSentLength, IModel modelMetaData, DType elementType = DType.Float32)
         {
             MultiProcessorNetworkWrapper<IWeightTensor> posEmbeddings = null;
             MultiProcessorNetworkWrapper<IWeightTensor> segmentEmbeddings = null;
@@ -114,11 +125,12 @@ namespace Seq2SeqSharp.Utils
             {
                 posEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(PositionEmbedding.BuildPositionWeightTensor(
                     maxSentLength + 2,
-                    hiddenDim, raDeviceIds.GetNextItem(), "PosEmbedding", false), raDeviceIds.ToArray(), true);
+                    hiddenDim, raDeviceIds.GetNextItem(), "PosEmbedding", false, elementType: elementType), raDeviceIds.ToArray(), true);
 
                 if (modelMetaData.EnableSegmentEmbeddings)
                 {
-                    segmentEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.MaxSegmentNum, modelMetaData.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, name: "SegmentEmbedding", isTrainable: true), raDeviceIds.ToArray());
+                    segmentEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.MaxSegmentNum, modelMetaData.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, name: "SegmentEmbedding", 
+                        isTrainable: true, dtype: elementType), raDeviceIds.ToArray());
                 }
             }
 

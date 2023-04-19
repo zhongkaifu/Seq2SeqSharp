@@ -15,6 +15,7 @@ using TensorSharp.Cpu;
 using TensorSharp.CUDA;
 using TensorSharp.CUDA.ContextState;
 using TensorSharp.CUDA.MatrixMul;
+using Seq2SeqSharp.Utils;
 
 namespace Seq2SeqSharp
 {

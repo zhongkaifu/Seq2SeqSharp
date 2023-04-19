@@ -37,7 +37,7 @@ namespace Seq2SeqSharp.Utils
         /// <param name="vocab"></param>
         /// <returns>The embedding tensor. shape: (batchsize * seqLen, embedding_dim) </returns>
         public static IWeightTensor CreateTokensEmbeddings(List<List<int>> seqs, IComputeGraph g, IWeightTensor embeddingsTensor, 
-            IWeightTensor segmentEmbedding, Vocab vocab, float scaleFactor = 1.0f, bool enableTagEmbedding = false)
+            IWeightTensor segmentEmbedding, Vocab vocab, float scaleFactor = 1.0f, bool enableTagEmbedding = false, bool amp = false)
         {
             int batchSize = seqs.Count;
             int seqLen = seqs[0].Count;
@@ -129,6 +129,13 @@ namespace Seq2SeqSharp.Utils
 
             var indiceEmbs = g.CreateTensorWeights(new long[] { idxs.Length, 1 }, idxs);
             IWeightTensor embeddingRst = g.IndexSelect(embeddingsTensor, indiceEmbs);
+
+            if (amp)
+            {
+                embeddingRst = g.Float2Half(embeddingRst);
+            }
+
+
             if (scaleFactor != 1.0f)
             {
                 embeddingRst = g.Mul(embeddingRst, scaleFactor, inPlace: true);

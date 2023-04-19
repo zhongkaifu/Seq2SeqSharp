@@ -10,6 +10,7 @@
 
 using System;
 using System.Linq;
+using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Models;
 using Seq2SeqSharp.Utils;
 

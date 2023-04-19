@@ -18,13 +18,13 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using AdvUtils;
-using ManagedCuda.BasicTypes;
 using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Metrics;
 using Seq2SeqSharp.Models;
 using Seq2SeqSharp.Optimizer;
 using Seq2SeqSharp.Utils;
+using TensorSharp;
 using TensorSharp.CUDA.ContextState;
 
 namespace Seq2SeqSharp.Tools
@@ -226,7 +226,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        internal (MultiProcessorNetworkWrapper<IWeightTensor>, MultiProcessorNetworkWrapper<IWeightTensor>) CreateSrcTgtEmbeddings(IModel modelMetaData, RoundArray<int> raDeviceIds, bool isSrcEmbeddingTrainable, bool isTgtEmbeddingTrainable, float encoderStartLearningRateFactor, float decoderStartLearningRateFactor)
+        internal (MultiProcessorNetworkWrapper<IWeightTensor>, MultiProcessorNetworkWrapper<IWeightTensor>) CreateSrcTgtEmbeddings(IModel modelMetaData, RoundArray<int> raDeviceIds, bool isSrcEmbeddingTrainable, bool isTgtEmbeddingTrainable, float encoderStartLearningRateFactor, float decoderStartLearningRateFactor, DType elementType = DType.Float32)
         {
             MultiProcessorNetworkWrapper<IWeightTensor> srcEmbeddings = null;
             MultiProcessorNetworkWrapper<IWeightTensor> tgtEmbeddings = null;
@@ -235,7 +235,7 @@ namespace Seq2SeqSharp.Tools
             {
                 Logger.WriteLine($"Creating shared embeddings for both source side and target side. Shape = '({modelMetaData.SrcVocab.Count} ,{modelMetaData.EncoderEmbeddingDim})'");
                 srcEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.SrcVocab.Count, modelMetaData.EncoderEmbeddingDim },
-                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SharedEmbeddings", isTrainable: isSrcEmbeddingTrainable, learningRateFactor: encoderStartLearningRateFactor), DeviceIds);
+                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SharedEmbeddings", isTrainable: isSrcEmbeddingTrainable, learningRateFactor: encoderStartLearningRateFactor, dtype: elementType), DeviceIds);
 
                 tgtEmbeddings = srcEmbeddings;
             }
@@ -243,22 +243,21 @@ namespace Seq2SeqSharp.Tools
             {
                 Logger.WriteLine($"Creating embeddings for source side. Shape = '({modelMetaData.SrcVocab.Count} ,{modelMetaData.EncoderEmbeddingDim})'");
                 srcEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.SrcVocab.Count, modelMetaData.EncoderEmbeddingDim },
-                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SrcEmbeddings", isTrainable: isSrcEmbeddingTrainable, learningRateFactor: encoderStartLearningRateFactor), DeviceIds);
+                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SrcEmbeddings", isTrainable: isSrcEmbeddingTrainable, learningRateFactor: encoderStartLearningRateFactor, dtype: elementType), DeviceIds);
 
                 Logger.WriteLine($"Creating embeddings for target side. Shape = '({modelMetaData.TgtVocab.Count} ,{modelMetaData.DecoderEmbeddingDim})'");
                 tgtEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.TgtVocab.Count, modelMetaData.DecoderEmbeddingDim },
-                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "TgtEmbeddings", isTrainable: isTgtEmbeddingTrainable, learningRateFactor: decoderStartLearningRateFactor), DeviceIds);
+                    raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "TgtEmbeddings", isTrainable: isTgtEmbeddingTrainable, learningRateFactor: decoderStartLearningRateFactor, dtype: elementType), DeviceIds);
             }
 
             return (srcEmbeddings, tgtEmbeddings);
         }
 
-        internal MultiProcessorNetworkWrapper<IWeightTensor> CreateTgtEmbeddings(IModel modelMetaData, RoundArray<int> raDeviceIds, bool isTgtEmbeddingTrainable, float decoderStartLearningRateFactor)
+        internal MultiProcessorNetworkWrapper<IWeightTensor> CreateTgtEmbeddings(IModel modelMetaData, RoundArray<int> raDeviceIds, bool isTgtEmbeddingTrainable, float decoderStartLearningRateFactor, DType elementType = DType.Float32)
         {
-            MultiProcessorNetworkWrapper<IWeightTensor> tgtEmbeddings = null;
             Logger.WriteLine($"Creating embeddings for target side. Shape = '({modelMetaData.TgtVocab.Count} ,{modelMetaData.DecoderEmbeddingDim})'");
-            tgtEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.TgtVocab.Count, modelMetaData.DecoderEmbeddingDim },
-                raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "TgtEmbeddings", isTrainable: isTgtEmbeddingTrainable, learningRateFactor: decoderStartLearningRateFactor), DeviceIds);
+            var tgtEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.TgtVocab.Count, modelMetaData.DecoderEmbeddingDim },
+                raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "TgtEmbeddings", isTrainable: isTgtEmbeddingTrainable, learningRateFactor: decoderStartLearningRateFactor, dtype: elementType), DeviceIds);
 
             return tgtEmbeddings;
         }

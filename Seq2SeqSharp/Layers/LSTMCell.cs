@@ -11,6 +11,7 @@
 using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
+using TensorSharp;
 
 namespace Seq2SeqSharp
 {
@@ -29,12 +30,12 @@ namespace Seq2SeqSharp
 
         public IWeightTensor Hidden => m_hidden;
 
-        public LSTMCell(string name, int hdim, int inputDim, int deviceId, bool isTrainable)
+        public LSTMCell(string name, int hdim, int inputDim, int deviceId, bool isTrainable, DType elementType = DType.Float32)
         {
             m_name = name;
 
-            m_Wxh = new WeightTensor(new long[2] { inputDim + hdim, hdim * 4 }, deviceId, normType: NormType.Uniform, name: $"{name}.{nameof(m_Wxh)}", isTrainable: isTrainable);
-            m_b = new WeightTensor(new long[2] { 1, hdim * 4 }, 0, deviceId, name: $"{name}.{nameof(m_b)}", isTrainable: isTrainable);
+            m_Wxh = new WeightTensor(new long[2] { inputDim + hdim, hdim * 4 }, deviceId, normType: NormType.Uniform, name: $"{name}.{nameof(m_Wxh)}", isTrainable: isTrainable, dtype: elementType);
+            m_b = new WeightTensor(new long[2] { 1, hdim * 4 }, 0, deviceId, name: $"{name}.{nameof(m_b)}", isTrainable: isTrainable, dtype: elementType);
 
             m_hdim = hdim;
             m_deviceId = deviceId;

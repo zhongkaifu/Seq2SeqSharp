@@ -8,16 +8,9 @@
 // Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
-using AdvUtils;
-using Seq2SeqSharp.Corpus;
-using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Metadata.Ecma335;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 using TensorSharp;
 
 /// <summary>
@@ -152,7 +145,7 @@ namespace Seq2SeqSharp.Tools
             }
             else
             {
-                res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Swish", graphToBind: this, needGradient: m.NeedGradient);
+                res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Swish", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
             }
             VisualizeNodes(w, res);
 
@@ -300,7 +293,7 @@ namespace Seq2SeqSharp.Tools
             }
             else
             {
-                res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.MulV", graphToBind: this, needGradient: m.NeedGradient);
+                res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.MulV", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
             }
 
             VisualizeNodes(w, res);
@@ -384,7 +377,7 @@ namespace Seq2SeqSharp.Tools
             }
             else
             {
-                res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.DivV", graphToBind: this, needGradient: m.NeedGradient);
+                res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.DivV", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
             }
 
             VisualizeNodes(w, res);
@@ -536,7 +529,7 @@ namespace Seq2SeqSharp.Tools
             }
             else
             {
-                res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.Add", graphToBind: this, needGradient: (m1.NeedGradient || m2.NeedGradient));
+                res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.Add", graphToBind: this, needGradient: (m1.NeedGradient || m2.NeedGradient), dtype: m1.ElementType);
             }
 
             VisualizeNodes(new IWeightTensor[] { w1, w2 }, res);
@@ -852,6 +845,90 @@ namespace Seq2SeqSharp.Tools
         }
 
 
+        public IWeightTensor Float2Half(IWeightTensor w)
+        {
+            WeightTensor m = w as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Float2Half", graphToBind: this, needGradient: m.NeedGradient, dtype: DType.Float16);
+
+            if (m.TWeight.ElementType == DType.Float16)
+            {
+                res.TWeight = m.TWeight.CopyRef();
+            }
+            else
+            {
+                Ops.Float2Half(res.TWeight, m.TWeight);
+            }
+
+            if (m_needsBackprop)
+            {
+                void backward()
+                {
+                    res.ReleaseWeight();
+
+                    if (m.TGradient.ElementType == res.TGradient.ElementType)
+                    {
+                        Ops.Add(m.TGradient, m.TGradient, res.TGradient);
+                    }
+                    else
+                    {
+                        using (Tensor tmp = new Tensor(m.Allocator, DType.Float32, m.Sizes))
+                        {
+                            Ops.Half2Float(tmp, res.TGradient);
+                            Ops.Add(m.TGradient, m.TGradient, tmp);
+                        }
+                    }
+
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
+
+        public IWeightTensor Half2Float(IWeightTensor w)
+        {
+            WeightTensor m = w as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Half2Float", graphToBind: this, needGradient: m.NeedGradient, dtype: DType.Float32);
+
+            if (m.TWeight.ElementType == DType.Float32)
+            {
+                res.TWeight = m.TWeight.CopyRef();
+            }
+            else
+            {
+                Ops.Half2Float(res.TWeight, m.TWeight);
+            }
+
+            if (m_needsBackprop)
+            {
+                void backward()
+                {
+                    res.ReleaseWeight();
+
+                    if (m.TGradient.ElementType == res.TGradient.ElementType)
+                    {
+                        Ops.Add(m.TGradient, m.TGradient, res.TGradient);
+                    }
+                    else
+                    {
+                        using (Tensor tmp = new Tensor(m.Allocator, DType.Float16, m.Sizes))
+                        {
+                            Ops.Float2Half(tmp, res.TGradient);
+                            Ops.Add(m.TGradient, m.TGradient, tmp);
+                        }
+                    }
+
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
+
         public IWeightTensor Relu(IWeightTensor w, bool inPlace = false)
         {
             WeightTensor m = w as WeightTensor;
@@ -862,7 +939,7 @@ namespace Seq2SeqSharp.Tools
             }
             else
             {
-                res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Relu", graphToBind: this, needGradient: m.NeedGradient);
+                res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Relu", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
             }
             VisualizeNodes(w, res);
 
@@ -900,7 +977,7 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor t1 = m1 as WeightTensor;
             WeightTensor t2 = m2 as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { t1.TWeight.Sizes[0], t1.TWeight.Sizes[1], t2.TWeight.Sizes[2] }, m_deviceId, name: $"{GetHashString(m1.Name, m2.Name)}.MulBatch", graphToBind: this, needGradient: (t1.NeedGradient || t2.NeedGradient));
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { t1.TWeight.Sizes[0], t1.TWeight.Sizes[1], t2.TWeight.Sizes[2] }, m_deviceId, name: $"{GetHashString(m1.Name, m2.Name)}.MulBatch", graphToBind: this, needGradient: (t1.NeedGradient || t2.NeedGradient), dtype: t1.ElementType);
             VisualizeNodes(new IWeightTensor[] { m1, m2 }, res);
 
             Ops.AddmmBatch(res.TWeight, 0.0f, res.TWeight, alpha, t1.TWeight, t2.TWeight);
@@ -1004,7 +1081,7 @@ namespace Seq2SeqSharp.Tools
 
             int n = t1.Rows;
             int d = t2.Columns;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(n, d, m_deviceId, name: $"{GetHashString(m1.Name, m2.Name, mbias.Name)}.Affine", graphToBind: this, needGradient: (t1.NeedGradient || t2.NeedGradient || t3.NeedGradient));
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(n, d, m_deviceId, name: $"{GetHashString(m1.Name, m2.Name, mbias.Name)}.Affine", graphToBind: this, needGradient: (t1.NeedGradient || t2.NeedGradient || t3.NeedGradient), dtype: t1.ElementType);
             VisualizeNodes(new IWeightTensor[] { m1, m2, mbias }, res);
 
             using (Tensor t3WExp = t3.TWeight.Expand(n, d))
@@ -1053,7 +1130,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor Transpose(IWeightTensor w, int dim1, int dim2)
         {
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Transpose", graphToBind: this, needGradient: m.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Transpose", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
             VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.Transpose(dim1, dim2);
@@ -1207,19 +1284,19 @@ namespace Seq2SeqSharp.Tools
         /// <returns>The sampled index</returns>
         public IWeightTensor SampleIndicue(IWeightTensor w, List<List<int>> seqs, float topP = 1.0f, List<int> blockedTokens = null)
         {
-            int K = seqs[0].Count + 1;
-
-            WeightTensor m = w as WeightTensor;
-            Tensor w1 = new Tensor(m.TWeight.Allocator, DType.Float32, new long[] { m.Rows, K });
-            Tensor w1Idx = new Tensor(m.TWeight.Allocator, DType.Float32, new long[] { m.Rows, K });
-
-            Ops.TopK(w1, w1Idx, m.TWeight, K);
-            float[] weights = w1.GetElementsAsFloat((int)w1.GetStorageSize());
-            float[] weightsIdx = w1Idx.GetElementsAsFloat((int)w1Idx.GetStorageSize());
-
+            int K = w.Columns; // seqs[0].Count + 1;
 
             //WeightTensor m = w as WeightTensor;
-            //float[] weights = m.ToWeightArray();
+            //Tensor w1 = new Tensor(m.TWeight.Allocator, DType.Float32, new long[] { m.Rows, K });
+            //Tensor w1Idx = new Tensor(m.TWeight.Allocator, DType.Float32, new long[] { m.Rows, K });
+
+            //Ops.TopK(w1, w1Idx, m.TWeight, K);
+            //float[] weights = w1.GetElementsAsFloat((int)w1.GetStorageSize());
+            //float[] weightsIdx = w1Idx.GetElementsAsFloat((int)w1Idx.GetStorageSize());
+
+
+            WeightTensor m = w as WeightTensor;
+            float[] weights = m.ToWeightArray();
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { m.Rows, 1 }, m_deviceId, name: $"{GetHashString(m.Name)}.Sample", graphToBind: this, needGradient: m.NeedGradient);
 
             Random rnd = new Random(DateTime.Now.Millisecond);
@@ -1249,7 +1326,7 @@ namespace Seq2SeqSharp.Tools
                 for (int j = 0; j < K; j++)
                 {
                     float weight = weights[offset + j];
-                    int idx = (int)weightsIdx[offset + j];
+                    int idx = j; // (int)weightsIdx[offset + j];
 
                     if (blockedTokens != null && blockedTokens.Contains(idx))
                     {
@@ -1366,7 +1443,7 @@ namespace Seq2SeqSharp.Tools
             }
             else
             {
-                res = m_weightTensorFactory.CreateWeightTensor(t.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Softmax", graphToBind: this, needGradient: runGradients && t.NeedGradient);
+                res = m_weightTensorFactory.CreateWeightTensor(t.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Softmax", graphToBind: this, needGradient: runGradients && t.NeedGradient, dtype: t.ElementType);
             }
 
             VisualizeNodes(w, res);
@@ -1403,7 +1480,7 @@ namespace Seq2SeqSharp.Tools
             long[] sizes = (long[])m.Sizes.Clone();
             sizes[dim] = num;
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Peek", graphToBind: this, needGradient: m.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Peek", graphToBind: this, needGradient: m.NeedGradient, dtype:m.ElementType);
             res.TWeight = m.TWeight.Narrow(dim, ix, num);
             res.TGradient = res.NeedGradient ? m.TGradient.Narrow(dim, ix, num) : null;
 
@@ -1584,7 +1661,7 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor src = s as WeightTensor;
             WeightTensor idx = indice as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { idx.Rows, s.Sizes[^1] }, m_deviceId, name: $"{GetHashString(src.Name)}.IndexSelect", graphToBind: this, needGradient: src.NeedGradient, cleanWeights: clearWeights);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { idx.Rows, s.Sizes[^1] }, m_deviceId, name: $"{GetHashString(src.Name)}.IndexSelect", graphToBind: this, needGradient: src.NeedGradient, cleanWeights: clearWeights, dtype: src.ElementType);
 
 
             Ops.IndexSelect(res.TWeight, src.TWeight, idx.TWeight, isAdd);
@@ -1644,7 +1721,7 @@ namespace Seq2SeqSharp.Tools
 
 
             string wlName = string.Join("_", wlNameList);
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(newSizes, m_deviceId, name: $"{GetHashString(wlName)}.Concat", graphToBind: this, needGradient: needGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(newSizes, m_deviceId, name: $"{GetHashString(wlName)}.Concat", graphToBind: this, needGradient: needGradient, dtype: twl[0].ElementType);
             VisualizeNodes(wl, res);
 
             Ops.Concat(res.TWeight, dim, twl.ToArray());
@@ -1777,7 +1854,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor AsContiguous(IWeightTensor w, bool shareTensor = true)
         {
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.AsContiguous", graphToBind: this, needGradient: m.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.AsContiguous", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
             VisualizeNodes(w, res);
 
             res.TWeight = Ops.AsContiguous(m.TWeight);
@@ -1852,7 +1929,7 @@ namespace Seq2SeqSharp.Tools
 
 
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(dims, m_deviceId, name: $"{w.Name}.View", graphToBind: this, needGradient: m.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(dims, m_deviceId, name: $"{w.Name}.View", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
             //  VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.View(dims);
@@ -1973,7 +2050,7 @@ namespace Seq2SeqSharp.Tools
         {
 
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(dims, m_deviceId, name: $"{GetHashString(w.Name)}.Expand", graphToBind: this, needGradient: m.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(dims, m_deviceId, name: $"{GetHashString(w.Name)}.Expand", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
             VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.Expand(dims);
@@ -1988,8 +2065,6 @@ namespace Seq2SeqSharp.Tools
 
                         using var tmpMGrad = m.TGradient.Expand(dims); // expand input tensor at first
                         Ops.AtomicAdd(tmpMGrad, res.TGradient);
-
-
                     }
                     res.Dispose();
                 }
@@ -2029,7 +2104,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor alphaT = alpha as WeightTensor;
             WeightTensor betaT = beta as WeightTensor;
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(srcT.Sizes, m_deviceId, name: $"{GetHashString(src.Name, alpha.Name, beta.Name)}.LayerNorm", graphToBind: this, needGradient: srcT.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(srcT.Sizes, m_deviceId, name: $"{GetHashString(src.Name, alpha.Name, beta.Name)}.LayerNorm", graphToBind: this, needGradient: srcT.NeedGradient, dtype: src.ElementType);
             VisualizeNodes(new IWeightTensor[] { src, alpha, beta }, res);
 
             Ops.LayerNorm(res.TWeight, srcT.TWeight, alphaT.TWeight, betaT.TWeight, eps);
@@ -2216,7 +2291,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor s = src as WeightTensor;
             var resTWeight = s.TWeight.Select(dim, index);
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(resTWeight.Sizes, m_deviceId, name: $"Select_{m_deviceId}", graphToBind: this, needGradient: s.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(resTWeight.Sizes, m_deviceId, name: $"Select_{m_deviceId}", graphToBind: this, needGradient: s.NeedGradient, dtype: s.ElementType);
             res.TWeight = resTWeight;
 
             if (m_needsBackprop)
@@ -2273,7 +2348,7 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightTensor CreateTokensTensor(List<List<int>> input)
+        public IWeightTensor CreateTokensTensor(List<List<int>> input, DType elementType = DType.Float32)
         {
             float[] buf = new float[input.Count * input[0].Count];
 
@@ -2285,7 +2360,7 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(input.Count, input[0].Count, m_deviceId, name: $"TokensTensor_{m_deviceId}", graphToBind: this, needGradient: false);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(input.Count, input[0].Count, m_deviceId, name: $"TokensTensor_{m_deviceId}", graphToBind: this, needGradient: false, dtype: elementType);
             res.SetWeightArray(buf);
 
             if (m_needsBackprop)
@@ -2336,13 +2411,13 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public IWeightTensor BuildPadSelfMask(int paddedLength, float[] originalLengths)
+        public IWeightTensor BuildPadSelfMask(int paddedLength, float[] originalLengths, DType elementType = DType.Float32)
         {
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { originalLengths.Length, paddedLength, paddedLength }, m_deviceId, name: $"SelfMask_{m_deviceId}", graphToBind: this, needGradient: false);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { originalLengths.Length, paddedLength, paddedLength }, m_deviceId, name: $"SelfMask_{m_deviceId}", graphToBind: this, needGradient: false, dtype: elementType);
             using (Tensor originalLengthsTensor = new Tensor(res.Allocator, DType.Float32, originalLengths.Length))
             {
                 originalLengthsTensor.CopyFrom(originalLengths);
-                Ops.BuildSelfMask(res.TWeight, originalLengthsTensor, paddedLength, 0.0f, -99999999.0f);
+                Ops.BuildSelfMask(res.TWeight, originalLengthsTensor, paddedLength, 0.0f, -65500.0f);
             }
 
             if (m_needsBackprop)
@@ -2358,13 +2433,13 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightTensor BuildSelfTriMask(int paddedLength, float[] originalLengths)
+        public IWeightTensor BuildSelfTriMask(int paddedLength, float[] originalLengths, DType elementType = DType.Float32)
         {
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { originalLengths.Length, paddedLength, paddedLength }, m_deviceId, name: $"SelfTriMask_{m_deviceId}", graphToBind: this, needGradient: false);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { originalLengths.Length, paddedLength, paddedLength }, m_deviceId, name: $"SelfTriMask_{m_deviceId}", graphToBind: this, needGradient: false, dtype: elementType);
             using (Tensor originalLengthsTensor = new Tensor(res.Allocator, DType.Float32, originalLengths.Length))
             {
                 originalLengthsTensor.CopyFrom(originalLengths);
-                Ops.BuildSelfTriMask(res.TWeight, originalLengthsTensor, paddedLength, 0.0f, -99999999.0f);
+                Ops.BuildSelfTriMask(res.TWeight, originalLengthsTensor, paddedLength, 0.0f, -65500.0f);
             }
 
             if (m_needsBackprop)
@@ -2379,10 +2454,10 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightTensor BuildTriMask(int paddedLength, int batchSize)
+        public IWeightTensor BuildTriMask(int paddedLength, int batchSize, DType elementType = DType.Float32)
         {
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { paddedLength, paddedLength }, m_deviceId, name: $"SelfTriMask2_{m_deviceId}", graphToBind: this, needGradient: false);
-            Ops.BuildTriMask(res.TWeight, 0.0f, -99999999.0f);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { paddedLength, paddedLength }, m_deviceId, name: $"SelfTriMask2_{m_deviceId}", graphToBind: this, needGradient: false, dtype: elementType);
+            Ops.BuildTriMask(res.TWeight, 0.0f, -65500.0f);
 
             if (m_needsBackprop)
             {
@@ -2396,9 +2471,9 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
        
-        public IWeightTensor BuildSrcTgtMask(int srcPaddedLength, int tgtPaddedLength, float[] tgtOriginalLengths, float[] srcOriginalLengths)
+        public IWeightTensor BuildSrcTgtMask(int srcPaddedLength, int tgtPaddedLength, float[] tgtOriginalLengths, float[] srcOriginalLengths, DType elementType = DType.Float32)
         {
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { tgtOriginalLengths.Length, tgtPaddedLength, srcPaddedLength }, m_deviceId, name: $"SrcTgtMask_{m_deviceId}", graphToBind: this, needGradient: false);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { tgtOriginalLengths.Length, tgtPaddedLength, srcPaddedLength }, m_deviceId, name: $"SrcTgtMask_{m_deviceId}", graphToBind: this, needGradient: false, dtype: elementType);
 
             using (Tensor tgtOriginalLengthsTensor = new Tensor(res.Allocator, DType.Float32, tgtOriginalLengths.Length))
             {
@@ -2406,7 +2481,7 @@ namespace Seq2SeqSharp.Tools
                 {
                     srcOriginalLengthsTensor.CopyFrom(srcOriginalLengths);
                     tgtOriginalLengthsTensor.CopyFrom(tgtOriginalLengths);
-                    Ops.BuildSrcTgtMask(res.TWeight, srcOriginalLengthsTensor, tgtOriginalLengthsTensor, srcPaddedLength, tgtPaddedLength, 0.0f, -99999999.0f);
+                    Ops.BuildSrcTgtMask(res.TWeight, srcOriginalLengthsTensor, tgtOriginalLengthsTensor, srcPaddedLength, tgtPaddedLength, 0.0f, -65500.0f);
                 }
             }
 

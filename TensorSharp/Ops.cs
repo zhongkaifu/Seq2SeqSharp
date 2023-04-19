@@ -8,7 +8,6 @@
 // Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
-using System;
 using TensorSharp.Core;
 
 namespace TensorSharp
@@ -60,6 +59,10 @@ namespace TensorSharp
 
         public static Tensor AddSwishD(Tensor result, Tensor srcG, Tensor srcW, Tensor resG) { return (Tensor)OpRegistry.Invoke("AddSwishD", result, srcG, srcW, resG); }
 
+
+
+        public static Tensor Float2Half(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("float2half", result, src); }
+        public static Tensor Half2Float(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("half2float", result, src); }
 
 
         public static Tensor Relu(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("relu", result, src); }

@@ -1,4 +1,14 @@
-﻿using System;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using TensorSharp.CUDA.RuntimeCompiler;
@@ -19,6 +29,8 @@ namespace TensorSharp.CUDA
 
         public bool Use32BitIndices { get; private set; }
         public int[] TensorDims { get; private set; }
+
+        public DType[] TensorElementTypes { get;private set; }
 
         public ApplySpecialization(params Tensor[] tensors)
         {
@@ -55,12 +67,18 @@ namespace TensorSharp.CUDA
                 }
             }
 
+            TensorElementTypes = new DType[tensors.Length];
+            for (int i = 0; i < tensors.Length; i++)
+            {
+                TensorElementTypes[i] = tensors[i].ElementType;
+            }
         }
 
-        public ApplySpecialization(bool use32BitIndices, params int[] tensorDims)
+        public ApplySpecialization(bool use32BitIndices, DType[] elementTypes, params int[] tensorDims)
         {
             Use32BitIndices = use32BitIndices;
             TensorDims = tensorDims;
+            TensorElementTypes = elementTypes;
         }
 
 
@@ -80,14 +98,31 @@ namespace TensorSharp.CUDA
             return result;
         }
 
-        public static IEnumerable<ApplySpecialization> AllSpecializations(int tensorCount)
+        public static IEnumerable<ApplySpecialization> AllSpecializations(int tensorCount, DType[] elementTypes = null)
         {
-            yield return new ApplySpecialization(false, Enumerable.Repeat(-2, tensorCount).ToArray());
-            yield return new ApplySpecialization(false, Enumerable.Repeat(-1, tensorCount).ToArray());
+            if (elementTypes == null)
+            {
+                elementTypes = new DType[tensorCount];
+                for (int i = 0; i < tensorCount; i++)
+                {
+                    elementTypes[i] = DType.Float32;
+                }
+            }
+            else
+            {
+                if (tensorCount != elementTypes.Length)
+                {
+                    throw new ArgumentException($"Inconsistent tensor count '{tensorCount}' and the number of elementTypes '{elementTypes.Length}'");
+                }
+            }
+
+
+            yield return new ApplySpecialization(false, elementTypes, Enumerable.Repeat(-2, tensorCount).ToArray());
+            yield return new ApplySpecialization(false, elementTypes, Enumerable.Repeat(-1, tensorCount).ToArray());
 
             foreach (int[] combination in CombinationsOf(All32BitTensorDims, tensorCount))
             {
-                yield return new ApplySpecialization(true, combination);
+                yield return new ApplySpecialization(true, elementTypes, combination);
             }
         }
 

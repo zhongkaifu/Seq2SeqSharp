@@ -11,6 +11,7 @@
 using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
+using TensorSharp;
 
 namespace Seq2SeqSharp
 {
@@ -84,14 +85,16 @@ namespace Seq2SeqSharp
         IWeightTensor Sub(float v, IWeightTensor w1);
 
         #region Operations for masking
-        IWeightTensor BuildSrcTgtMask(int srcPaddedLength, int tgtPaddedLength, float[] tgtOriginalLengths, float[] srcOriginalLengths);
-        IWeightTensor BuildSelfTriMask(int paddedLength, float[] originalLengths);
-        IWeightTensor BuildTriMask(int paddedLength, int batchSize);
-        IWeightTensor BuildPadSelfMask(int paddedLength, float[] originalLengths);
+        IWeightTensor BuildSrcTgtMask(int srcPaddedLength, int tgtPaddedLength, float[] tgtOriginalLengths, float[] srcOriginalLengths, DType elementType = DType.Float32);
+        IWeightTensor BuildTriMask(int paddedLength, int batchSize, DType elementType = DType.Float32);
+        IWeightTensor BuildPadSelfMask(int paddedLength, float[] originalLengths, DType elementType = DType.Float32);
+
+        IWeightTensor BuildSelfTriMask(int paddedLength, float[] originalLengths, DType elementType = DType.Float32);
+
         #endregion
 
         IWeightTensor LeftShiftTokens(List<List<int>> input, int lastTokenToPad);
-        IWeightTensor CreateTokensTensor(List<List<int>> input);
+        IWeightTensor CreateTokensTensor(List<List<int>> input, DType elementType = DType.Float32);
 
         IWeightTensor BuildFeatureMask(int paddedLength, List<int> appliedLengths, int dim);
 
@@ -113,5 +116,8 @@ namespace Seq2SeqSharp
         IWeightTensor CreateUniformRandomTensor(long[] sizes, float minVal, float maxVal);
 
         IWeightTensor LogSoftmax(IWeightTensor x);
+
+        IWeightTensor Float2Half(IWeightTensor w);
+        IWeightTensor Half2Float(IWeightTensor w);
     }
 }

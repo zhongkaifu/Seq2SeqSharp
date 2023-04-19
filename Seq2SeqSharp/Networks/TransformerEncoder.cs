@@ -14,6 +14,7 @@ using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
+using TensorSharp;
 
 namespace Seq2SeqSharp
 {
@@ -35,10 +36,11 @@ namespace Seq2SeqSharp
         private readonly ActivateFuncEnums m_activateFunc;
         private readonly int m_expertNum;
         private readonly int m_expertsPerTokenFactor;
+        private readonly DType m_elementType;
 
-        public TransformerEncoder(string name, int multiHeadNum, int hiddenDim, int inputDim, int depth, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.Relu, int expertNum = 1, int expertsPerTokenFactor = 1)
+        public TransformerEncoder(string name, int multiHeadNum, int hiddenDim, int inputDim, int depth, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.Relu, int expertNum = 1, int expertsPerTokenFactor = 1, DType elementType = DType.Float32)
         {
-            Logger.WriteLine($"Creating transformer encoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', InputDim = '{inputDim}', Depth = '{depth}', MultiHeadNum = '{multiHeadNum}'");
+            Logger.WriteLine($"Creating transformer encoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', InputDim = '{inputDim}', Depth = '{depth}', MultiHeadNum = '{multiHeadNum}', ElementType = '{elementType}'");
 
             m_name = name;
             m_multiHeadNum = multiHeadNum;
@@ -52,16 +54,17 @@ namespace Seq2SeqSharp
             m_activateFunc = activateFunc;
             m_expertNum = expertNum;
             m_expertsPerTokenFactor = expertsPerTokenFactor;
+            m_elementType = elementType;
 
             if (hiddenDim != inputDim)
             {
                 throw new ArgumentException($"hiddenDim is not equal to inputDim in TransformerEncoder.");
             }
 
-            m_encoders.Add(new MultiHeadAttention($"{name}.SelfAttn_0", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId, isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor));
+            m_encoders.Add(new MultiHeadAttention($"{name}.SelfAttn_0", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId, isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor, elementType: elementType));
             for (int i = 1; i < depth; i++)
             {
-                m_encoders.Add(new MultiHeadAttention($"{name}.SelfAttn_{i}", multiHeadNum, hiddenDim, hiddenDim, m_dropoutRatio, deviceId, isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor));
+                m_encoders.Add(new MultiHeadAttention($"{name}.SelfAttn_{i}", multiHeadNum, hiddenDim, hiddenDim, m_dropoutRatio, deviceId, isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor, elementType: elementType));
             }
 
             for (int i = 0; i < depth; i++)
@@ -72,7 +75,7 @@ namespace Seq2SeqSharp
                 }
                 else
                 {
-                    m_feedForwards.Add(new PositionwiseFeedForward($"{name}.PosFFN_{i}", hiddenDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, activateFunc: activateFunc));
+                    m_feedForwards.Add(new PositionwiseFeedForward($"{name}.PosFFN_{i}", hiddenDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, activateFunc: activateFunc, elementType: elementType));
                 }
             }
 
@@ -110,7 +113,7 @@ namespace Seq2SeqSharp
                 IWeightTensor attnProbs = null;
                 for (int k = 0; k < m_encoders.Count; k++)
                 {
-                    (var inputs2, attnProbs) = m_encoders[k].Perform(inputs, maskTensor, batchSize, subg, outputAttenWeights: false);
+                    var inputs2 = m_encoders[k].Perform(inputs, maskTensor, batchSize, subg);
                     inputs.ReleaseWeight();
 
                     inputs = m_feedForwards[k].Process(inputs2, batchSize, subg);
@@ -136,7 +139,7 @@ namespace Seq2SeqSharp
 
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
-            return new TransformerEncoder(m_name, m_multiHeadNum, m_hiddenDim, m_inputDim, m_depth, m_dropoutRatio, deviceId, m_isTrainable, learningRateFactor: m_learningRateFactor, activateFunc: m_activateFunc, expertNum: m_expertNum, expertsPerTokenFactor: m_expertsPerTokenFactor);
+            return new TransformerEncoder(m_name, m_multiHeadNum, m_hiddenDim, m_inputDim, m_depth, m_dropoutRatio, deviceId, m_isTrainable, learningRateFactor: m_learningRateFactor, activateFunc: m_activateFunc, expertNum: m_expertNum, expertsPerTokenFactor: m_expertsPerTokenFactor, elementType: m_elementType);
         }
 
         public List<IWeightTensor> GetParams()

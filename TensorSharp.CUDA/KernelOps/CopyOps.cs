@@ -1,4 +1,14 @@
-﻿using ManagedCuda;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using ManagedCuda;
 using ManagedCuda.BasicTypes;
 using System;
 
@@ -186,6 +196,7 @@ namespace TensorSharp.CUDA.KernelOps
                 CUdeviceptr resultContigPtr = ((CudaStorage)resultContig.Storage).DevicePtrAtElement(resultContig.StorageOffset);
                 IntPtr srcContigPtr = ((Cpu.CpuStorage)srcContig.Storage).PtrAtElement(srcContig.StorageOffset);
 
+                resultContext.SetCurrent();
                 resultContext.CopyToDevice(resultContigPtr, srcContigPtr, totalElements * srcContig.ElementType.Size());
 
                 if (result.Storage != resultContig.Storage)

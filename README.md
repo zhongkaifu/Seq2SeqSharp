@@ -14,6 +14,7 @@ Support multi-platforms, such as Windows, Linux, MacOS and others
 Support multi-architecture, such as X86, X64 and ARM  
 Built-in several networks for sequence-to-sequence, sequence-classification, labeling and similarity tasks  
 Mixture of Experts network that could easily train huge model with less computing cost  
+Support Automatic Mixed Precesion (FP16)  
 Built-in SentencePiece supported  
 Tags embeddings mechanism  
 Prompted Decoders  
@@ -98,6 +99,7 @@ Parameters:
 **-EnableTagEmbeddings**: Enable tag embeddings in encoder. The tag embeddings will be added to token embeddings. Default is false  
 **-CompilerOptions**: The options for CUDA NVRTC compiler. Options are split by space. For example: "--use_fast_math --gpu-architecture=compute_60" means to use fast math libs and run on Pascal and above GPUs  
 **-Optimizer**: The weights optimizer during training. It supports Adam and RMSProp. Adam is default  
+**-CompilerOptions**: The NVRTC compiler options for GPUs. --include-path is required to point to CUDA SDK include path.  
 
 Note that if "-SrcVocab" and "-TgtVocab" are empty, vocabulary will be built from training corpus.  
 
@@ -156,7 +158,7 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
   "BeamSearchSize": 1,
   "Beta1": 0.9,
   "Beta2": 0.98,
-  "CompilerOptions": "--use_fast_math --gpu-architecture=compute_70",
+  "CompilerOptions": "--use_fast_math --gpu-architecture=compute_70 --include-path=<CUDA SDK Include Path>",
   "ConfigFilePath": "",
   "DecodingStrategy": "GreedySearch",
   "DecodingRepeatPenalty": 2.0,
@@ -384,12 +386,13 @@ Each line in data set contains two sequences and the tool can calculate their si
 
 # Demos and released models    
 From 2.7.0 version, Seq2SeqSharp models are deployed on Hugging Face and you can also play demos there.  
-| Demo                                                   |   Hugging Face Space Url                                |        Hugging Face Model Url                   |
-| ------------------------------------------------------ | ------------------------------------------------------- | ----------------------------------------------- |
-| Machine Translation from English to Chinese            | https://huggingface.co/spaces/zhongkaifu/mt_enu_chs     | https://huggingface.co/zhongkaifu/mt_enu_chs    |
-| Machine Translation from Chinese to English            | https://huggingface.co/spaces/zhongkaifu/mt_chs_enu     | https://huggingface.co/zhongkaifu/mt_chs_enu    |
-| Machine Translation from Japanese or Korean to Chinese | https://huggingface.co/spaces/zhongkaifu/mt_jpnkor_chs  | https://huggingface.co/zhongkaifu/mt_jpnkor_chs |
-| Chinese Medical Question and Answer Demo               | https://huggingface.co/spaces/zhongkaifu/medical_qa_chs | https://huggingface.co/zhongkaifu/qa_med_chs    |
+| Demo                                                   |   Hugging Face Space Url                                |        Hugging Face Model Url                   |  Model Parameters                             |
+| ------------------------------------------------------ | ------------------------------------------------------- | ----------------------------------------------- | --------------------------------------------- |
+| Machine Translation from English to Chinese            | https://huggingface.co/spaces/zhongkaifu/mt_enu_chs     | https://huggingface.co/zhongkaifu/mt_enu_chs    | 117M (6 encoder layers and 6 decoder layers)  |
+| Machine Translation from Chinese to English            | https://huggingface.co/spaces/zhongkaifu/mt_chs_enu     | https://huggingface.co/zhongkaifu/mt_chs_enu    | 117M (6 encoder layers and 6 decoder layers)  |
+| Machine Translation from Japanese or Korean to Chinese | https://huggingface.co/spaces/zhongkaifu/mt_jpnkor_chs  | https://huggingface.co/zhongkaifu/mt_jpnkor_chs | 117M (6 encoder layers and 6 decoder layers)  |
+| Chinese Medical Question and Answer Demo               | https://huggingface.co/spaces/zhongkaifu/medical_qa_chs | https://huggingface.co/zhongkaifu/qa_med_chs    | 117M (6 encoder layers and 6 decoder layers)  |
+| Chinese fiction writer                                 | https://huggingface.co/spaces/zhongkaifu/story_writing  | https://huggingface.co/zhongkaifu/story_writing | 762M (36 decoder layers only, GPT type model) |
 
 To deploy binary files and models, you can check Dockerfile in Hugging Face Space urls or "Build & Deployment" section in this document.  
 
@@ -758,4 +761,5 @@ In Seq2SeqConsole project, it shows you how to initialize and train your network
 
 # Todo List  
 If you are interested in below items, please let me know. Becuase African proverb says "If you want to go fast, go alone. If you want to go far, go together" :)  
+Multimodal models  
 And More...  

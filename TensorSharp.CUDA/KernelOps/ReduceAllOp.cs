@@ -1,4 +1,14 @@
-﻿using ManagedCuda;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using ManagedCuda;
 using ManagedCuda.VectorTypes;
 using System;
 using TensorSharp.Core;
@@ -89,7 +99,7 @@ namespace TensorSharp.CUDA.KernelOps
 
         public static void InvokeReduceAllPass2(TSCudaContext context, CudaContext cudaContext, byte[] ptx, string kernelName, dim3 grid, dim3 block, uint smemSize, bool index32, params object[] args)
         {
-            KernelConfig config = new ApplySpecialization(index32).GetConfig();
+            //KernelConfig config = new ApplySpecialization(index32, null).GetConfig();
 
 
             CudaKernel kernel = context.KernelCache.Get(cudaContext, ptx, kernelName);

@@ -122,12 +122,12 @@ namespace Seq2SeqConsole
 
                     if (String.IsNullOrEmpty(opts.OutputPromptFile))
                     {
-                        ss.Test<SeqCorpusBatch>(opts.InputTestFile, opts.OutputFile, opts.BatchSize, decodingOptions, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath, opts.OutputAlignmentsFile);
+                        ss.Test(opts.InputTestFile, opts.OutputFile, opts.BatchSize, decodingOptions, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath, opts.OutputAlignmentsFile);
                     }
                     else
                     {
                         Logger.WriteLine($"Test with prompt file '{opts.OutputPromptFile}'");
-                        ss.Test<SeqCorpusBatch>(opts.InputTestFile, opts.OutputPromptFile, opts.OutputFile, opts.BatchSize, decodingOptions, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath, opts.OutputAlignmentsFile);
+                        ss.Test(opts.InputTestFile, opts.OutputPromptFile, opts.OutputFile, opts.BatchSize, decodingOptions, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath, opts.OutputAlignmentsFile);
                     }
 
                     stopwatch.Stop();

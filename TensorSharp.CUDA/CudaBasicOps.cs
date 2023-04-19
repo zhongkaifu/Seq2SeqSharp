@@ -110,18 +110,26 @@ namespace TensorSharp.CUDA
             [OpArgStorageType(typeof(CudaStorage))] Tensor result,
             [OpArgStorageType(typeof(Cpu.CpuStorage))] Tensor src)
         {
-            long totalElements = result.ElementCount();
-            if (totalElements != src.ElementCount())
+            try
             {
-                throw new InvalidOperationException("Tensors must have equal numbers of elements");
-            }
+                long totalElements = result.ElementCount();
+                if (totalElements != src.ElementCount())
+                {
+                    throw new InvalidOperationException("Tensors must have equal numbers of elements");
+                }
 
-            if (src.DimensionCount == 0)
+                if (src.DimensionCount == 0)
+                {
+                    return;
+                }
+
+                copyOps.CopyCpuToGpu(result, src, totalElements);
+            }
+            catch (Exception err)
             {
-                return;
+                Logger.WriteLine(Logger.Level.err, $"Error Message = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                throw;
             }
-
-            copyOps.CopyCpuToGpu(result, src, totalElements);
         }
 
         [RegisterOpArgCount("copy")]
@@ -129,18 +137,26 @@ namespace TensorSharp.CUDA
             [OpArgStorageType(typeof(Cpu.CpuStorage))] Tensor result,
             [OpArgStorageType(typeof(CudaStorage))] Tensor src)
         {
-            long totalElements = result.ElementCount();
-            if (totalElements != src.ElementCount())
+            try
             {
-                throw new InvalidOperationException("Tensors must have equal numbers of elements");
-            }
+                long totalElements = result.ElementCount();
+                if (totalElements != src.ElementCount())
+                {
+                    throw new InvalidOperationException("Tensors must have equal numbers of elements");
+                }
 
-            if (src.DimensionCount == 0)
+                if (src.DimensionCount == 0)
+                {
+                    return;
+                }
+
+                copyOps.CopyGpuToCpu(result, src, totalElements);
+            }
+            catch (Exception err)
             {
-                return;
+                Logger.WriteLine(Logger.Level.err, $"Error Message = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                throw;
             }
-
-            copyOps.CopyGpuToCpu(result, src, totalElements);
         }
 
 
@@ -318,6 +334,13 @@ namespace TensorSharp.CUDA
         public Tensor Sqrt(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseKernels, "sqrt", result, src); }
 
 
+
+
+        [RegisterOpStorageType("float2half", typeof(CudaStorage))]
+        public Tensor Float2Half(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseKernels, "float2half", result, src); }
+
+        [RegisterOpStorageType("half2float", typeof(CudaStorage))]
+        public Tensor Half2Float(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseKernels, "half2float", result, src); }
 
 
 
