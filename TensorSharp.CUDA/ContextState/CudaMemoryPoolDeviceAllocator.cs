@@ -14,6 +14,7 @@ namespace TensorSharp.CUDA.ContextState
         private readonly CudaMemoryPool pool;
         private readonly CudaStream stream;
 
+
         public CudaMemoryPoolDeviceAllocator(CudaContext cudaContext)
         {
             context = cudaContext;
@@ -28,15 +29,31 @@ namespace TensorSharp.CUDA.ContextState
 
         public IDeviceMemory Allocate(long byteCount)
         {
-            try
+            int retryCount = 0;
+            Exception err = null;
+            while (retryCount < 3)
             {
-                CUdeviceptr buffer = pool.MemAllocFromPoolAsync(byteCount, stream.Stream);
-                return new CudaMemoryPoolDeviceMemory(buffer, () => context.FreeMemoryAsync(buffer, stream.Stream));
+                try
+                {
+                    CUdeviceptr buffer = pool.MemAllocFromPoolAsync(byteCount, stream.Stream);
+                    return new CudaMemoryPoolDeviceMemory(buffer, () => context.FreeMemoryAsync(buffer, stream.Stream));
+                }
+                catch (Exception ex)
+                {
+                    GC.Collect(); // Collect unused tensor objects and free GPU memory
+                    err = ex;
+                }
+
+                retryCount++;
             }
-            catch (Exception ex)
+
+            if (err != null)
             {
-                GC.Collect(); // Collect unused tensor objects and free GPU memory
-                throw new OutOfMemoryException($"Out of GPU memory.");
+                throw err;
+            }
+            else
+            {
+                throw new OutOfMemoryException("Out of GPU memory.");
             }
         }
 

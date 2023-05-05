@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ManagedCuda.BasicTypes;
+using System;
 
 namespace TensorSharp
 {
@@ -38,6 +39,8 @@ namespace TensorSharp
         public abstract float[] GetElementsAsFloat(long index, int length);
         public abstract void SetElementAsFloat(long index, float value);
         public abstract void SetElementsAsFloat(long index, float[] value);
+
+        public abstract void SetElementsAsHalf(long index, half[] value);
 
         public abstract void CopyToStorage(long storageIndex, IntPtr src, long byteCount);
         public abstract void CopyFromStorage(IntPtr dst, long storageIndex, long byteCount);

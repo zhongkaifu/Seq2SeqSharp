@@ -9,8 +9,10 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
 using AdvUtils;
+using ManagedCuda.BasicTypes;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using TensorSharp;
@@ -183,26 +185,29 @@ namespace Seq2SeqSharp.Tools
                 m_computeGraphToBind.Bind(this);
             }
 
-            if (normType == NormType.Uniform)
+            if (isTrainable)
             {
-                var scale = (float)Math.Sqrt(6.0 / (double)(Rows + Columns));
-
-                if (fanIn && !fanOut)
+                if (normType == NormType.Uniform)
                 {
-                    scale = (float)Math.Sqrt(3.0 / (double)Rows);
-                }
-                else if (!fanIn && fanOut)
-                {
-                    scale = (float)Math.Sqrt(3.0 / (double)Columns);
-                }
+                    var scale = (float)Math.Sqrt(6.0 / (double)(Rows + Columns));
 
-                float[] w = TensorSharp.RandomGenerator.BuildRandomUniformWeight(Sizes, -scale, scale);
-                SetWeightArray(w);               
-            }
-            else if (normType == NormType.Normal)
-            {
-                float[] w = TensorSharp.RandomGenerator.BuildRandomUniformWeight(Sizes, -1.0f, 1.0f);
-                SetWeightArray(w);
+                    if (fanIn && !fanOut)
+                    {
+                        scale = (float)Math.Sqrt(3.0 / (double)Rows);
+                    }
+                    else if (!fanIn && fanOut)
+                    {
+                        scale = (float)Math.Sqrt(3.0 / (double)Columns);
+                    }
+
+                    float[] w = TensorSharp.RandomGenerator.BuildRandomUniformWeight(Sizes, -scale, scale);
+                    SetWeightArray(w);
+                }
+                else if (normType == NormType.Normal)
+                {
+                    float[] w = TensorSharp.RandomGenerator.BuildRandomUniformWeight(Sizes, -1.0f, 1.0f);
+                    SetWeightArray(w);
+                }
             }
         }
      
@@ -487,15 +492,28 @@ namespace Seq2SeqSharp.Tools
         {
             if (ElementType == DType.Float16)
             {
-                Tensor tmp = new Tensor(Allocator, DType.Float32, Sizes);
-                tmp.SetElementsAsFloat(v);
-                Ops.Float2Half(TWeight, tmp);
-                tmp.Dispose();
+                half[] halves= new half[v.Length];
+                for (int i = 0; i < v.Length; i++)
+                {
+                    halves[i] = new half(v[i]);
+                }
+
+                TWeight.SetElementsAsHalf(halves);
             }
             else
             {
                 TWeight.SetElementsAsFloat(v);
             }
+        }
+
+        public void SetWeightArray(half[] v)
+        {
+            if (ElementType != DType.Float16)
+            {
+                throw new InvalidCastException($"Inconsistent element type in weights '{Name}'");
+            }
+
+            TWeight.SetElementsAsHalf(v);
         }
 
         public WeightTensor CopyWeightsRef(string name, bool needGradient, IComputeGraph graphToBind)
@@ -547,10 +565,29 @@ namespace Seq2SeqSharp.Tools
         {
             Logger.WriteLine($"Loading weights '{Name}' from the model to device '{DeviceId}'...");
 
-            var weights = model.GetWeights(Name);           
-            if (weights != null)
+            if (m_elementType == DType.Float16)
             {
-                SetWeightArray(weights);            
+                var weights = model.GetWeightsHalfType(Name);
+                if (weights != null)
+                {
+                    SetWeightArray(weights);
+                }
+                else
+                {
+                    throw new InvalidDataException($"Weights '{Name}' is null.");
+                }
+            }
+            else
+            {
+                var weights = model.GetWeights(Name);
+                if (weights != null)
+                {
+                    SetWeightArray(weights);
+                }
+                else
+                {
+                    throw new InvalidDataException($"Weights '{Name}' is null.");
+                }
             }
         }
 

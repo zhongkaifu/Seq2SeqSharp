@@ -60,7 +60,19 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CudaRand.netCore", "Externa
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NVRTC.netCore", "ExternalProjects\managedCuda\NVRTC\NVRTC.netCore.csproj", "{DFEE8ACE-4935-40D1-8B9B-1E9F7FFC6FAE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GPTConsole", "Tools\GPTConsole\GPTConsole.csproj", "{4DBA9DDA-569C-4F31-9C98-84837D2F8148}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GPTConsole", "Tools\GPTConsole\GPTConsole.csproj", "{4DBA9DDA-569C-4F31-9C98-84837D2F8148}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PythonPackage", "PythonPackage", "{9E288174-DDC9-4B77-97B8-A8E010228983}"
+	ProjectSection(SolutionItems) = preProject
+		PyPackage\LICENSE = PyPackage\LICENSE
+		PyPackage\README.md = PyPackage\README.md
+		PyPackage\setup.py = PyPackage\setup.py
+		PyPackage\testGPT.py = PyPackage\testGPT.py
+		PyPackage\testSeq2Seq.py = PyPackage\testSeq2Seq.py
+		PyPackage\trainGPT.py = PyPackage\trainGPT.py
+		PyPackage\trainSeq2Seq.py = PyPackage\trainSeq2Seq.py
+		PyPackage\Seq2SeqSharp\__init__.py = PyPackage\Seq2SeqSharp\__init__.py
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

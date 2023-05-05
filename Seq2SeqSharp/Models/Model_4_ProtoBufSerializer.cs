@@ -7,6 +7,7 @@ using ProtoBuf;
 using AdvUtils;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Utils;
+using Seq2SeqSharp.Enums;
 
 namespace Seq2SeqSharp.Models
 {

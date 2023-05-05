@@ -12,8 +12,10 @@ using System;
 using System.Collections.Generic;
 
 using AdvUtils;
+using ManagedCuda.BasicTypes;
 using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Utils;
+using Seq2SeqSharp.Enums;
 
 namespace Seq2SeqSharp.Models
 {
@@ -205,6 +207,43 @@ namespace Seq2SeqSharp.Models
                 }
 
                 weight = Name2Weights[name];
+            }
+
+            return weight;
+        }
+
+        public half[] GetWeightsHalfType(string name)
+        {
+            half[] weight = null;
+            if (VQSize > 0)
+            {
+                if (Name2WeightsVQ.ContainsKey(name) == false)
+                {
+                    Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Weight '{name}' doesn't exist in the model.");
+                    return null;
+                }
+
+                var codeBook = Name2CodeBook[name];
+
+                weight = new half[Name2WeightsVQ[name].Length];
+                for (int i = 0; i < Name2WeightsVQ[name].Length; i++)
+                {
+                    weight[i] = new half(codeBook[Name2WeightsVQ[name][i]]);
+                }
+            }
+            else
+            {
+                if (Name2Weights.ContainsKey(name) == false)
+                {
+                    Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Weight '{name}' doesn't exist in the model.");
+                    return null;
+                }
+
+                var values = Name2Weights[name];
+                for (int i = 0; i < values.Length; i++)
+                {
+                    weight[i] = new half(values[i]);
+                }
             }
 
             return weight;

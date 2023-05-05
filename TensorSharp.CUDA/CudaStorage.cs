@@ -137,6 +137,19 @@ namespace TensorSharp.CUDA
             }
         }
 
+        public override void SetElementsAsHalf(long index, half[] value)
+        {
+            context.SetCurrent();
+
+            CUdeviceptr ptr = DevicePtrAtElement(index);
+
+            if (ElementType == DType.Float16) { context.CopyToDevice(ptr, value); }
+            else
+            {
+                throw new NotSupportedException("Element type " + ElementType + " not supported");
+            }
+        }
+
         public override void CopyToStorage(long storageIndex, IntPtr src, long byteCount)
         {
             CUdeviceptr dstPtr = DevicePtrAtElement(storageIndex);

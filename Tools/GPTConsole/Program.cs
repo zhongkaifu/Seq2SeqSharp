@@ -8,22 +8,19 @@
 // Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
 using AdvUtils;
 using Seq2SeqSharp;
+using Seq2SeqSharp.LearningRate;
 using Seq2SeqSharp.Corpus;
-using Seq2SeqSharp.Metrics;
+using Seq2SeqSharp.Enums;
 using Seq2SeqSharp.Optimizer;
 using Seq2SeqSharp.Utils;
 using Seq2SeqSharp.Applications;
-using System.Xml;
 
 namespace Seq2SeqConsole
 {

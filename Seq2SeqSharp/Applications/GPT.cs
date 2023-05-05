@@ -13,7 +13,7 @@ using System.Collections.Generic;
 using System.IO;
 using AdvUtils;
 using Microsoft.Extensions.Caching.Memory;
-using Seq2SeqSharp.Applications;
+using Seq2SeqSharp.Enums;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Layers;
 using Seq2SeqSharp.Models;
@@ -149,7 +149,6 @@ namespace Seq2SeqSharp.Applications
         public override List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, DecodingOptions decodingOptions, bool isTraining)
         {
             (var decoder, var decoderFFLayer, var tgtEmbedding, var posEmbedding, var segmentEmbedding) = GetNetworksOnDeviceAt(computeGraph.DeviceId);
-
             List<NetworkResult> nrs = new List<NetworkResult>();
 
             // Generate output decoder sentences

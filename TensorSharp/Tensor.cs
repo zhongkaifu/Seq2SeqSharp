@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ManagedCuda.BasicTypes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -237,6 +238,11 @@ namespace TensorSharp
         public void SetElementsAsFloat(float[] value)
         {
             storage.SetElementsAsFloat(storageOffset, value);
+        }
+
+        public void SetElementsAsHalf(half[] value)
+        {
+            storage.SetElementsAsHalf(storageOffset, value);
         }
 
         public void SetElementsAsFloat(float[] value, params long[] indices)

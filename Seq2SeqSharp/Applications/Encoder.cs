@@ -14,6 +14,7 @@ using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
 using TensorSharp;
+using Seq2SeqSharp.Enums;
 
 namespace Seq2SeqSharp.Applications
 {

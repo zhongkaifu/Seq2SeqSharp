@@ -34,6 +34,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\AdvUtils\AdvUtils.csproj" />
+    <ProjectReference Include="..\ExternalProjects\managedCuda\ManagedCUDA\ManagedCuda.netCore.csproj" />
   </ItemGroup>
   <PropertyGroup>
     <Authors>Zhongkai Fu</Authors>

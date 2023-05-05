@@ -16,11 +16,12 @@ using Seq2SeqSharp.Metrics;
 using Seq2SeqSharp.Optimizer;
 using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
+using Seq2SeqSharp.LearningRate;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
+using Seq2SeqSharp.Enums;
 
 namespace Seq2SeqSharp.Tests;
 
@@ -230,7 +231,7 @@ public class Seq2Seq_Tests
         ss.EpochEndWatcher += Ss_EpochEndWatcher;
 
         // Kick off training
-        ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: metrics, decodingOptions: decodingOptions);
+        ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: metrics.ToArray(), decodingOptions: decodingOptions);
 
         ss.SaveModel(suffix: ".test");
 

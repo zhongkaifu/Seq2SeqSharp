@@ -8,20 +8,20 @@
 // Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
-namespace Seq2SeqSharp
-{
-    public enum EncoderTypeEnums
-    {
-        None = -1,
-        BiLSTM = 0,
-        Transformer = 1,
-    }
+//namespace Seq2SeqSharp.Utils
+//{
+//    public enum EncoderTypeEnums
+//    {
+//        None = -1,
+//        BiLSTM = 0,
+//        Transformer = 1,
+//    }
 
-    public enum DecoderTypeEnums
-    {
-        None = -1,
-        AttentionLSTM = 0,
-        Transformer = 1,
-        GPTDecoder = 2
-    }
-}
+//    public enum DecoderTypeEnums
+//    {
+//        None = -1,
+//        AttentionLSTM = 0,
+//        Transformer = 1,
+//        GPTDecoder = 2
+//    }
+//}

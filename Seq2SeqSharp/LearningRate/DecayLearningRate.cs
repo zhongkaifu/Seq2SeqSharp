@@ -11,7 +11,7 @@
 using AdvUtils;
 using System;
 
-namespace Seq2SeqSharp
+namespace Seq2SeqSharp.LearningRate
 {
     public class DecayLearningRate : ILearningRate
     {

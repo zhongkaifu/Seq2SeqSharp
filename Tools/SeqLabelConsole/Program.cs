@@ -11,6 +11,7 @@
 using AdvUtils;
 using Newtonsoft.Json;
 using Seq2SeqSharp;
+using Seq2SeqSharp.LearningRate;
 using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Metrics;
@@ -21,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Seq2SeqSharp.Enums;
 
 namespace SeqLabelConsole
 {
@@ -125,7 +127,7 @@ namespace SeqLabelConsole
                 sl.EvaluationWatcher += Ss_EvaluationWatcher;
 
                 // Kick off training
-                sl.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: metrics, decodingOptions: decodingOptions);
+                sl.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: metrics.ToArray(), decodingOptions: decodingOptions);
 
 
             }

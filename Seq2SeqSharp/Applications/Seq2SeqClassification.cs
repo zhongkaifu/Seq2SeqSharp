@@ -19,6 +19,7 @@ using Seq2SeqSharp.Layers;
 using Seq2SeqSharp.Models;
 using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
+using Seq2SeqSharp.Enums;
 
 namespace Seq2SeqSharp.Applications
 {

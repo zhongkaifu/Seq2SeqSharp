@@ -15,6 +15,7 @@ using Seq2SeqSharp.Applications;
 using AdvUtils;
 using Seq2SeqSharp.Utils;
 using Seq2SeqSharp.Tools;
+using TensorSharp.CUDA.ContextState;
 
 namespace Seq2SeqWebApps
 {
@@ -43,7 +44,7 @@ namespace Seq2SeqWebApps
 
         static public void Initialization(string modelFilePath, int maxTestSrcSentLength, int maxTestTgtSentLength, int maxTokenToGeneration, ProcessorTypeEnums processorType, string deviceIds, SentencePiece? srcSpm, SentencePiece? tgtSpm,
             Seq2SeqSharp.Utils.DecodingStrategyEnums decodingStrategyEnum, float memoryUsageRatio, string mklInstructions, int beamSearchSize, string blockedTokens, ModelType modelType,
-            string wordMappingFilePath, bool enableTensorCore, string compilerOptions, bool amp)
+            string wordMappingFilePath, bool enableTensorCore, string compilerOptions, bool amp, CudaMemoryDeviceAllocatorType cudaMemoryDeviceAllocatorType)
         {
             opts = new Seq2SeqOptions();
             opts.ModelFilePath = modelFilePath;
@@ -58,6 +59,11 @@ namespace Seq2SeqWebApps
             opts.EnableTensorCore = enableTensorCore;
             opts.CompilerOptions = compilerOptions;
             opts.AMP = amp;
+            opts.IsDecoderTrainable = false;
+            opts.IsEncoderTrainable = false;
+            opts.IsSrcEmbeddingTrainable = false;
+            opts.IsTgtEmbeddingTrainable = false;
+            opts.CudaMemoryAllocatorType = cudaMemoryDeviceAllocatorType;
 
             MaxTokenToGenerate = maxTokenToGeneration;
 
@@ -95,25 +101,34 @@ namespace Seq2SeqWebApps
                 sm = new Semaphore(1, 1);
             }
 
-            Logger.WriteLine($"Creating Seq2Seq instance. ModelType = '{m_modelType}'");
-            if (m_modelType == ModelType.EncoderDecoder)
+            try
             {
-                m_seq2seq = new Seq2Seq(opts);
-            }
-            else
-            {
-                m_seq2seq = new GPT(opts);
-            }
-            if (String.IsNullOrEmpty(blockedTokens) == false)
-            {
-                Logger.WriteLine($"Creating blocked tokens = '{blockedTokens}'");
-                string[] tokens = blockedTokens.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                
-                m_blockedTokens = new List<int>();
-                foreach (var token in tokens)
+                Logger.WriteLine($"Creating Seq2Seq instance. ModelType = '{m_modelType}'");
+                if (m_modelType == ModelType.EncoderDecoder)
                 {
-                    m_blockedTokens.Add(int.Parse(token));
+                    m_seq2seq = new Seq2Seq(opts);
                 }
+                else
+                {
+                    m_seq2seq = new GPT(opts);
+                }
+                if (String.IsNullOrEmpty(blockedTokens) == false)
+                {
+                    Logger.WriteLine($"Creating blocked tokens = '{blockedTokens}'");
+                    string[] tokens = blockedTokens.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                    m_blockedTokens = new List<int>();
+                    foreach (var token in tokens)
+                    {
+                        m_blockedTokens.Add(int.Parse(token));
+                    }
+                }
+            }
+            catch(Exception e)
+            {
+                Logger.WriteLine($"Error: '{e.Message}'");
+                Logger.WriteLine($"Call Stack: '{e.StackTrace}'");
+                throw;
             }
 
         }

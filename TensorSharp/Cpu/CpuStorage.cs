@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ManagedCuda.BasicTypes;
+using System;
 using System.Runtime.InteropServices;
 
 namespace TensorSharp.Cpu
@@ -162,6 +163,11 @@ namespace TensorSharp.Cpu
                     throw new NotSupportedException("Element type " + ElementType + " not supported");
                 }
             }
+        }
+
+        public override void SetElementsAsHalf(long index, half[] value)
+        {
+            throw new NotImplementedException($"SetElementsAsHalf has not been implemented for CPUs yet.");
         }
 
         public override void CopyToStorage(long storageIndex, IntPtr src, long byteCount)

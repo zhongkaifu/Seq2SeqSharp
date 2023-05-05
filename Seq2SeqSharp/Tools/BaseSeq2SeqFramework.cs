@@ -276,13 +276,17 @@ namespace Seq2SeqSharp.Tools
             SaveModel(createBackupPrevious: false, suffix: $".{m_weightsUpdateCount}");
         }
 
-        public void Train(int maxTrainingEpoch, ICorpus<ISntPairBatch> trainCorpus, ICorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, List<IMetric> metrics, IOptimizer optimizer, DecodingOptions decodingOptions)
+        public void Train(int maxTrainingEpoch, ICorpus<ISntPairBatch> trainCorpus, ICorpus<ISntPairBatch>[] validCorpusList, ILearningRate learningRate, IMetric[] metrics, IOptimizer optimizer, DecodingOptions decodingOptions)
         {
             Logger.WriteLine("Start to train...");
-            Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>
+            Dictionary<int, List<IMetric>> taskId2metrics = null;
+            if (metrics != null)
             {
-                { 0, metrics }
-            };
+                taskId2metrics = new Dictionary<int, List<IMetric>>
+                {
+                    { 0, metrics.ToList() }
+                };
+            }
 
             Train(maxTrainingEpoch, trainCorpus, validCorpusList, learningRate, taskId2metrics, optimizer, decodingOptions);
         }
@@ -372,6 +376,11 @@ namespace Seq2SeqSharp.Tools
                                         isArithmeticException = true;
                                         oomMessage = excep.Message;
                                         break;
+                                    }
+                                    else
+                                    {
+                                        Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Inner Exception: {excep.Message}, Call stack: {excep.StackTrace}");
+                                        throw err;
                                     }
                                 }
 

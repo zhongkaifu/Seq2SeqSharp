@@ -226,13 +226,23 @@ namespace Seq2SeqSharp
         {
             if (m_isStaticWeights == false)
             {
-                for (int i = 0; i < m_networks.Length; i++)
+                m_networks[0].Load(model);
+
+                var srcWeights = m_networks[0].GetParams();
+                for (int i = 1; i < m_networks.Length; i++)
                 {
-                    m_networks[i].Load(model);
+                    var destWeights = m_networks[i].GetParams();
+
+                    for (int j = 0; j < srcWeights.Count; j++)
+                    {
+                        destWeights[j].CopyWeightsFrom(srcWeights[j]);
+                    }
                 }
+
                 m_weightsSynced = true;
             }
         }
+
 
         public List<IWeightTensor> GetWeightsOnDefaultDevice()
         {

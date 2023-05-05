@@ -18,11 +18,13 @@ using Newtonsoft.Json.Converters;
 
 using AdvUtils;
 using Seq2SeqSharp;
+using Seq2SeqSharp.LearningRate;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Metrics;
 using Seq2SeqSharp.Optimizer;
 using Seq2SeqSharp.Utils;
 using Seq2SeqSharp.Applications;
+using Seq2SeqSharp.Enums;
 
 namespace Seq2SeqConsole
 {
@@ -126,7 +128,7 @@ namespace Seq2SeqConsole
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;
 
                     // Kick off training
-                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: metrics, decodingOptions: decodingOptions);
+                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: metrics.ToArray(), decodingOptions: decodingOptions);
                 }
                 else if (opts.Task == ModeEnums.Valid)
                 {

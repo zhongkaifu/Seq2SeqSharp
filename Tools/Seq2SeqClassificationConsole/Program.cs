@@ -18,11 +18,13 @@ using Newtonsoft.Json.Converters;
 
 using AdvUtils;
 using Seq2SeqSharp;
+using Seq2SeqSharp.LearningRate;
 using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Metrics;
 using Seq2SeqSharp.Optimizer;
 using Seq2SeqSharp.Utils;
+using Seq2SeqSharp.Enums;
 
 namespace Seq2SeqClassificationConsole
 {

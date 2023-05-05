@@ -1,4 +1,4 @@
-﻿Donate a beverage to help me to keep Seq2SeqSharp up to date :) [![Support via PayPal](https://www.paypalobjects.com/en_GB/i/btn/btn_donate_SM.gif)](https://www.paypal.me/fuzhongkai/)
+Donate a beverage to help me to keep Seq2SeqSharp up to date :) [![Support via PayPal](https://www.paypalobjects.com/en_GB/i/btn/btn_donate_SM.gif)](https://www.paypal.me/fuzhongkai/)
 
 [![.NET](https://github.com/zhongkaifu/Seq2SeqSharp/actions/workflows/dotnet.yml/badge.svg)](https://github.com/zhongkaifu/Seq2SeqSharp/actions/workflows/dotnet.yml)
 # Seq2SeqSharp  
@@ -16,7 +16,6 @@ Built-in several networks for sequence-to-sequence, sequence-classification, lab
 Mixture of Experts network that could easily train huge model with less computing cost  
 Support Automatic Mixed Precesion (FP16)  
 Built-in SentencePiece supported  
-Python package supported  
 Tags embeddings mechanism  
 Prompted Decoders  
 Include console tools and web apis for built-in networks  
@@ -470,75 +469,6 @@ ENV MKL_ENABLE_INSTRUCTIONS=AVX2
 CMD ["dotnet","/code/bin/SeqWebApps.dll"]
 ```
 
-# Python package  
-Seq2SeqSharp released Python package and you can get it from https://pypi.org/project/Seq2SeqSharp/ or run command line "pip install Seq2SeqSharp"  
-The package is built based on PythonNet, and you could call Seq2SeqSharp APIs in your Python code. You can check train and test example codes in PyPackage folder.  
-Here is an Python example to test English-Chinese machine translation model trained by Seq2SeqSharp.  
-```python
-from Seq2SeqSharp import Seq2SeqOptions, ModeEnums, ProcessorTypeEnums, DecodingStrategyEnums, Seq2Seq
-
-opts = Seq2SeqOptions()
-opts.Task = ModeEnums.Test
-opts.ModelFilePath = "../Tests/Seq2SeqSharp.Tests/mt_enu_chs.model"
-opts.InputTestFile = "test.src"
-opts.OutputFile = "a.out"
-opts.ProcessorType = ProcessorTypeEnums.CPU
-opts.MaxSrcSentLength = 110
-opts.MaxTgtSentLength = 110
-opts.BatchSize = 1
-opts.SrcSentencePieceModelPath = "./enu.model"
-opts.TgtSentencePieceModelPath = "./chs.model"
-
-decodingOptions = opts.CreateDecodingOptions()
-
-ss = Seq2Seq(opts)
-ss.Test(opts.InputTestFile, opts.OutputFile, opts.BatchSize, decodingOptions, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath, "")
-```
-
-And here is another Python example to train English-Chinese machine translation model by Seq2SeqSharp.  
-```python
-from Seq2SeqSharp import Seq2SeqOptions, ModeEnums, ProcessorTypeEnums, Seq2Seq, Vocab, Seq2SeqCorpus, DecayLearningRate, BleuMetric, Misc, TooLongSequence, ShuffleEnums, AdamOptimizer
-import json
-
-def ParseOptions(config_json):
-    opts = Seq2SeqOptions()
-    opts.Task = ModeEnums.Train
-    opts.ProcessorType = ProcessorTypeEnums.CPU
-    opts.ModelFilePath = config_json['ModelFilePath']
-    opts.RunValidEveryUpdates = int(config_json['RunValidEveryUpdates'])
-    opts.UpdateFreq = int(config_json['UpdateFreq'])
-    opts.StartValidAfterUpdates = int(config_json['StartValidAfterUpdates'])
-    opts.WeightsUpdateCount = int(config_json['WeightsUpdateCount'])
-    return opts
-
-with open("train_opts.json", 'r') as file:
-    opts = json.load(file)
-
-trainCorpus = Seq2SeqCorpus(corpusFilePath = opts['TrainCorpusPath'], srcLangName = opts['SrcLang'], tgtLangName = opts['TgtLang'], maxTokenSizePerBatch = int(opts['MaxTokenSizePerBatch']), maxSrcSentLength = int(opts['MaxSrcSentLength']), maxTgtSentLength = int(opts['MaxTgtSentLength'])) #, shuffleEnums = ShuffleEnums(opts['ShuffleType']), tooLongSequence = TooLongSequence(opts['TooLongSequence']));
-
-validCorpusList = []
-if len(opts['ValidCorpusPaths']) > 0:
-    validCorpusPaths = opts['ValidCorpusPaths'].split(';')
-    for validCorpusPath in validCorpusPaths:
-        validCorpus = Seq2SeqCorpus(validCorpusPath, opts['SrcLang'], opts['TgtLang'], int(opts['ValMaxTokenSizePerBatch']), int(opts['MaxValidSrcSentLength']), int(opts['MaxValidTgtSentLength'])) #, shuffleEnums = opts.ShuffleType, tooLongSequence = opts.TooLongSequence)
-        validCorpusList.append(validCorpus)
-
-learningRate = DecayLearningRate(opts['StartLearningRate'], opts['WarmUpSteps'], opts['WeightsUpdateCount'], opts['LearningRateStepDownFactor'], opts['UpdateNumToStepDownLearningRate'])
-optimizer = AdamOptimizer(opts['GradClip'], opts['Beta1'], opts['Beta2'], opts['SaveGPUMemoryMode'])
-
-metrics = []
-metrics.append(BleuMetric())
-
-srcVocab = Vocab(opts['SrcVocab'])
-tgtVocab = Vocab(opts['TgtVocab'])
-
-opts2 = ParseOptions(opts)
-decodingOptions = opts2.CreateDecodingOptions()
-
-ss = Seq2Seq(opts2, srcVocab, tgtVocab)
-ss.Train(maxTrainingEpoch = opts['MaxEpochNum'], trainCorpus = trainCorpus, validCorpusList = validCorpusList, learningRate = learningRate, optimizer = optimizer, metrics = metrics, decodingOptions = decodingOptions);
-```
-
 # Using different CUDA versions and .NET versions  
 Seq2SeqSharp uses CUDA 12.x and .NET 7.0 by default, but you can still use different versions of them. It has already been tested on .NET core 3.1, CUDA 10.x and some other versions.  
 For different .NET versions, you need to modify target framework in *.csproj files. Here is an example to use .net core 3.1 as target framework in Seq2SeqSharp.csproj file.  
@@ -833,3 +763,4 @@ In Seq2SeqConsole project, it shows you how to initialize and train your network
 If you are interested in below items, please let me know. Becuase African proverb says "If you want to go fast, go alone. If you want to go far, go together" :)  
 Multimodal models  
 And More...  
+

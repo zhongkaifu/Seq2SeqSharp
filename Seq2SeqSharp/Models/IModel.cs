@@ -8,7 +8,9 @@
 // Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
+using ManagedCuda.BasicTypes;
 using Seq2SeqSharp.Utils;
+using Seq2SeqSharp.Enums;
 using System.Collections.Generic;
 
 namespace Seq2SeqSharp
@@ -47,6 +49,7 @@ namespace Seq2SeqSharp
         public void AddWeights(string name, float[] weights);
 
         public float[] GetWeights(string name);
+        half[] GetWeightsHalfType(string name);
 
         public void DeleteWeights(string name);
 

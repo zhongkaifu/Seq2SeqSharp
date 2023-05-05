@@ -8,6 +8,7 @@
 // Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
+using AdvUtils;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Layers;
 using Seq2SeqSharp.Tools;
@@ -15,6 +16,7 @@ using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
 using TensorSharp;
+using Seq2SeqSharp.Enums;
 
 namespace Seq2SeqSharp.Applications
 {

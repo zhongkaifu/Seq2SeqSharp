@@ -9,7 +9,9 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
 using AdvUtils;
+using Seq2SeqSharp.Utils;
 using Seq2SeqSharp.Applications;
+using Seq2SeqSharp.Enums;
 
 namespace Seq2SeqSharp.Applications
 {

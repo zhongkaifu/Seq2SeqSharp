@@ -13,7 +13,7 @@ using System.Collections.Generic;
 using System.IO;
 using AdvUtils;
 using Microsoft.Extensions.Caching.Memory;
-using Seq2SeqSharp.Applications;
+using Seq2SeqSharp.Enums;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Layers;
 using Seq2SeqSharp.Models;
