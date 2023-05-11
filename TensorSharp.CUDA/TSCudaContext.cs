@@ -34,10 +34,12 @@ namespace TensorSharp.CUDA
         private readonly RuntimeCompiler.CudaCompiler compiler;
         private readonly CudaKernelCache kernelCache = new CudaKernelCache();
 
+        public static DType ElementType = DType.Float32;
 
-        public TSCudaContext(int[] deviceIds, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, CudaMemoryDeviceAllocatorType allocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool)
+        public TSCudaContext(int[] deviceIds, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, CudaMemoryDeviceAllocatorType allocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool, DType dtype = DType.Float32)
         {
             this.deviceIds = deviceIds;
+            ElementType = dtype;
 
             devices = new DeviceState[deviceIds.Length];
             for (int i = 0; i < deviceIds.Length; i++)

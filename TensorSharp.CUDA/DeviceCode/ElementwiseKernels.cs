@@ -8,6 +8,8 @@
 // Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
+using AdvUtils;
+
 namespace TensorSharp.CUDA.DeviceCode
 {
     [Precompile]
@@ -42,15 +44,7 @@ namespace TensorSharp.CUDA.DeviceCode
 
             //x + y * z
             AppendTTTSFunc(result, "addmulv", "AddMul");
-
-
-            result.AddApplyTTSHalf("t1_addmulv", "*a = __hadd(*a, __hmul(*b, c));");
-            result.AddApplyTTTSHalf("t2_addmulv", "*a = __hadd(*b, __hmul(*c, d));");
-
-
-
             AppendTTTTFunc(result, "adddiv", "AddDiv");
-
             AppendTTTSFunc(result, "maskfill", "MaskFill");
 
             result.AddApplyTS("t1_pow", "*a = powf(*a, b);");
@@ -63,8 +57,16 @@ namespace TensorSharp.CUDA.DeviceCode
             result.AddApplyTSS("t1_clamp", "*a = Clamp(*a, b, c);");
             result.AddApplyTTSS("t2_clamp", "*a = Clamp(*b, c, d);");
 
-            result.AddApplyTT("t2_float2half", "*a = __float2half(*b);", new DType[] {DType.Float16, DType.Float32 });
-            result.AddApplyTT("t2_half2float", "*a = __half2float(*b);", new DType[] { DType.Float32, DType.Float16 });
+
+            if (TSCudaContext.ElementType == DType.Float16)
+            {
+                Logger.WriteLine($"Creating elementwise kernels for Float16 type.");
+
+                result.AddApplyTTSHalf("t1_addmulv", "*a = __hadd(*a, __hmul(*b, c));");
+                result.AddApplyTTTSHalf("t2_addmulv", "*a = __hadd(*b, __hmul(*c, d));");
+                result.AddApplyTT("t2_float2half", "*a = __float2half(*b);", new DType[] { DType.Float16, DType.Float32 });
+                result.AddApplyTT("t2_half2float", "*a = __half2float(*b);", new DType[] { DType.Float32, DType.Float16 });
+            }
 
             return result.ToString();
         }

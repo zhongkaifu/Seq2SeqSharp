@@ -15,9 +15,10 @@ namespace TensorSharp.CUDA.DeviceCode.Headers
     [CudaInclude("Code", "Math")]
     public static class MathHeader
     {
-        public const string Code = @"
-#include <cuda_fp16.h>
+		public static string Code = (TSCudaContext.ElementType == DType.Float16) ? Code32 + Code16 : Code32;
 
+
+        public const string Code32 = @"
 #define INLINE_FUNC __device__ __forceinline__
 
 //INLINE_FUNC uint8 Mod_op(uint8 x, uint8 y) { return x % y; }
@@ -72,14 +73,6 @@ template<typename T> INLINE_FUNC T Swish(T w) {
 	return w / (T(1) + expf(-w));
 }
 
-template<typename T> INLINE_FUNC T SwishHalf(T wh) {
-    float w = __half2float(wh);
-	float res = w / (1.0 + expf(-w));
-    return __float2half(res);
-}
-
-
-
 template<typename T> INLINE_FUNC T SwishD(T w, T resG) {
 
   T sig = T(1) / (T(1) + expf(-w));
@@ -87,34 +80,11 @@ template<typename T> INLINE_FUNC T SwishD(T w, T resG) {
   return resG * grad;
 }
 
-
-template<typename T> INLINE_FUNC T SwishDHalf(T wh, T resGh) {
-
-  float w = __half2float(wh);
-  float resG = __half2float(resGh);
-
-  float sig = 1.0 / (1.0 + expf(-w));
-  float grad = sig * (1.0 + w * (1.0 - sig));
-  return __float2half(resG * grad);
-}
-
 template<typename T> INLINE_FUNC T AddSwishD(T t, T w, T resG) {
 
   T sig = T(1) / (T(1) + expf(-w));
   T grad = sig * (T(1) + w * (T(1) - sig));
   return t + resG * grad;
-
-}
-
-template<typename T> INLINE_FUNC T AddSwishDHalf(T th, T wh, T resGh) {
-
-  float t = __half2float(th);
-  float w = __half2float(wh);
-  float resG = __half2float(resGh);
-
-  float sig = 1.0 / (1.0 + expf(-w));
-  float grad = sig * (1.0 + w * (1.0 - sig));
-  return __float2half(t + resG * grad);
 
 }
 
@@ -181,15 +151,6 @@ template <typename T> INLINE_FUNC T addrelud(T t, T w, T g) {
 	return t;
 }
 
-
-template <typename T> INLINE_FUNC T addreludhalf(T t, T w, T g) {
-	if (w > T(0))
-		return __hadd(t, g);
-	return t;
-}
-
-
-
 template <typename T> INLINE_FUNC T Clamp(T val, T min, T max) {
 	if (val < min)
 		return min;
@@ -204,6 +165,45 @@ template <typename T> INLINE_FUNC T MaskFill(T t, T mask, T defValue) {
 	return defValue;
 }
 
+
+";
+
+        public const string Code16 = @"
+#include <cuda_fp16.h>
+
+template<typename T> INLINE_FUNC T SwishHalf(T wh) {
+    float w = __half2float(wh);
+	float res = w / (1.0 + expf(-w));
+    return __float2half(res);
+}
+
+template<typename T> INLINE_FUNC T SwishDHalf(T wh, T resGh) {
+
+  float w = __half2float(wh);
+  float resG = __half2float(resGh);
+
+  float sig = 1.0 / (1.0 + expf(-w));
+  float grad = sig * (1.0 + w * (1.0 - sig));
+  return __float2half(resG * grad);
+}
+
+template<typename T> INLINE_FUNC T AddSwishDHalf(T th, T wh, T resGh) {
+
+  float t = __half2float(th);
+  float w = __half2float(wh);
+  float resG = __half2float(resGh);
+
+  float sig = 1.0 / (1.0 + expf(-w));
+  float grad = sig * (1.0 + w * (1.0 - sig));
+  return __float2half(t + resG * grad);
+
+}
+
+template <typename T> INLINE_FUNC T addreludhalf(T t, T w, T g) {
+	if (w > T(0))
+		return __hadd(t, g);
+	return t;
+}
 
 ";
     }

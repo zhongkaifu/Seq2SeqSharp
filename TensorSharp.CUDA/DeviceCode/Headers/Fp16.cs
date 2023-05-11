@@ -15,7 +15,7 @@ namespace TensorSharp.CUDA.DeviceCode.Headers
     [CudaInclude("Code", "Fp16")]
     public static class Fp16
     {
-        public static readonly string Code = "#include <cuda_fp16.h>";
+        public static readonly string Code = (TSCudaContext.ElementType == DType.Float16) ? "#include <cuda_fp16.h>" : "";
 //typedef struct __align__(2) {
 //   unsigned short x;
 //} __half;

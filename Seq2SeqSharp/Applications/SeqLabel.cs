@@ -38,7 +38,8 @@ namespace Seq2SeqSharp
 
         public SeqLabel(SeqLabelOptions options, Vocab srcVocab = null, Vocab clsVocab = null)
             : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions, startToRunValidAfterUpdates: options.StartValidAfterUpdates,
-                  runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq, maxDegressOfParallelism: options.TaskParallelism, cudaMemoryAllocatorType: options.CudaMemoryAllocatorType)
+                  runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq, maxDegressOfParallelism: options.TaskParallelism, 
+                  cudaMemoryAllocatorType: options.CudaMemoryAllocatorType, elementType: options.AMP ? DType.Float16 : DType.Float32)
         {
             m_shuffleType = options.ShuffleType;
             m_options = options;

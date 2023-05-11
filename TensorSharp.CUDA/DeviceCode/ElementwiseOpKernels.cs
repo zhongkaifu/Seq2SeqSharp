@@ -8,6 +8,8 @@
 // Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
+using AdvUtils;
+
 namespace TensorSharp.CUDA.DeviceCode
 {
     [Precompile]
@@ -26,12 +28,8 @@ namespace TensorSharp.CUDA.DeviceCode
             AppendTTSFunc(result, "sub", "sub_op");
             AppendTTSFunc(result, "rsub", "rsub_op");
             AppendTTSFunc(result, "mul", "mul_op");
-            AppendTTSHalfFunc(result, "mul", "__hmul");
-
-            AppendTTSFunc(result, "div", "div_op");
-            AppendTTSHalfFunc(result, "div", "__hdiv");
-
-
+           
+            AppendTTSFunc(result, "div", "div_op");           
             AppendTTSFunc(result, "rdiv", "rdiv_op");
             AppendTTSFunc(result, "mod", "Mod_op");
 
@@ -42,10 +40,7 @@ namespace TensorSharp.CUDA.DeviceCode
             AppendTTSFunc(result, "eq", "eq_op");
             AppendTTSFunc(result, "ne", "ne_op");
 
-            AppendTTTFunc(result, "cadd", "add_op");
-            AppendTTTFunc(result, "cadd", "__hadd", DType.Float16);
-
-
+            AppendTTTFunc(result, "cadd", "add_op");           
             AppendTTTFunc(result, "csub", "sub_op");
             AppendTTTFunc(result, "cmul", "mul_op");
             AppendTTTFunc(result, "cdiv", "div_op");
@@ -58,11 +53,20 @@ namespace TensorSharp.CUDA.DeviceCode
             AppendTTTFunc(result, "ceq", "eq_op");
             AppendTTTFunc(result, "cne", "ne_op");
 
-
             AppendAtomicAdd(result, "atomicAdd", DType.Float32);
-            AppendAtomicAdd(result, "atomicAdd", DType.Float16);
+            
 
-            return result.ToString();
+            if (TSCudaContext.ElementType == DType.Float16)
+            {
+                Logger.WriteLine($"Creating elementwise kernels for Float16 type.");
+
+                AppendTTSHalfFunc(result, "mul", "__hmul");
+                AppendTTSHalfFunc(result, "div", "__hdiv");
+                AppendTTTFunc(result, "cadd", "__hadd", DType.Float16);
+                AppendAtomicAdd(result, "atomicAdd", DType.Float16);
+            }
+
+                return result.ToString();
         }
 
 

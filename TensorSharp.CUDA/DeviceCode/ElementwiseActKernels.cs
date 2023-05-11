@@ -8,6 +8,8 @@
 // Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
+using AdvUtils;
+
 namespace TensorSharp.CUDA.DeviceCode
 {
     [Precompile]
@@ -30,20 +32,22 @@ namespace TensorSharp.CUDA.DeviceCode
             AppendTTTFunc(result, "relud", "relud");
             AppendTTTTFunc(result, "addrelud", "addrelud");
 
-
-            AppendTTFunc(result, "relu", "relu", DType.Float16);
-            AppendTTTFunc(result, "relud", "relud", DType.Float16);
-            AppendTTTTFunc(result, "addrelud", "addreludhalf", DType.Float16);
-
-
             AppendTTFunc(result, "Swish", "Swish");
             AppendTTTFunc(result, "SwishD", "SwishD");
             AppendTTTTFunc(result, "AddSwishD", "AddSwishD");
 
-            AppendTTFunc(result, "Swish", "SwishHalf", DType.Float16);
-            AppendTTTFunc(result, "SwishD", "SwishDHalf", DType.Float16);
-            AppendTTTTFunc(result, "AddSwishD", "AddSwishDHalf", DType.Float16);
+            if (TSCudaContext.ElementType == DType.Float16)
+            {
+                Logger.WriteLine($"Creating elementwise actitive kernels for Float16 type.");
 
+                AppendTTFunc(result, "relu", "relu", DType.Float16);
+                AppendTTTFunc(result, "relud", "relud", DType.Float16);
+                AppendTTTTFunc(result, "addrelud", "addreludhalf", DType.Float16);
+
+                AppendTTFunc(result, "Swish", "SwishHalf", DType.Float16);
+                AppendTTTFunc(result, "SwishD", "SwishDHalf", DType.Float16);
+                AppendTTTTFunc(result, "AddSwishD", "AddSwishDHalf", DType.Float16);
+            }
 
             return result.ToString();
         }

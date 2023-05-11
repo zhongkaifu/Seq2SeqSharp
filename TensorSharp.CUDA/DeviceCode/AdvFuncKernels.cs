@@ -8,6 +8,7 @@
 // Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
+using AdvUtils;
 using ManagedCuda;
 using ManagedCuda.BasicTypes;
 using ManagedCuda.VectorTypes;
@@ -20,7 +21,6 @@ namespace TensorSharp.CUDA.DeviceCode
     internal class AdvFuncKernels : CudaCode
     {
         private static readonly string Code = @"
-#include <cuda_fp16.h>
 extern ""C""
 {
 
@@ -97,81 +97,6 @@ __global__ void gLNormalization(float* out,
     __syncthreads();
   }
 }
-
-__global__ void gLNormalizationHalf(__half* out,
-                                const __half* in,
-                                const float* alpha,
-                                const float* beta,
-                                int rows,
-                                int cols,
-                                float eps = 1e-9) {
-  extern __shared__ float _share[];
-
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      __half* so = out + j * cols;
-      const __half* sp = in + j * cols;
-
-      float* _sum = _share;
-      _sum[threadIdx.x] = 0.0f;
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-          _sum[threadIdx.x] += __half2float(sp[id]);
-        }
-      }
-      __syncthreads();
-      int len = blockDim.x;
-      while(len != 1) {
-        __syncthreads();
-        int skip = (len + 1) >> 1;
-        if(threadIdx.x < (len >> 1)) {
-          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
-        }
-        len = (len + 1) >> 1;
-      }
-      __syncthreads();
-      float mean = _sum[0] / cols;
-      __syncthreads();
-
-      float* _sqSum = _share;
-
-      _sqSum[threadIdx.x] = 0.0;
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-          float ex = __half2float(sp[id]) - mean;
-          _sqSum[threadIdx.x] += ex * ex;
-        }
-      }
-      __syncthreads();
-      len = blockDim.x;
-      while(len != 1) {
-        __syncthreads();
-        int skip = (len + 1) >> 1;
-        if(threadIdx.x < (len >> 1))
-          _sqSum[threadIdx.x] += _sqSum[threadIdx.x + skip];
-        len = (len + 1) >> 1;
-      }
-      __syncthreads();
-      float sigma = sqrtf(eps + (_sqSum[0] / cols));
-      __syncthreads();
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-          float t = alpha[id] * (__half2float(sp[id]) - mean) / sigma;
-          if(beta)
-            t += beta[id];
-          so[id] = __float2half(t);
-        }
-      }
-    }
-    __syncthreads();
-  }
-}
-
 
 __global__ void gLayerNormalizationGrad(float* gradX,
                                         float* gradGamma,
@@ -275,111 +200,6 @@ __global__ void gLayerNormalizationGrad(float* gradX,
     __syncthreads();
   }
 }
-
-
-__global__ void gLayerNormalizationGradHalf(__half* gradX,
-                                        float* gradGamma,
-                                        float* gradBeta,
-                                        __half* adj,
-                                        __half* y,
-                                        __half* x,
-                                        float* gamma,
-                                        float* beta,
-                                        int rows,
-                                        int cols,
-                                        float eps = 1e-9) {
-  extern __shared__ float shared[];
-
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      float* sum_adj = shared;
-      float* sum_adj_x = shared + blockDim.x;
-      float* sum_x = shared + 2 * blockDim.x;
-      float* sum_sqr = shared + 3 * blockDim.x;
-
-      const __half* xRow = x + j * cols;
-      const __half* yRow = y + j * cols;
-      const __half* adjRow = adj + j * cols;
-      __half* gradXRow = gradX + j * cols;
-
-      sum_x[threadIdx.x] = 0.0f;
-      sum_adj[threadIdx.x] = 0.0f;
-      sum_adj_x[threadIdx.x] = 0.0f;
-      sum_sqr[threadIdx.x] = 0.0f;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-          sum_x[threadIdx.x] += __half2float(xRow[id]);
-          sum_adj_x[threadIdx.x]
-              += __half2float(adjRow[id]) * (__half2float(yRow[id]) - ((beta) ? beta[id] : 0)) / gamma[id];
-          sum_adj[threadIdx.x] += __half2float(adjRow[id]);
-        }
-      }
-      __syncthreads();
-      int len = blockDim.x;
-      while(len != 1) {
-        __syncthreads();
-        int skip = (len + 1) >> 1;
-        if(threadIdx.x < (len >> 1)) {
-          sum_x[threadIdx.x] += sum_x[threadIdx.x + skip];
-          sum_adj[threadIdx.x] += sum_adj[threadIdx.x + skip];
-          sum_adj_x[threadIdx.x] += sum_adj_x[threadIdx.x + skip];
-        }
-        len = (len + 1) >> 1;
-      }
-      __syncthreads();
-      float mean = sum_x[0] / cols;
-      __syncthreads();
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-          float ex = __half2float(xRow[id]) - mean;
-          sum_sqr[threadIdx.x] += ex * ex;
-        }
-      }
-
-      __syncthreads();
-      len = blockDim.x;
-      while(len != 1) {
-        __syncthreads();
-        int skip = (len + 1) >> 1;
-        if(threadIdx.x < (len >> 1))
-          sum_sqr[threadIdx.x] += sum_sqr[threadIdx.x + skip];
-        len = (len + 1) >> 1;
-      }
-      __syncthreads();
-      float sigma = sqrtf(eps + (sum_sqr[0] / cols));
-      __syncthreads();
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-          float grad_x = 0.0f;
-          float x_hat = (__half2float(yRow[id]) - ((beta) ? beta[id] : 0)) / gamma[id];
-          grad_x += cols * __half2float(adjRow[id]);
-          grad_x -= sum_adj[0];
-          grad_x -= sum_adj_x[0] * x_hat;
-          grad_x /= (cols * sigma);
-
-          float valX = gamma[id] * grad_x;
-          float sign = (0.f < valX) - (valX < 0.f);
-          valX = fabs(valX) > 1000.0f ? sign * 1000.0f : valX;
-
-          gradXRow[id] = __hadd(gradXRow[id], __float2half(valX));
-          atomicAdd(gradGamma + id, __half2float(adjRow[id]) * x_hat);
-          if(beta) {
-            atomicAdd(gradBeta + id, __half2float(adjRow[id]));
-          }
-        }
-      }
-    }
-    __syncthreads();
-  }
-}
-
 
 __global__ void gAddLNormalization(float* out,
                                 const float* in1,
@@ -611,51 +431,6 @@ __global__ void Adam(float* __restrict__ w, float* __restrict__ g, float* __rest
   }
 }
 
-
-__global__ void AdamHalf(__half* __restrict__ w, float* __restrict__ g, float* __restrict__ v, float* __restrict__ m, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
-{
-  for(int bid = 0; bid < rows; bid += gridDim.x) 
-  {
-    int j = bid + blockIdx.x;
-    if(j < rows) 
-    {
-      __half* sw = w + j * cols;
-      float* sg = g + j * cols;
-      float* sv = v + j * cols;
-      float* sm = m + j * cols;
-
-      float bias_correction1 = 1.0 / (1.0 - powf(decay_rate_m, iter));
-      float bias_correction2 = 1.0 / (1.0 - powf(decay_rate_v, iter));
-      float adapted_learning_rate = step_size * bias_correction1 * rsqrtf(bias_correction2);
-
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) 
-      {        
-        int i = tid + threadIdx.x;
-        if(i < cols)
-        {
-           float g = sg[i] / batchSize;
-
-           if (g > clipval)
-           {
-               g = clipval;
-           }
-           if (g < -clipval)
-           {
-               g = -clipval;
-           }
-
-           sm[i] = sm[i] * decay_rate_m + (1.0 - decay_rate_m) * g;
-           sv[i] = sv[i] * decay_rate_v + (1.0 - decay_rate_v) * g * g;
-
-           sw[i] = __float2half(__half2float(sw[i]) - (adapted_learning_rate * sm[i] / (sqrtf(sv[i]) + eps)));
-        }
-      }
-    }
-  }
-}
-
-
 __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __restrict__ c, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
 {
   for(int bid = 0; bid < rows; bid += gridDim.x) 
@@ -725,37 +500,6 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
   }
 }
 
- __global__ void IndexSelectHalf(__half* __restrict__ result, __half* __restrict__ src, float* __restrict__ indice, int rows, int cols, int isAdd)
-  {
-    for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-
-      const int srcIdx = indice[j];
-      if (srcIdx >= 0)
-      {
-          __half* resultRow = result + j * cols;
-          __half* srcRow = src + srcIdx * cols;
-
-          for(int tid = 0; tid < cols; tid += blockDim.x) {
-            int id = tid + threadIdx.x;
-            if(id < cols) {
-
-            if (isAdd == 0)
-            {
-               resultRow[id] = srcRow[id];
-            }
-            else
-            {             
-               atomicAdd(resultRow + id, srcRow[id]);
-            }
-            }
-          }
-      }
-    }
-  }
-}
-
   __global__ void BuildSrcTgtMask(float* __restrict__ result, float* __restrict__ srcOriginalLengths, float* __restrict__ tgtOriginalLengths, int rows, int cols, int tgtPaddedSeqLen, float value, float maskedValue)
 {
 
@@ -781,39 +525,6 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
          else
          {
              resultRow[id] = maskedValue;
-         }
-
-        }
-      }
-    }
-  }
-}
-
-  __global__ void BuildSrcTgtMaskHalf(__half* __restrict__ result, float* __restrict__ srcOriginalLengths, float* __restrict__ tgtOriginalLengths, int rows, int cols, int tgtPaddedSeqLen, float value, float maskedValue)
-{
-
-    for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-
-      __half* resultRow = result + j * cols;
-      int batchIdx = j / tgtPaddedSeqLen;
-      int seqIdxInBatch = j % tgtPaddedSeqLen;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-         int srcOriginalLength = srcOriginalLengths[batchIdx];
-         int tgtOriginalLength = tgtOriginalLengths[batchIdx];
-
-
-         if (id < srcOriginalLength && seqIdxInBatch < tgtOriginalLength)
-         {
-             resultRow[id] = __float2half(value);
-         }
-         else
-         {
-             resultRow[id] = __float2half(maskedValue);
          }
 
         }
@@ -853,37 +564,6 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
   }
 }
 
-  __global__ void BuildSelfMaskHalf(__half* __restrict__ result, float* __restrict__ originalLengths, int rows, int cols, int paddedSeqLen, float value, float maskedValue)
-{
-
-    for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-
-      __half* resultRow = result + j * cols;
-      int batchIdx = j / paddedSeqLen;
-      int seqIdxInBatch = j % paddedSeqLen;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-         int originalLength = originalLengths[batchIdx];
-
-         if (id < originalLength && seqIdxInBatch < originalLength)
-         {
-             resultRow[id] = __float2half(value);
-         }
-         else
-         {
-             resultRow[id] = __float2half(maskedValue);
-         }
-
-        }
-      }
-    }
-  }
-}
-
   __global__ void BuildSelfTriMask(float* __restrict__ result, float* __restrict__ originalLengths, int rows, int cols, int paddedSeqLen, float value, float maskedValue)
 {
 
@@ -915,39 +595,6 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
   }
 }
 
-
-  __global__ void BuildSelfTriMaskHalf(__half* __restrict__ result, float* __restrict__ originalLengths, int rows, int cols, int paddedSeqLen, float value, float maskedValue)
-{
-
-    for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-
-      __half* resultRow = result + j * cols;
-      int batchIdx = j / paddedSeqLen;
-      int seqIdxInBatch = j % paddedSeqLen;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-         int originalLength = originalLengths[batchIdx];
-
-         if (id < originalLength && seqIdxInBatch < originalLength && id <= seqIdxInBatch)
-         {
-             resultRow[id] = __float2half(value);
-         }
-         else
-         {
-             resultRow[id] = __float2half(maskedValue);
-         }
-
-        }
-      }
-    }
-  }
-}
-
-
   __global__ void BuildTriMask(float* __restrict__ result, int rows, int cols, float value, float maskedValue)
 {
 
@@ -973,31 +620,6 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
   }
 }
 
-  __global__ void BuildTriMaskHalf(__half* __restrict__ result, int rows, int cols, float value, float maskedValue)
-{
-
-    for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      __half* resultRow = result + j * cols;
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-
-            if (id <= j)
-            {
-                resultRow[id] = __float2half(value);
-            }
-            else
-            {
-                resultRow[id] = __float2half(maskedValue);
-            }
-        }
-      }
-    }
-  }
-}
-
   __global__ void IndexSelectGrad(float* __restrict__ grad, float* __restrict__ adj, float* __restrict__ indice, int rows, int cols)
   {
     for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -1009,29 +631,6 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
       {
           float* adjRow = adj + j * cols;
           float* gradRow = grad + gradIdx * cols;
-
-          for(int tid = 0; tid < cols; tid += blockDim.x) {
-            int id = tid + threadIdx.x;
-            if(id < cols) {
-            atomicAdd(gradRow + id, adjRow[id]);
-            }
-          }
-      }
-    }
-  }
-}
-
- __global__ void IndexSelectGradHalf(__half* __restrict__ grad, __half* __restrict__ adj, float* __restrict__ indice, int rows, int cols)
-  {
-    for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-
-      const int gradIdx = indice[j];
-      if (gradIdx >= 0)
-      {
-          __half* adjRow = adj + j * cols;
-          __half* gradRow = grad + gradIdx * cols;
 
           for(int tid = 0; tid < cols; tid += blockDim.x) {
             int id = tid + threadIdx.x;
@@ -1093,61 +692,6 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
     __syncthreads();
   }
 }
-
-
-   __global__ void gSoftmaxGradHalf(__half* grad, __half* adj, __half* val, int rows, int cols, int addGrad)
-  {
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      extern __shared__ float _share[];
-      float* _sum = _share;
-
-      __half* gradRow = grad + j * cols;
-      const __half* adjRow = adj + j * cols;
-      const __half* valRow = val + j * cols;
-      _sum[threadIdx.x] = 0.0;
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-          float v = __half2float(valRow[id]) * __half2float(adjRow[id]);
-          _sum[threadIdx.x] += v;
-        }
-      }
-      __syncthreads();
-      int len = blockDim.x;
-      while(len != 1) {
-        __syncthreads();
-        int skip = (len + 1) >> 1;
-        if(threadIdx.x < (len >> 1))
-          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
-        len = (len + 1) >> 1;
-      }
-      __syncthreads();
-      float sum = _sum[0];
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-
-         float v = __half2float(valRow[id]) * __half2float(adjRow[id]);
-
-         if (addGrad == 0)
-         {
-             gradRow[id] = __float2half(v - sum * __half2float(valRow[id]));
-         }
-         else
-         {
-             gradRow[id] = __float2half((v + __half2float(gradRow[id])) - sum * __half2float(valRow[id]));
-         }
-
-         
-        }
-      }
-    }
-    __syncthreads();
-  }
-}
-
 
   __global__ void gSoftmax(float* out, float* in, unsigned rows, unsigned cols)
   {
@@ -1216,76 +760,6 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
     __syncthreads();
   }
 }
-
-
- __global__ void gSoftmaxHalf(__half* out, __half* in, unsigned rows, unsigned cols)
-  {
-  for(int bid = 0; bid < rows; bid += gridDim.x) {
-    int j = bid + blockIdx.x;
-    if(j < rows) {
-      __half* so = out + j * cols;
-      const __half* sp = in + j * cols;
-
-      extern __shared__ float _share[];     
-      float* _max = _share;
-      _max[threadIdx.x] = -1.70141e+38;
-      
-      for(int tid = 0; tid < cols; tid += blockDim.x) {        
-        int i = tid + threadIdx.x;
-        if(i < cols) {
-          if(__half2float(sp[i]) > _max[threadIdx.x])
-            _max[threadIdx.x] = __half2float(sp[i]);
-        }
-      }
-      __syncthreads();      
-      int len = blockDim.x;
-      while(len != 1) {
-        __syncthreads();
-        int skip = (len + 1) >> 1;
-        if(threadIdx.x < (len >> 1)) {
-          if(_max[threadIdx.x + skip] > _max[threadIdx.x]) {
-            _max[threadIdx.x] = _max[threadIdx.x + skip];
-          }
-        }
-        len = (len + 1) >> 1;
-      }
-      __syncthreads();
-      float max = _max[0];
-      __syncthreads();
-    
-      float* _sum = _share;
-      _sum[threadIdx.x] = 0.0;
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < cols) {         
-          float ex = expf(__half2float(sp[i]) - max);
-          so[i] = __float2half(ex);
-          _sum[threadIdx.x] += ex;
-        }
-      }
-      __syncthreads();     
-      len = blockDim.x;
-      while(len != 1) {
-        __syncthreads();
-        int skip = (len + 1) >> 1;
-        if(threadIdx.x < (len >> 1))
-          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
-        len = (len + 1) >> 1;
-      }
-      __syncthreads();
-    
-      float sum = _sum[0];
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int i = tid + threadIdx.x;
-        if(i < cols) {
-          so[i] = __float2half(__half2float(so[i]) / sum);
-        }
-      }
-    }
-    __syncthreads();
-  }
-}
-
 
 __device__ void swap(float *a, float *b) {
 	const float t = *a;
@@ -1378,6 +852,529 @@ __global__ void TopK(float* input, float* output, float *outputIdx, int k, unsig
 }
 ";
 
+        private static readonly string CodeHalf = @"
+#include <cuda_fp16.h>
+extern ""C""
+{
+
+__global__ void gLNormalizationHalf(__half* out,
+                                const __half* in,
+                                const float* alpha,
+                                const float* beta,
+                                int rows,
+                                int cols,
+                                float eps = 1e-9) {
+  extern __shared__ float _share[];
+
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      __half* so = out + j * cols;
+      const __half* sp = in + j * cols;
+
+      float* _sum = _share;
+      _sum[threadIdx.x] = 0.0f;
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          _sum[threadIdx.x] += __half2float(sp[id]);
+        }
+      }
+      __syncthreads();
+      int len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1)) {
+          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+        }
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+      float mean = _sum[0] / cols;
+      __syncthreads();
+
+      float* _sqSum = _share;
+
+      _sqSum[threadIdx.x] = 0.0;
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          float ex = __half2float(sp[id]) - mean;
+          _sqSum[threadIdx.x] += ex * ex;
+        }
+      }
+      __syncthreads();
+      len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1))
+          _sqSum[threadIdx.x] += _sqSum[threadIdx.x + skip];
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+      float sigma = sqrtf(eps + (_sqSum[0] / cols));
+      __syncthreads();
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          float t = alpha[id] * (__half2float(sp[id]) - mean) / sigma;
+          if(beta)
+            t += beta[id];
+          so[id] = __float2half(t);
+        }
+      }
+    }
+    __syncthreads();
+  }
+}
+
+__global__ void gLayerNormalizationGradHalf(__half* gradX,
+                                        float* gradGamma,
+                                        float* gradBeta,
+                                        __half* adj,
+                                        __half* y,
+                                        __half* x,
+                                        float* gamma,
+                                        float* beta,
+                                        int rows,
+                                        int cols,
+                                        float eps = 1e-9) {
+  extern __shared__ float shared[];
+
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      float* sum_adj = shared;
+      float* sum_adj_x = shared + blockDim.x;
+      float* sum_x = shared + 2 * blockDim.x;
+      float* sum_sqr = shared + 3 * blockDim.x;
+
+      const __half* xRow = x + j * cols;
+      const __half* yRow = y + j * cols;
+      const __half* adjRow = adj + j * cols;
+      __half* gradXRow = gradX + j * cols;
+
+      sum_x[threadIdx.x] = 0.0f;
+      sum_adj[threadIdx.x] = 0.0f;
+      sum_adj_x[threadIdx.x] = 0.0f;
+      sum_sqr[threadIdx.x] = 0.0f;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          sum_x[threadIdx.x] += __half2float(xRow[id]);
+          sum_adj_x[threadIdx.x]
+              += __half2float(adjRow[id]) * (__half2float(yRow[id]) - ((beta) ? beta[id] : 0)) / gamma[id];
+          sum_adj[threadIdx.x] += __half2float(adjRow[id]);
+        }
+      }
+      __syncthreads();
+      int len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1)) {
+          sum_x[threadIdx.x] += sum_x[threadIdx.x + skip];
+          sum_adj[threadIdx.x] += sum_adj[threadIdx.x + skip];
+          sum_adj_x[threadIdx.x] += sum_adj_x[threadIdx.x + skip];
+        }
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+      float mean = sum_x[0] / cols;
+      __syncthreads();
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          float ex = __half2float(xRow[id]) - mean;
+          sum_sqr[threadIdx.x] += ex * ex;
+        }
+      }
+
+      __syncthreads();
+      len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1))
+          sum_sqr[threadIdx.x] += sum_sqr[threadIdx.x + skip];
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+      float sigma = sqrtf(eps + (sum_sqr[0] / cols));
+      __syncthreads();
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          float grad_x = 0.0f;
+          float x_hat = (__half2float(yRow[id]) - ((beta) ? beta[id] : 0)) / gamma[id];
+          grad_x += cols * __half2float(adjRow[id]);
+          grad_x -= sum_adj[0];
+          grad_x -= sum_adj_x[0] * x_hat;
+          grad_x /= (cols * sigma);
+
+          float valX = gamma[id] * grad_x;
+          float sign = (0.f < valX) - (valX < 0.f);
+          valX = fabs(valX) > 1000.0f ? sign * 1000.0f : valX;
+
+          gradXRow[id] = __hadd(gradXRow[id], __float2half(valX));
+          atomicAdd(gradGamma + id, __half2float(adjRow[id]) * x_hat);
+          if(beta) {
+            atomicAdd(gradBeta + id, __half2float(adjRow[id]));
+          }
+        }
+      }
+    }
+    __syncthreads();
+  }
+}
+
+__global__ void AdamHalf(__half* __restrict__ w, float* __restrict__ g, float* __restrict__ v, float* __restrict__ m, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
+{
+  for(int bid = 0; bid < rows; bid += gridDim.x) 
+  {
+    int j = bid + blockIdx.x;
+    if(j < rows) 
+    {
+      __half* sw = w + j * cols;
+      float* sg = g + j * cols;
+      float* sv = v + j * cols;
+      float* sm = m + j * cols;
+
+      float bias_correction1 = 1.0 / (1.0 - powf(decay_rate_m, iter));
+      float bias_correction2 = 1.0 / (1.0 - powf(decay_rate_v, iter));
+      float adapted_learning_rate = step_size * bias_correction1 * rsqrtf(bias_correction2);
+
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) 
+      {        
+        int i = tid + threadIdx.x;
+        if(i < cols)
+        {
+           float g = sg[i] / batchSize;
+
+           if (g > clipval)
+           {
+               g = clipval;
+           }
+           if (g < -clipval)
+           {
+               g = -clipval;
+           }
+
+           sm[i] = sm[i] * decay_rate_m + (1.0 - decay_rate_m) * g;
+           sv[i] = sv[i] * decay_rate_v + (1.0 - decay_rate_v) * g * g;
+
+           sw[i] = __float2half(__half2float(sw[i]) - (adapted_learning_rate * sm[i] / (sqrtf(sv[i]) + eps)));
+        }
+      }
+    }
+  }
+}
+
+ __global__ void IndexSelectHalf(__half* __restrict__ result, __half* __restrict__ src, float* __restrict__ indice, int rows, int cols, int isAdd)
+  {
+    for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+
+      const int srcIdx = indice[j];
+      if (srcIdx >= 0)
+      {
+          __half* resultRow = result + j * cols;
+          __half* srcRow = src + srcIdx * cols;
+
+          for(int tid = 0; tid < cols; tid += blockDim.x) {
+            int id = tid + threadIdx.x;
+            if(id < cols) {
+
+            if (isAdd == 0)
+            {
+               resultRow[id] = srcRow[id];
+            }
+            else
+            {             
+               atomicAdd(resultRow + id, srcRow[id]);
+            }
+            }
+          }
+      }
+    }
+  }
+}
+
+
+  __global__ void BuildSrcTgtMaskHalf(__half* __restrict__ result, float* __restrict__ srcOriginalLengths, float* __restrict__ tgtOriginalLengths, int rows, int cols, int tgtPaddedSeqLen, float value, float maskedValue)
+{
+
+    for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+
+      __half* resultRow = result + j * cols;
+      int batchIdx = j / tgtPaddedSeqLen;
+      int seqIdxInBatch = j % tgtPaddedSeqLen;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+         int srcOriginalLength = srcOriginalLengths[batchIdx];
+         int tgtOriginalLength = tgtOriginalLengths[batchIdx];
+
+
+         if (id < srcOriginalLength && seqIdxInBatch < tgtOriginalLength)
+         {
+             resultRow[id] = __float2half(value);
+         }
+         else
+         {
+             resultRow[id] = __float2half(maskedValue);
+         }
+
+        }
+      }
+    }
+  }
+}
+
+  __global__ void BuildSelfMaskHalf(__half* __restrict__ result, float* __restrict__ originalLengths, int rows, int cols, int paddedSeqLen, float value, float maskedValue)
+{
+
+    for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+
+      __half* resultRow = result + j * cols;
+      int batchIdx = j / paddedSeqLen;
+      int seqIdxInBatch = j % paddedSeqLen;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+         int originalLength = originalLengths[batchIdx];
+
+         if (id < originalLength && seqIdxInBatch < originalLength)
+         {
+             resultRow[id] = __float2half(value);
+         }
+         else
+         {
+             resultRow[id] = __float2half(maskedValue);
+         }
+
+        }
+      }
+    }
+  }
+}
+
+  __global__ void BuildSelfTriMaskHalf(__half* __restrict__ result, float* __restrict__ originalLengths, int rows, int cols, int paddedSeqLen, float value, float maskedValue)
+{
+
+    for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+
+      __half* resultRow = result + j * cols;
+      int batchIdx = j / paddedSeqLen;
+      int seqIdxInBatch = j % paddedSeqLen;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+         int originalLength = originalLengths[batchIdx];
+
+         if (id < originalLength && seqIdxInBatch < originalLength && id <= seqIdxInBatch)
+         {
+             resultRow[id] = __float2half(value);
+         }
+         else
+         {
+             resultRow[id] = __float2half(maskedValue);
+         }
+
+        }
+      }
+    }
+  }
+}
+  __global__ void BuildTriMaskHalf(__half* __restrict__ result, int rows, int cols, float value, float maskedValue)
+{
+
+    for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      __half* resultRow = result + j * cols;
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+
+            if (id <= j)
+            {
+                resultRow[id] = __float2half(value);
+            }
+            else
+            {
+                resultRow[id] = __float2half(maskedValue);
+            }
+        }
+      }
+    }
+  }
+}
+
+ __global__ void IndexSelectGradHalf(__half* __restrict__ grad, __half* __restrict__ adj, float* __restrict__ indice, int rows, int cols)
+  {
+    for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+
+      const int gradIdx = indice[j];
+      if (gradIdx >= 0)
+      {
+          __half* adjRow = adj + j * cols;
+          __half* gradRow = grad + gradIdx * cols;
+
+          for(int tid = 0; tid < cols; tid += blockDim.x) {
+            int id = tid + threadIdx.x;
+            if(id < cols) {
+            atomicAdd(gradRow + id, adjRow[id]);
+            }
+          }
+      }
+    }
+  }
+}
+
+   __global__ void gSoftmaxGradHalf(__half* grad, __half* adj, __half* val, int rows, int cols, int addGrad)
+  {
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      extern __shared__ float _share[];
+      float* _sum = _share;
+
+      __half* gradRow = grad + j * cols;
+      const __half* adjRow = adj + j * cols;
+      const __half* valRow = val + j * cols;
+      _sum[threadIdx.x] = 0.0;
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+          float v = __half2float(valRow[id]) * __half2float(adjRow[id]);
+          _sum[threadIdx.x] += v;
+        }
+      }
+      __syncthreads();
+      int len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1))
+          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+      float sum = _sum[0];
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int id = tid + threadIdx.x;
+        if(id < cols) {
+
+         float v = __half2float(valRow[id]) * __half2float(adjRow[id]);
+
+         if (addGrad == 0)
+         {
+             gradRow[id] = __float2half(v - sum * __half2float(valRow[id]));
+         }
+         else
+         {
+             gradRow[id] = __float2half((v + __half2float(gradRow[id])) - sum * __half2float(valRow[id]));
+         }
+
+         
+        }
+      }
+    }
+    __syncthreads();
+  }
+}
+
+ __global__ void gSoftmaxHalf(__half* out, __half* in, unsigned rows, unsigned cols)
+  {
+  for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      __half* so = out + j * cols;
+      const __half* sp = in + j * cols;
+
+      extern __shared__ float _share[];     
+      float* _max = _share;
+      _max[threadIdx.x] = -1.70141e+38;
+      
+      for(int tid = 0; tid < cols; tid += blockDim.x) {        
+        int i = tid + threadIdx.x;
+        if(i < cols) {
+          if(__half2float(sp[i]) > _max[threadIdx.x])
+            _max[threadIdx.x] = __half2float(sp[i]);
+        }
+      }
+      __syncthreads();      
+      int len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1)) {
+          if(_max[threadIdx.x + skip] > _max[threadIdx.x]) {
+            _max[threadIdx.x] = _max[threadIdx.x + skip];
+          }
+        }
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+      float max = _max[0];
+      __syncthreads();
+    
+      float* _sum = _share;
+      _sum[threadIdx.x] = 0.0;
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols) {         
+          float ex = expf(__half2float(sp[i]) - max);
+          so[i] = __float2half(ex);
+          _sum[threadIdx.x] += ex;
+        }
+      }
+      __syncthreads();     
+      len = blockDim.x;
+      while(len != 1) {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1))
+          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+        len = (len + 1) >> 1;
+      }
+      __syncthreads();
+    
+      float sum = _sum[0];
+      for(int tid = 0; tid < cols; tid += blockDim.x) {
+        int i = tid + threadIdx.x;
+        if(i < cols) {
+          so[i] = __float2half(__half2float(so[i]) / sum);
+        }
+      }
+    }
+    __syncthreads();
+  }
+}
+
+}
+";
+
         public AdvFuncKernels()
             : base(GetFullCode())
         {
@@ -1385,7 +1382,16 @@ __global__ void TopK(float* input, float* output, float *outputIdx, int k, unsig
 
         private static string GetFullCode()
         {
-            return Code;
+            if (TSCudaContext.ElementType == DType.Float16)
+            {
+                Logger.WriteLine("Building advanced kernels for both FP32 and FP16.");
+                return Code + CodeHalf;
+            }
+            else
+            {
+                Logger.WriteLine("Building advanced kernels for both FP32.");
+                return Code;
+            }
         }
 
 

@@ -8,6 +8,8 @@
 // Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
+using AdvUtils;
+
 namespace TensorSharp.CUDA.DeviceCode
 {
     [Precompile]
@@ -22,10 +24,15 @@ namespace TensorSharp.CUDA.DeviceCode
         {
             PermutationGenerator result = new PermutationGenerator();
             result.AddApplyTS("fill", "*a = b;");
-            result.AddApplyTSHalf("fill", "*a = b;");
-
             result.AddApplyTT("copy", "*a = *b;");
-            result.AddApplyTT("copy", "*a = *b;", elementTypes: new DType[] { DType.Float16, DType.Float16 });
+
+            if (TSCudaContext.ElementType == DType.Float16)
+            {
+                Logger.WriteLine($"Creating FillCopy kernels for Float16 type.");
+
+                result.AddApplyTSHalf("fill", "*a = b;");
+                result.AddApplyTT("copy", "*a = *b;", elementTypes: new DType[] { DType.Float16, DType.Float16 });
+            }
 
             return result.ToString();
         }

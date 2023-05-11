@@ -237,7 +237,7 @@ namespace Seq2SeqSharp.Applications
                 throw new ArgumentException($"AMP (automatic mixed precesion) is only available for GPUs now. AMP has not supported CPUs yet.");
             }
 
-            if (ProcessorType == ProcessorTypeEnums.GPU && CompilerOptions.Contains("--include-path") == false)
+            if (ProcessorType == ProcessorTypeEnums.GPU && CompilerOptions.Contains("--include-path") == false && AMP == true)
             {
                 throw new ArgumentException($"Option --include-path is required in CompilerOptions for GPU tasks. It should points to installed CUDA SDK include path in this machine.");
             }
