@@ -13,11 +13,16 @@ using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
 using TensorSharp;
+using TensorSharp.CUDA.ContextState;
 
 namespace Seq2SeqSharp.Utils
 {
     public class TensorUtils
     {
+        public static void InitDevices(ProcessorTypeEnums archType, int[] ids, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, string mklInstructions = "AVX2", bool enableTensorCore = true, CudaMemoryDeviceAllocatorType allocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool, DType elementType = DType.Float32)
+        {
+            TensorAllocator.InitDevices(archType, ids, memoryUsageRatio = 0.9f, compilerOptions, mklInstructions, enableTensorCore, allocatorType, elementType);
+        }
         public static void ScatterFill(IWeightTensor res, float val, IWeightTensor indices, int dim)
         {
             WeightTensor i = indices as WeightTensor;

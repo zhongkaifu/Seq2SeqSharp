@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using TensorSharp;
+using Seq2SeqSharp.Utils;
 
 /// <summary>
 /// Tensor based computing graph written by Zhongkai Fu.
@@ -1195,9 +1196,13 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightTensor Argmax(IWeightTensor w, int dim)
+        public IWeightTensor Argmax(IWeightTensor w, int dim = -1)
         {
             WeightTensor m = w as WeightTensor;
+            if (dim < 0)
+            {
+                dim = m.TWeight.DimensionCount - 1;
+            }
             Tensor argMaxT = Ops.Argmax(null, m.TWeight, dim);
 
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(argMaxT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Argmax", graphToBind: this, needGradient: m.NeedGradient);
@@ -1282,19 +1287,9 @@ namespace Seq2SeqSharp.Tools
         /// <param name="seqs"></param>
         /// <param name="topP"></param>
         /// <returns>The sampled index</returns>
-        public IWeightTensor SampleIndicue(IWeightTensor w, List<List<int>> seqs, float topP = 1.0f, List<int> blockedTokens = null)
+        public IWeightTensor TopPSample(IWeightTensor w, float topP = 1.0f, List<int> blockedTokens = null)
         {
-            int K = w.Columns; // seqs[0].Count + 1;
-
-            //WeightTensor m = w as WeightTensor;
-            //Tensor w1 = new Tensor(m.TWeight.Allocator, DType.Float32, new long[] { m.Rows, K });
-            //Tensor w1Idx = new Tensor(m.TWeight.Allocator, DType.Float32, new long[] { m.Rows, K });
-
-            //Ops.TopK(w1, w1Idx, m.TWeight, K);
-            //float[] weights = w1.GetElementsAsFloat((int)w1.GetStorageSize());
-            //float[] weightsIdx = w1Idx.GetElementsAsFloat((int)w1Idx.GetStorageSize());
-
-
+            int K = w.Columns;
             WeightTensor m = w as WeightTensor;
             float[] weights = m.ToWeightArray();
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { m.Rows, 1 }, m_deviceId, name: $"{GetHashString(m.Name)}.Sample", graphToBind: this, needGradient: m.NeedGradient);
@@ -1305,23 +1300,6 @@ namespace Seq2SeqSharp.Tools
             for (int i = 0; i < m.Rows; i++)
             {
                 int offset = i * K;
-                List<int> seq = seqs[i];
-
-                Dictionary<int, int> tokenId2Distance = new Dictionary<int, int>(); // <tokenId, offsetInSeq>. The last offset of the token in the given sequence
-                Dictionary<int, int> tokenIdCount = new Dictionary<int, int>();
-                for (int j = 0; j < seq.Count; j++)
-                {
-                    tokenId2Distance[seq[j]] = seq.Count - j;
-
-                    if (tokenIdCount.ContainsKey(seq[j]) == false)
-                    {
-                        tokenIdCount[seq[j]] = 1;
-                    }
-                    else
-                    {
-                        tokenIdCount[seq[j]]++;
-                    }
-                }
                 SortedDictionary<float, List<int>> weight2tokenId = new SortedDictionary<float, List<int>>();          
                 for (int j = 0; j < K; j++)
                 {
@@ -1332,12 +1310,6 @@ namespace Seq2SeqSharp.Tools
                     {
                         continue;
                     }
-
-                    if (tokenId2Distance.ContainsKey(idx))
-                    {
-                        weight = (float)(weight * ((float)tokenId2Distance[idx] / (float)seq.Count));
-                    }
-
 
                     if (weight2tokenId.ContainsKey(weight) == false)
                     {

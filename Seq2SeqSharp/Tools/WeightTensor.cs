@@ -16,6 +16,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using TensorSharp;
+using Seq2SeqSharp.Utils;
 
 namespace Seq2SeqSharp.Tools
 {

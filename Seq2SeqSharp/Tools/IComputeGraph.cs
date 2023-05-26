@@ -59,12 +59,12 @@ namespace Seq2SeqSharp
         IWeightFactory GetWeightFactory();
 
         IWeightTensor Max(IWeightTensor w, int dim);
-        IWeightTensor Argmax(IWeightTensor w, int dim);
+        IWeightTensor Argmax(IWeightTensor w, int dim = -1);
         IWeightTensor EqualTo(IWeightTensor w, float val);
         IWeightTensor LessOrEqual(IWeightTensor w, float val);
         IWeightTensor GreaterThan(IWeightTensor w, float val);
 
-        IWeightTensor SampleIndicue(IWeightTensor w, List<List<int>> seqs, float topP = 1.0f, List<int> blockedTokens = null);
+        IWeightTensor TopPSample(IWeightTensor w, float topP = 1.0f, List<int> blockedTokens = null);
 
         IWeightTensor Zero(long[] sizes);
         IWeightTensor CreateTensorWeights(long[] sizes, float[] values);

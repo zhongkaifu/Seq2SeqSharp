@@ -17,7 +17,7 @@ using TensorSharp.CUDA.ContextState;
 using TensorSharp.CUDA.MatrixMul;
 using Seq2SeqSharp.Utils;
 
-namespace Seq2SeqSharp
+namespace Seq2SeqSharp.Utils
 {
     public static class TensorAllocator
     {
@@ -28,6 +28,12 @@ namespace Seq2SeqSharp
 
         public static void InitDevices(ProcessorTypeEnums archType, int[] ids, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, string mklInstructions = "AVX2", bool enableTensorCore = true, CudaMemoryDeviceAllocatorType allocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool, DType elementType = DType.Float32)
         {
+            if (m_allocator != null)
+            {
+                // The tensor allocator has already been initialized
+                return;
+            }
+
             m_archType = archType;
             m_deviceIds = ids;
             m_allocator = new IAllocator[m_deviceIds.Length];
