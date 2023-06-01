@@ -240,6 +240,7 @@ namespace Seq2SeqSharp.Models
                 }
 
                 var values = Name2Weights[name];
+                weight = new half[values.Length];
                 for (int i = 0; i < values.Length; i++)
                 {
                     weight[i] = new half(values[i]);
