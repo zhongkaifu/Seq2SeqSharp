@@ -1483,7 +1483,7 @@ namespace Seq2SeqSharp.Tools
 
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Peek", graphToBind: this, needGradient: m.NeedGradient, dtype:m.ElementType);
             res.TWeight = m.TWeight.Narrow(dim, ix, num);
-            res.TGradient = res.NeedGradient ? m.TGradient.Narrow(dim, ix, num) : null;
+            res.TGradient = (m_needsBackprop && res.NeedGradient) ? m.TGradient.Narrow(dim, ix, num) : null;
 
             VisualizeNodes(w, res);
 
