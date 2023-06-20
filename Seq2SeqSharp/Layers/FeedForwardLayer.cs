@@ -71,6 +71,8 @@ namespace Seq2SeqSharp
                 res = g.Affine(inputT, m_Whd, m_Bd, 1.0f);
             }
 
+            m_Whd.OfflineWeight();
+            m_Bd.OfflineWeight();
 
             return g.Dropout(res, batchSize, m_dropoutRatio, inPlace: true);
         }

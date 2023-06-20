@@ -17,6 +17,7 @@ using System.Linq;
 using System.Text;
 using TensorSharp;
 using Seq2SeqSharp.Utils;
+using TensorSharp.Cpu;
 
 namespace Seq2SeqSharp.Tools
 {
@@ -57,6 +58,9 @@ namespace Seq2SeqSharp.Tools
 
         private Tensor m_TWeight = null;
         private Tensor m_TGradient = null;
+
+        private Tensor m_CachedTWeight = null;
+
         private static readonly object locker = new object();
 
         private bool releasedWeight = false;
@@ -79,6 +83,21 @@ namespace Seq2SeqSharp.Tools
         }
 
 
+        public void OfflineWeight()
+        {
+            if (m_TWeight != null)
+            {
+                if (m_CachedTWeight == null)
+                {
+                    m_CachedTWeight = new Tensor(new CpuAllocator(BlasEnum.DotNet), m_elementType, Sizes);
+                }
+                Ops.Copy(m_CachedTWeight, m_TWeight);
+                m_TWeight.Dispose();
+                m_TWeight = null;
+            }
+        }
+
+
         public Tensor TWeight
         {
             get
@@ -93,14 +112,26 @@ namespace Seq2SeqSharp.Tools
                     m_TWeight = new Tensor(m_allocator, m_elementType, Sizes);
                 }
 
+                if (m_CachedTWeight != null)
+                {
+                    Ops.Copy(m_TWeight, m_CachedTWeight);
+                    m_CachedTWeight.Dispose();
+                    m_CachedTWeight = null;
+                }
+
                 return m_TWeight;
             }
             set
             {
- 
-                if (m_TWeight != null)
+                if (m_TWeight != null || m_CachedTWeight != null)
                 {
                     throw new Exception($"Please call ReleaseWeight function before assign a new value to weight '{Name}'.");
+                }
+
+                if (m_CachedTWeight != null)
+                {
+                    m_CachedTWeight.Dispose();
+                    m_CachedTWeight = null;
                 }
 
                 m_TWeight = value;
