@@ -984,29 +984,29 @@ namespace Seq2SeqSharp.Tools
             Ops.AddmmBatch(res.TWeight, 0.0f, res.TWeight, alpha, t1.TWeight, t2.TWeight);
             if (m_needsBackprop)
             {
-                Tensor t1TWeight = t1.TWeight.CopyRef();
-                Tensor t2TWeight = t2.TWeight.CopyRef();
                 void backward()
                 {
                     res.ReleaseWeight();
 
                     if (t1.NeedGradient)
                     {
-                        using Tensor tW2 = t2TWeight.Transpose(1, 2);
+                        using Tensor tW2 = t2.TWeight.Transpose(1, 2);
                         Ops.AddmmBatch(t1.TGradient, 1.0f, t1.TGradient, alpha, res.TGradient, tW2);
                     }
-                    t2TWeight.Dispose();
 
                     if (t2.NeedGradient)
                     {
-                        using Tensor tW1 = t1TWeight.Transpose(1, 2);
+                        using Tensor tW1 = t1.TWeight.Transpose(1, 2);
                         Ops.AddmmBatch(t2.TGradient, 1.0f, t2.TGradient, alpha, tW1, res.TGradient);
                     }
-                    t1TWeight.Dispose();
 
                     res.Dispose();
 
                 }
+
+                t1.UnbindFromComputeGraph();
+                t2.UnbindFromComputeGraph();
+
                 m_backprop.Add(backward);
             }
 
@@ -1092,9 +1092,6 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
-                Tensor t1TWeight = t1.TWeight.CopyRef();
-                Tensor t2TWeight = t2.TWeight.CopyRef();
-
                 void backward()
                 {
                     res.ReleaseWeight();
@@ -1107,21 +1104,22 @@ namespace Seq2SeqSharp.Tools
 
                     if (t1.NeedGradient)
                     {
-                        using Tensor tW2 = t2TWeight.Transpose();
+                        using Tensor tW2 = t2.TWeight.Transpose();
                         Ops.Addmm(t1.TGradient, 1.0f, t1.TGradient, alpha, res.TGradient, tW2);
                     }
-                    t2TWeight.Dispose();
 
                     if (t2.NeedGradient)
                     {
-                        using Tensor tW1 = t1TWeight.Transpose();
+                        using Tensor tW1 = t1.TWeight.Transpose();
                         Ops.Addmm(t2.TGradient, 1.0f, t2.TGradient, alpha, tW1, res.TGradient);
                     }
-                    t1TWeight.Dispose();
 
                     res.Dispose();
                 }
                 m_backprop.Add(backward);
+
+                t1.UnbindFromComputeGraph();
+                t2.UnbindFromComputeGraph();
             }
 
             return res;
@@ -1271,13 +1269,6 @@ namespace Seq2SeqSharp.Tools
             }
 
             return res;
-        }
-
-        private static double PowerA(double a, double b)
-        {
-            int tmp = (int)(BitConverter.DoubleToInt64Bits(a) >> 32);
-            int tmp2 = (int)(b * (tmp - 1072632447) + 1072632447);
-            return BitConverter.Int64BitsToDouble(((long)tmp2) << 32);
         }
 
         /// <summary>

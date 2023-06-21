@@ -273,6 +273,8 @@ namespace Seq2SeqSharp.Tools
             {
                 m_computeGraphToBind.Unbind(this);
             }
+
+            OfflineWeight();
         }
 
         public int GetDeviceId()
