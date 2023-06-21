@@ -218,6 +218,9 @@ namespace Seq2SeqSharp
             // For runtime, we don't call it by inplace, since it will change the content of cached weights
             IWeightTensor result = graph.Add(finalAttResults, inputQ, inPlace: true);
 
+            QKV.OfflineWeight();
+            QKVb.OfflineWeight();
+
             return result;
         }
 

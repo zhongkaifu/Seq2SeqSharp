@@ -19,6 +19,7 @@ Built-in SentencePiece supported
 Python package supported  
 Tags embeddings mechanism  
 Prompted Decoders  
+Automatic Tensor Offline/Online for GPU memory savings  
 Include console tools and web apis for built-in networks  
 Graph based neural network  
 Automatic differentiation  

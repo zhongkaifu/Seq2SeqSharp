@@ -55,6 +55,36 @@ public class ComputeGraph_Tests
     }
 
     [TestMethod]
+    public void TestConcate()
+    {
+        TensorAllocator.InitDevices(ProcessorTypeEnums.CPU, new int[] { 0 });
+
+        var graph = new ComputeGraphTensor(new WeightTensorFactory(), 0, true);
+        var embeddings = BuildRandomTensor(shape: new long[] { 10, 15 }, name: "embedding");
+        int[] idxs = new int[3] { 1, 3, 5 };
+        List<IWeightTensor> inputs = new List<IWeightTensor>();
+        for (int i = 0; i < idxs.Length; i++)
+        {
+            inputs.Add(graph.Peek(embeddings, 0, idxs[i]));
+        }
+
+        var result = graph.Concate(inputs, 0);
+
+        Assert.IsTrue(result.Sizes[0] == idxs.Length);
+
+        for (int i = 0; i < 3; i++)
+        {
+            for (int j = 0; j < 15; j++)
+            {
+                var v1 = result.GetWeightAt(new long[] { i, j });
+                var v2 = embeddings.GetWeightAt(new long[] { idxs[i], j });
+
+                Assert.AreEqual(v1, v2);
+            }
+        }
+    }
+
+    [TestMethod]
     public void TestAddTensorTensor()
     {
         TensorAllocator.InitDevices(ProcessorTypeEnums.CPU, new int[] { 0 });

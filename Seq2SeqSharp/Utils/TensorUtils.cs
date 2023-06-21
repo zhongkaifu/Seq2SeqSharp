@@ -8,6 +8,7 @@
 // Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
+using ManagedCuda.BasicTypes;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Tools;
 using System;
@@ -19,9 +20,10 @@ namespace Seq2SeqSharp.Utils
 {
     public class TensorUtils
     {
-        public static void InitDevices(ProcessorTypeEnums archType, int[] ids, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, string mklInstructions = "AVX2", bool enableTensorCore = true, CudaMemoryDeviceAllocatorType allocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool, DType elementType = DType.Float32)
+        public static void InitDevices(ProcessorTypeEnums archType, int[] ids, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, string mklInstructions = "AVX2", bool enableTensorCore = true, 
+            CudaMemoryDeviceAllocatorType allocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool, DType elementType = DType.Float32, bool saveGPUMemoryMode = false)
         {
-            TensorAllocator.InitDevices(archType, ids, memoryUsageRatio = 0.9f, compilerOptions, mklInstructions, enableTensorCore, allocatorType, elementType);
+            TensorAllocator.InitDevices(archType, ids, memoryUsageRatio = 0.9f, compilerOptions, mklInstructions, enableTensorCore, allocatorType, elementType, saveGPUMemoryMode);
         }
         public static void ScatterFill(IWeightTensor res, float val, IWeightTensor indices, int dim)
         {
@@ -41,7 +43,7 @@ namespace Seq2SeqSharp.Utils
         /// <param name="segmentEmbedding"></param>
         /// <param name="vocab"></param>
         /// <returns>The embedding tensor. shape: (batchsize * seqLen, embedding_dim) </returns>
-        public static IWeightTensor CreateTokensEmbeddings(List<List<int>> seqs, IComputeGraph g, IWeightTensor embeddingsTensor, 
+        public static IWeightTensor CreateTokensEmbeddings(List<List<int>> seqs, IComputeGraph graph, IWeightTensor embeddingsTensor, 
             IWeightTensor segmentEmbedding, Vocab vocab, float scaleFactor = 1.0f, bool enableTagEmbedding = false, bool amp = false)
         {
             int batchSize = seqs.Count;
@@ -114,6 +116,7 @@ namespace Seq2SeqSharp.Utils
                 }
             }
 
+            using IComputeGraph g = graph.CreateSubGraph("CreateTokenEmbeddings");
             IWeightTensor tagEmbeddings = null;
             if (enableTagEmbedding)
             {
@@ -134,6 +137,7 @@ namespace Seq2SeqSharp.Utils
 
             var indiceEmbs = g.CreateTensorWeights(new long[] { idxs.Length, 1 }, idxs);
             IWeightTensor embeddingRst = g.IndexSelect(embeddingsTensor, indiceEmbs);
+            embeddingsTensor.OfflineWeight();
 
             if (amp)
             {
@@ -157,6 +161,8 @@ namespace Seq2SeqSharp.Utils
             {
                 embeddingRst = g.Add(embeddingRst, tagEmbeddings);
             }
+
+            embeddingRst.UnbindFromComputeGraph();
 
             return embeddingRst;
 

@@ -31,6 +31,10 @@ namespace Seq2SeqSharp
         public IWeightTensor Norm(IWeightTensor input, IComputeGraph g)
         {
             var result = g.LayerNorm(input, m_alpha, m_beta, m_epsilon);
+
+            m_alpha.OfflineWeight();
+            m_beta.OfflineWeight();
+
             return result;
         }
 

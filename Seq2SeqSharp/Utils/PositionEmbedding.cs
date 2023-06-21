@@ -9,6 +9,7 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
 using AdvUtils;
+using ManagedCuda.BasicTypes;
 using Seq2SeqSharp.Tools;
 using System;
 using TensorSharp;
@@ -18,12 +19,15 @@ namespace Seq2SeqSharp.Utils
     public class PositionEmbedding
     {
 
-        public static IWeightTensor AddPositionEmbedding(IComputeGraph g, IWeightTensor posEmbedding, int batchSize, IWeightTensor inputEmbs, float dropoutRatio)
+        public static IWeightTensor AddPositionEmbedding(IComputeGraph graph, IWeightTensor posEmbedding, int batchSize, IWeightTensor inputEmbs, float dropoutRatio)
         {
             var Column = posEmbedding.Columns;
             int seqLen = inputEmbs.Rows / batchSize;
 
+            using IComputeGraph g = graph.CreateSubGraph(nameof(AddPositionEmbedding));
             IWeightTensor posEmbeddingPeek = g.Peek(posEmbedding, 0, 0, seqLen);
+            posEmbedding.OfflineWeight();
+
             if (inputEmbs.ElementType == TensorSharp.DType.Float16)
             {
                 var tmp = posEmbeddingPeek;
@@ -44,6 +48,7 @@ namespace Seq2SeqSharp.Utils
             posEmbeddingPeek.Dispose();
 
             inputEmbs = g.Dropout(inputEmbs, batchSize, dropoutRatio, inPlace: true);
+            inputEmbs.UnbindFromComputeGraph();
 
             return inputEmbs;
         }

@@ -104,9 +104,9 @@ namespace Seq2SeqSharp
         /// <summary>
         /// Transformer encoder
         /// </summary>
-        /// <param name="rawInputs"></param>
+        /// <param name="tgtInputs">Input tensor for decoding. Shape: (batchsize * seqLen, embedding_dim)</param>
         /// <param name="g"></param>
-        /// <returns></returns>
+        /// <returns>Decoded tensor. Shape: (batchsize * seqLen, embedding_dim)</returns>
         /// 
 
         public (IWeightTensor, IWeightTensor) Decode(IWeightTensor tgtInputs, IWeightTensor encOutputBatchFirst, IWeightTensor tgtSelfMask, IWeightTensor srcTgtMask, int batchSize, IComputeGraph g, bool outputAttnWeights = false, Dictionary<string, IWeightTensor> cachedTensors = null)
