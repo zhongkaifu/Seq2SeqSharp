@@ -108,7 +108,7 @@ namespace Seq2SeqSharp
                 {
                     m_cacheT = g.Concate(0, m_cacheT, addFFNResult); // Shape: [seqLen, batchSize, input_dim]
                 }
-                m_cacheT.UnbindFromComputeGraph();
+                m_cacheT.UnbindFromComputeGraph(false);
 
                 cachedTensors[cacheKeyName] = m_cacheT;
 

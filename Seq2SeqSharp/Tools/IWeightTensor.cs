@@ -55,7 +55,7 @@ namespace Seq2SeqSharp.Tools
 
         float[] ToWeightArray();
 
-        void UnbindFromComputeGraph();
+        void UnbindFromComputeGraph(bool offlineTensor = true);
 
         bool IsGradientNull();
 

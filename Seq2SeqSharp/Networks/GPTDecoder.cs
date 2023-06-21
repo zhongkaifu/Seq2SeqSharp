@@ -126,10 +126,10 @@ namespace Seq2SeqSharp
                 tgtInputsFinal = layerNorm.Norm(tgtInputs, subg);
                 tgtInputs.ReleaseWeight();
 
-                tgtInputsFinal.UnbindFromComputeGraph();
+                tgtInputsFinal.UnbindFromComputeGraph(false);
                 if (attnProbs != null)
                 {
-                    attnProbs.UnbindFromComputeGraph();
+                    attnProbs.UnbindFromComputeGraph(false);
                 }
 
                 if (selfMaskTensor != null)

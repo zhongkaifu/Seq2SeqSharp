@@ -207,7 +207,7 @@ namespace Seq2SeqSharp
                 {
                     m_cacheQs = g.Concate(0, m_cacheQs, finalAttResults);
                 }
-                m_cacheQs.UnbindFromComputeGraph();
+                m_cacheQs.UnbindFromComputeGraph(false);
 
                 cachedTensors[QKeyName] = m_cacheQs;
 
@@ -392,7 +392,7 @@ namespace Seq2SeqSharp
                 {
                     m_cacheQs = g.Concate(0, m_cacheQs, result);
                 }
-                m_cacheQs.UnbindFromComputeGraph();
+                m_cacheQs.UnbindFromComputeGraph(false);
 
                 cachedTensors[QKeyName] = m_cacheQs;
 

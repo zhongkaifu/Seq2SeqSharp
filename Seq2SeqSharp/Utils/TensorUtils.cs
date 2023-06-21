@@ -162,7 +162,7 @@ namespace Seq2SeqSharp.Utils
                 embeddingRst = g.Add(embeddingRst, tagEmbeddings);
             }
 
-            embeddingRst.UnbindFromComputeGraph();
+            embeddingRst.UnbindFromComputeGraph(false);
 
             return embeddingRst;
 

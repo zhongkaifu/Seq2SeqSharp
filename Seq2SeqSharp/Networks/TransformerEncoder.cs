@@ -122,10 +122,10 @@ namespace Seq2SeqSharp
 
                 inputs = layerNorm.Norm(inputs, subg);
 
-                inputs.UnbindFromComputeGraph();
+                inputs.UnbindFromComputeGraph(false);
                 if (attnProbs != null)
                 {
-                    attnProbs.UnbindFromComputeGraph();
+                    attnProbs.UnbindFromComputeGraph(false);
                 }
 
                 if (maskTensor != null)

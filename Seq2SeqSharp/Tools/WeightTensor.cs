@@ -267,14 +267,17 @@ namespace Seq2SeqSharp.Tools
             OfflineWeight();
         }
 
-        public void UnbindFromComputeGraph()
+        public void UnbindFromComputeGraph(bool offlineTensor = true)
         {
             if (m_computeGraphToBind != null)
             {
                 m_computeGraphToBind.Unbind(this);
             }
 
-            OfflineWeight();
+            if (offlineTensor)
+            {
+                OfflineWeight();
+            }
         }
 
         public int GetDeviceId()

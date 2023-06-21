@@ -129,7 +129,7 @@ namespace Seq2SeqSharp.Tools
                 }
                 m_backprop.Add(backward);
 
-                res.UnbindFromComputeGraph();
+                res.UnbindFromComputeGraph(false);
             }
 
             return res;
@@ -239,7 +239,7 @@ namespace Seq2SeqSharp.Tools
                 }
                 m_backprop.Add(backward);
 
-                res.UnbindFromComputeGraph();
+                res.UnbindFromComputeGraph(false);
             }
 
             return res;
@@ -714,7 +714,7 @@ namespace Seq2SeqSharp.Tools
                 }
                 m_backprop.Add(backward);
 
-                res.UnbindFromComputeGraph();
+                res.UnbindFromComputeGraph(false);
 
             }
 
@@ -1458,7 +1458,7 @@ namespace Seq2SeqSharp.Tools
                 }
                 m_backprop.Add(backward);
 
-                res.UnbindFromComputeGraph();
+                res.UnbindFromComputeGraph(false);
 
             }
 

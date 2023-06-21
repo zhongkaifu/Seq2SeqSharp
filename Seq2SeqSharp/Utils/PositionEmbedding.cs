@@ -48,7 +48,7 @@ namespace Seq2SeqSharp.Utils
             posEmbeddingPeek.Dispose();
 
             inputEmbs = g.Dropout(inputEmbs, batchSize, dropoutRatio, inPlace: true);
-            inputEmbs.UnbindFromComputeGraph();
+            inputEmbs.UnbindFromComputeGraph(false);
 
             return inputEmbs;
         }
