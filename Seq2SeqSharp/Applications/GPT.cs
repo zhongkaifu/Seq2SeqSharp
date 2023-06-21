@@ -102,7 +102,7 @@ namespace Seq2SeqSharp.Applications
             Logger.WriteLine($"Creating encoders and decoders...");
             var raDeviceIds = new RoundArray<int>(DeviceIds);
 
-            DType elementType = (m_options.AMP && m_options.Task != ModeEnums.Train) ? DType.Float16 : DType.Float32;
+            DType elementType = m_options.AMP ? DType.Float16 : DType.Float32;
 
             m_decoder = Decoder.CreateDecoders(model, m_options, raDeviceIds, elementType);
             m_decoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("FeedForward_Decoder_0", model.HiddenDim, model.TgtVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),

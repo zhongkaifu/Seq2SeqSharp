@@ -34,7 +34,7 @@ namespace Seq2SeqSharp.Optimizer
 
         public AdamOptimizer(float clipval, float beta1 = 0.9f, float beta2 = 0.98f, bool saveGPUMemoryMode = false)
         {
-            Logger.WriteLine($"Creating Adam optimizer. GradClip = '{clipval}', Beta1 = '{beta1}', Beta2 = '{beta2}', SaveGPUMemoryMode = '{m_saveGPUMemoryMode}'");
+            Logger.WriteLine($"Creating Adam optimizer. GradClip = '{clipval}', Beta1 = '{beta1}', Beta2 = '{beta2}', SaveGPUMemoryMode = '{saveGPUMemoryMode}'");
 
             m_cacheName2V = new ConcurrentDictionary<string, Tensor>();
             m_cacheName2M = new ConcurrentDictionary<string, Tensor>();

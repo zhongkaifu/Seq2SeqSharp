@@ -104,14 +104,14 @@ namespace Seq2SeqSharp
             var b02 = b0;
             var rPB = relativePositionalEmbWeights;
 
-            if (inputQ.ElementType == DType.Float16)
-            {
-                QKV2 = g.Float2Half(QKV);
-                QKVb2 = g.Float2Half(QKVb);
-                W02 = g.Float2Half(W0);
-                b02 = g.Float2Half(b0);
-                rPB = g.Float2Half(relativePositionalEmbWeights);
-            }
+            //if (inputQ.ElementType == DType.Float16)
+            //{
+            //    QKV2 = g.Float2Half(QKV);
+            //    QKVb2 = g.Float2Half(QKVb);
+            //    W02 = g.Float2Half(W0);
+            //    b02 = g.Float2Half(b0);
+            //    rPB = g.Float2Half(relativePositionalEmbWeights);
+            //}
 
             //Input projections
             var weightedQKV = g.View(g.Affine(inputQNorm, QKV2, QKVb2), dims: new long[] { batchSize, seqLenQ, 3, m_multiHeadNum, m_d });
@@ -247,20 +247,20 @@ namespace Seq2SeqSharp
             var W02 = W0;
             var b02 = b0;
 
-            if (inputQ.ElementType == DType.Float16)
-            {
-                Q2 = g.Float2Half(Q);
-                Qb2 = g.Float2Half(Qb);
+            //if (inputQ.ElementType == DType.Float16)
+            //{
+            //    Q2 = g.Float2Half(Q);
+            //    Qb2 = g.Float2Half(Qb);
 
-                K2 = g.Float2Half(K);
-                Kb2 = g.Float2Half(Kb);
+            //    K2 = g.Float2Half(K);
+            //    Kb2 = g.Float2Half(Kb);
 
-                V2 = g.Float2Half(V);
-                Vb2 = g.Float2Half(Vb);
+            //    V2 = g.Float2Half(V);
+            //    Vb2 = g.Float2Half(Vb);
 
-                W02 = g.Float2Half(W0);
-                b02 = g.Float2Half(b0);
-            }
+            //    W02 = g.Float2Half(W0);
+            //    b02 = g.Float2Half(b0);
+            //}
 
             int newTokensIdx = seqLenQ;
             IWeightTensor m_cacheQs = null;

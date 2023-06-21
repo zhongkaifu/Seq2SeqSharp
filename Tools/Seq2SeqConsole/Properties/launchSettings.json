@@ -2,7 +2,7 @@
   "profiles": {
     "Seq2SeqConsole": {
       "commandName": "Project",
-      "commandLineArgs": "-Task Test -ModelFilePath mt_enu_chs_large2.model.60000 -ProcessorType GPU -InputTestFile test.txt -OutputFile a.out -TaskParallelism 1 -MaxSrcSentLength 110 -MaxTgtSentLength 110",
+      "commandLineArgs": "-ConfigFilePath train_opts.json",
       "workingDirectory": "C:\\Works\\Workspace\\MT\\ENU_CHS",
       "environmentVariables": {
         "MKL_ENABLE_INSTRUCTIONS": "AVX2"

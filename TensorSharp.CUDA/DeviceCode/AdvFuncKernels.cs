@@ -1034,7 +1034,7 @@ __global__ void gLayerNormalizationGradHalf(__half* gradX,
   }
 }
 
-__global__ void AdamHalf(__half* __restrict__ w, float* __restrict__ g, float* __restrict__ v, float* __restrict__ m, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
+__global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* __restrict__ v, float* __restrict__ m, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
 {
   for(int bid = 0; bid < rows; bid += gridDim.x) 
   {
@@ -1042,7 +1042,7 @@ __global__ void AdamHalf(__half* __restrict__ w, float* __restrict__ g, float* _
     if(j < rows) 
     {
       __half* sw = w + j * cols;
-      float* sg = g + j * cols;
+      __half* sg = g + j * cols;
       float* sv = v + j * cols;
       float* sm = m + j * cols;
 
@@ -1056,7 +1056,7 @@ __global__ void AdamHalf(__half* __restrict__ w, float* __restrict__ g, float* _
         int i = tid + threadIdx.x;
         if(i < cols)
         {
-           float g = sg[i] / batchSize;
+           float g = __half2float(sg[i]) / batchSize;
 
            if (g > clipval)
            {

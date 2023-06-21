@@ -135,10 +135,10 @@ namespace Seq2SeqSharp.Utils
             var indiceEmbs = g.CreateTensorWeights(new long[] { idxs.Length, 1 }, idxs);
             IWeightTensor embeddingRst = g.IndexSelect(embeddingsTensor, indiceEmbs);
 
-            if (amp)
-            {
-                embeddingRst = g.Float2Half(embeddingRst);
-            }
+            //if (amp)
+            //{
+            //    embeddingRst = g.Float2Half(embeddingRst);
+            //}
 
 
             if (scaleFactor != 1.0f)
