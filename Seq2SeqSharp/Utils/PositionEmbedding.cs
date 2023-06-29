@@ -24,13 +24,6 @@ namespace Seq2SeqSharp.Utils
             int seqLen = inputEmbs.Rows / batchSize;
 
             IWeightTensor posEmbeddingPeek = g.Peek(posEmbedding, 0, 0, seqLen);
-            //if (inputEmbs.ElementType == TensorSharp.DType.Float16)
-            //{
-            //    var tmp = posEmbeddingPeek;
-            //    posEmbeddingPeek = g.Float2Half(posEmbeddingPeek);
-            //    tmp.Dispose();
-            //}
-
             using (var posEmbeddingPeekView = g.View(posEmbeddingPeek, dims: new long[] { 1, seqLen, Column }))
             {
                 using (var posEmbeddingPeekViewExp = g.Expand(posEmbeddingPeekView, dims: new long[] { batchSize, seqLen, Column }))

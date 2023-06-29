@@ -56,22 +56,7 @@ namespace Seq2SeqSharp
 
         public IWeightTensor Process(IWeightTensor inputT, int batchSize, IComputeGraph g, Dictionary<string, IWeightTensor> cachedTensors = null)
         {
-            IWeightTensor res = null;
-
-            //if (inputT.ElementType == DType.Float16)
-            //{
-
-            //    var whd = g.Float2Half(m_Whd);
-            //    var bd = g.Float2Half(m_Bd);
-
-            //    res = g.Affine(inputT, whd, bd, 1.0f);
-            //}
-            //else
-            //{
-                res = g.Affine(inputT, m_Whd, m_Bd, 1.0f);
-            //}
-
-
+            IWeightTensor res = g.Affine(inputT, m_Whd, m_Bd, 1.0f);            
             return g.Dropout(res, batchSize, m_dropoutRatio, inPlace: true);
         }
 
