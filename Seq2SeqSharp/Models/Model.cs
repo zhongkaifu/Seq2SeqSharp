@@ -34,6 +34,8 @@ namespace Seq2SeqSharp.Models
         public DecoderTypeEnums DecoderType { get; set; }
         public EncoderTypeEnums EncoderType { get; set; }
         public int HiddenDim { get; set; }
+
+        public int IntermediateDim { get; set; }
         public bool EnableSegmentEmbeddings { get; set; }
         public int MultiHeadNum { get; set; }
         public Vocab SrcVocab { get; set; }
@@ -89,6 +91,7 @@ namespace Seq2SeqSharp.Models
         public Model(Options opts,Vocab srcVocab)
         {
             HiddenDim = opts.HiddenSize;
+            IntermediateDim = opts.IntermediateSize;
             EncoderLayerDepth = opts.EncoderLayerDepth;;
             EncoderType = opts.EncoderType;
             MultiHeadNum = opts.MultiHeadNum;
@@ -110,6 +113,7 @@ namespace Seq2SeqSharp.Models
         public Model(Model_4_ProtoBufSerializer m)
         {
             HiddenDim = m.HiddenDim;
+            IntermediateDim = m.IntermediateDim;
             EncoderLayerDepth = m.EncoderLayerDepth; ;
             EncoderType = m.EncoderType;
             MultiHeadNum = m.MultiHeadNum;
@@ -279,6 +283,7 @@ namespace Seq2SeqSharp.Models
             Logger.WriteLine($"Encoder type: '{EncoderType}'");
             Logger.WriteLine($"Decoder type: '{DecoderType}'");
             Logger.WriteLine($"Hidden layer dim: '{HiddenDim}'");
+            Logger.WriteLine($"Intermediate dim: '{IntermediateDim}");
             Logger.WriteLine($"Enable segment embeddings: '{EnableSegmentEmbeddings}'");
             Logger.WriteLine($"Enable shared embeddings: '{SharedEmbeddings}'");
             Logger.WriteLine($"Enable tag embeddings: '{EnableTagEmbeddings}'");

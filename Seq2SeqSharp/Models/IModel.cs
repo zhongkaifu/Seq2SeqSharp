@@ -31,6 +31,7 @@ namespace Seq2SeqSharp
         public DecoderTypeEnums DecoderType { get; set; }
         public EncoderTypeEnums EncoderType { get; set; }
         public int HiddenDim { get; set; }
+        public int IntermediateDim { get; set; }
         public bool EnableSegmentEmbeddings { get; set; }
         public int MultiHeadNum { get; set; }
         public Vocab SrcVocab { get; set; }

@@ -285,15 +285,16 @@ namespace Seq2SeqSharp.Models
         [ProtoMember(6)] public DecoderTypeEnums DecoderType { get; set; }
         [ProtoMember(7)] public EncoderTypeEnums EncoderType { get; set; }
         [ProtoMember(8)] public int HiddenDim { get; set; }
-        [ProtoMember(9)] public bool EnableSegmentEmbeddings { get; set; }
-        [ProtoMember(10)] public int MultiHeadNum { get; set; }
-        [ProtoMember(11)] public Vocab_4_ProtoBufSerializer SrcVocab { get; set; }
-        [ProtoMember(12)] public Vocab_4_ProtoBufSerializer TgtVocab { get; set; }
-        [ProtoMember(13)] public List<Vocab_4_ProtoBufSerializer> ClsVocabs { get; set; }
-        [ProtoMember(14)] public bool EnableCoverageModel { get; set; }
-        [ProtoMember(15)] public bool SharedEmbeddings { get; set; }
-        [ProtoMember(16)] public string SimilarityType { get; set; }
-        [ProtoMember(17)] public bool EnableTagEmbeddings { get; set; }
+        [ProtoMember(9)] public int IntermediateDim { get; set; }
+        [ProtoMember(10)] public bool EnableSegmentEmbeddings { get; set; }
+        [ProtoMember(11)] public int MultiHeadNum { get; set; }
+        [ProtoMember(12)] public Vocab_4_ProtoBufSerializer SrcVocab { get; set; }
+        [ProtoMember(13)] public Vocab_4_ProtoBufSerializer TgtVocab { get; set; }
+        [ProtoMember(14)] public List<Vocab_4_ProtoBufSerializer> ClsVocabs { get; set; }
+        [ProtoMember(15)] public bool EnableCoverageModel { get; set; }
+        [ProtoMember(16)] public bool SharedEmbeddings { get; set; }
+        [ProtoMember(17)] public string SimilarityType { get; set; }
+        [ProtoMember(18)] public bool EnableTagEmbeddings { get; set; }
         [ProtoMember(19)] public int MaxSegmentNum { get; set; }
         [ProtoMember(20)] public bool PointerGenerator { get; set; }
         [ProtoMember(21)] public int ExpertNum { get; set; }

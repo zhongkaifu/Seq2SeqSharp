@@ -100,6 +100,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("The hidden layer size of encoder and decoder.", nameof(HiddenSize))]
         public int HiddenSize = 128;
 
+        [Arg("The intermediate layer size", nameof(IntermediateSize))]
+        public int IntermediateSize = 512;
+
         [Arg("The input file for test.", nameof(InputTestFile))]
         public string InputTestFile = null;
 
