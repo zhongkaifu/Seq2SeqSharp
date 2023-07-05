@@ -261,6 +261,7 @@ namespace Seq2SeqSharp.Models
             EncoderType = m.EncoderType;
             ActivateFunc = m.ActivateFunc;
             HiddenDim = m.HiddenDim;
+            IntermediateDim = m.IntermediateDim;
             EnableSegmentEmbeddings = m.EnableSegmentEmbeddings;
             MultiHeadNum = m.MultiHeadNum;
             SrcVocab = m.SrcVocab != null ? new Vocab_4_ProtoBufSerializer(m.SrcVocab) : null;
