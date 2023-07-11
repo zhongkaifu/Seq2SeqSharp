@@ -32,8 +32,6 @@ namespace Seq2SeqSharp
         private readonly IWeightTensor QKVb;
 
 
-        private readonly IWeightTensor relativePositionalEmbWeights;
-
         private readonly LayerNormalization layerNormQ;
 
         private readonly int m_hiddenDim;
@@ -41,10 +39,8 @@ namespace Seq2SeqSharp
         private readonly int m_multiHeadNum;
         private readonly string m_name;
         private readonly float m_dropoutRatio;
-        private readonly DType m_elementType;
 
         private readonly bool m_sharedQKV;
-        private readonly int m_relativePositionalEmbeddingsContextSize = 65535;
 
         public MultiHeadAttention(string name, int multiHeadNum, int hiddenDim, int inputDim, float dropoutRatio, int deviceId, bool isTrainable, bool sharedQKV = false, float learningRateFactor = 1.0f, DType elementType = DType.Float32)
         {
@@ -54,7 +50,6 @@ namespace Seq2SeqSharp
             m_d = m_hiddenDim / m_multiHeadNum;
             m_dropoutRatio = dropoutRatio;
             m_sharedQKV = sharedQKV;
-            m_elementType = elementType;
 
             W0 = new WeightTensor(new long[2] { hiddenDim, hiddenDim }, deviceId, name: $"{name}.{nameof(W0)}", isTrainable: isTrainable, normType: NormType.Uniform, learningRateFactor: learningRateFactor, dtype: elementType);
             b0 = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(b0)}", isTrainable: isTrainable, dtype: elementType);
@@ -77,10 +72,6 @@ namespace Seq2SeqSharp
             }
 
             layerNormQ = new LayerNormalization($"{name}.{nameof(layerNormQ)}", m_hiddenDim, deviceId, isTrainable, learningRateFactor: learningRateFactor);
-
-            relativePositionalEmbWeights = new WeightTensor(new long[2] { m_relativePositionalEmbeddingsContextSize * 2 + 1, 1 }, deviceId, name: $"{name}.{nameof(relativePositionalEmbWeights)}", isTrainable: isTrainable,
-                normType: NormType.Uniform, learningRateFactor: learningRateFactor, dtype: elementType);
-
         }
 
         /// <summary>
@@ -133,29 +124,6 @@ namespace Seq2SeqSharp
             // Scaled softmax
             float scale = 1.0f / (float)(Math.Sqrt(m_d));
             var attn = g.MulBatch(Qs, Ks, scale); // Shape: [batchSize * m_multiHeadNum, relPosSize, seqLenQ]
-
-            // Calculate relative positional bias
-            float[] relPosIdx = new float[seqLenQ * seqLenQ];
-            for (int i = 0; i < seqLenQ; i++)
-            {
-                for (int j = 0; j < seqLenQ; j++)
-                {
-                    relPosIdx[i * seqLenQ + j] = (float)(m_relativePositionalEmbeddingsContextSize - i + j);
-                }
-            }
-
-            var indice = g.CreateTensorWeights(new long[] { relPosIdx.Length, 1 }, relPosIdx);
-            var relPosWeights = g.IndexSelect(relativePositionalEmbWeights, indice);
-            relPosWeights = g.View(relPosWeights, dims: new long[] { seqLenQ, seqLenQ });
-
-            if (cachedTensors != null)
-            {
-                relPosWeights = g.Peek(relPosWeights, 0, seqLenQ - newTokensIdx, newTokensIdx); // Shape: [relPosSize, seqLenQ]
-            }
-            relPosWeights = g.View(relPosWeights, dims: new long[] { 1, newTokensIdx, seqLenQ });
-            relPosWeights = g.Expand(relPosWeights, dims: new long[] { batchSize * m_multiHeadNum, newTokensIdx, seqLenQ });
-            attn = g.Add(attn, relPosWeights, inPlace: true);
-
 
             // Add mask
             attn = g.View(attn, dims: new long[] { batchSize, m_multiHeadNum, newTokensIdx, seqLenQ });
@@ -385,7 +353,6 @@ namespace Seq2SeqSharp
                 response.Add(QKVb);
             }
 
-            response.Add(relativePositionalEmbWeights);
             response.AddRange(layerNormQ.GetParams());
 
             return response;
@@ -410,8 +377,6 @@ namespace Seq2SeqSharp
                 QKV.Save(stream);
                 QKVb.Save(stream);
             }
-
-            relativePositionalEmbWeights.Save(stream);
 
             W0.Save(stream);
             b0.Save(stream);
@@ -440,8 +405,6 @@ namespace Seq2SeqSharp
                 QKV.Load(stream);
                 QKVb.Load(stream);
             }
-
-            relativePositionalEmbWeights.Load(stream);
 
             W0.Load(stream);
             b0.Load(stream);

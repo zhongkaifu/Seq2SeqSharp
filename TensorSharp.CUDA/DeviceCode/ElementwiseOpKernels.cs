@@ -60,6 +60,7 @@ namespace TensorSharp.CUDA.DeviceCode
             {
                 Logger.WriteLine($"Creating elementwise kernels for Float16 type.");
 
+                AppendTTSHalfFunc(result, "add", "__hadd");
                 AppendTTSHalfFunc(result, "mul", "__hmul");
                 AppendTTSHalfFunc(result, "div", "__hdiv");
                 AppendTTTFunc(result, "cadd", "__hadd", DType.Float16);

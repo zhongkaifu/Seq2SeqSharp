@@ -104,7 +104,7 @@ namespace Seq2SeqSharp.Applications
         {
             Logger.WriteLine($"Creating encoders and decoders...");
             var raDeviceIds = new RoundArray<int>(DeviceIds);
-            DType elementType = (m_options.AMP && m_options.Task != ModeEnums.Train) ? DType.Float16 : DType.Float32;
+            DType elementType = m_options.AMP ? DType.Float16 : DType.Float32;
 
             m_encoder = Encoder.CreateEncoders(model, m_options, raDeviceIds, elementType: elementType);
             m_decoder = Decoder.CreateDecoders(model, m_options, raDeviceIds, elementType: elementType);
