@@ -92,6 +92,9 @@ namespace Seq2SeqConsole
                             // We don't specify vocabulary, so we build it from train corpus
 
                             tgtVocab = trainCorpus.BuildVocabs(opts.TgtVocabSize, opts.MinTokenFreqInVocab);
+
+                            Logger.WriteLine($"Dump vocabulary to file '{opts.ModelFilePath}.vocab'");
+                            tgtVocab.DumpVocab(opts.ModelFilePath + ".vocab");
                         }
 
                         //New training
