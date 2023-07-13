@@ -253,11 +253,11 @@ namespace Seq2SeqSharp.Utils
         }
 
         /// <summary>
-        /// Convert beam search result to token list
+        /// Convert beam search result to words list
         /// </summary>
         /// <param name="beam2batch2seq"></param>
         /// <returns>Converted list. Format: [Beam_Search_Size, Batch_Size, Sequence_Length]</returns>
-        public List<List<List<string>>> ExtractTokens(List<List<BeamSearchStatus>> beam2batch2seq)
+        public List<List<List<string>>> CovertToWords(List<List<BeamSearchStatus>> beam2batch2seq)
         {
             List<List<List<string>>> result = new List<List<List<string>>>();
             lock (locker)
@@ -285,6 +285,7 @@ namespace Seq2SeqSharp.Utils
 
             return result;
         }
+
 
         public int GetWordIndex(string word, bool logUnk = false)
         {

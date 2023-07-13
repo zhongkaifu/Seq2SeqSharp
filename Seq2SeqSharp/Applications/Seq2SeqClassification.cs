@@ -263,7 +263,7 @@ namespace Seq2SeqSharp.Applications
                     }
 
                     nr.Cost = 0.0f;
-                    nr.Output = m_modelMetaData.TgtVocab.ExtractTokens(beam2batchStatus);
+                    nr.Output = m_modelMetaData.TgtVocab.CovertToWords(beam2batchStatus);
                 }
             }
 

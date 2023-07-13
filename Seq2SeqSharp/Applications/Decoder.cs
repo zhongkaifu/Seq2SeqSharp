@@ -213,6 +213,22 @@ namespace Seq2SeqSharp.Applications
             return true;
         }
 
+        /// <summary>
+        /// Remove tokens range
+        /// </summary>
+        /// <param name="beam2batch2seq">Shape: [Beam_Search_Size, Batch_Size, Sequence_Length]</param>
+        /// <returns></returns>
+        public static void RemoveRange(List<List<BeamSearchStatus>> beam2batch2seq, int idx, int count)
+        {
+            foreach (var batch2seq in beam2batch2seq)
+            {
+                foreach (var seq in batch2seq)
+                {
+                    seq.OutputIds.RemoveRange(idx, count);
+                }
+            }
+        }
+
 
         /// <summary>
         /// Combine two beam search results to a single result

@@ -250,7 +250,7 @@ namespace Seq2SeqSharp.Applications
                                                                                outputSentScore: decodingOptions.BeamSearchSize > 1, pointerGenerator: pointerGenerator, 
                                                                                srcSeqs: srcTokensList, teacherForcedAlignment: true, lossType: m_options.LossType, segmentEmbeddings: segmentEmbedding, amp: m_options.AMP);
                     nr.Cost = 0.0f;
-                    nr.Output = m_modelMetaData.TgtVocab.ExtractTokens(bssSeqList);
+                    nr.Output = m_modelMetaData.TgtVocab.CovertToWords(bssSeqList);
                     if (decodingOptions.OutputAligmentsToSrc)
                     {
                         (nr.Alignments, nr.AlignmentScores) = Decoder.ExtractAlignments(bssSeqList);
@@ -318,7 +318,7 @@ namespace Seq2SeqSharp.Applications
                     }
 
                     nr.Cost = 0.0f;
-                    nr.Output = m_modelMetaData.TgtVocab.ExtractTokens(beam2batchStatus);
+                    nr.Output = m_modelMetaData.TgtVocab.CovertToWords(beam2batchStatus);
                     if (decodingOptions.OutputAligmentsToSrc)
                     {
                         (nr.Alignments, nr.AlignmentScores) = Decoder.ExtractAlignments(beam2batchStatus);

@@ -139,6 +139,36 @@ namespace Seq2SeqSharp.Applications
             return string.Join("\t", r);
         }
 
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="input">shape: [batch_size, seq_size]</param>
+        /// <param name="output">shape: [beam_search_size, batch_size, seq_size]</param>
+        /// <returns></returns>
+        private List<List<List<string>>> CombineInputOutput(List<List<string>> input, List<List<List<string>>> output)
+        {
+            List<List<List<string>>> result = new List<List<List<string>>>();
+
+            foreach (var batchSeqs in output)
+            {
+                List<List<string>> rBatchSeqs = new List<List<string>>();
+                for (int i = 0;i < batchSeqs.Count;i++)
+                {
+                    List<string> r = new List<string>();
+                    r.AddRange(input[i]);
+                    r.AddRange(batchSeqs[i]);
+
+                    rBatchSeqs.Add(r);
+                }
+                result.Add(rBatchSeqs);
+            }
+
+            return result;
+
+        }
+
+
         /// <summary>
         /// Run forward part on given single device
         /// </summary>
@@ -251,7 +281,10 @@ namespace Seq2SeqSharp.Applications
                 }
 
                 nr.Cost = 0.0f;
-                nr.Output = m_modelMetaData.TgtVocab.ExtractTokens(beam2batchStatus);
+
+                Decoder.RemoveRange(beam2batchStatus, 0, tgtTokensList[0].Count);
+                var generatedWords = m_modelMetaData.TgtVocab.CovertToWords(beam2batchStatus);
+                nr.Output = CombineInputOutput(tgtSnts, generatedWords);
 
                 if (cachedTensors != null)
                 {

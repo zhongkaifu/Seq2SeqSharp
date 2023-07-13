@@ -78,14 +78,14 @@ public class Seq2Seq_Tests
         var nrs = seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, null, decodingOptions);
         var out_tokens = nrs[0].Output[0][0];
         var output = string.Join(" ", out_tokens);
-        Assert.IsTrue(output == "<s> ▁你 愿意 帮我 一个 忙 , 把 椅子 搬到 角落 , 这样 我 就能 把 地板 <unk> 住 吗 ? </s>");
+        Assert.IsTrue(output == "<s> ▁你会 帮我 一个 忙 , 把 椅子 挪 到 角落 里 , 这样 我 就可以 把 地板 吗 ? </s>");
 
 
         groupBatchTokens = BuildInputGroupBatchTokens("▁As ▁the ▁saying ▁goes : ▁\" good ▁always ▁triumph s ▁over ▁evil \". ▁But ▁there ' s ▁another ▁saying ▁that : ▁\" the ▁fight ▁against ▁evil ▁is ▁a ▁constant ▁struggle \".");
         nrs = seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, null, decodingOptions);
         out_tokens = nrs[0].Output[0][0];
         output = string.Join(" ", out_tokens);
-        Assert.IsTrue(output == "<s> ▁正如 俗 话 说 :“ 善 总是 恶 行 。 ” 但 有 另一种 说法 是 :“ 反 恶 斗争 是一种 持续的 斗争 。 </s>");
+        Assert.IsTrue(output == "<s> ▁正如 谚 语 所说 :“ 善 人 总是 战胜 邪恶 ”。 但 又 有 另一个 说 : ” 与 恶 作 斗争 是一 次 持续的 斗争 。 </s>");
 
     }
 
@@ -109,7 +109,7 @@ public class Seq2Seq_Tests
         var nrs = seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, promptGroupBatchTokens, decodingOptions);
         var out_tokens = nrs[0].Output[0][0];
         var output = string.Join(" ", out_tokens);
-        Assert.IsTrue(output == "<s> ▁ 你是否 愿意 帮我 一个 忙 , 把 椅子 移 到 角落 , 这样 我 就能 把 地板 <unk> 住 ? </s>");
+        Assert.IsTrue(output == "<s> ▁ 你是否 能 帮我 一个 忙 , 把 椅子 挪 到 角落 里 , 这样 我 就能 把 地板 。 </s>");
 
 
         groupBatchTokens = BuildInputGroupBatchTokens("▁luxury ▁for ▁the ▁skin ▁with ▁an ▁exceptionally ▁smooth ▁look");
@@ -117,7 +117,7 @@ public class Seq2Seq_Tests
         nrs = seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, promptGroupBatchTokens, decodingOptions);
         out_tokens = nrs[0].Output[0][0];
         output = string.Join(" ", out_tokens);
-        Assert.IsTrue(output == "<s> 肌 肤 的 奢 华 , 外观 不 光 彩 </s>");
+        Assert.IsTrue(output == "<s> 肌 肤 的 奢 华 , 带 一 键 光 滑 的 眼 光 </s>");
 
     }
 

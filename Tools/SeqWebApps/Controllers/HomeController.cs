@@ -135,6 +135,9 @@ namespace SeqWebApps.Controllers
             srcInputText = srcInputText.Replace("<br />", "").Replace("\n", "");
             tgtInputText = tgtInputText.Replace("<br />", "").Replace("\n", "");
 
+            srcInputText = RemoveSpaceAfterPunct(srcInputText);
+            tgtInputText = RemoveSpaceAfterPunct(tgtInputText);
+
             List<string> prefixTgtInputSents = null;
             if (tgtInputText.Length > Seq2SeqInstance.MaxTgtSentLength)
             {
@@ -206,6 +209,18 @@ namespace SeqWebApps.Controllers
             }
 
             return sent.Trim().IsNullOrEmpty();
+        }
+
+        private string RemoveSpaceAfterPunct(string text)
+        {
+            string[] puncts = new string[] { "。", "！", "?", "!", "?" };
+
+            foreach (var punct in puncts)
+            {
+                text = text.Replace(punct + " ", punct);
+            }
+
+            return text;
         }
 
         private List<string> SplitSents(string currentSent)
