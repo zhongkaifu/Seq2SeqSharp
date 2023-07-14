@@ -240,7 +240,7 @@ namespace Seq2SeqSharp.Models
                 Name2Weights = new Dictionary<string, float[]>();
             }
 
-            VQSize = m.VQSize;
+            VQType = m.VQType;
             Name2WeightsVQ = m.Name2WeightsVQ;
             if (Name2WeightsVQ == null)
             {
@@ -301,7 +301,7 @@ namespace Seq2SeqSharp.Models
         [ProtoMember(21)] public int ExpertNum { get; set; }
         [ProtoMember(22)] public int ExpertsPerTokenFactor { get; set; }
         [ProtoMember(23)] public ActivateFuncEnums ActivateFunc { get; set; }
-        [ProtoMember(24)] public int VQSize { get; set; }
+        [ProtoMember(24)] public VQTypeEnums VQType { get; set; }
         [ProtoMember(25)] public Dictionary<string, byte[]> Name2WeightsVQ { get; set; }
         [ProtoMember(26)] public Dictionary<string, double[]> Name2CodeBook { get; set; }
     }

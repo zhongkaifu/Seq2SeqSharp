@@ -36,4 +36,11 @@ namespace Seq2SeqSharp.Enums
         Transformer = 1,
         GPTDecoder = 2
     }
+
+    public enum VQTypeEnums
+    {
+        None = 0,
+        INT8 = 256,
+        INT4 = 16
+    }
 }

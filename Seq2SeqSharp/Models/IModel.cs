@@ -22,7 +22,7 @@ namespace Seq2SeqSharp
         public int DecoderLayerDepth { get; set; }
         public int EncoderLayerDepth { get; set; }
 
-        public int VQSize { get; set; }
+        public VQTypeEnums VQType { get; set; }
 
         public ActivateFuncEnums ActivateFunc { get; set; }
 

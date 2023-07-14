@@ -83,7 +83,7 @@ namespace Seq2SeqSharp.Models
 
         public Dictionary<string, float[]> Name2Weights { get; set; }
 
-        public int VQSize { get; set; }
+        public VQTypeEnums VQType { get; set; }
         public Dictionary<string, byte[]> Name2WeightsVQ { get; set; }       
         public Dictionary<string, double[]> Name2CodeBook { get; set; }
 
@@ -103,7 +103,7 @@ namespace Seq2SeqSharp.Models
             ExpertNum = opts.ExpertNum;
             ExpertsPerTokenFactor = opts.ExpertsPerTokenFactor;
             ActivateFunc = opts.ActivateFunc;
-            VQSize = opts.VQSize;
+            VQType = opts.VQType;
 
             Name2Weights = new Dictionary<string, float[]>();
             Name2WeightsVQ = new Dictionary<string, byte[]>();
@@ -126,7 +126,7 @@ namespace Seq2SeqSharp.Models
             ExpertsPerTokenFactor = m.ExpertsPerTokenFactor;
             SimilarityType = m.SimilarityType;
             ActivateFunc = m.ActivateFunc;
-            VQSize = m.VQSize;
+            VQType = m.VQType;
 
             Name2Weights = m.Name2Weights;
             Name2WeightsVQ = m.Name2WeightsVQ;
@@ -152,20 +152,21 @@ namespace Seq2SeqSharp.Models
         {
             Logger.WriteLine($"Adding weights '{name}' to the model.");
 
-            if (VQSize > 0)
+            if (VQType == VQTypeEnums.INT8)
             {
+                int vqSize = 256;
                 VectorQuantization vq = new VectorQuantization();
                 foreach (var v in weights)
                 {
                     vq.Add(v);
                 }
 
-                for (int i = weights.Length; i < VQSize; i++)
+                for (int i = weights.Length; i < vqSize; i++)
                 {
                     vq.Add(0);
                 }
 
-                double distortion = vq.BuildCodebook(VQSize);
+                double distortion = vq.BuildCodebook(vqSize);
 
                 Name2CodeBook.Add(name, vq.CodeBook);
 
@@ -177,6 +178,36 @@ namespace Seq2SeqSharp.Models
 
                 Name2WeightsVQ.Add(name, bweights);
             }
+            else if (VQType == VQTypeEnums.INT4)
+            {
+                int vqSize = 16;
+                VectorQuantization vq = new VectorQuantization();
+                foreach (var v in weights)
+                {
+                    vq.Add(v);
+                }
+
+                for (int i = weights.Length; i < vqSize; i++)
+                {
+                    vq.Add(0);
+                }
+
+                double distortion = vq.BuildCodebook(vqSize);
+
+                Name2CodeBook.Add(name, vq.CodeBook);
+
+                byte[] bweights = new byte[weights.Length / 2];
+                for (int i = 0; i < weights.Length; i+=2)
+                {
+                    int lowWeight = vq.ComputeVQ(weights[i]);
+                    int highWeight = vq.ComputeVQ(weights[i + 1]);
+
+                    bweights[i / 2] = (byte)(highWeight * 16 + lowWeight);
+                }
+
+                Name2WeightsVQ.Add(name, bweights);
+
+            }
             else
             {
                 Name2Weights.Add(name, weights);
@@ -186,7 +217,7 @@ namespace Seq2SeqSharp.Models
         public float[] GetWeights(string name)
         {
             float[] weight = null;
-            if (VQSize > 0)
+            if (VQType == VQTypeEnums.INT8)
             {
                 if (Name2WeightsVQ.ContainsKey(name) == false)
                 {
@@ -201,6 +232,27 @@ namespace Seq2SeqSharp.Models
                 {
                     weight[i] = (float)codeBook[Name2WeightsVQ[name][i]];
                 }
+            }
+            else if (VQType == VQTypeEnums.INT4)
+            {
+                if (Name2WeightsVQ.ContainsKey(name) == false)
+                {
+                    Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Weight '{name}' doesn't exist in the model.");
+                    return null;
+                }
+
+                var codeBook = Name2CodeBook[name];
+
+                weight = new float[Name2WeightsVQ[name].Length * 2];
+                for (int i = 0; i < Name2WeightsVQ[name].Length; i++)
+                {
+                    double highWeight = codeBook[Name2WeightsVQ[name][i] / 16];
+                    double lowWeight = codeBook[Name2WeightsVQ[name][i] & 0x0F];
+
+                    weight[i * 2] = (float)lowWeight;
+                    weight[i * 2 + 1] = (float)highWeight;
+                }
+
             }
             else
             {
@@ -219,7 +271,7 @@ namespace Seq2SeqSharp.Models
         public half[] GetWeightsHalfType(string name)
         {
             half[] weight = null;
-            if (VQSize > 0)
+            if (VQType == VQTypeEnums.INT8)
             {
                 if (Name2WeightsVQ.ContainsKey(name) == false)
                 {
@@ -233,6 +285,26 @@ namespace Seq2SeqSharp.Models
                 for (int i = 0; i < Name2WeightsVQ[name].Length; i++)
                 {
                     weight[i] = new half(codeBook[Name2WeightsVQ[name][i]]);
+                }
+            }
+            else if (VQType == VQTypeEnums.INT4)
+            {
+                if (Name2WeightsVQ.ContainsKey(name) == false)
+                {
+                    Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Weight '{name}' doesn't exist in the model.");
+                    return null;
+                }
+
+                var codeBook = Name2CodeBook[name];
+
+                weight = new half[Name2WeightsVQ[name].Length * 2];
+                for (int i = 0; i < Name2WeightsVQ[name].Length; i++)
+                {
+                    double highWeight = codeBook[Name2WeightsVQ[name][i] / 16];
+                    double lowWeight = codeBook[Name2WeightsVQ[name][i] & 0x0F];
+
+                    weight[i * 2] = new half(lowWeight);
+                    weight[i * 2 + 1] = new half(highWeight);
                 }
             }
             else
@@ -256,7 +328,7 @@ namespace Seq2SeqSharp.Models
 
         public void DeleteWeights(string name)
         {
-            if (VQSize > 0)
+            if (VQType == VQTypeEnums.INT8 || VQType == VQTypeEnums.INT4)
             {
                 Name2WeightsVQ.Remove(name);
                 Name2CodeBook.Remove(name);
@@ -291,7 +363,7 @@ namespace Seq2SeqSharp.Models
             Logger.WriteLine($"Pointer Generator: '{PointerGenerator}'");
             Logger.WriteLine($"Expert Size: '{ExpertNum}");
             Logger.WriteLine($"Experts per token factor: '{ExpertsPerTokenFactor}'");
-            Logger.WriteLine($"Codebook size for model vector quantization: '{VQSize}'");
+            Logger.WriteLine($"Codebook size for model vector quantization: '{VQType}'");
 
 
             if (!SimilarityType.IsNullOrEmpty())

@@ -172,8 +172,8 @@ namespace Seq2SeqSharp.Applications
         [Arg("The level of log to output", nameof(LogVerbose))]
         public Logger.LogVerbose LogVerbose = Logger.LogVerbose.Normal;
 
-        [Arg("The code book size for model vector quantization. Default is 0 and disabled.", nameof(VQSize))]
-        public int VQSize = 0;
+        [Arg("Model vector quantization. Support INT8. Default is disabled.", nameof(VQType))]
+        public VQTypeEnums VQType = VQTypeEnums.None;
 
         [Arg("The target language name.", nameof(TgtLang))]
         public string TgtLang;

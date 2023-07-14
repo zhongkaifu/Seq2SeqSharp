@@ -228,15 +228,7 @@ namespace Seq2SeqConsole
                 }
                 else if (opts.Task == ModeEnums.VQModel)
                 {
-                    if (opts.VQSize == 0)
-                    {
-                        Logger.WriteLine(Logger.Level.err, $"Codebook size (VQSize in options) must be greater than 0 for model vector quantization.");
-                    }
-                    else
-                    {
-                        Logger.WriteLine($"Model vector quantization for '{opts.ModelFilePath}'. Codebook size = '{opts.VQSize}'");
-                    }
-
+                    Logger.WriteLine($"Model vector quantization for '{opts.ModelFilePath}'. Type = '{opts.VQType}'");
                     ss = new Seq2Seq(opts);
                     ss.VQModel();
                 }

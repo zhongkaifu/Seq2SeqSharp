@@ -91,7 +91,7 @@ namespace Seq2SeqSharp.Applications
 
         public void VQModel()
         {
-            m_modelMetaData.VQSize = m_options.VQSize;
+            m_modelMetaData.VQType = m_options.VQType;
             SaveModel(createBackupPrevious: true, suffix: ".vq");
         }
 
