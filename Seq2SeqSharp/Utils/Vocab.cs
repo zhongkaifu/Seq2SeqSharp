@@ -135,34 +135,44 @@ namespace Seq2SeqSharp.Utils
                     q++;
                 }
             }
+
+            if (q % 2 != 0)
+            {
+                Logger.WriteLine($"Added a pad token into vocabulary for alignment.");
+                string pad = "[PAD_0]";
+                Items.Add(pad);
+                WordToIndex[pad] = q;
+                IndexToWord[q] = pad;
+                q++;
+            }
         }
 
-        public void MergeVocab(Vocab srcVocab)
-        {
-            int maxId = 0;
+        //public void MergeVocab(Vocab srcVocab)
+        //{
+        //    int maxId = 0;
 
-            foreach (var pair in WordToIndex)
-            {
-                if (pair.Value > maxId)
-                {
-                    maxId = pair.Value;
-                }
+        //    foreach (var pair in WordToIndex)
+        //    {
+        //        if (pair.Value > maxId)
+        //        {
+        //            maxId = pair.Value;
+        //        }
 
-            }
+        //    }
 
-            maxId++;
-            foreach (var pair in srcVocab.WordToIndex)
-            {
-                if (WordToIndex.ContainsKey(pair.Key) == false)
-                {
-                    WordToIndex.Add(pair.Key, maxId);
-                    IndexToWord.Add(maxId, pair.Key);
-                    Items.Add(pair.Key);
-                    maxId++;
-                }
-            }
+        //    maxId++;
+        //    foreach (var pair in srcVocab.WordToIndex)
+        //    {
+        //        if (WordToIndex.ContainsKey(pair.Key) == false)
+        //        {
+        //            WordToIndex.Add(pair.Key, maxId);
+        //            IndexToWord.Add(maxId, pair.Key);
+        //            Items.Add(pair.Key);
+        //            maxId++;
+        //        }
+        //    }
 
-        }
+        //}
 
  
         public void DumpVocab(string fileName)
