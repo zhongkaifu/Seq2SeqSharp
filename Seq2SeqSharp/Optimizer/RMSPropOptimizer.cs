@@ -41,11 +41,7 @@ namespace Seq2SeqSharp.Optimizer
 
                 if (name2tensor.ContainsKey(item.Name))
                 {
-                    if (item != name2tensor[item.Name])
-                    {
-                        throw new ArgumentException($"Found duplicated weights '{item.Name}'.");
-                    }
-                    continue;
+                    throw new ArgumentException($"Found duplicated weights '{item.Name}'.");
                 }
                 name2tensor.Add(item.Name, item);
 

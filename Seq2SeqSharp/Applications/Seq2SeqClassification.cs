@@ -65,9 +65,7 @@ namespace Seq2SeqSharp.Applications
                     throw new ArgumentException($"Model '{m_options.ModelFilePath}' exists and it includes vocabulary, so input vocabulary must be null.");
                 }
 
-                m_modelMetaData = LoadModel(CreateTrainableParameters);
-                //m_modelMetaData = LoadModelImpl();
-                //---LoadModel_As_BinaryFormatter( CreateTrainableParameters );
+                m_modelMetaData = LoadModel();
             }
             else
             {
@@ -80,7 +78,7 @@ namespace Seq2SeqSharp.Applications
             m_modelMetaData.ShowModelInfo();
         }
 
-        protected override Seq2SeqClassificationModel LoadModelImpl() => base.LoadModelRoutine<Model_4_ProtoBufSerializer>(CreateTrainableParameters, Seq2SeqClassificationModel.Create);
+        protected override Seq2SeqClassificationModel LoadModel(string suffix = "") => base.LoadModelRoutine<Model_4_ProtoBufSerializer>(CreateTrainableParameters, Seq2SeqClassificationModel.Create, suffix);
         private bool CreateTrainableParameters(IModel model)
         {
             Logger.WriteLine($"Creating encoders and decoders...");
@@ -112,7 +110,7 @@ namespace Seq2SeqSharp.Applications
                     m_encoderFFLayer.GetNetworkOnDevice(deviceIdIdx),
                     m_decoderFFLayer.GetNetworkOnDevice(deviceIdIdx),
                     m_srcEmbedding.GetNetworkOnDevice(deviceIdIdx),
-                    m_tgtEmbedding.GetNetworkOnDevice(deviceIdIdx),
+                    m_modelMetaData.SharedEmbeddings ? m_srcEmbedding.GetNetworkOnDevice(deviceIdIdx) : m_tgtEmbedding.GetNetworkOnDevice(deviceIdIdx),
                     m_posEmbedding?.GetNetworkOnDevice(deviceIdIdx), m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx));
         }
 

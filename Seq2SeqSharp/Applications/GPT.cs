@@ -63,7 +63,7 @@ namespace Seq2SeqSharp.Applications
                 }
 
                 // Model file exists, so we load it from file.
-                m_modelMetaData = LoadModel(CreateTrainableParameters);
+                m_modelMetaData = LoadModel();
             }
             else
             {
@@ -95,7 +95,7 @@ namespace Seq2SeqSharp.Applications
             SaveModel(createBackupPrevious: true, suffix: ".vq");
         }
 
-        protected override Seq2SeqModel LoadModelImpl() => base.LoadModelRoutine<Model_4_ProtoBufSerializer>(CreateTrainableParameters, Seq2SeqModel.Create);
+        protected override Seq2SeqModel LoadModel(string suffix = "") => base.LoadModelRoutine<Model_4_ProtoBufSerializer>(CreateTrainableParameters, Seq2SeqModel.Create, suffix);
 
         private bool CreateTrainableParameters(IModel model)
         {

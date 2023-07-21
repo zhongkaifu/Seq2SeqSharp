@@ -55,9 +55,7 @@ namespace Seq2SeqSharp
                 }
 
                 // Model file exists, so we load it from file.
-                m_modelMetaData = LoadModel(CreateTrainableParameters);
-                //m_modelMetaData = LoadModelImpl();
-                //---LoadModel_As_BinaryFormatter( CreateTrainableParameters );
+                m_modelMetaData = LoadModel();
             }
             else
             {
@@ -86,7 +84,7 @@ namespace Seq2SeqSharp
             }
         }
 
-        protected override SeqLabelModel LoadModelImpl() => base.LoadModelRoutine<Model_4_ProtoBufSerializer>(CreateTrainableParameters, SeqLabelModel.Create);
+        protected override SeqLabelModel LoadModel(string suffix = "") => base.LoadModelRoutine<Model_4_ProtoBufSerializer>(CreateTrainableParameters, SeqLabelModel.Create, suffix);
         private bool CreateTrainableParameters(IModel model)
         {
             Logger.WriteLine($"Creating encoders and decoders...");

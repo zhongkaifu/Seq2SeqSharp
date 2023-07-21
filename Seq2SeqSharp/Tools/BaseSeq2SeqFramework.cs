@@ -126,6 +126,7 @@ namespace Seq2SeqSharp.Tools
         private int m_startToRunValidAfterUpdates = 20000;
         private int m_runValidEveryUpdates = 10000;
         private int m_maxDegressOfParallelism = 1;
+        private int m_intervalMinToSaveCheckPoint = 60;
 
         public BaseSeq2SeqFramework(string deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, 
             string compilerOptions = null, int runValidEveryUpdates = 10000, int primaryTaskId = 0, int updateFreq = 1, int startToRunValidAfterUpdates = 0,
@@ -159,14 +160,9 @@ namespace Seq2SeqSharp.Tools
             return new ComputeGraphTensor(new WeightTensorFactory(), DeviceIds[deviceIdIdx], needBack);
         }
       
-        protected T LoadModel(Func<T, bool> initializeParametersFunc)
-        {
-                return (LoadModelImpl());
-        }
-
         public bool SaveModel(bool createBackupPrevious = false, string suffix = "") => SaveModelImpl(m_modelMetaData, createBackupPrevious, suffix);
         protected virtual bool SaveModelImpl(T model, bool createBackupPrevious = false, string suffix = "") => SaveModelRoutine(model, Model_4_ProtoBufSerializer.Create, createBackupPrevious, suffix);
-        protected abstract T LoadModelImpl();
+        protected abstract T LoadModel(string suffix = "");
         protected bool SaveModelRoutine<ProtoBuf_T>(T model, Func<T, ProtoBuf_T> createModel4SerializeFunc, bool createBackupPrevious = false, string suffix = "")
         {
             string modelFilePath = m_modelFilePath + suffix;
@@ -199,12 +195,12 @@ namespace Seq2SeqSharp.Tools
                 return (false);
             }
         }
-        protected T LoadModelRoutine<ProtoBuf_T>(Func<T, bool> initializeParametersFunc, Func<ProtoBuf_T, T> createModelFunc)
+        protected T LoadModelRoutine<ProtoBuf_T>(Func<T, bool> initializeParametersFunc, Func<ProtoBuf_T, T> createModelFunc, string suffix = "")
         {
             Logger.WriteLine($"Loading model from '{m_modelFilePath}'...");
             T model = default;
 
-            using (var fs = new FileStream(m_modelFilePath, FileMode.Open, FileAccess.Read))
+            using (var fs = new FileStream(m_modelFilePath + suffix, FileMode.Open, FileAccess.Read))
             {
                 var model_4_serialize = ProtoBuf.Serializer.Deserialize<ProtoBuf_T>(fs);
                 model = createModelFunc(model_4_serialize);
@@ -237,7 +233,7 @@ namespace Seq2SeqSharp.Tools
                 srcEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.SrcVocab.Count, modelMetaData.EncoderEmbeddingDim },
                     raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SharedEmbeddings", isTrainable: isSrcEmbeddingTrainable, learningRateFactor: encoderStartLearningRateFactor, dtype: elementType), DeviceIds);
 
-                tgtEmbeddings = srcEmbeddings;
+                tgtEmbeddings = null;
             }
             else
             {
@@ -296,6 +292,7 @@ namespace Seq2SeqSharp.Tools
         {
             int processedLineInTotal = 0;
             DateTime startDateTime = DateTime.Now;
+            DateTime lastCheckpointSaveDateTime = startDateTime;
             double costInTotal = 0.0;
             long srcWordCntsInTotal = 0;
             long tgtWordCntsInTotal = 0;
@@ -322,6 +319,25 @@ namespace Seq2SeqSharp.Tools
                         try
                         {
                             (float cost, int sWordCnt, int tWordCnt, int processedLine) = RunNetwork(forwardOnSingleDevice, sntPairBatchs, batchSplitFactor, decodingOptions, true);
+
+                            if (float.IsNaN(cost))
+                            {
+                                Logger.WriteLine(Logger.Level.warn, "The cost result is Nan, so it seems weights are corrupted. Let's roll back to the previous good checkpoint.");
+
+                                LoadModel(suffix: ".ckp");
+                                break;
+                            }
+                            else
+                            {
+                                if ((DateTime.Now - lastCheckpointSaveDateTime).TotalMinutes >= m_intervalMinToSaveCheckPoint)
+                                {
+                                    //Refresh checkpoint
+                                    SaveModel(createBackupPrevious: false, suffix: ".ckp");
+                                    lastCheckpointSaveDateTime = DateTime.Now;
+                                }
+                            }
+
+
                             processedLineInTotal += processedLine;
                             srcWordCntsInTotal += sWordCnt;
                             tgtWordCntsInTotal += tWordCnt;
@@ -1055,11 +1071,14 @@ namespace Seq2SeqSharp.Tools
             HashSet<IMultiProcessorNetworkWrapper> setNetworkWrapper = new HashSet<IMultiProcessorNetworkWrapper>();
             foreach (KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network)
             {
-                // One network wrapper may have multi-names, so we only save one copy of it
                 if (setNetworkWrapper.Contains(pair.Value) == false)
                 {
                     setNetworkWrapper.Add(pair.Value);
                     pair.Value.Save(m_modelMetaData);
+                }
+                else
+                {
+                    throw new ArgumentException($"Failed to save parameter due to duplicated parameter name '{pair.Value}'");
                 }
             }
         }
@@ -1082,10 +1101,13 @@ namespace Seq2SeqSharp.Tools
             var setNetworkWrapper = new HashSet<IMultiProcessorNetworkWrapper>(m_name2network.Count);
             foreach (IMultiProcessorNetworkWrapper mpnw in m_name2network.Values)
             {
-                // One network wrapper may have multi-names, so we only save one copy of it
                 if (setNetworkWrapper.Add(mpnw))
                 {
                     mpnw.Save(model);
+                }
+                else
+                {
+                    throw new ArgumentException($"Failed to save parameter due to duplicated network wrapper.'");
                 }
             }
         }
