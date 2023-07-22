@@ -185,6 +185,19 @@ namespace Seq2SeqSharp
             });
         }
 
+        public void Dispose()
+        {
+            Parallel.ForEach(m_networks, network =>
+            {
+                List<Tools.IWeightTensor> tensors = network.GetParams();
+                for (int j = 0; j < tensors.Count; j++)
+                {                 
+                    tensors[j].ReleaseWeight();
+                    tensors[j].ReleaseGradient();
+                }
+            });
+
+        }
 
         /// <summary>
         /// Release gradients on all devices

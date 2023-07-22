@@ -126,7 +126,6 @@ namespace Seq2SeqSharp.Tools
         private int m_startToRunValidAfterUpdates = 20000;
         private int m_runValidEveryUpdates = 10000;
         private int m_maxDegressOfParallelism = 1;
-        private int m_intervalMinToSaveCheckPoint = 60;
 
         public BaseSeq2SeqFramework(string deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, 
             string compilerOptions = null, int runValidEveryUpdates = 10000, int primaryTaskId = 0, int updateFreq = 1, int startToRunValidAfterUpdates = 0,
@@ -322,21 +321,11 @@ namespace Seq2SeqSharp.Tools
 
                             if (float.IsNaN(cost))
                             {
-                                Logger.WriteLine(Logger.Level.warn, "The cost result is Nan, so it seems weights are corrupted. Let's roll back to the previous good checkpoint.");
+                                Logger.WriteLine(Logger.Level.warn, "The cost result is Nan, so it seems weights are corrupted. Let's roll back to the previous best checkpoint.");
 
-                                LoadModel(suffix: ".ckp");
+                                LoadModel();
                                 break;
                             }
-                            else
-                            {
-                                if ((DateTime.Now - lastCheckpointSaveDateTime).TotalMinutes >= m_intervalMinToSaveCheckPoint)
-                                {
-                                    //Refresh checkpoint
-                                    SaveModel(createBackupPrevious: false, suffix: ".ckp");
-                                    lastCheckpointSaveDateTime = DateTime.Now;
-                                }
-                            }
-
 
                             processedLineInTotal += processedLine;
                             srcWordCntsInTotal += sWordCnt;

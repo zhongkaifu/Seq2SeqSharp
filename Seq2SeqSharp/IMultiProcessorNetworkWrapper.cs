@@ -22,5 +22,7 @@ namespace Seq2SeqSharp
         List<IWeightTensor> GetWeightsOnDefaultDevice();
         void ZeroGradientsOnAllDevices();
         void ReleaseGradientsOnAllDevices();
+
+        void Dispose();
     }
 }
