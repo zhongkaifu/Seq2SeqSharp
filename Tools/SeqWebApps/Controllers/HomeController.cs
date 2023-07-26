@@ -164,7 +164,7 @@ namespace SeqWebApps.Controllers
                 outputSents.InsertRange(0, prefixTgtInputSents);
             }
 
-            outputText = String.Join("<br />", outputSents);
+            outputText = String.Join("<br />", outputSents);            
             if (outputText.Length >= Seq2SeqInstance.MaxTokenToGenerate && outputText.Contains("EOS") == false)
             {
                 outputText += " EOS";
@@ -185,6 +185,13 @@ namespace SeqWebApps.Controllers
             StringBuilder sb = new StringBuilder();
             foreach (char ch in text)
             {
+                if (parts.Count > 0 && setSeps.Contains(ch) && sb.Length == 0)
+                {
+                    // Punct should not at the beginning of the line
+                    parts[parts.Count - 1] += ch;
+                    continue;
+                }
+
                 sb.Append(ch);
                 if (setSeps.Contains(ch) && sb.Length > 1)
                 {
@@ -199,16 +206,6 @@ namespace SeqWebApps.Controllers
             }
 
             return parts.ToArray();
-        }
-
-        private bool OnlyPartsInSent(string sent, string[] parts)
-        {
-            foreach (string part in parts)
-            {
-                sent = sent.Replace(part, "");
-            }
-
-            return sent.Trim().IsNullOrEmpty();
         }
 
         private string RemoveSpaceAfterPunct(string text)
@@ -226,42 +223,32 @@ namespace SeqWebApps.Controllers
         private List<string> SplitSents(string currentSent)
         {
             List<string> sents = new List<string>();
+            char[] puncts = new char[] { '。', '！', '?', '!', '?', '”', ')', '）', '】', '.'};
 
-            HashSet<char> setClosedPunct = new HashSet<char>();
-            setClosedPunct.Add('”');
-            setClosedPunct.Add('\"');
-            setClosedPunct.Add('】');
-            setClosedPunct.Add(')');
-        
-            string[] parts = Split(currentSent, new char[] { '。', '！', '?', '!', '?' });
-            for (int i = 0; i < parts.Length; i++)
-            {
-                string p = String.Empty;
-                bool skipNextLine = false;
-                if (i < parts.Length - 1)
-                {
-                    if (setClosedPunct.Contains(parts[i + 1][0]) || OnlyPartsInSent(parts[i + 1], parts))
-                    {
-                        p = parts[i] + parts[i + 1];
-                        skipNextLine = true;
-                    }                   
-                    else
-                    {
-                        p = parts[i];
-                    }
-                }
-                else
-                {
-                    p = parts[i];
-                }
 
-                sents.Add(p);
+            string[] parts = Split(currentSent, puncts);
 
-                if (skipNextLine)
-                {
-                    i++;
-                }
-            }
+            sents.AddRange(parts);
+
+            //foreach (var part in parts)
+            //{
+            //    if (sents.Count == 0)
+            //    {
+            //        sents.Add(part);
+            //    }
+            //    else
+            //    {
+            //        if (part.Length == 1)
+            //        {
+            //            sents[sents.Count - 1] += part;
+            //        }
+            //        else
+            //        {
+            //            sents.Add(part);
+            //        }
+            //    }
+
+            //}
 
             return sents;
         }
