@@ -92,8 +92,6 @@ namespace AdvUtils
             Logger.WriteLine("Sorting data set (size: {0})...", dataSetSize);
             dataSet.Sort(0, dataSetSize);
 
-            Logger.WriteLine("min={0}, max={1}", dataSet[0], dataSet[dataSetSize - 1]);
-
             //Set entire data as a single cluster, and then split it
             double mean, var;
             ComputeVariables(0, dataSetSize - 1, out mean, out var);
@@ -130,6 +128,9 @@ namespace AdvUtils
             }
 
             distortion = Math.Sqrt(distortion / dataSetSize);
+
+            Logger.WriteLine($"min={dataSet[0]}, max={dataSet[dataSetSize - 1]}, distortion = {distortion}");
+
             return distortion;
         }
       
