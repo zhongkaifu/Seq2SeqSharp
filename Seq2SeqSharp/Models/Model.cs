@@ -193,20 +193,26 @@ namespace Seq2SeqSharp.Models
                 }
 
                 double distortion = vq.BuildCodebook(vqSize);
-
-                Name2CodeBook.Add(name, vq.CodeBook);
-
-                byte[] bweights = new byte[weights.Length / 2];
-                for (int i = 0; i < weights.Length; i+=2)
+                if (distortion < 0.1)
                 {
-                    int lowWeight = vq.ComputeVQ(weights[i]);
-                    int highWeight = vq.ComputeVQ(weights[i + 1]);
+                    Name2CodeBook.Add(name, vq.CodeBook);
 
-                    bweights[i / 2] = (byte)(highWeight * 16 + lowWeight);
+                    byte[] bweights = new byte[weights.Length / 2];
+                    for (int i = 0; i < weights.Length; i += 2)
+                    {
+                        int lowWeight = vq.ComputeVQ(weights[i]);
+                        int highWeight = vq.ComputeVQ(weights[i + 1]);
+
+                        bweights[i / 2] = (byte)(highWeight * 16 + lowWeight);
+                    }
+
+                    Name2WeightsVQ.Add(name, bweights);
                 }
-
-                Name2WeightsVQ.Add(name, bweights);
-
+                else
+                {
+                    Logger.WriteLine($"Distortion({distortion}) is too large, so we keep the original values.");
+                    Name2Weights.Add(name, weights);
+                }
             }
             else
             {
@@ -217,7 +223,12 @@ namespace Seq2SeqSharp.Models
         public float[] GetWeights(string name)
         {
             float[] weight = null;
-            if (VQType == VQTypeEnums.INT8)
+
+            if (Name2Weights.ContainsKey(name))
+            {
+                weight = Name2Weights[name];        
+            }
+            else if (VQType == VQTypeEnums.INT8)
             {
                 if (Name2WeightsVQ.ContainsKey(name) == false)
                 {
@@ -256,13 +267,7 @@ namespace Seq2SeqSharp.Models
             }
             else
             {
-                if (Name2Weights.ContainsKey(name) == false)
-                {
-                    Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Weight '{name}' doesn't exist in the model.");
-                    return null;
-                }
-
-                weight = Name2Weights[name];
+                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Weight '{name}' doesn't exist in the model.");
             }
 
             return weight;
@@ -271,7 +276,16 @@ namespace Seq2SeqSharp.Models
         public half[] GetWeightsHalfType(string name)
         {
             half[] weight = null;
-            if (VQType == VQTypeEnums.INT8)
+            if (Name2Weights.ContainsKey(name))
+            {
+                var values = Name2Weights[name];
+                weight = new half[values.Length];
+                for (int i = 0; i < values.Length; i++)
+                {
+                    weight[i] = new half(values[i]);
+                }
+            }
+            else if (VQType == VQTypeEnums.INT8)
             {
                 if (Name2WeightsVQ.ContainsKey(name) == false)
                 {
@@ -309,18 +323,7 @@ namespace Seq2SeqSharp.Models
             }
             else
             {
-                if (Name2Weights.ContainsKey(name) == false)
-                {
-                    Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Weight '{name}' doesn't exist in the model.");
-                    return null;
-                }
-
-                var values = Name2Weights[name];
-                weight = new half[values.Length];
-                for (int i = 0; i < values.Length; i++)
-                {
-                    weight[i] = new half(values[i]);
-                }
+                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Weight '{name}' doesn't exist in the model.");
             }
 
             return weight;
@@ -328,12 +331,17 @@ namespace Seq2SeqSharp.Models
 
         public void DeleteWeights(string name)
         {
-            if (VQType == VQTypeEnums.INT8 || VQType == VQTypeEnums.INT4)
+            if (Name2WeightsVQ != null && Name2WeightsVQ.ContainsKey(name))
             {
                 Name2WeightsVQ.Remove(name);
+            }
+
+            if (Name2CodeBook != null && Name2CodeBook.ContainsKey(name))
+            {
                 Name2CodeBook.Remove(name);
             }
-            else
+
+            if (Name2Weights != null && Name2Weights.ContainsKey(name))
             {
                 Name2Weights.Remove(name);
             }

@@ -9,7 +9,13 @@ namespace Seq2SeqSharp
         public static bool Return_V { get; set; }
         public static float V_Val { get; set; }
 
-        private static readonly Random random = new Random(DateTime.Now.Millisecond);
+        private static Random random = new Random(DateTime.Now.Millisecond);
+
+        public static void Init(int seed)
+        {
+            random = new Random(seed);
+        }
+
         public static float GaussRandom()
         {
             if (Return_V)

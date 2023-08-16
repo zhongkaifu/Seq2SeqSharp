@@ -66,8 +66,8 @@ public class Seq2Seq_Tests
     {
         var opts = new Seq2SeqOptions();
         opts.ModelFilePath = "mt_enu_chs.model";
-        opts.MaxValidSrcSentLength = 110;
-        opts.MaxValidTgtSentLength = 110;
+        opts.MaxSrcSentLength = 110;
+        opts.MaxTgtSentLength = 110;
         opts.ProcessorType = ProcessorTypeEnums.CPU;
         opts.DeviceIds = "0";
 
@@ -95,8 +95,8 @@ public class Seq2Seq_Tests
     {
         var opts = new Seq2SeqOptions();
         opts.ModelFilePath = "mt_enu_chs.model";
-        opts.MaxValidSrcSentLength = 110;
-        opts.MaxValidTgtSentLength = 110;
+        opts.MaxSrcSentLength = 110;
+        opts.MaxTgtSentLength = 110;
         opts.ProcessorType = ProcessorTypeEnums.CPU;
         opts.DeviceIds = "0";
 
@@ -121,34 +121,32 @@ public class Seq2Seq_Tests
 
     }
 
-    //[TestMethod]
-    //public void TestGPTInferenceWithPrompt()
-    //{
-    //    var opts = new Seq2SeqOptions();
-    //    opts.ModelFilePath = "gpt_chs.model";
-    //    opts.MaxValidSrcSentLength = 110;
-    //    opts.MaxValidTgtSentLength = 110;
-    //    opts.ProcessorType = ProcessorTypeEnums.CPU;
-    //    opts.DeviceIds = "0";
+    [TestMethod]
+    [DeploymentItem("tinybook.model")]
+    public void TestGPTInferenceWithPrompt()
+    {
+        var opts = new Seq2SeqOptions();
+        opts.ModelFilePath = "tinybook.model";
+        opts.MaxSrcSentLength = 32;
+        opts.MaxTgtSentLength = 64;
+        opts.ProcessorType = ProcessorTypeEnums.CPU;
+        opts.DeviceIds = "0";
+        opts.DecodingStrategy = DecodingStrategyEnums.Sampling;
+        opts.DecodingTopP = 0.0f;
 
-    //    var gpt = new GPT(opts);
-    //    DecodingOptions decodingOptions = opts.CreateDecodingOptions();
+        //We use a fixed random seed.
+        RandomGenerator.Init(8032023);
 
-    //    List<List<List<string>>> groupBatchTokens = BuildInputGroupBatchTokens("▁Would ▁you ▁do ▁me ▁a ▁favor ▁by ▁moving ▁that ▁chair ▁over ▁to ▁the ▁corner ▁so ▁that ▁I ▁can ▁sweep ▁the ▁floor ?");
+        var gpt = new GPT(opts);
+        DecodingOptions decodingOptions = opts.CreateDecodingOptions();
 
-    //    var nrs = gpt.Test<SeqCorpusBatch>(groupBatchTokens, groupBatchTokens, decodingOptions);
-    //    var out_tokens = nrs[0].Output[0][0];
-    //    var output = string.Join(" ", out_tokens);
-    //    Assert.IsTrue(output == "<s> ▁ 你是否 愿意 帮我 一个 忙 , 把 椅子 移 到 角落 , 这样 我 就能 把 地板 <unk> 住 ? </s>");
+        List<List<List<string>>> groupBatchTokens = BuildInputGroupBatchTokens("肌 肤 的 奢 华");
 
-
-    //    groupBatchTokens = BuildInputGroupBatchTokens("▁luxury ▁for ▁the ▁skin ▁with ▁an ▁exceptionally ▁smooth ▁look");
-    //    nrs = gpt.Test<SeqCorpusBatch>(groupBatchTokens, groupBatchTokens, decodingOptions);
-    //    out_tokens = nrs[0].Output[0][0];
-    //    output = string.Join(" ", out_tokens);
-    //    Assert.IsTrue(output == "<s> 肌 肤 的 奢 华 , 外观 不 光 彩 </s>");
-
-    //}
+        var nrs = gpt.Test<SeqCorpusBatch>(groupBatchTokens, groupBatchTokens, decodingOptions);
+        var out_tokens = nrs[0].Output[0][0];
+        var output = string.Join(" ", out_tokens);
+       Assert.IsTrue(output == "<s> 肌 肤 的 奢 华 , 使 人 感到 一种 莫 名 的 兴奋 。 ▁ 杨 帆 在 赵 王 府 中 , 杨 帆 对 赵 王 府 的 奢 华 和 豪华 , 杨 帆 也 十分 喜欢 。 ▁ 赵 王 府 中 , 杨 帆 从 来 都没有 见过 如此 奢 华 的 装饰 。 ▁ 赵 王");
+    }
 
 
     private static List<List<List<string>>> BuildInputGroupBatchTokens(string input)

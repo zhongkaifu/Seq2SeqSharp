@@ -132,11 +132,8 @@ namespace SeqWebApps.Controllers
             }
 
 
-            srcInputText = srcInputText.Replace("<br />", "").Replace("\n", "");
-            tgtInputText = tgtInputText.Replace("<br />", "").Replace("\n", "");
-
-            srcInputText = RemoveSpaceAfterPunct(srcInputText);
-            tgtInputText = RemoveSpaceAfterPunct(tgtInputText);
+            srcInputText = srcInputText.Replace("<br />", " ").Replace("\n", " ");
+            tgtInputText = tgtInputText.Replace("<br />", " ").Replace("\n", " ");
 
             List<string> prefixTgtInputSents = null;
             if (tgtInputText.Length > Seq2SeqInstance.MaxTgtSentLength)
@@ -153,7 +150,7 @@ namespace SeqWebApps.Controllers
                     tgtInputSents.RemoveAt(0);
                 }
 
-                tgtInputText = String.Join("", tgtInputSents);
+                tgtInputText = String.Join(" ", tgtInputSents);
             }
 
             string outputText = Seq2SeqInstance.Call(srcInputText, tgtInputText, tokenNumToGenerate, topP, temperature);            
@@ -208,48 +205,13 @@ namespace SeqWebApps.Controllers
             return parts.ToArray();
         }
 
-        private string RemoveSpaceAfterPunct(string text)
-        {
-            string[] puncts = new string[] { "。", "！", "?", "!", "?" };
-
-            foreach (var punct in puncts)
-            {
-                text = text.Replace(punct + " ", punct);
-            }
-
-            return text;
-        }
-
         private List<string> SplitSents(string currentSent)
         {
             List<string> sents = new List<string>();
             char[] puncts = new char[] { '。', '！', '?', '!', '?', '”', ')', '）', '】', '.'};
 
-
             string[] parts = Split(currentSent, puncts);
-
             sents.AddRange(parts);
-
-            //foreach (var part in parts)
-            //{
-            //    if (sents.Count == 0)
-            //    {
-            //        sents.Add(part);
-            //    }
-            //    else
-            //    {
-            //        if (part.Length == 1)
-            //        {
-            //            sents[sents.Count - 1] += part;
-            //        }
-            //        else
-            //        {
-            //            sents.Add(part);
-            //        }
-            //    }
-
-            //}
-
             return sents;
         }
 

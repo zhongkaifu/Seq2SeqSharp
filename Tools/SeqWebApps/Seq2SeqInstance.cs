@@ -64,6 +64,7 @@ namespace Seq2SeqWebApps
             opts.IsSrcEmbeddingTrainable = false;
             opts.IsTgtEmbeddingTrainable = false;
             opts.CudaMemoryAllocatorType = cudaMemoryDeviceAllocatorType;
+            opts.RandomSeed = 1234;
 
             MaxTokenToGenerate = maxTokenToGeneration;
 

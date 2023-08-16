@@ -1294,7 +1294,7 @@ namespace Seq2SeqSharp.Tools
             float[] weights = m.ToWeightArray();
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { m.Rows, 1 }, m_deviceId, name: $"{GetHashString(m.Name)}.Sample", graphToBind: this, needGradient: m.NeedGradient);
 
-            Random rnd = new Random(DateTime.Now.Millisecond);
+            //Random rnd = new Random(DateTime.Now.Millisecond);
             float[] indices = new float[m.Rows];
 
             for (int i = 0; i < m.Rows; i++)
@@ -1375,7 +1375,7 @@ namespace Seq2SeqSharp.Tools
                     }
                 }
 
-                float rndValue = (float)rnd.NextDouble();
+                float rndValue = RandomGenerator.floatRandom(0.0f, 1.0f);
                 for (int k = 0; k < accProbs.Count; k++)
                 {
                     if (accProbs[k] / acc >= rndValue)

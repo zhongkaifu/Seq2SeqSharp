@@ -129,7 +129,8 @@ namespace Seq2SeqSharp.Tools
 
         public BaseSeq2SeqFramework(string deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, 
             string compilerOptions = null, int runValidEveryUpdates = 10000, int primaryTaskId = 0, int updateFreq = 1, int startToRunValidAfterUpdates = 0,
-            int maxDegressOfParallelism = 1, string mklInstructions = "AVX2", int weightsUpdateCount = 0, bool enableTensorCore = true, CudaMemoryDeviceAllocatorType cudaMemoryAllocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool, DType elementType = DType.Float32)
+            int maxDegressOfParallelism = 1, string mklInstructions = "AVX2", int weightsUpdateCount = 0, bool enableTensorCore = true, CudaMemoryDeviceAllocatorType cudaMemoryAllocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool, 
+            DType elementType = DType.Float32, int randomSeed = -1)
         {
             m_deviceIds = deviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
             string[] cudaCompilerOptions = compilerOptions.IsNullOrEmpty() ? null : compilerOptions.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -143,6 +144,12 @@ namespace Seq2SeqSharp.Tools
             m_runValidEveryUpdates = runValidEveryUpdates;
             m_maxDegressOfParallelism = maxDegressOfParallelism;
             m_weightsUpdateCount = weightsUpdateCount;
+
+            if (randomSeed == -1)
+            {
+                randomSeed = DateTime.Now.Millisecond;
+            }
+            RandomGenerator.Init(randomSeed);
         }
 
         public virtual List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, DecodingOptions decodingOptions, bool isTraining)

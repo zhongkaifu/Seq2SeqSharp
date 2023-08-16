@@ -232,6 +232,8 @@ namespace Seq2SeqSharp.Applications
         [Arg("The minimum token frequency in vocabulary", nameof(MinTokenFreqInVocab))]
         public int MinTokenFreqInVocab = 1;
 
+        [Arg("The seed value of random generator", nameof(RandomSeed))]
+        public int RandomSeed = -1;
 
         public void ValidateOptions()
         {

@@ -28,6 +28,9 @@
     <None Update="seq2seq_mt_enu_chs_tiny_test.model">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="tinybook.model">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="train.chs.snt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
