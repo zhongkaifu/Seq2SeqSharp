@@ -166,7 +166,7 @@ namespace Seq2SeqSharp.Models
                     vq.Add(0);
                 }
 
-                double distortion = vq.BuildCodebook(vqSize);
+                (double min, double max, double distortion) = vq.BuildCodebook(vqSize);
 
                 Name2CodeBook.Add(name, vq.CodeBook);
 
@@ -192,8 +192,8 @@ namespace Seq2SeqSharp.Models
                     vq.Add(0);
                 }
 
-                double distortion = vq.BuildCodebook(vqSize);
-                if (distortion < 0.1)
+                (double min, double max, double distortion) = vq.BuildCodebook(vqSize);
+                if (Math.Abs(max - min) <= 2.0)
                 {
                     Name2CodeBook.Add(name, vq.CodeBook);
 

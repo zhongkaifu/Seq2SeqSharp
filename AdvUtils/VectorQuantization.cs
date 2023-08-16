@@ -81,12 +81,12 @@ namespace AdvUtils
         /// </summary>
         /// <param name="vqSize"></param>
         /// <returns></returns>
-        public double BuildCodebook(int vqSize)
+        public (double, double, double) BuildCodebook(int vqSize)
         {
             if (vqSize > dataSetSize)
             {
                 Logger.WriteLine(Logger.Level.err, "VQ size should not be greater than data size.");
-                return -1;
+                return (-1.0, -1.0, -1.0);
             }
 
             Logger.WriteLine("Sorting data set (size: {0})...", dataSetSize);
@@ -131,7 +131,7 @@ namespace AdvUtils
 
             Logger.WriteLine($"min={dataSet[0]}, max={dataSet[dataSetSize - 1]}, distortion = {distortion}");
 
-            return distortion;
+            return (dataSet[0], dataSet[dataSetSize - 1], distortion);
         }
       
         /// <summary>
