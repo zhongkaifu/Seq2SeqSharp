@@ -28,6 +28,7 @@ using Seq2SeqSharp.Optimizer;
 using Seq2SeqSharp.Utils;
 using TensorSharp;
 using TensorSharp.CUDA.ContextState;
+using static ProtoBuf.Meta.RuntimeTypeModel;
 
 namespace Seq2SeqSharp.Tools
 {
@@ -128,6 +129,13 @@ namespace Seq2SeqSharp.Tools
         private int m_startToRunValidAfterUpdates = 20000;
         private int m_runValidEveryUpdates = 10000;
         private int m_maxDegressOfParallelism = 1;
+        ProcessorTypeEnums m_processorType;
+        float m_memoryUsageRatio = 0.9f;
+        string m_compilerOptions = null;
+        string m_mklInstructions = "AVX2";
+        bool m_enableTensorCore = true;
+        CudaMemoryDeviceAllocatorType m_cudaMemoryAllocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool;
+        DType m_elementType = DType.Float32;
 
         public BaseSeq2SeqFramework(string deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, 
             string compilerOptions = null, int runValidEveryUpdates = 10000, int primaryTaskId = 0, int updateFreq = 1, int startToRunValidAfterUpdates = 0,
@@ -135,11 +143,14 @@ namespace Seq2SeqSharp.Tools
             DType elementType = DType.Float32, int randomSeed = -1)
         {
             m_deviceIds = deviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
-            string[] cudaCompilerOptions = compilerOptions.IsNullOrEmpty() ? null : compilerOptions.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
+            m_compilerOptions = compilerOptions;
             m_modelFilePath = modelFilePath;
-            TensorAllocator.InitDevices(processorType, m_deviceIds, memoryUsageRatio, cudaCompilerOptions, mklInstructions: mklInstructions, enableTensorCore: enableTensorCore, cudaMemoryAllocatorType, elementType);
-
+            m_processorType= processorType;
+            m_memoryUsageRatio = memoryUsageRatio;
+            m_mklInstructions = mklInstructions;
+            m_enableTensorCore = enableTensorCore;
+            m_cudaMemoryAllocatorType = cudaMemoryAllocatorType;
+            m_elementType = elementType;
             m_primaryTaskId = primaryTaskId;
             m_updateFreq = updateFreq;
             m_startToRunValidAfterUpdates = startToRunValidAfterUpdates;
@@ -147,11 +158,19 @@ namespace Seq2SeqSharp.Tools
             m_maxDegressOfParallelism = maxDegressOfParallelism;
             m_weightsUpdateCount = weightsUpdateCount;
 
+            InitDevices();
+
             if (randomSeed == -1)
             {
                 randomSeed = DateTime.Now.Millisecond;
             }
             RandomGenerator.Init(randomSeed);
+        }
+
+        public void InitDevices()
+        {
+            string[] cudaCompilerOptions = m_compilerOptions.IsNullOrEmpty() ? null : m_compilerOptions.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            TensorAllocator.InitDevices(m_processorType, m_deviceIds, m_memoryUsageRatio, cudaCompilerOptions, mklInstructions: m_mklInstructions, enableTensorCore: m_enableTensorCore, m_cudaMemoryAllocatorType, m_elementType);
         }
 
         public virtual List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, DecodingOptions decodingOptions, bool isTraining)

@@ -116,7 +116,7 @@ namespace Seq2SeqSharp.Utils
             return optimizer;
         }
 
-        public static (MultiProcessorNetworkWrapper<IWeightTensor>, MultiProcessorNetworkWrapper<IWeightTensor>) CreateAuxEmbeddings(RoundArray<int> raDeviceIds, int hiddenDim, int maxSentLength, IModel modelMetaData, DType elementType = DType.Float32)
+        public static (MultiProcessorNetworkWrapper<IWeightTensor>, MultiProcessorNetworkWrapper<IWeightTensor>) CreateAuxEmbeddings(RoundArray<int> raDeviceIds, int hiddenDim, int maxSentLength, IModel modelMetaData, DType elementType = DType.Float32, bool isTrainable = true)
         {
             MultiProcessorNetworkWrapper<IWeightTensor> posEmbeddings = null;
             MultiProcessorNetworkWrapper<IWeightTensor> segmentEmbeddings = null;
@@ -130,7 +130,7 @@ namespace Seq2SeqSharp.Utils
                 if (modelMetaData.EnableSegmentEmbeddings)
                 {
                     segmentEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.MaxSegmentNum, modelMetaData.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, name: "SegmentEmbedding", 
-                        isTrainable: true, dtype: elementType), raDeviceIds.ToArray());
+                        isTrainable: isTrainable, dtype: elementType), raDeviceIds.ToArray());
                 }
             }
 

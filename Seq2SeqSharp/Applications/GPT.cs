@@ -92,7 +92,7 @@ namespace Seq2SeqSharp.Applications
             m_modelMetaData.VQType = m_options.VQType;
             SaveModel(createBackupPrevious: true, suffix: ".vq");
 
-            SaveModel_As_BinaryFormatter(suffix: ".vq.bin");
+          //  SaveModel_As_BinaryFormatter(suffix: ".vq.bin");
         }
 
         protected override Seq2SeqModel LoadModel(string suffix = "") => base.LoadModelRoutine<Model_4_ProtoBufSerializer>(CreateTrainableParameters, Seq2SeqModel.Create, suffix);
@@ -123,17 +123,17 @@ namespace Seq2SeqSharp.Applications
                 m_tgtEmbedding.Dispose();
             }
 
-            Logger.WriteLine($"Creating encoders and decoders...");
+            Logger.WriteLine($"Creating decoders...");
             var raDeviceIds = new RoundArray<int>(DeviceIds);
 
             DType elementType = m_options.AMP ? DType.Float16 : DType.Float32;
 
             m_decoder = Decoder.CreateDecoders(model, m_options, raDeviceIds, elementType);
             m_decoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("FeedForward_Decoder_0", model.HiddenDim, model.TgtVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),
-                isTrainable: true, learningRateFactor: m_options.DecoderStartLearningRateFactor, elementType), DeviceIds);
+                isTrainable: (m_options.Task == ModeEnums.Train), learningRateFactor: m_options.DecoderStartLearningRateFactor, elementType), DeviceIds);
 
-            (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, model.HiddenDim, Math.Max(m_options.MaxTgtSentLength, m_options.MaxValidTgtSentLength), model, elementType);
-            m_tgtEmbedding = CreateTgtEmbeddings(model, raDeviceIds, m_options.IsTgtEmbeddingTrainable, m_options.DecoderStartLearningRateFactor, elementType);
+            (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, model.HiddenDim, Math.Max(m_options.MaxTgtSentLength, m_options.MaxValidTgtSentLength), model, elementType, isTrainable: (m_options.Task == ModeEnums.Train));
+            m_tgtEmbedding = CreateTgtEmbeddings(model, raDeviceIds, m_options.IsTgtEmbeddingTrainable && (m_options.Task == ModeEnums.Train), m_options.DecoderStartLearningRateFactor, elementType);
 
             return (true);
         }

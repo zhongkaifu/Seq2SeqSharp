@@ -29,19 +29,20 @@ namespace Seq2SeqSharp.Applications
             {
                 decoder = new MultiProcessorNetworkWrapper<IDecoder>(
                      new AttentionDecoder("AttnLSTMDecoder", modelMetaData.HiddenDim, modelMetaData.DecoderEmbeddingDim, modelMetaData.HiddenDim,
-                     options.DropoutRatio, modelMetaData.DecoderLayerDepth, raDeviceIds.GetNextItem(), modelMetaData.EnableCoverageModel, isTrainable: options.IsDecoderTrainable, elementType: elementType), raDeviceIds.ToArray());
+                     options.DropoutRatio, modelMetaData.DecoderLayerDepth, raDeviceIds.GetNextItem(), modelMetaData.EnableCoverageModel, 
+                     isTrainable: options.IsDecoderTrainable && (options.Task == ModeEnums.Train), elementType: elementType), raDeviceIds.ToArray());
             }
             else if (modelMetaData.DecoderType == DecoderTypeEnums.GPTDecoder)
             {
                 decoder = new MultiProcessorNetworkWrapper<IDecoder>(
                     new GPTDecoder("GPTDecoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.IntermediateDim, modelMetaData.DecoderEmbeddingDim, modelMetaData.DecoderLayerDepth, options.DropoutRatio, raDeviceIds.GetNextItem(),
-                    isTrainable: options.IsDecoderTrainable, learningRateFactor: options.DecoderStartLearningRateFactor, activateFunc: modelMetaData.ActivateFunc, expertNum: modelMetaData.ExpertNum, expertsPerTokenFactor: modelMetaData.ExpertsPerTokenFactor, elementType: elementType), raDeviceIds.ToArray());
+                    isTrainable: options.IsDecoderTrainable && (options.Task == ModeEnums.Train), learningRateFactor: options.DecoderStartLearningRateFactor, activateFunc: modelMetaData.ActivateFunc, expertNum: modelMetaData.ExpertNum, expertsPerTokenFactor: modelMetaData.ExpertsPerTokenFactor, elementType: elementType), raDeviceIds.ToArray());
             }
             else
             {
                 decoder = new MultiProcessorNetworkWrapper<IDecoder>(
                     new TransformerDecoder("TransformerDecoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.IntermediateDim, modelMetaData.DecoderEmbeddingDim, modelMetaData.DecoderLayerDepth, options.DropoutRatio, raDeviceIds.GetNextItem(),
-                    isTrainable: options.IsDecoderTrainable, learningRateFactor: options.DecoderStartLearningRateFactor, activateFunc: modelMetaData.ActivateFunc, expertNum: modelMetaData.ExpertNum, expertsPerTokenFactor: modelMetaData.ExpertsPerTokenFactor, elementType: elementType), raDeviceIds.ToArray());
+                    isTrainable: options.IsDecoderTrainable && (options.Task == ModeEnums.Train), learningRateFactor: options.DecoderStartLearningRateFactor, activateFunc: modelMetaData.ActivateFunc, expertNum: modelMetaData.ExpertNum, expertsPerTokenFactor: modelMetaData.ExpertsPerTokenFactor, elementType: elementType), raDeviceIds.ToArray());
             }
 
             return decoder;
