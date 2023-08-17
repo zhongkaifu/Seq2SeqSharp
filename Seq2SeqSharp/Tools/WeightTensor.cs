@@ -588,7 +588,7 @@ namespace Seq2SeqSharp.Tools
                 else
                 {
                     throw new InvalidDataException($"Weights '{Name}' is null.");
-                }
+                }              
             }
         }
 

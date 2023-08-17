@@ -91,6 +91,8 @@ namespace Seq2SeqSharp.Applications
         {
             m_modelMetaData.VQType = m_options.VQType;
             SaveModel(createBackupPrevious: true, suffix: ".vq");
+
+            SaveModel_As_BinaryFormatter(suffix: ".vq.bin");
         }
 
         protected override Seq2SeqModel LoadModel(string suffix = "") => base.LoadModelRoutine<Model_4_ProtoBufSerializer>(CreateTrainableParameters, Seq2SeqModel.Create, suffix);

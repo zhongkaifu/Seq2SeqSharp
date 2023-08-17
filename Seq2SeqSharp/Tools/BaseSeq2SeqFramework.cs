@@ -12,7 +12,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Reflection;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -201,15 +203,50 @@ namespace Seq2SeqSharp.Tools
                 return (false);
             }
         }
-        protected T LoadModelRoutine<ProtoBuf_T>(Func<T, bool> initializeParametersFunc, Func<ProtoBuf_T, T> createModelFunc, string suffix = "")
+
+        public bool SaveModel_As_BinaryFormatter(bool createBackupPrevious = false, string suffix = "")
+        {
+            try
+            {
+                string modelFilePath = m_modelFilePath + suffix;
+
+                Logger.WriteLine($"Saving model to '{modelFilePath}'");
+
+                if (createBackupPrevious && File.Exists(modelFilePath))
+                {
+                    File.Copy(modelFilePath, $"{modelFilePath}.bak", true);
+                }
+
+
+                BinaryFormatter bf = new BinaryFormatter();
+                using (FileStream fs = new FileStream(modelFilePath, FileMode.Create, FileAccess.Write))
+                {
+                    SaveParameters();
+                    // Save model meta data to the stream
+                    bf.Serialize(fs, m_modelMetaData);
+                    // All networks and tensors which are MultiProcessorNetworkWrapper<T> will be saved to given stream
+
+                }
+
+                m_modelMetaData.ClearWeights();
+
+                return true;
+            }
+            catch (Exception err)
+            {
+                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Failed to save model to file. Exception = '{err.Message}', Callstack = '{err.StackTrace}'");
+                return false;
+            }
+        }
+        protected T LoadModel_As_BinaryFormatter(Func<T, bool> initializeParametersFunc, string suffix = "")
         {
             Logger.WriteLine($"Loading model from '{m_modelFilePath}'...");
             T model = default;
 
-            using (var fs = new FileStream(m_modelFilePath + suffix, FileMode.Open, FileAccess.Read))
+            BinaryFormatter bf = new BinaryFormatter();
+            using (FileStream fs = new FileStream(m_modelFilePath + suffix, FileMode.Open, FileAccess.Read))
             {
-                var model_4_serialize = ProtoBuf.Serializer.Deserialize<ProtoBuf_T>(fs);
-                model = createModelFunc(model_4_serialize);
+                model = bf.Deserialize(fs) as T;
 
                 //Initialize parameters on devices
                 initializeParametersFunc(model);
@@ -218,6 +255,38 @@ namespace Seq2SeqSharp.Tools
                 // All networks and tensors which are MultiProcessorNetworkWrapper<T> will be loaded from given stream
                 LoadParameters(model);
             }
+
+            return model;
+        }
+
+
+        protected T LoadModelRoutine<ProtoBuf_T>(Func<T, bool> initializeParametersFunc, Func<ProtoBuf_T, T> createModelFunc, string suffix = "")
+        {
+            Logger.WriteLine($"Loading model from '{m_modelFilePath}'...");
+            T model = default;
+
+            try
+            {
+                using (var fs = new FileStream(m_modelFilePath + suffix, FileMode.Open, FileAccess.Read))
+                {
+                    var model_4_serialize = ProtoBuf.Serializer.Deserialize<ProtoBuf_T>(fs);
+                    model = createModelFunc(model_4_serialize);
+
+                    //Initialize parameters on devices
+                    initializeParametersFunc(model);
+
+                    // Load embedding and weights from given model
+                    // All networks and tensors which are MultiProcessorNetworkWrapper<T> will be loaded from given stream
+                    LoadParameters(model);
+                }
+            }
+            catch (ProtoBuf.ProtoException ex)
+            {
+                Logger.WriteLine($"Failed to load model '{m_modelFilePath + suffix}' as ProtoBuf format. Let's roll back to binary formatter.");
+                Logger.WriteLine($"Message = '{ex.Message}'");              
+                model = LoadModel_As_BinaryFormatter(initializeParametersFunc, suffix);
+            }
+
 
             //For multi-GPUs, copying weights from default device to other all devices
             CopyWeightsFromDefaultDeviceToAllOtherDevices();
