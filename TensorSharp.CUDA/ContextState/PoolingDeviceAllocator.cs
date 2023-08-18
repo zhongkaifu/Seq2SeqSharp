@@ -127,19 +127,19 @@ namespace TensorSharp.CUDA.ContextState
             GC.Collect(); // Collect unused tensor objects and free GPU memory
 
             m_context.SetCurrent();
-            ulong ulAvailMemByte = (ulong)m_context.GetFreeDeviceMemorySize() - m_ulReservedMemByte;
-            if (size > ulAvailMemByte)
+            long lAvailMemByte = (long)m_context.GetFreeDeviceMemorySize() - (long)m_ulReservedMemByte;
+            if (lAvailMemByte < 0 || (long)size > lAvailMemByte)
             {
                 throw new OutOfMemoryException($"Out of GPU memory. Current memory usage = '{GetAllocatedMemoryRatio() * 100.0f:F}%'");
             }
 
-            Logger.WriteLine($"Current memory pool does not have enough free memory to allocate '{size}' memory, let's create a new pool. Size = '{ulAvailMemByte}'");
-            m_ulAvailMemByteInTotal += ulAvailMemByte;
-            CUdeviceptr memPoolPtr = m_context.AllocateMemory(ulAvailMemByte);
+            Logger.WriteLine($"Current memory pool does not have enough free memory to allocate '{size}' memory, let's create a new pool. Size = '{lAvailMemByte}'");
+            m_ulAvailMemByteInTotal += (ulong)lAvailMemByte;
+            CUdeviceptr memPoolPtr = m_context.AllocateMemory(lAvailMemByte);
             m_memPoolPtrs.Add(memPoolPtr);
 
             SizeT startMemAddr = memPoolPtr.Pointer;
-            SizeT endMemAddr = startMemAddr + ulAvailMemByte;
+            SizeT endMemAddr = startMemAddr + lAvailMemByte;
             m_memAddrs.Add(new MemAddrPair(startMemAddr, endMemAddr));
             m_usedAddr2Sizes.Add(new SortedDictionary<ulong, ulong>());
         }
