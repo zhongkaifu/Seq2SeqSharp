@@ -36,11 +36,9 @@ namespace TensorSharp.CUDA.ContextState
         private readonly object locker = new object();
 
         private ulong m_ulAvailMemByteInTotal;
-        private List<CUdeviceptr> m_memPoolPtrs = new List<CUdeviceptr>();
-        //private readonly SizeT m_startMemAddr;
-        //private readonly SizeT m_endMemAddr;
-        private readonly float m_memoryUsageRatio;
+        private ulong m_ulReservedMemByte;
 
+        private List<CUdeviceptr> m_memPoolPtrs = new List<CUdeviceptr>();
         private List<MemAddrPair> m_memAddrs = new List<MemAddrPair>();
         private readonly List<SortedDictionary<ulong, ulong>> m_usedAddr2Sizes = new List<SortedDictionary<ulong, ulong>>();
 
@@ -49,8 +47,9 @@ namespace TensorSharp.CUDA.ContextState
             m_context = context;
             context.SetCurrent();
 
-            m_memoryUsageRatio = memoryUsageRatio;
-            m_ulAvailMemByteInTotal = (ulong)((ulong)context.GetFreeDeviceMemorySize() * memoryUsageRatio);
+            ulong ulFreeMemoryByte = (ulong)context.GetFreeDeviceMemorySize();
+            m_ulAvailMemByteInTotal = (ulong)(ulFreeMemoryByte * memoryUsageRatio);
+            m_ulReservedMemByte = ulFreeMemoryByte - m_ulAvailMemByteInTotal;
 
             CUdeviceptr memPoolPtr = context.AllocateMemory(m_ulAvailMemByteInTotal);
             m_memPoolPtrs.Add(memPoolPtr);
@@ -87,21 +86,12 @@ namespace TensorSharp.CUDA.ContextState
                 for (int i = 0; i < m_memAddrs.Count; i++)
                 {
                     MemAddrPair memAddrPair = m_memAddrs[i];
-
                     SizeT currMemAddr = memAddrPair.startMemAddr;
                     SizeT currMemAddrEnd;
 
-                    bool oomFlag = false;
                     foreach (var kv in m_usedAddr2Sizes[i])
                     {
                         currMemAddrEnd = currMemAddr + size;
-
-                        if (currMemAddrEnd > memAddrPair.endMemAddr)
-                        {
-                            oomFlag = true;
-                            break;
-                        }
-
                         if (currMemAddrEnd < kv.Key)
                         {
                             m_usedAddr2Sizes[i].Add(currMemAddr, size);
@@ -113,27 +103,19 @@ namespace TensorSharp.CUDA.ContextState
                         }
                     }
 
-                    if (oomFlag == true)
-                    {                      
-                        if (i == m_memAddrs.Count - 1)
-                        {
-                            CreateNewMemPool(size);
-                        }
-                        continue;
-                    }
-
                     currMemAddrEnd = currMemAddr + size;
-                    if (currMemAddrEnd > memAddrPair.endMemAddr)
+                    if (currMemAddrEnd < memAddrPair.endMemAddr)
                     {
-                        if (i == m_memAddrs.Count - 1)
-                        {
-                            CreateNewMemPool(size);
-                        }
-                        continue;
+                        m_usedAddr2Sizes[i].Add(currMemAddr, size);
+                        return new CUdeviceptr(currMemAddr);
+
                     }
 
-                    m_usedAddr2Sizes[i].Add(currMemAddr, size);
-                    return new CUdeviceptr(currMemAddr);
+                    if (i == m_memAddrs.Count - 1)
+                    {
+                        //We did not find any existing pool has enough available memory, so let's create a new pool and try to allocate memory from it. 
+                        CreateNewMemPool(size);
+                    }
                 }
 
                 return new CUdeviceptr();
@@ -145,8 +127,8 @@ namespace TensorSharp.CUDA.ContextState
             GC.Collect(); // Collect unused tensor objects and free GPU memory
 
             m_context.SetCurrent();
-            ulong ulAvailMemByte = (ulong)((ulong)m_context.GetFreeDeviceMemorySize() * m_memoryUsageRatio);
-            if (size > ulAvailMemByte || m_memAddrs.Count > 5)
+            ulong ulAvailMemByte = (ulong)m_context.GetFreeDeviceMemorySize() - m_ulReservedMemByte;
+            if (size > ulAvailMemByte)
             {
                 throw new OutOfMemoryException($"Out of GPU memory. Current memory usage = '{GetAllocatedMemoryRatio() * 100.0f:F}%'");
             }
@@ -182,8 +164,6 @@ namespace TensorSharp.CUDA.ContextState
                                 item.Remove(devMemory.Pointer.Pointer);
                             }
                         }
-
-//                        m_usedAddr2Size.Remove(devMemory.Pointer.Pointer);
                     }
                 });
 
@@ -199,7 +179,6 @@ namespace TensorSharp.CUDA.ContextState
             {
                 m_context.FreeMemory(item);
             }
-//            m_context.FreeMemory(m_memPoolPtr);
         }
 
         private static ulong PadToAlignment(long size, long alignment)
