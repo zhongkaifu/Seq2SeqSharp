@@ -1325,8 +1325,8 @@ namespace Seq2SeqSharp.Tools
 
                     //Decay weights if tokens has already been generated before
                     if (tokenId2Distance.ContainsKey(idx))
-                    {                     
-                        weight = (float)(weight * Math.Log(tokenId2Distance[idx], decodedSequence.Count));
+                    {
+                        weight = (float)(weight * ((float)tokenId2Distance[idx] / decodedSequence.Count)); // decodedSequence.Count));
                     }
 
                     if (weight2tokenId.ContainsKey(weight) == false)
