@@ -90,7 +90,7 @@ namespace Seq2SeqSharp.Applications
         public void VQModel()
         {
             m_modelMetaData.VQType = m_options.VQType;
-            SaveModel(createBackupPrevious: true, suffix: ".vq");
+            SaveModel(createBackupPrevious: true, suffix: $".{m_modelMetaData.VQType.ToString()}");
 
           //  SaveModel_As_BinaryFormatter(suffix: ".vq.bin");
         }

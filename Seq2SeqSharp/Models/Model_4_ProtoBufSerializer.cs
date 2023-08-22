@@ -8,6 +8,7 @@ using AdvUtils;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Utils;
 using Seq2SeqSharp.Enums;
+using ManagedCuda.BasicTypes;
 
 namespace Seq2SeqSharp.Models
 {
@@ -240,6 +241,12 @@ namespace Seq2SeqSharp.Models
                 Name2Weights = new Dictionary<string, float[]>();
             }
 
+            Name2WeightsHalf = m.Name2WeightsHalf;
+            if (Name2WeightsHalf == null)
+            {
+                Name2WeightsHalf = new Dictionary<string, half[]>();
+            }
+
             VQType = m.VQType;
             Name2WeightsVQ = m.Name2WeightsVQ;
             if (Name2WeightsVQ == null)
@@ -304,5 +311,6 @@ namespace Seq2SeqSharp.Models
         [ProtoMember(24)] public VQTypeEnums VQType { get; set; }
         [ProtoMember(25)] public Dictionary<string, byte[]> Name2WeightsVQ { get; set; }
         [ProtoMember(26)] public Dictionary<string, double[]> Name2CodeBook { get; set; }
+        [ProtoMember(27)] public Dictionary<string, half[]> Name2WeightsHalf { get; set; }
     }
 }

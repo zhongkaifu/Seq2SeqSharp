@@ -40,6 +40,7 @@ namespace Seq2SeqSharp.Enums
     public enum VQTypeEnums
     {
         None = 0,
+        FLOAT16 = 65536,
         INT8 = 256,
         INT4 = 16
     }

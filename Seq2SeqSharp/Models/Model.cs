@@ -83,6 +83,8 @@ namespace Seq2SeqSharp.Models
 
         public Dictionary<string, float[]> Name2Weights { get; set; }
 
+        public Dictionary<string, half[]> Name2WeightsHalf { get; set; }
+
         public VQTypeEnums VQType { get; set; }
         public Dictionary<string, byte[]> Name2WeightsVQ { get; set; }       
         public Dictionary<string, double[]> Name2CodeBook { get; set; }
@@ -106,6 +108,7 @@ namespace Seq2SeqSharp.Models
             VQType = opts.VQType;
 
             Name2Weights = new Dictionary<string, float[]>();
+            Name2WeightsHalf= new Dictionary<string, half[]>();
             Name2WeightsVQ = new Dictionary<string, byte[]>();
             Name2CodeBook = new Dictionary<string, double[]>();
         }
@@ -129,12 +132,18 @@ namespace Seq2SeqSharp.Models
             VQType = m.VQType;
 
             Name2Weights = m.Name2Weights;
+            Name2WeightsHalf = m.Name2WeightsHalf;
             Name2WeightsVQ = m.Name2WeightsVQ;
             Name2CodeBook = m.Name2CodeBook;
 
             if (Name2Weights == null)
             {
                 Name2Weights = new Dictionary<string, float[]>();
+            }
+
+            if (Name2WeightsHalf == null)
+            {
+                Name2WeightsHalf = new Dictionary<string, half[]>();
             }
 
             if (Name2WeightsVQ == null)
@@ -152,7 +161,16 @@ namespace Seq2SeqSharp.Models
         {
             Logger.WriteLine($"Adding weights '{name}' to the model.");
 
-            if (VQType == VQTypeEnums.INT8)
+            if (VQType == VQTypeEnums.FLOAT16)
+            {             
+                var weightsHalf = new half[weights.Length];
+                for (int i = 0; i < weights.Length; i++)
+                {
+                    weightsHalf[i] = new half(weights[i]);
+                }
+                Name2WeightsHalf.Add(name, weightsHalf);
+            }
+            else if (VQType == VQTypeEnums.INT8)
             {
                 int vqSize = 256;
                 VectorQuantization vq = new VectorQuantization();
@@ -226,7 +244,11 @@ namespace Seq2SeqSharp.Models
 
             if (Name2Weights.ContainsKey(name))
             {
-                weight = Name2Weights[name];        
+                weight = Name2Weights[name];
+            }
+            else if (Name2WeightsHalf.ContainsKey(name))
+            {
+                throw new InvalidCastException($"The model is saved as Float16 type, so please enable AMP for model loading.");
             }
             else if (VQType == VQTypeEnums.INT8)
             {
@@ -275,15 +297,19 @@ namespace Seq2SeqSharp.Models
 
         public half[] GetWeightsHalfType(string name)
         {
-            half[] weight = null;
+            half[] weights = null;
             if (Name2Weights.ContainsKey(name))
             {
                 var values = Name2Weights[name];
-                weight = new half[values.Length];
+                weights = new half[values.Length];
                 for (int i = 0; i < values.Length; i++)
                 {
-                    weight[i] = new half(values[i]);
+                    weights[i] = new half(values[i]);
                 }
+            }
+            else if (Name2WeightsHalf.ContainsKey(name))
+            {
+                weights = Name2WeightsHalf[name];
             }
             else if (VQType == VQTypeEnums.INT8)
             {
@@ -295,10 +321,10 @@ namespace Seq2SeqSharp.Models
 
                 var codeBook = Name2CodeBook[name];
 
-                weight = new half[Name2WeightsVQ[name].Length];
+                weights = new half[Name2WeightsVQ[name].Length];
                 for (int i = 0; i < Name2WeightsVQ[name].Length; i++)
                 {
-                    weight[i] = new half(codeBook[Name2WeightsVQ[name][i]]);
+                    weights[i] = new half(codeBook[Name2WeightsVQ[name][i]]);
                 }
             }
             else if (VQType == VQTypeEnums.INT4)
@@ -311,14 +337,14 @@ namespace Seq2SeqSharp.Models
 
                 var codeBook = Name2CodeBook[name];
 
-                weight = new half[Name2WeightsVQ[name].Length * 2];
+                weights = new half[Name2WeightsVQ[name].Length * 2];
                 for (int i = 0; i < Name2WeightsVQ[name].Length; i++)
                 {
                     double highWeight = codeBook[Name2WeightsVQ[name][i] / 16];
                     double lowWeight = codeBook[Name2WeightsVQ[name][i] & 0x0F];
 
-                    weight[i * 2] = new half(lowWeight);
-                    weight[i * 2 + 1] = new half(highWeight);
+                    weights[i * 2] = new half(lowWeight);
+                    weights[i * 2 + 1] = new half(highWeight);
                 }
             }
             else
@@ -326,7 +352,7 @@ namespace Seq2SeqSharp.Models
                 Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Weight '{name}' doesn't exist in the model.");
             }
 
-            return weight;
+            return weights;
         }
 
         public void DeleteWeights(string name)
@@ -345,6 +371,11 @@ namespace Seq2SeqSharp.Models
             {
                 Name2Weights.Remove(name);
             }
+
+            if (Name2WeightsHalf != null && Name2WeightsHalf.ContainsKey(name))
+            {
+                Name2WeightsHalf.Remove(name);
+            }
         }
 
         public void ClearWeights()
@@ -352,6 +383,7 @@ namespace Seq2SeqSharp.Models
             Name2WeightsVQ.Clear();
             Name2CodeBook.Clear();
             Name2Weights.Clear();
+            Name2WeightsHalf.Clear();
         }
 
         public void ShowModelInfo()
