@@ -761,6 +761,7 @@ namespace ManagedCuda.BasicTypes
     /// <summary>
     /// half precission floating point
     /// </summary>
+    [Serializable]
     [StructLayout(LayoutKind.Sequential)]
 #pragma warning disable CS8981
 		public struct half
