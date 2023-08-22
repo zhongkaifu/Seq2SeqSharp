@@ -133,7 +133,7 @@ namespace TensorSharp.CUDA.ContextState
                 throw new OutOfMemoryException($"Out of GPU memory. Current memory usage = '{GetAllocatedMemoryRatio() * 100.0f:F}%'");
             }
 
-            Logger.WriteLine($"Current memory pool does not have enough free memory to allocate '{size}' memory, let's create a new pool. Size = '{lAvailMemByte}'");
+            //Logger.WriteLine($"Current memory pool does not have enough free memory to allocate '{size}' memory, let's create a new pool. Size = '{lAvailMemByte}', Pool# = '{m_memPoolPtrs.Count}'");
             m_ulAvailMemByteInTotal += (ulong)lAvailMemByte;
             CUdeviceptr memPoolPtr = m_context.AllocateMemory(lAvailMemByte);
             m_memPoolPtrs.Add(memPoolPtr);
@@ -162,6 +162,27 @@ namespace TensorSharp.CUDA.ContextState
                             if (item.ContainsKey(devMemory.Pointer.Pointer))
                             {
                                 item.Remove(devMemory.Pointer.Pointer);
+                            }
+                        }
+
+                        int i = 0;
+                        while (i < m_usedAddr2Sizes.Count)
+                        {
+                            if (m_usedAddr2Sizes[i].Count == 0)
+                            {
+                                //There is no allocated memory in this pool
+                                m_context.SetCurrent();
+                                m_context.FreeMemory(m_memPoolPtrs[i]);
+
+                                m_usedAddr2Sizes.RemoveAt(i);
+                                m_memPoolPtrs.RemoveAt(i);
+                                m_memAddrs.RemoveAt(i);
+
+                                //Logger.WriteLine($"Recycle pool '{i}', since there is no allocated memory in this pool.");
+                            }
+                            else
+                            {
+                                i++;
                             }
                         }
                     }
