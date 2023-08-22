@@ -22,6 +22,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
+using ProtoBuf;
 
 namespace ManagedCuda.BasicTypes
 {
@@ -761,13 +762,13 @@ namespace ManagedCuda.BasicTypes
     /// <summary>
     /// half precission floating point
     /// </summary>
-    [Serializable]
+    [ProtoContract(SkipConstructor = true)]
     [StructLayout(LayoutKind.Sequential)]
 #pragma warning disable CS8981
 		public struct half
 #pragma warning restore CS8981
 		{
-        ushort x;
+        [ProtoMember(1)] ushort x;
 
         /// <summary>
         /// 
