@@ -83,7 +83,7 @@ namespace Seq2SeqSharp.Models
 
         public Dictionary<string, float[]> Name2Weights { get; set; }
 
-        public Dictionary<string, half[]> Name2WeightsHalf { get; set; }
+        public Dictionary<string, ushort[]> Name2WeightsHalf { get; set; }
 
         public VQTypeEnums VQType { get; set; }
         public Dictionary<string, byte[]> Name2WeightsVQ { get; set; }       
@@ -108,7 +108,7 @@ namespace Seq2SeqSharp.Models
             VQType = opts.VQType;
 
             Name2Weights = new Dictionary<string, float[]>();
-            Name2WeightsHalf= new Dictionary<string, half[]>();
+            Name2WeightsHalf= new Dictionary<string, ushort[]>();
             Name2WeightsVQ = new Dictionary<string, byte[]>();
             Name2CodeBook = new Dictionary<string, double[]>();
         }
@@ -143,7 +143,7 @@ namespace Seq2SeqSharp.Models
 
             if (Name2WeightsHalf == null)
             {
-                Name2WeightsHalf = new Dictionary<string, half[]>();
+                Name2WeightsHalf = new Dictionary<string, ushort[]>();
             }
 
             if (Name2WeightsVQ == null)
@@ -163,10 +163,10 @@ namespace Seq2SeqSharp.Models
 
             if (VQType == VQTypeEnums.FLOAT16)
             {             
-                var weightsHalf = new half[weights.Length];
+                var weightsHalf = new ushort[weights.Length];
                 for (int i = 0; i < weights.Length; i++)
                 {
-                    weightsHalf[i] = new half(weights[i]);
+                    weightsHalf[i] = (new half(weights[i])).x;
                 }
                 Name2WeightsHalf.Add(name, weightsHalf);
             }
@@ -309,7 +309,12 @@ namespace Seq2SeqSharp.Models
             }
             else if (Name2WeightsHalf.ContainsKey(name))
             {
-                weights = Name2WeightsHalf[name];
+                var values = Name2WeightsHalf[name];
+                weights = new half[values.Length];
+                for (int i = 0; i < values.Length; i++)
+                {
+                    weights[i] = new half(values[i]);
+                }
             }
             else if (VQType == VQTypeEnums.INT8)
             {

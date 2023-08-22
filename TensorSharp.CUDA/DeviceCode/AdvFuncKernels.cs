@@ -859,8 +859,8 @@ extern ""C""
 
 __global__ void gLNormalizationHalf(__half* out,
                                 const __half* in,
-                                const float* alpha,
-                                const float* beta,
+                                const __half* alpha,
+                                const __half* beta,
                                 int rows,
                                 int cols,
                                 float eps = 1e-9) {
@@ -920,9 +920,9 @@ __global__ void gLNormalizationHalf(__half* out,
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          float t = alpha[id] * (__half2float(sp[id]) - mean) / sigma;
+          float t = __half2float(alpha[id]) * (__half2float(sp[id]) - mean) / sigma;
           if(beta)
-            t += beta[id];
+            t += __half2float(beta[id]);
           so[id] = __float2half(t);
         }
       }
@@ -932,13 +932,13 @@ __global__ void gLNormalizationHalf(__half* out,
 }
 
 __global__ void gLayerNormalizationGradHalf(__half* gradX,
-                                        float* gradGamma,
-                                        float* gradBeta,
+                                        __half* gradGamma,
+                                        __half* gradBeta,
                                         __half* adj,
                                         __half* y,
                                         __half* x,
-                                        float* gamma,
-                                        float* beta,
+                                        __half* gamma,
+                                        __half* beta,
                                         int rows,
                                         int cols,
                                         float eps = 1e-9) {
@@ -967,7 +967,7 @@ __global__ void gLayerNormalizationGradHalf(__half* gradX,
         if(id < cols) {
           sum_x[threadIdx.x] += __half2float(xRow[id]);
           sum_adj_x[threadIdx.x]
-              += __half2float(adjRow[id]) * (__half2float(yRow[id]) - ((beta) ? beta[id] : 0)) / gamma[id];
+              += __half2float(adjRow[id]) * (__half2float(yRow[id]) - ((beta) ? __half2float(beta[id]) : 0)) / __half2float(gamma[id]);
           sum_adj[threadIdx.x] += __half2float(adjRow[id]);
         }
       }
@@ -1012,20 +1012,20 @@ __global__ void gLayerNormalizationGradHalf(__half* gradX,
         int id = tid + threadIdx.x;
         if(id < cols) {
           float grad_x = 0.0f;
-          float x_hat = (__half2float(yRow[id]) - ((beta) ? beta[id] : 0)) / gamma[id];
+          float x_hat = (__half2float(yRow[id]) - ((beta) ? __half2float(beta[id]) : 0)) / __half2float(gamma[id]);
           grad_x += cols * __half2float(adjRow[id]);
           grad_x -= sum_adj[0];
           grad_x -= sum_adj_x[0] * x_hat;
           grad_x /= (cols * sigma);
 
-          float valX = gamma[id] * grad_x;
+          float valX = __half2float(gamma[id]) * grad_x;
           float sign = (0.f < valX) - (valX < 0.f);
           valX = fabs(valX) > 1000.0f ? sign * 1000.0f : valX;
 
           gradXRow[id] = __hadd(gradXRow[id], __float2half(valX));
-          atomicAdd(gradGamma + id, __half2float(adjRow[id]) * x_hat);
+          atomicAdd(gradGamma + id, __float2half(__half2float(adjRow[id]) * x_hat));
           if(beta) {
-            atomicAdd(gradBeta + id, __half2float(adjRow[id]));
+            atomicAdd(gradBeta + id, adjRow[id]);
           }
         }
       }

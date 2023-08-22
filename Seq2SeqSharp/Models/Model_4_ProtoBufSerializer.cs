@@ -244,7 +244,7 @@ namespace Seq2SeqSharp.Models
             Name2WeightsHalf = m.Name2WeightsHalf;
             if (Name2WeightsHalf == null)
             {
-                Name2WeightsHalf = new Dictionary<string, half[]>();
+                Name2WeightsHalf = new Dictionary<string, ushort[]>();
             }
 
             VQType = m.VQType;
@@ -311,6 +311,6 @@ namespace Seq2SeqSharp.Models
         [ProtoMember(24)] public VQTypeEnums VQType { get; set; }
         [ProtoMember(25)] public Dictionary<string, byte[]> Name2WeightsVQ { get; set; }
         [ProtoMember(26)] public Dictionary<string, double[]> Name2CodeBook { get; set; }
-        [ProtoMember(27)] public Dictionary<string, half[]> Name2WeightsHalf { get; set; }
+        [ProtoMember(27)] public Dictionary<string, ushort[]> Name2WeightsHalf { get; set; }
     }
 }

@@ -762,13 +762,12 @@ namespace ManagedCuda.BasicTypes
     /// <summary>
     /// half precission floating point
     /// </summary>
-    [ProtoContract(SkipConstructor = true)]
     [StructLayout(LayoutKind.Sequential)]
 #pragma warning disable CS8981
 		public struct half
 #pragma warning restore CS8981
 		{
-        [ProtoMember(1)] ushort x;
+        public ushort x;
 
         /// <summary>
         /// 
@@ -792,6 +791,11 @@ namespace ManagedCuda.BasicTypes
         public half(half h16)
         {
             x = h16.x;
+        }
+
+        public half(ushort v)
+        {
+            x = v;
         }
 
         private static ushort __internal_float2half(float f, ref uint sign, ref uint remainder)

@@ -40,8 +40,8 @@ namespace Seq2SeqSharp
             m_hdim = hdim;
             m_deviceId = deviceId;
 
-            m_layerNorm1 = new LayerNormalization($"{name}.{nameof(m_layerNorm1)}", hdim * 4, deviceId, isTrainable: isTrainable);
-            m_layerNorm2 = new LayerNormalization($"{name}.{nameof(m_layerNorm2)}", hdim, deviceId, isTrainable: isTrainable);
+            m_layerNorm1 = new LayerNormalization($"{name}.{nameof(m_layerNorm1)}", hdim * 4, deviceId, isTrainable: isTrainable, elementType: elementType);
+            m_layerNorm2 = new LayerNormalization($"{name}.{nameof(m_layerNorm2)}", hdim, deviceId, isTrainable: isTrainable, elementType: elementType);
         }
 
         public IWeightTensor Step(IWeightTensor input, IComputeGraph g)
