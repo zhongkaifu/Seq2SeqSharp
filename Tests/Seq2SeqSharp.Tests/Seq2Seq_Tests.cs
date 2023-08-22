@@ -145,7 +145,7 @@ public class Seq2Seq_Tests
         var nrs = gpt.Test<SeqCorpusBatch>(groupBatchTokens, groupBatchTokens, decodingOptions);
         var out_tokens = nrs[0].Output[0][0];
         var output = string.Join(" ", out_tokens);
-       Assert.IsTrue(output == "<s> 肌 肤 的 奢 华 , 使 人 感到 一种 莫 名 的 兴奋 。 ▁ 杨 帆 在 赵 王 府 中 , 杨 帆 对 赵 王 府 的 奢 华 和 豪华 , 杨 帆 也 十分 喜欢 。 ▁ 赵 王 府 中 , 杨 帆 从 来 都没有 见过 如此 奢 华 的 装饰 。 ▁ 赵 王");
+       Assert.IsTrue(output == "<s> 肌 肤 的 奢 华 , 让 刘 备 很 是 惊讶 。 ▁ 刘 备 不 禁 问道 :“ 杨 广 的 弟弟 杨 家 , 刘 备 可 听说过 ?” ▁ 刘 备 摇 头 道 :“ 杨 家 杨 过 在 刘 邦 时期 , 曾在 刘 赵 两国 中 原 。 ” ▁ 杨 广 不 禁 问道 :“");
     }
 
 

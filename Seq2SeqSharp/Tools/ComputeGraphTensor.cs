@@ -1301,6 +1301,7 @@ namespace Seq2SeqSharp.Tools
             {
                 int offset = i * K;
                 Dictionary<int, int> tokenId2Distance = new Dictionary<int, int>(); // <tokenId, offsetInSeq>. The last offset of the token in the given sequence
+            //    Dictionary<int, int> tokenIdCount = new Dictionary<int, int>();
                 List<int> decodedSequence = null;
 
                 if (decodedSequences != null)
@@ -1309,6 +1310,15 @@ namespace Seq2SeqSharp.Tools
                     for (int j = 0; j < decodedSequence.Count; j++)
                     {
                         tokenId2Distance[decodedSequence[j]] = decodedSequence.Count - j;
+
+                        //if (tokenIdCount.ContainsKey(decodedSequence[j]) == false)
+                        //{
+                        //    tokenIdCount[decodedSequence[j]] = 1;
+                        //}
+                        //else
+                        //{
+                        //    tokenIdCount[decodedSequence[j]]++;
+                        //}
                     }
                 }
 
@@ -1316,17 +1326,19 @@ namespace Seq2SeqSharp.Tools
                 for (int j = 0; j < K; j++)
                 {
                     float weight = weights[offset + j];
-                    int idx = j;
+                    int idx = j; // (int)weightsIdx[offset + j];
 
                     if (blockedTokens != null && blockedTokens.Contains(idx))
                     {
                         continue;
                     }
 
-                    //Decay weights if tokens has already been generated before
+                    // Decay weights if tokens has already been generated before
                     if (tokenId2Distance.ContainsKey(idx))
                     {
-                        weight = (float)(weight * ((float)tokenId2Distance[idx] / decodedSequence.Count)); // decodedSequence.Count));
+                        var rp = (float)Math.Pow((float)tokenId2Distance[idx] / (float)decodedSequence.Count, 2.0);
+                        //weight = (float)(weight * Math.Log(tokenId2Distance[idx], decodedSequence.Count) * rp);
+                        weight = (float)(weight * rp);
                     }
 
                     if (weight2tokenId.ContainsKey(weight) == false)
