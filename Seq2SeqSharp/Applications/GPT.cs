@@ -90,9 +90,15 @@ namespace Seq2SeqSharp.Applications
         public void VQModel()
         {
             m_modelMetaData.VQType = m_options.VQType;
-            SaveModel(createBackupPrevious: true, suffix: $".{m_modelMetaData.VQType.ToString()}");
 
-          //  SaveModel_As_BinaryFormatter(suffix: ".vq.bin");
+            if (m_modelMetaData.VQType == VQTypeEnums.FLOAT16)
+            {
+                SaveModel_As_BinaryFormatter(suffix: $".{m_modelMetaData.VQType.ToString()}");
+            }
+            else
+            {
+                SaveModel(createBackupPrevious: true, suffix: $".{m_modelMetaData.VQType.ToString()}");
+            }          
         }
 
         protected override Seq2SeqModel LoadModel(string suffix = "") => base.LoadModelRoutine<Model_4_ProtoBufSerializer>(CreateTrainableParameters, Seq2SeqModel.Create, suffix);
