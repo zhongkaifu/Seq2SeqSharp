@@ -19,8 +19,8 @@ namespace Seq2SeqSharp.Applications
 
         public int MaxTgtSentLength = 256;
 
-        // The penalty for decoded repeat tokens. Default is 5.0
-        public float RepeatPenalty = 5.0f;
+        // The penalty for decoded repeat tokens. Default is 2.0
+        public float RepeatPenalty = 2.0f;
 
         // Beam search size. Default is 1
         public int BeamSearchSize = 1;

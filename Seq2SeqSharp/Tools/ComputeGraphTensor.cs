@@ -1287,38 +1287,25 @@ namespace Seq2SeqSharp.Tools
         /// <param name="seqs"></param>
         /// <param name="topP"></param>
         /// <returns>The sampled index</returns>
-        public IWeightTensor TopPSample(IWeightTensor w, float topP = 1.0f, List<int> blockedTokens = null, List<List<int>> decodedSequences = null)
+        public IWeightTensor TopPSample(IWeightTensor w, float topP = 1.0f, float repeatPenalty = 2.0f, List<int> blockedTokens = null, List<List<int>> decodedSequences = null)
         {
             int K = w.Columns;
             WeightTensor m = w as WeightTensor;
             float[] weights = m.ToWeightArray();
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { m.Rows, 1 }, m_deviceId, name: $"{GetHashString(m.Name)}.Sample", graphToBind: this, needGradient: m.NeedGradient);
-
-            //Random rnd = new Random(DateTime.Now.Millisecond);
             float[] indices = new float[m.Rows];
 
             for (int i = 0; i < m.Rows; i++)
             {
                 int offset = i * K;
                 Dictionary<int, int> tokenId2Distance = new Dictionary<int, int>(); // <tokenId, offsetInSeq>. The last offset of the token in the given sequence
-            //    Dictionary<int, int> tokenIdCount = new Dictionary<int, int>();
                 List<int> decodedSequence = null;
-
                 if (decodedSequences != null)
                 {
                     decodedSequence = decodedSequences[i];
                     for (int j = 0; j < decodedSequence.Count; j++)
                     {
                         tokenId2Distance[decodedSequence[j]] = decodedSequence.Count - j;
-
-                        //if (tokenIdCount.ContainsKey(decodedSequence[j]) == false)
-                        //{
-                        //    tokenIdCount[decodedSequence[j]] = 1;
-                        //}
-                        //else
-                        //{
-                        //    tokenIdCount[decodedSequence[j]]++;
-                        //}
                     }
                 }
 
@@ -1326,7 +1313,7 @@ namespace Seq2SeqSharp.Tools
                 for (int j = 0; j < K; j++)
                 {
                     float weight = weights[offset + j];
-                    int idx = j; // (int)weightsIdx[offset + j];
+                    int idx = j;
 
                     if (blockedTokens != null && blockedTokens.Contains(idx))
                     {
@@ -1336,8 +1323,7 @@ namespace Seq2SeqSharp.Tools
                     // Decay weights if tokens has already been generated before
                     if (tokenId2Distance.ContainsKey(idx))
                     {
-                        var rp = (float)Math.Pow((float)tokenId2Distance[idx] / (float)decodedSequence.Count, 2.0);
-                        //weight = (float)(weight * Math.Log(tokenId2Distance[idx], decodedSequence.Count) * rp);
+                        var rp = (float)Math.Pow((float)tokenId2Distance[idx] / (float)decodedSequence.Count, repeatPenalty);
                         weight = (float)(weight * rp);
                     }
 
@@ -1366,8 +1352,6 @@ namespace Seq2SeqSharp.Tools
                         {
                             break;
                         }
-
-
                     }
 
                     if (acc >= topP)

@@ -51,9 +51,11 @@ namespace Seq2SeqSharp.Applications
         [Arg("The Top-P value in decoding. Default is 0.0", nameof(DecodingTopP))]
         public float DecodingTopP = 0.0f;
 
-        [Arg("The temperature in decidubg, Default value is 1.0f", nameof(DecodingTemperature))]
+        [Arg("The temperature in decoding, Default value is 1.0f", nameof(DecodingTemperature))]
         public float DecodingTemperature = 1.0f;
 
+        [Arg("The token repeat penalty in decoding, Default value is 2.0f", nameof(DecodingRepeatPenalty))]
+        public float DecodingRepeatPenalty = 2.0f;
 
         [Arg("Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2", nameof(DeviceIds))]
         public string DeviceIds = "0";

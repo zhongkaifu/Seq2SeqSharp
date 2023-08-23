@@ -397,7 +397,7 @@ namespace Seq2SeqSharp.Applications
                 {
                     // Output "i"th target word
                     using var targetIdxTensor = (decodingOptions.DecodingStrategy == DecodingStrategyEnums.GreedySearch) ? g.Argmax(probs, 1) : 
-                                                g.TopPSample(probs, decodingOptions.TopP, decodingOptions.BlockedTokens, decodedSequences: tgtSeqs);
+                                                g.TopPSample(probs, decodingOptions.TopP, decodingOptions.RepeatPenalty, decodingOptions.BlockedTokens, decodedSequences: tgtSeqs);
                     IWeightTensor gatherTensor = null;
                     if (outputSentScore)
                     {
@@ -545,7 +545,7 @@ namespace Seq2SeqSharp.Applications
                 {
                     // Output "i"th target word
                     using var targetIdxTensor = (decodingOptions.DecodingStrategy == DecodingStrategyEnums.GreedySearch) ? g.Argmax(probs, 1) :
-                                                g.TopPSample(probs, decodingOptions.TopP, decodingOptions.BlockedTokens, decodedSequences: tgtSeqs);
+                                                g.TopPSample(probs, decodingOptions.TopP, decodingOptions.RepeatPenalty, decodingOptions.BlockedTokens, decodedSequences: tgtSeqs);
                     IWeightTensor gatherTensor = null;
                     if (outputSentScore)
                     {

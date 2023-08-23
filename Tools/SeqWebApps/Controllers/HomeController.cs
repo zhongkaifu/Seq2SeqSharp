@@ -57,7 +57,7 @@ namespace SeqWebApps.Controllers
         }
 
         [HttpPost]
-        public IActionResult GenerateText(string srcInput, string tgtInput, int num, float topP, float temperature, string clientIP)
+        public IActionResult GenerateText(string srcInput, string tgtInput, int num, float topP, float temperature, float repeatPenalty, string clientIP)
         {
             try
             {
@@ -94,7 +94,7 @@ namespace SeqWebApps.Controllers
 
                 TextGenerationModel textGeneration = new TextGenerationModel
                 {
-                    Output = CallBackend(srcInput, tgtInput, num, topP, temperature),
+                    Output = CallBackend(srcInput, tgtInput, num, topP, temperature, repeatPenalty),
                     DateTime = DateTime.Now.ToString()
                 };
 
@@ -119,7 +119,7 @@ namespace SeqWebApps.Controllers
         }
 
 
-        private string CallBackend(string srcInputText, string tgtInputText, int tokenNumToGenerate, float topP, float temperature)
+        private string CallBackend(string srcInputText, string tgtInputText, int tokenNumToGenerate, float topP, float temperature, float repeatPenalty)
         {
             if (String.IsNullOrEmpty(srcInputText))
             {
@@ -153,7 +153,7 @@ namespace SeqWebApps.Controllers
                 tgtInputText = String.Join(" ", tgtInputSents);
             }
 
-            string outputText = Seq2SeqInstance.Call(srcInputText, tgtInputText, tokenNumToGenerate, topP, temperature);            
+            string outputText = Seq2SeqInstance.Call(srcInputText, tgtInputText, tokenNumToGenerate, topP, temperature, repeatPenalty);            
             var outputSents = SplitSents(outputText);
 
             if (prefixTgtInputSents != null) 

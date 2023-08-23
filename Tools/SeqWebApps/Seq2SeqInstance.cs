@@ -151,7 +151,7 @@ namespace Seq2SeqWebApps
             return (false, sent);
         }
 
-        static public string Call(string rawSrcInput, string rawTgtInput, int tokenNumToGenerate, float topP, float temperature)
+        static public string Call(string rawSrcInput, string rawTgtInput, int tokenNumToGenerate, float topP, float temperature, float repeatPenalty)
         {
             if (opts == null)
             {
@@ -204,6 +204,7 @@ namespace Seq2SeqWebApps
             decodingOptions.BlockedTokens = m_blockedTokens;
             decodingOptions.TopP = topP;
             decodingOptions.Temperature= temperature;
+            decodingOptions.RepeatPenalty = repeatPenalty;
 
             if (temperature == 0.0f)
             {
