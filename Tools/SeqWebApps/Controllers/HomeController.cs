@@ -63,7 +63,7 @@ namespace SeqWebApps.Controllers
             {
                 if (tgtInput == null)
                 {
-                    Logger.WriteLine($"New Request: topP = '{topP}', temperature = '{temperature}', clientIP = '{clientIP}', Source = '{srcInput}', RepeatPenalty = '{repeatPenalty}'");
+                    Logger.WriteLine($"New Request: topP = '{topP}', temperature = '{temperature}', clientIP = '{clientIP}', RepeatPenalty = '{repeatPenalty}', Source = '{srcInput}'");
                     tgtInput = "";
                 }
 
