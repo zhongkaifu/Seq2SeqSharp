@@ -52,7 +52,7 @@ namespace TensorSharp
 
 
 
-        public static Tensor Swish(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("Swish", result, src); }
+        public static Tensor SiLU(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("Swish", result, src); }
 
 
         public static Tensor SwishD(Tensor result, Tensor srcW, Tensor resG) { return (Tensor)OpRegistry.Invoke("SwishD", result, srcW, resG); }
@@ -180,6 +180,10 @@ namespace TensorSharp
 
         public static Tensor IndexSelect(Tensor result, Tensor src, Tensor indice, bool isAdd = false) { return (Tensor)OpRegistry.Invoke("indexselect", result, src, indice, isAdd); }
         public static Tensor IndexSelectGrad(Tensor grad, Tensor adj, Tensor indice) { return (Tensor)OpRegistry.Invoke("indexselectgrad", grad, adj, indice); }
+
+
+        public static Tensor RoPE(Tensor result, Tensor src, int seqLen) { return (Tensor)OpRegistry.Invoke("rope", result, src, seqLen); }
+        public static Tensor RoPEGrad(Tensor grad, Tensor adj, int seqLen) { return (Tensor)OpRegistry.Invoke("ropegrad", grad, adj, seqLen); }
 
 
         public static Tensor BuildSrcTgtMask(Tensor result, Tensor srcOriginalLengths, Tensor tgtOriginalLengths, int srcPaddedSeqLength, int tgtPaddedSeqLength, float value, float maskedValue)

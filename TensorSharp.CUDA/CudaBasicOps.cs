@@ -593,6 +593,16 @@ namespace TensorSharp.CUDA
         public Tensor IndexSelectGrad(Tensor grad, Tensor adj, Tensor indice) { return advFuncKernels.IndexSelectGrad(grad, adj, indice); }
 
 
+
+        [RegisterOpStorageType("rope", typeof(CudaStorage))]
+        public Tensor RoPE(Tensor result, Tensor src, int seqLen) { return advFuncKernels.RoPE(result, src, seqLen); }
+
+        [RegisterOpStorageType("ropegrad", typeof(CudaStorage))]
+        public Tensor RoPEGrad(Tensor grad, Tensor adj, int seqLen) { return advFuncKernels.RoPEGrad(grad, adj, seqLen); }
+
+
+
+
         [RegisterOpStorageType("buildsrctgtmask", typeof(CudaStorage))]
         public Tensor BuildSrcTgtMask(Tensor result, Tensor srcOriginalLengths, Tensor tgtOriginalLengths, int srcPaddedSeqLength, int tgtPaddedSeqLength, float value, float maskedValue)
         {

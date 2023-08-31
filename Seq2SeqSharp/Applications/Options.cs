@@ -169,7 +169,7 @@ namespace Seq2SeqSharp.Applications
         public TooLongSequence TooLongSequence = TooLongSequence.Ignore;
 
         [Arg("Activate function used in the model. It can be Relu or Swish", nameof(ActivateFunc))]
-        public ActivateFuncEnums ActivateFunc = ActivateFuncEnums.Relu;
+        public ActivateFuncEnums ActivateFunc = ActivateFuncEnums.ReLU;
 
         [Arg("The level of log to output", nameof(LogVerbose))]
         public Logger.LogVerbose LogVerbose = Logger.LogVerbose.Normal;

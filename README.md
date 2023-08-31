@@ -16,6 +16,7 @@ Built-in several networks for sequence-to-sequence, sequence-classification, lab
 Mixture of Experts network that could easily train huge model with less computing cost  
 Support Automatic Mixed Precesion (FP16)  
 Built-in SentencePiece supported  
+Rotary Positional Embeddings  
 Python package supported  
 Tags embeddings mechanism  
 Prompted Decoders  

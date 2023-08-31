@@ -171,13 +171,13 @@ var rq = null;
 
                         if (response.output.endsWith("eos") == true || response.output.endsWith("EOS") == true)
                         {
-                            $("#statusText").html("Done");                         
+                            $("#statusText").html("Cancelled");                         
                         }
-
-
-                        $("#outputText").load();
-                        $("#btnNextBatch").trigger("click");
-
+                        else
+                        {
+                            $("#outputText").load();
+                            $("#btnNextBatch").trigger("click");
+                        }
                     },
                     failure: function (response) {
                         alert(response.responseText);
@@ -245,15 +245,14 @@ var rq = null;
                     },
                     success: function (response) {
 
-                        if (response.output == $("#outputText").text())
-                        {
+                        if (response.output == $("#outputText").text() || $("#statusText").text() != "Generating...") {
                             $("#statusText").html("Cancelled");
                         }
                         else
                         {
                             if (response.output.endsWith("eos") == true || response.output.endsWith("EOS") == true)
                             {
-                                $("#statusText").html("Done");
+                                $("#statusText").html("Cancelled");
                             }
 
                             $("#outputText").html(response.output);

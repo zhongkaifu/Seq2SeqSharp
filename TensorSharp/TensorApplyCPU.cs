@@ -8,6 +8,7 @@
 // Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
+using ManagedCuda.BasicTypes;
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -1084,8 +1085,72 @@ namespace TensorSharp
 			}
 		}
 
+		unsafe static public void RoPE(Tensor tOut, Tensor tIn, int rows, int cols, int seqLen)
+		{
+			float* result = (float*)CpuNativeHelpers.GetBufferStart(tOut);
+			float* src = (float*)CpuNativeHelpers.GetBufferStart(tIn);
 
-		unsafe static public void Softmax(Tensor tOut, Tensor tIn, int rows, int cols)
+			for (int j = 0; j < rows; ++j)
+			{
+				float* resultRow = result + j * cols;
+				float* srcRow = src + j * cols;
+				int m = j % seqLen;
+
+				for (int id = 0; id < cols; id++)
+				{
+					int i = id / 2;
+					float theta = (float)Math.Pow(10000.0, -2.0 * i / cols);
+					float theta_m = theta * m;
+					float cos_theta_m = (float)Math.Cos(theta_m);
+					float sin_theta_m = (float)Math.Sin(theta_m);
+
+					if (id % 2 == 0)
+					{
+						resultRow[id] = srcRow[id] * cos_theta_m - srcRow[id + 1] * sin_theta_m;
+					}
+					else
+					{
+						resultRow[id] = srcRow[id] * cos_theta_m + srcRow[id - 1] * sin_theta_m;
+					}
+
+				}
+			}
+		}
+
+
+		unsafe static public void RoPEGrad(Tensor tOut, Tensor tIn, int rows, int cols, int seqLen)
+		{
+			float* grad = (float*)CpuNativeHelpers.GetBufferStart(tOut);
+			float* adj = (float*)CpuNativeHelpers.GetBufferStart(tIn);
+
+			for (int j = 0; j < rows; j++)
+			{
+				float* gradRow = grad + j * cols;
+				float* adjRow = adj + j * cols;
+				int m = j % seqLen;
+
+				for (int id = 0; id < cols; id++)
+				{
+					int i = id / 2;
+					float theta = (float)Math.Pow(10000.0, -2.0 * i / cols);
+					float theta_m = theta * m;
+					float cos_theta_m = (float)Math.Cos(theta_m);
+					float sin_theta_m = (float)Math.Sin(theta_m);
+
+					if (id % 2 == 0)
+					{
+						gradRow[id] += (adjRow[id] * cos_theta_m + adjRow[id + 1] * sin_theta_m);
+					}
+					else
+					{
+						gradRow[id] += (adjRow[id] * cos_theta_m - adjRow[id - 1] * sin_theta_m);
+					}
+				}
+			}
+		}
+
+
+        unsafe static public void Softmax(Tensor tOut, Tensor tIn, int rows, int cols)
 		{
 			float* pOut = (float*)CpuNativeHelpers.GetBufferStart(tOut);
 			float* pIn = (float*)CpuNativeHelpers.GetBufferStart(tIn);

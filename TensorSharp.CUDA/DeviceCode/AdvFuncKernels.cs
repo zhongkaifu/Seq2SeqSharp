@@ -13,6 +13,7 @@ using ManagedCuda;
 using ManagedCuda.BasicTypes;
 using ManagedCuda.VectorTypes;
 using System;
+using System.Runtime.InteropServices.Marshalling;
 using TensorSharp.Core;
 
 namespace TensorSharp.CUDA.DeviceCode
@@ -496,6 +497,150 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
             }
           }
       }
+    }
+  }
+}
+
+  __global__ void RoPE(float* __restrict__ result, float* __restrict__ src, int rows, int cols, int seqLen)
+  {
+    for(int bid = 0; bid < rows; bid += gridDim.x)
+    {
+    int j = bid + blockIdx.x;
+    if(j < rows)
+    {
+      float* resultRow = result + j * cols;
+      float* srcRow = src + j * cols;
+      int m = j % seqLen;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x)
+      {
+        int id = tid + threadIdx.x;
+        if(id < cols)
+        {          
+             int i = id / 2;
+             float theta = __powf(10000.0, -2.0 * i / cols);
+             float theta_m = theta * m;
+             float cos_theta_m = __cosf(theta_m);
+             float sin_theta_m = __sinf(theta_m);
+
+             if (id % 2 == 0)
+             {
+                  resultRow[id] = srcRow[id] * cos_theta_m - srcRow[id + 1] * sin_theta_m;
+             }
+             else
+             {
+                  resultRow[id] = srcRow[id] * cos_theta_m + srcRow[id - 1] * sin_theta_m;
+             }
+        }
+      }      
+    }
+  }
+}
+
+  __global__ void RoPEHalf(__half* __restrict__ result, __half* __restrict__ src, int rows, int cols, int seqLen)
+  {
+    for(int bid = 0; bid < rows; bid += gridDim.x)
+    {
+    int j = bid + blockIdx.x;
+    if(j < rows)
+    {
+      __half* resultRow = result + j * cols;
+      __half* srcRow = src + j * cols;
+      int m = j % seqLen;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x)
+      {
+        int id = tid + threadIdx.x;
+        if(id < cols)
+        {          
+             int i = id / 2;
+             float theta = __powf(10000.0, -2.0 * i / cols);
+             float theta_m = theta * m;
+             float cos_theta_m = __cosf(theta_m);
+             float sin_theta_m = __sinf(theta_m);
+
+             if (id % 2 == 0)
+             {
+                  resultRow[id] = __float2half(__half2float(srcRow[id]) * cos_theta_m - __half2float(srcRow[id + 1]) * sin_theta_m);
+             }
+             else
+             {
+                  resultRow[id] = __float2half(__half2float(srcRow[id]) * cos_theta_m + __half2float(srcRow[id - 1]) * sin_theta_m);
+             }
+        }
+      }      
+    }
+  }
+}
+
+  __global__ void RoPEGrad(float* __restrict__ grad, float* __restrict__ adj, int rows, int cols, int seqLen)
+  {
+    for(int bid = 0; bid < rows; bid += gridDim.x)
+    {
+    int j = bid + blockIdx.x;
+    if(j < rows)
+    {
+      float* gradRow = grad + j * cols;
+      float* adjRow = adj + j * cols;
+      int m = j % seqLen;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x)
+      {
+        int id = tid + threadIdx.x;
+        if(id < cols)
+        {          
+             int i = id / 2;
+             float theta = __powf(10000.0, -2.0 * i / cols);
+             float theta_m = theta * m;
+             float cos_theta_m = __cosf(theta_m);
+             float sin_theta_m = __sinf(theta_m);
+
+             if (id % 2 == 0)
+             {
+                  gradRow[id] += (adjRow[id] * cos_theta_m + adjRow[id + 1] * sin_theta_m);
+             }
+             else
+             {
+                  gradRow[id] += (adjRow[id] * cos_theta_m - adjRow[id - 1] * sin_theta_m);             
+             }
+        }
+      }      
+    }
+  }
+}
+
+  __global__ void RoPEGradHalf(__half* __restrict__ grad, __half* __restrict__ adj, int rows, int cols, int seqLen)
+  {
+    for(int bid = 0; bid < rows; bid += gridDim.x)
+    {
+    int j = bid + blockIdx.x;
+    if(j < rows)
+    {
+      __half* gradRow = grad + j * cols;
+      __half* adjRow = adj + j * cols;
+      int m = j % seqLen;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x)
+      {
+        int id = tid + threadIdx.x;
+        if(id < cols)
+        {          
+             int i = id / 2;
+             float theta = __powf(10000.0, -2.0 * i / cols);
+             float theta_m = theta * m;
+             float cos_theta_m = __cosf(theta_m);
+             float sin_theta_m = __sinf(theta_m);
+
+             if (id % 2 == 0)
+             {
+                  gradRow[id] = __float2half(__half2float(gradRow[id]) + __half2float(adjRow[id]) * cos_theta_m + __half2float(adjRow[id + 1]) * sin_theta_m);
+             }
+             else
+             {
+                  gradRow[id] = __float2half(__half2float(gradRow[id]) + __half2float(adjRow[id]) * cos_theta_m - __half2float(adjRow[id - 1]) * sin_theta_m);             
+             }
+        }
+      }      
     }
   }
 }
@@ -1765,6 +1910,20 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
 
             cudaContext.SetCurrent();
 
+            if (result.IsContiguous() == false)
+            {
+                throw new Exception($"Tensor {nameof(result)} is not contiguous.");
+            }
+            if (src.IsContiguous() == false)
+            {
+                throw new Exception($"Tensor {nameof(src)} is not contiguous.");
+            }
+            if (indice.IsContiguous() == false)
+            {
+                throw new Exception($"Tensor {nameof(indice)} is not contiguous.");
+            }
+
+
             int ndim = result.DimensionCount;
             long storageSize = TensorDimensionHelpers.GetStorageSize(result.Sizes, result.Strides);
             long cols = result.Sizes[ndim - 1];
@@ -1796,11 +1955,115 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
         }
 
 
+        private void RoPE(TSCudaContext context, Tensor result, Tensor src, int seqLen)
+        {
+            CudaContext cudaContext = context.CudaContextForTensor(src);
+
+            cudaContext.SetCurrent();
+
+            if (src.IsContiguous() == false)
+            {
+                throw new Exception($"Tensor {nameof(src)} is not contiguous.");
+            }
+            if (result.IsContiguous() == false)
+            {
+                throw new Exception($"Tensor {nameof(result)} is not contiguous.");
+            }
+
+
+            int ndim = result.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(result.Sizes, result.Strides);
+            long cols = result.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+
+            dim3 block = new dim3((uint)Math.Min(512, cols));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
+
+            CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
+            CUdeviceptr srcPtr = CudaHelpers.GetBufferStart(src);
+
+            string kernelName = "RoPE";
+            if (src.ElementType == DType.Float16)
+            {
+                kernelName = "RoPEHalf";
+            }
+
+
+            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, rows, cols, seqLen);
+
+        }
+
+        private void RoPEGrad(TSCudaContext context, Tensor grad, Tensor adj, int seqLen)
+        {
+            CudaContext cudaContext = context.CudaContextForTensor(adj);
+
+            cudaContext.SetCurrent();
+
+            if (grad.IsContiguous() == false)
+            {
+                throw new Exception($"Tensor {nameof(grad)} is not contiguous.");
+            }
+            if (adj.IsContiguous() == false)
+            {
+                throw new Exception($"Tensor {nameof(adj)} is not contiguous.");
+            }
+
+
+            int ndim = adj.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(adj.Sizes, adj.Strides);
+            long cols = adj.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+
+            dim3 block = new dim3((uint)Math.Min(512, cols));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
+
+            CUdeviceptr gradPtr = CudaHelpers.GetBufferStart(grad);
+            CUdeviceptr adjPtr = CudaHelpers.GetBufferStart(adj);
+
+            string kernelName = "RoPEGrad";
+            if (adj.ElementType == DType.Float16)
+            {
+                kernelName = "RoPEGradHalf";
+            }
+
+
+            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float), CUstream.NullStream, gradPtr, adjPtr, rows, cols, seqLen);
+        }
+
+
         private void IndexSelectGrad(TSCudaContext context, Tensor grad, Tensor adj, Tensor indice)
         {
             CudaContext cudaContext = context.CudaContextForTensor(adj);
 
             cudaContext.SetCurrent();
+
+            if (grad.IsContiguous() == false)
+            {
+                throw new Exception($"Tensor {nameof(grad)} is not contiguous.");
+            }
+            if (adj.IsContiguous() == false)
+            {
+                throw new Exception($"Tensor {nameof(adj)} is not contiguous.");
+            }
+            if (indice.IsContiguous() == false)
+            {
+                throw new Exception($"Tensor {nameof(indice)} is not contiguous.");
+            }
+
 
             int ndim = adj.DimensionCount;
             long storageSize = TensorDimensionHelpers.GetStorageSize(adj.Sizes, adj.Strides);
@@ -1844,6 +2107,15 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
             CudaContext cudaContext = context.CudaContextForTensor(src);
 
             cudaContext.SetCurrent();
+
+            if (result.IsContiguous() == false)
+            {
+                throw new Exception($"Tensor {nameof(result)} is not contiguous.");
+            }
+            if (src.IsContiguous() == false)
+            {
+                throw new Exception($"Tensor {nameof(src)} is not contiguous.");
+            }
 
             int ndim = src.DimensionCount;
             long storageSize = TensorDimensionHelpers.GetStorageSize(src.Sizes, src.Strides);
@@ -1961,6 +2233,20 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
 
             cudaContext.SetCurrent();
 
+            if (grad.IsContiguous() == false)
+            {
+                throw new Exception($"Tensor {nameof(grad)} is not contiguous.");
+            }
+            if (adj.IsContiguous() == false)
+            {
+                throw new Exception($"Tensor {nameof(adj)} is not contiguous.");
+            }
+            if (val.IsContiguous() == false)
+            {
+                throw new Exception($"Tensor {nameof(val)} is not contiguous.");
+            }
+
+
             int ndim = grad.DimensionCount;
             long storageSize = TensorDimensionHelpers.GetStorageSize(grad.Sizes, grad.Strides);
             long cols = grad.Sizes[ndim - 1];
@@ -2072,6 +2358,23 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
             return grad;
         }
 
+
+        public Tensor RoPE(Tensor result, Tensor src, int seqLen)
+        {
+            TSCudaContext context = CudaHelpers.TSContextForTensor(src);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
+            RoPE(context, writeTarget, src, seqLen);
+
+            return writeTarget;
+        }
+
+        public Tensor RoPEGrad(Tensor grad, Tensor adj, int seqLen)
+        {
+            TSCudaContext context = CudaHelpers.TSContextForTensor(adj);
+            RoPEGrad(context, grad, adj, seqLen);
+
+            return grad;
+        }
 
         private void Invoke(TSCudaContext context, CudaContext cudaContext, string kernelName, dim3 grid, dim3 block, uint smemSize, CUstream stream, params object[] args)
         {

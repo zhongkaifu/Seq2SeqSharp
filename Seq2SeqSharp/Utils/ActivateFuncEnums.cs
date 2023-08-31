@@ -12,8 +12,8 @@ namespace Seq2SeqSharp.Utils
 {
     public enum ActivateFuncEnums
     {
-        Relu,
-        Swish
+        ReLU,
+        SiLU
 
     }
 }

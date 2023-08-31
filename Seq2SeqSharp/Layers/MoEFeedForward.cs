@@ -35,7 +35,7 @@ namespace Seq2SeqSharp.Layers
 
         private ActivateFuncEnums m_activateFunc;
 
-        public MoEFeedForward(string name, int expertNum, int hiddenDim, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.Relu, int expertsPerTokenFactor = 1, DType elementType = DType.Float32)
+        public MoEFeedForward(string name, int expertNum, int hiddenDim, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.ReLU, int expertsPerTokenFactor = 1, DType elementType = DType.Float32)
         {
             m_name = name;
             m_activateFunc = activateFunc;
@@ -139,7 +139,7 @@ namespace Seq2SeqSharp.Layers
 
 
                     tokenEmbs = gExp.Mul(tokenEmbs, m_Whd1_i);
-                    tokenEmbs = ((m_activateFunc == ActivateFuncEnums.Swish) ? gExp.Swish(tokenEmbs, inPlace: true) : gExp.Relu(tokenEmbs, inPlace: true));
+                    tokenEmbs = ((m_activateFunc == ActivateFuncEnums.SiLU) ? gExp.SiLU(tokenEmbs) : gExp.Relu(tokenEmbs, inPlace: true));
                     tokenEmbs = gExp.Mul(tokenEmbs, m_Whd2_i);
                     tokenEmbs = g.EltMul(tokenEmbs, topValue_eI);
 
