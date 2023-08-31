@@ -537,42 +537,6 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
   }
 }
 
-  __global__ void RoPEHalf(__half* __restrict__ result, __half* __restrict__ src, int rows, int cols, int seqLen)
-  {
-    for(int bid = 0; bid < rows; bid += gridDim.x)
-    {
-    int j = bid + blockIdx.x;
-    if(j < rows)
-    {
-      __half* resultRow = result + j * cols;
-      __half* srcRow = src + j * cols;
-      int m = j % seqLen;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x)
-      {
-        int id = tid + threadIdx.x;
-        if(id < cols)
-        {          
-             int i = id / 2;
-             float theta = __powf(10000.0, -2.0 * i / cols);
-             float theta_m = theta * m;
-             float cos_theta_m = __cosf(theta_m);
-             float sin_theta_m = __sinf(theta_m);
-
-             if (id % 2 == 0)
-             {
-                  resultRow[id] = __float2half(__half2float(srcRow[id]) * cos_theta_m - __half2float(srcRow[id + 1]) * sin_theta_m);
-             }
-             else
-             {
-                  resultRow[id] = __float2half(__half2float(srcRow[id]) * cos_theta_m + __half2float(srcRow[id - 1]) * sin_theta_m);
-             }
-        }
-      }      
-    }
-  }
-}
-
   __global__ void RoPEGrad(float* __restrict__ grad, float* __restrict__ adj, int rows, int cols, int seqLen)
   {
     for(int bid = 0; bid < rows; bid += gridDim.x)
@@ -609,41 +573,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
   }
 }
 
-  __global__ void RoPEGradHalf(__half* __restrict__ grad, __half* __restrict__ adj, int rows, int cols, int seqLen)
-  {
-    for(int bid = 0; bid < rows; bid += gridDim.x)
-    {
-    int j = bid + blockIdx.x;
-    if(j < rows)
-    {
-      __half* gradRow = grad + j * cols;
-      __half* adjRow = adj + j * cols;
-      int m = j % seqLen;
-
-      for(int tid = 0; tid < cols; tid += blockDim.x)
-      {
-        int id = tid + threadIdx.x;
-        if(id < cols)
-        {          
-             int i = id / 2;
-             float theta = __powf(10000.0, -2.0 * i / cols);
-             float theta_m = theta * m;
-             float cos_theta_m = __cosf(theta_m);
-             float sin_theta_m = __sinf(theta_m);
-
-             if (id % 2 == 0)
-             {
-                  gradRow[id] = __float2half(__half2float(gradRow[id]) + __half2float(adjRow[id]) * cos_theta_m + __half2float(adjRow[id + 1]) * sin_theta_m);
-             }
-             else
-             {
-                  gradRow[id] = __float2half(__half2float(gradRow[id]) + __half2float(adjRow[id]) * cos_theta_m - __half2float(adjRow[id - 1]) * sin_theta_m);             
-             }
-        }
-      }      
-    }
-  }
-}
+  
 
   __global__ void BuildSrcTgtMask(float* __restrict__ result, float* __restrict__ srcOriginalLengths, float* __restrict__ tgtOriginalLengths, int rows, int cols, int tgtPaddedSeqLen, float value, float maskedValue)
 {
@@ -1176,6 +1106,80 @@ __global__ void gLayerNormalizationGradHalf(__half* gradX,
       }
     }
     __syncthreads();
+  }
+}
+
+__global__ void RoPEGradHalf(__half* __restrict__ grad, __half* __restrict__ adj, int rows, int cols, int seqLen)
+  {
+    for(int bid = 0; bid < rows; bid += gridDim.x)
+    {
+    int j = bid + blockIdx.x;
+    if(j < rows)
+    {
+      __half* gradRow = grad + j * cols;
+      __half* adjRow = adj + j * cols;
+      int m = j % seqLen;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x)
+      {
+        int id = tid + threadIdx.x;
+        if(id < cols)
+        {          
+             int i = id / 2;
+             float theta = __powf(10000.0, -2.0 * i / cols);
+             float theta_m = theta * m;
+             float cos_theta_m = __cosf(theta_m);
+             float sin_theta_m = __sinf(theta_m);
+
+             if (id % 2 == 0)
+             {
+                  gradRow[id] = __float2half(__half2float(gradRow[id]) + __half2float(adjRow[id]) * cos_theta_m + __half2float(adjRow[id + 1]) * sin_theta_m);
+             }
+             else
+             {
+                  gradRow[id] = __float2half(__half2float(gradRow[id]) + __half2float(adjRow[id]) * cos_theta_m - __half2float(adjRow[id - 1]) * sin_theta_m);             
+             }
+        }
+      }      
+    }
+  }
+}
+
+
+
+  __global__ void RoPEHalf(__half* __restrict__ result, __half* __restrict__ src, int rows, int cols, int seqLen)
+  {
+    for(int bid = 0; bid < rows; bid += gridDim.x)
+    {
+    int j = bid + blockIdx.x;
+    if(j < rows)
+    {
+      __half* resultRow = result + j * cols;
+      __half* srcRow = src + j * cols;
+      int m = j % seqLen;
+
+      for(int tid = 0; tid < cols; tid += blockDim.x)
+      {
+        int id = tid + threadIdx.x;
+        if(id < cols)
+        {          
+             int i = id / 2;
+             float theta = __powf(10000.0, -2.0 * i / cols);
+             float theta_m = theta * m;
+             float cos_theta_m = __cosf(theta_m);
+             float sin_theta_m = __sinf(theta_m);
+
+             if (id % 2 == 0)
+             {
+                  resultRow[id] = __float2half(__half2float(srcRow[id]) * cos_theta_m - __half2float(srcRow[id + 1]) * sin_theta_m);
+             }
+             else
+             {
+                  resultRow[id] = __float2half(__half2float(srcRow[id]) * cos_theta_m + __half2float(srcRow[id - 1]) * sin_theta_m);
+             }
+        }
+      }      
+    }
   }
 }
 
