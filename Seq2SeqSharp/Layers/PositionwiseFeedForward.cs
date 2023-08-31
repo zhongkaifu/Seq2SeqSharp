@@ -29,7 +29,7 @@ namespace Seq2SeqSharp
 
         private ActivateFuncEnums m_activateFunc;
 
-        public PositionwiseFeedForward(string name, int hiddenDim, int intermediateDim, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.Relu, DType elementType = DType.Float32)
+        public PositionwiseFeedForward(string name, int hiddenDim, int intermediateDim, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.ReLU, DType elementType = DType.Float32)
         {
             m_name = name;
             m_dropoutRatio = dropoutRatio;
@@ -89,7 +89,7 @@ namespace Seq2SeqSharp
             //Feed forward
             var ffnResult = feedForwardLayer1.Process(inputNorm, batchSize, g);
             // Activate function
-            var actFFNResult = ((m_activateFunc == ActivateFuncEnums.Swish) ? g.Swish(ffnResult, inPlace: true) : g.Relu(ffnResult, inPlace: true));
+            var actFFNResult = ((m_activateFunc == ActivateFuncEnums.SiLU) ? g.SiLU(ffnResult) : g.Relu(ffnResult, inPlace: true));
             var ffn2Result = feedForwardLayer2.Process(actFFNResult, batchSize, g); // Shape: [batchSize * newTokenIdx, input_dim]
 
             //Skip connection and layer normaliztion

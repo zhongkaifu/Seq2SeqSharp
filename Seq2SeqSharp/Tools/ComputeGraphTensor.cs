@@ -136,50 +136,31 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightTensor Swish(IWeightTensor w, bool inPlace = false)
+        public IWeightTensor SiLU(IWeightTensor w)
         {
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = null;
-            if (inPlace)
-            {
-                res = m.CopyWeightsRef($"{GetHashString(w.Name)}.Swish_InPlace", needGradient: m.NeedGradient, graphToBind: this);
-            }
-            else
-            {
-                res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Swish", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
-            }
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.SiLU", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
+
             VisualizeNodes(w, res);
-
-
-            Ops.Swish(res.TWeight, m.TWeight);
+            Ops.SiLU(res.TWeight, m.TWeight);
             if (m_needsBackprop)
             {
+                Tensor mTWeight = m.TWeight.CopyRef();
                 void backward()
                 {
                     if (m.NeedGradient)
                     {
                         res.ReleaseWeight();
+                        Ops.AddSwishD(m.TGradient, m.TGradient, mTWeight, res.TGradient);
 
-                        if (inPlace && m.IsGradientNull() && res.TGradient.IsOwnerExclusive())
-                        {
-                            m.TGradient = res.TGradient.CopyRef();
-                            Ops.SwishD(m.TGradient, m.TWeight, m.TGradient);
-                        }
-                        else
-                        {
-                            Ops.AddSwishD(m.TGradient, m.TGradient, m.TWeight, res.TGradient);
-                        }
                     }
                     res.Dispose();
                 }
                 m_backprop.Add(backward);
-
-                m.UnbindFromComputeGraph();
             }
 
             return res;
         }
-
 
         public IWeightTensor Rsqrt(IWeightTensor w)
         {
@@ -318,6 +299,37 @@ namespace Seq2SeqSharp.Tools
                         {
                             Ops.AddMulV(m.TGradient, m.TGradient, res.TGradient, v);
                         }
+                    }
+
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
+
+        public IWeightTensor RoPE(IWeightTensor w, int seqLen)
+        {
+            WeightTensor m = w as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.RoPE", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
+            
+            VisualizeNodes(w, res);
+
+            Ops.RoPE(res.TWeight, m.TWeight, seqLen);
+            if (m_needsBackprop)
+            {
+                void backward()
+                {
+                    if (m.NeedGradient)
+                    {
+                        res.ReleaseWeight();
+                        Tensor resT = Ops.AsContiguous(res.TGradient);
+
+                        Ops.RoPEGrad(m.TGradient, resT, seqLen);
+
+                        resT.Dispose();
                     }
 
                     res.Dispose();

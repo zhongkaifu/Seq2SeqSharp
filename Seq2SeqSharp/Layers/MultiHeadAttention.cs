@@ -97,6 +97,7 @@ namespace Seq2SeqSharp
 
             //Multi-head attentions
             IWeightTensor Qs = g.View(g.AsContiguous(g.Transpose(allQ, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, m_d });
+            Qs = g.RoPE(Qs, seqLenQ);
 
             int newTokensIdx = seqLenQ;
             IWeightTensor m_cacheQs = null;
@@ -118,7 +119,13 @@ namespace Seq2SeqSharp
                 Qs = g.Peek(Qs, 1, seqLenQ - newTokensIdx, newTokensIdx); // Shape: [batchSize * m_multiHeadNum, relPosSize, m_d]
             }
 
-            IWeightTensor Ks = g.View(g.AsContiguous(g.Transpose(g.Transpose(allK, 1, 2), 2, 3)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenQ });
+            //IWeightTensor Ks = g.View(g.AsContiguous(g.Transpose(g.Transpose(allK, 1, 2), 2, 3)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenQ });
+
+            IWeightTensor Ks = g.View(g.AsContiguous(g.Transpose(allK, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, m_d });
+            Ks = g.RoPE(Ks, seqLenQ);
+            Ks = g.View(g.AsContiguous(g.Transpose(Ks, 1, 2)), dims: new long[] {batchSize * m_multiHeadNum, m_d, seqLenQ });
+
+
             IWeightTensor Vs = g.View(g.AsContiguous(g.Transpose(allV, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, m_d });
 
             // Scaled softmax
@@ -222,7 +229,7 @@ namespace Seq2SeqSharp
 
             //Multi-head attentions
             IWeightTensor Qs = g.View(g.AsContiguous(g.Transpose(allQ, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, newTokensIdx, m_d });
-
+            Qs = g.RoPE(Qs, newTokensIdx);
 
             IWeightTensor Ks = null;
             IWeightTensor Vs = null;
@@ -231,7 +238,13 @@ namespace Seq2SeqSharp
             {
                 IWeightTensor allK = g.View(g.Affine(inputK, K, Kb), dims: new long[] { batchSize, seqLenK, m_multiHeadNum, m_d });
                 IWeightTensor allV = g.View(g.Affine(inputV, V, Vb), dims: new long[] { batchSize, seqLenV, m_multiHeadNum, m_d });
-                Ks = g.View(g.AsContiguous(g.Transpose(g.Transpose(allK, 1, 2), 2, 3)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenK });
+                //Ks = g.View(g.AsContiguous(g.Transpose(g.Transpose(allK, 1, 2), 2, 3)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenK });
+
+                Ks = g.View(g.AsContiguous(g.Transpose(allK, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenK, m_d });
+                Ks = g.RoPE(Ks, seqLenK);
+                Ks = g.View(g.AsContiguous(g.Transpose(Ks, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenK });
+
+
                 Vs = g.View(g.AsContiguous(g.Transpose(allV, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenV, m_d });
             }
             else
@@ -242,7 +255,12 @@ namespace Seq2SeqSharp
                 if (cachedTensors.ContainsKey(KsCacheName) == false)
                 {
                     IWeightTensor allK = g.View(g.Affine(inputK, K, Kb), dims: new long[] { batchSize, seqLenK, m_multiHeadNum, m_d });
-                    Ks = g.View(g.AsContiguous(g.Transpose(g.Transpose(allK, 1, 2), 2, 3)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenK });
+                    //Ks = g.View(g.AsContiguous(g.Transpose(g.Transpose(allK, 1, 2), 2, 3)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenK });
+
+                    Ks = g.View(g.AsContiguous(g.Transpose(allK, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenK, m_d });
+                    Ks = g.RoPE(Ks, seqLenK);
+                    Ks = g.View(g.AsContiguous(g.Transpose(Ks, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenK });
+
                     cachedTensors.Add(KsCacheName, Ks.CopyWeightsRef(KsCacheName, Ks.NeedGradient, graphToBind: null));
                 }
                 else

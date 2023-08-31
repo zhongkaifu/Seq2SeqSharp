@@ -263,7 +263,7 @@ namespace Seq2SeqSharp.Applications
         }
 
         public static (float, List<List<BeamSearchStatus>>) DecodeTransformer(List<List<int>> tgtSeqs, IComputeGraph g, IWeightTensor encOutputs, TransformerDecoder decoder, IFeedForwardLayer decoderFFLayer,
-            IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, float[] srcOriginalLenghts, Vocab tgtVocab, ShuffleEnums shuffleType, float dropoutRatio, DecodingOptions decodingOptions, bool isTraining = true,
+            IWeightTensor tgtEmbedding, float[] srcOriginalLenghts, Vocab tgtVocab, ShuffleEnums shuffleType, float dropoutRatio, DecodingOptions decodingOptions, bool isTraining = true,
             bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, IFeedForwardLayer pointerGenerator = null, List<List<int>> srcSeqs = null, Dictionary<string, IWeightTensor> cachedTensors = null,
             List<List<int>> alignmentsToSrc = null, List<List<float>> alignmentScoresToSrc = null, bool teacherForcedAlignment = false, LossEnums lossType = LossEnums.CrossEntropy, float focalLossGamma = 0.0f, float lossSmooth = 1e-9f, List<int> blockedTokens = null, IWeightTensor segmentEmbeddings = null, bool amp = false)
         {
@@ -291,8 +291,6 @@ namespace Seq2SeqSharp.Applications
             }
 
             IWeightTensor inputEmbs = TensorUtils.CreateTokensEmbeddings(tgtSeqs, g, tgtEmbedding, segmentEmbeddings, tgtVocab, scaleFactor: (float)Math.Sqrt(tgtEmbedding.Columns), amp: amp);
-            inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbedding, batchSize, inputEmbs, dropoutRatio);
-
             IWeightTensor decOutput;
             IWeightTensor decEncAttnProbs;           
             (decOutput, decEncAttnProbs) = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g, outputAttnWeights: pointerGenerator != null, cachedTensors: cachedTensors);
@@ -470,7 +468,7 @@ namespace Seq2SeqSharp.Applications
 
 
         public static (float, List<List<BeamSearchStatus>>) GPTDecode(List<List<int>> tgtSeqs, IComputeGraph g, GPTDecoder decoder, IFeedForwardLayer decoderFFLayer,
-            IWeightTensor tgtEmbedding, IWeightTensor posEmbedding, Vocab tgtVocab, ShuffleEnums shuffleType, float dropoutRatio, DecodingOptions decodingOptions, bool isTraining = true,
+            IWeightTensor tgtEmbedding, Vocab tgtVocab, ShuffleEnums shuffleType, float dropoutRatio, DecodingOptions decodingOptions, bool isTraining = true,
             bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, Dictionary<string, IWeightTensor> cachedTensors = null,
             LossEnums lossType = LossEnums.CrossEntropy, float focalLossGamma = 0.0f, float lossSmooth = 1e-9f, List<int> blockedTokens = null, IWeightTensor segmentEmbeddings = null, bool amp = true)
         {
@@ -492,8 +490,6 @@ namespace Seq2SeqSharp.Applications
             }
 
             IWeightTensor inputEmbs = TensorUtils.CreateTokensEmbeddings(tgtSeqs, g, tgtEmbedding, segmentEmbeddings, tgtVocab, scaleFactor: (float)Math.Sqrt(tgtEmbedding.Columns), amp: amp);
-            inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbedding, batchSize, inputEmbs, dropoutRatio);
-
             IWeightTensor decOutput;
             (decOutput, _) = decoder.Decode(inputEmbs, tgtSelfTriMask, batchSize, g, cachedTensors: cachedTensors);
 

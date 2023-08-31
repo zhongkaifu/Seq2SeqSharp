@@ -31,7 +31,6 @@ namespace Seq2SeqSharp.Applications
         private MultiProcessorNetworkWrapper<IFeedForwardLayer>[] m_encoderFFLayer; //The feed forward layers over devices after all layers in encoder
 
         private MultiProcessorNetworkWrapper<IEncoder> m_encoder; //The encoders over devices.
-        private MultiProcessorNetworkWrapper<IWeightTensor> m_posEmbedding;
         private MultiProcessorNetworkWrapper<IWeightTensor> m_segmentEmbedding;
         private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
         private readonly SeqClassificationOptions m_options;
@@ -79,7 +78,7 @@ namespace Seq2SeqSharp.Applications
                 m_encoderFFLayer[i] = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer($"FeedForward_Encoder_{i}", model.HiddenDim, model.ClsVocabs[i].Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
             }
 
-            (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, model.HiddenDim, m_options.MaxSentLength, model);
+            m_segmentEmbedding = Misc.CreateAuxEmbeddings(raDeviceIds, model.HiddenDim, m_options.MaxSentLength, model);
 
             Logger.WriteLine($"Creating embeddings. Shape = '({model.SrcVocab.Count} ,{model.EncoderEmbeddingDim})'");
             m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { model.SrcVocab.Count, model.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SrcEmbeddings", 
@@ -93,7 +92,7 @@ namespace Seq2SeqSharp.Applications
         /// </summary>
         /// <param name="deviceIdIdx"></param>
         /// <returns></returns>
-        private (IEncoder, IWeightTensor, List<IFeedForwardLayer>, IWeightTensor, IWeightTensor) GetNetworksOnDeviceAt(int deviceId)
+        private (IEncoder, IWeightTensor, List<IFeedForwardLayer>, IWeightTensor) GetNetworksOnDeviceAt(int deviceId)
         {
             var deviceIdIdx = TensorAllocator.GetDeviceIdIndex(deviceId);
 
@@ -106,7 +105,7 @@ namespace Seq2SeqSharp.Applications
             return (m_encoder.GetNetworkOnDevice(deviceIdIdx),
                     m_srcEmbedding.GetNetworkOnDevice(deviceIdIdx),
                     feedForwardLayers,
-                    m_posEmbedding?.GetNetworkOnDevice(deviceIdIdx), m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx));
+                    m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx));
         }
 
         /// <summary>
@@ -121,11 +120,11 @@ namespace Seq2SeqSharp.Applications
         {
             List<NetworkResult> nrs = new List<NetworkResult>();
 
-            (IEncoder encoder, IWeightTensor srcEmbedding, List<IFeedForwardLayer> encoderFFLayer, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding) = GetNetworksOnDeviceAt(computeGraph.DeviceId);
+            (IEncoder encoder, IWeightTensor srcEmbedding, List<IFeedForwardLayer> encoderFFLayer, IWeightTensor segmentEmbedding) = GetNetworksOnDeviceAt(computeGraph.DeviceId);
             var srcSnts = sntPairBatch.GetSrcTokens(0);
             var originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
             var srcTokensList = m_modelMetaData.SrcVocab.GetWordIndex(srcSnts);
-            IWeightTensor encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcTokensList, originalSrcLengths);
+            IWeightTensor encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, segmentEmbedding, srcTokensList, originalSrcLengths);
 
             int srcSeqPaddedLen = srcSnts[0].Count;
             int batchSize = srcSnts.Count;

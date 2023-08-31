@@ -972,6 +972,46 @@ namespace TensorSharp.Cpu
             TensorApplyCPU.TopK(outVal, outIdx, src, k, (int)rows, (int)cols);
         }
 
+        [RegisterOpStorageType("rope", typeof(CpuStorage))]
+        public Tensor RoPE(Tensor result, Tensor src, int seqLen)
+        {
+            int ndim = src.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(src.Sizes, src.Strides);
+            long cols = src.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
+            TensorApplyCPU.RoPE(writeTarget, src, (int)rows, (int)cols, seqLen);
+            return writeTarget;
+        }
+
+        [RegisterOpStorageType("ropegrad", typeof(CpuStorage))]
+        public Tensor RoPEGrad(Tensor grad_, Tensor adj_, int seqLen)
+        {
+            int ndim = adj_.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(adj_.Sizes, adj_.Strides);
+            long cols = adj_.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(grad_, adj_, true, adj_.Sizes);
+            TensorApplyCPU.RoPEGrad(writeTarget, adj_, (int)rows, (int)cols, seqLen);
+
+
+            return writeTarget;
+        }
+
 
         [RegisterOpStorageType("softmax", typeof(CpuStorage))]
         public Tensor Softmax(Tensor result, Tensor src)

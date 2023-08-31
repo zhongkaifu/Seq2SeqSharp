@@ -39,7 +39,7 @@ namespace Seq2SeqSharp
         private readonly int m_expertsPerTokenFactor;
         private readonly DType m_elementType;
 
-        public TransformerEncoder(string name, int multiHeadNum, int hiddenDim, int intermediateDim, int inputDim, int depth, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.Relu, int expertNum = 1, int expertsPerTokenFactor = 1, DType elementType = DType.Float32)
+        public TransformerEncoder(string name, int multiHeadNum, int hiddenDim, int intermediateDim, int inputDim, int depth, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.ReLU, int expertNum = 1, int expertsPerTokenFactor = 1, DType elementType = DType.Float32)
         {
             Logger.WriteLine($"Creating transformer encoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', IntermediateDim = '{intermediateDim},' InputDim = '{inputDim}', Depth = '{depth}', MultiHeadNum = '{multiHeadNum}', ElementType = '{elementType}'");
 

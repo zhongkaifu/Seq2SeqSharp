@@ -28,7 +28,6 @@ namespace Seq2SeqSharp
         private MultiProcessorNetworkWrapper<IWeightTensor> m_srcEmbedding; //The embeddings over devices for target
         private MultiProcessorNetworkWrapper<IEncoder> m_encoder; //The encoders over devices. It can be LSTM, BiLSTM or Transformer
         private MultiProcessorNetworkWrapper<FeedForwardLayer> m_ffLayer; //The feed forward layers over over devices.
-        private MultiProcessorNetworkWrapper<IWeightTensor> m_posEmbedding;
         private MultiProcessorNetworkWrapper<IWeightTensor> m_segmentEmbedding;
 
         private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
@@ -94,7 +93,7 @@ namespace Seq2SeqSharp
 
             m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { model.SrcVocab.Count, model.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, name: "SrcEmbeddings", 
                 isTrainable: true), DeviceIds);
-            (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, model.HiddenDim, m_options.MaxSentLength, model);
+            m_segmentEmbedding = Misc.CreateAuxEmbeddings(raDeviceIds, model.HiddenDim, m_options.MaxSentLength, model);
 
             return true;
         }
@@ -102,12 +101,12 @@ namespace Seq2SeqSharp
         /// <summary>
         /// Get networks on specific devices
         /// </summary>
-        private (IEncoder, IWeightTensor, IWeightTensor, IWeightTensor, FeedForwardLayer) GetNetworksOnDeviceAt(int deviceId)
+        private (IEncoder, IWeightTensor, IWeightTensor, FeedForwardLayer) GetNetworksOnDeviceAt(int deviceId)
         {
             var deviceIdIdx = TensorAllocator.GetDeviceIdIndex(deviceId);
 
             return (m_encoder.GetNetworkOnDevice(deviceIdIdx), m_srcEmbedding.GetNetworkOnDevice(deviceIdIdx),
-                m_posEmbedding?.GetNetworkOnDevice(deviceIdIdx), m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx), m_ffLayer.GetNetworkOnDevice(deviceIdIdx));
+                m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx), m_ffLayer.GetNetworkOnDevice(deviceIdIdx));
         }
 
         /// <summary>
@@ -125,7 +124,7 @@ namespace Seq2SeqSharp
             var srcSnts = sntPairBatch.GetSrcTokens(0);
             var tgtSnts = sntPairBatch.GetTgtTokens(0);
 
-            (var encoder, var srcEmbedding, var posEmbedding, var segmentEmbedding, var decoderFFLayer) = GetNetworksOnDeviceAt(g.DeviceId);
+            (var encoder, var srcEmbedding, var segmentEmbedding, var decoderFFLayer) = GetNetworksOnDeviceAt(g.DeviceId);
 
             // Reset networks
             encoder.Reset(g.GetWeightFactory(), srcSnts.Count);
@@ -157,7 +156,7 @@ namespace Seq2SeqSharp
             int batchSize = srcSnts.Count;
 
             // Encoding input source sentences
-            IWeightTensor encOutput = Encoder.Run(g, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbedding, segmentEmbedding, srcTokensList, originalSrcLengths);
+            IWeightTensor encOutput = Encoder.Run(g, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, segmentEmbedding, srcTokensList, originalSrcLengths);
             IWeightTensor ffLayer = decoderFFLayer.Process(encOutput, batchSize, g);
 
             float cost = 0.0f;
