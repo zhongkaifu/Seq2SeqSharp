@@ -49,7 +49,7 @@ namespace Seq2SeqSharp.Tools
 
         private TooLongSequence m_tooLongSequence = TooLongSequence.Ignore;
 
-        private string m_binaryDataSetFilePath = "";
+        private string m_sortedIndexedDataSetFilePath = "";
         private int m_batchNumInTotal = 0;
 
         public (List<Dictionary<string, int>>, List<Dictionary<string, int>>) CountTokenFreqs()
@@ -333,8 +333,8 @@ namespace Seq2SeqSharp.Tools
                 (var length2offsets, var length2counts, string tmpDataSetFilePath) = BuildIndex();
                 Logger.WriteLine($"Start to sort and shuffle data set by length.");
 
-                m_binaryDataSetFilePath = tmpDataSetFilePath + ".sorted";
-                using (BinaryWriter bw = new BinaryWriter(new FileStream(m_binaryDataSetFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 40960000)))
+                m_sortedIndexedDataSetFilePath = tmpDataSetFilePath + ".sorted";
+                using (BinaryWriter bw = new BinaryWriter(new FileStream(m_sortedIndexedDataSetFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 40960000)))
                 using (MemoryMappedFile mmf = MemoryMappedFile.CreateFromFile(tmpDataSetFilePath))
                 using (MemoryMappedViewStream mms = mmf.CreateViewStream())
                 {
@@ -406,11 +406,19 @@ namespace Seq2SeqSharp.Tools
 
         public IEnumerator<T> GetEnumerator()
         {
-            PrepareDataSet();
+            if (String.IsNullOrEmpty(m_sortedIndexedDataSetFilePath) || File.Exists(m_sortedIndexedDataSetFilePath) == false)
+            {
+                PrepareDataSet();
+            }
+            else
+            {
+                Logger.WriteLine($"Use existing sorted indexed data set file '{m_sortedIndexedDataSetFilePath}'");
+            }
+
             int batchIdx = 0;
             int currentBatchPercent = 0;
 
-            using (MemoryMappedFile mmf = MemoryMappedFile.CreateFromFile(m_binaryDataSetFilePath))
+            using (MemoryMappedFile mmf = MemoryMappedFile.CreateFromFile(m_sortedIndexedDataSetFilePath))
             using (MemoryMappedViewStream mms = mmf.CreateViewStream())
             {
                 using (BinaryReader br = new BinaryReader(mms))
@@ -451,7 +459,7 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
-            File.Delete(m_binaryDataSetFilePath);
+            File.Delete(m_sortedIndexedDataSetFilePath);
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -464,7 +472,7 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int maxTokenSizePerBatch, int maxSrcSentLength = 32, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random, TooLongSequence tooLongSequence = TooLongSequence.Ignore)
+        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int maxTokenSizePerBatch, int maxSrcSentLength = 32, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random, TooLongSequence tooLongSequence = TooLongSequence.Ignore, string indexedFilePath = null)
         {
             Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSrcSentLength = '{maxSrcSentLength}',  MaxTgtSentLength = '{maxTgtSentLength}', aggregateSrcLengthForShuffle = '{shuffleEnums}', TooLongSequence = '{tooLongSequence}'");
             m_maxTokenSizePerBatch = maxTokenSizePerBatch;
@@ -475,6 +483,7 @@ namespace Seq2SeqSharp.Tools
 
             m_shuffleEnums = shuffleEnums;
             CorpusName = corpusFilePath;
+            m_sortedIndexedDataSetFilePath = indexedFilePath;
 
             m_srcFileList = new List<string>();
             m_tgtFileList = new List<string>();
