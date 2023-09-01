@@ -340,6 +340,7 @@ namespace Seq2SeqSharp.Tools
                         string[] tgtLines = br.ReadString().Split("\n");
                         batchIdx++;
 
+                        T batch;
                         for (int i = 0; i < sizeInBatch; i++)
                         {
                             var tgtLine = tgtLines[i];
@@ -355,11 +356,23 @@ namespace Seq2SeqSharp.Tools
 
                             SntPair sntPair = new SntPair(tgtLine, tgtLine);
                             outputs.Add(sntPair);
+
+                            if (outputs.Count == m_maxTokenSizePerBatch)
+                            {
+                                batch = new T();
+                                batch.CreateBatch(outputs);
+                                yield return batch;
+
+                                outputs = new List<SntPair>();
+                            }
                         }
 
-                        var batch = new T();
-                        batch.CreateBatch(outputs);
-                        yield return batch;
+                        if (outputs.Count > 0)
+                        {
+                            batch = new T();
+                            batch.CreateBatch(outputs);
+                            yield return batch;
+                        }
                     }
                 }
             }
