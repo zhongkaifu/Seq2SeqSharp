@@ -341,6 +341,7 @@ namespace Seq2SeqSharp.Tools
                         batchIdx++;
 
                         T batch;
+                        int currentTokenCountsInBatch = 0;
                         for (int i = 0; i < sizeInBatch; i++)
                         {
                             var tgtLine = tgtLines[i];
@@ -355,15 +356,17 @@ namespace Seq2SeqSharp.Tools
                             }
 
                             SntPair sntPair = new SntPair(tgtLine, tgtLine);
+                            currentTokenCountsInBatch += sntPair.GetTgtTokenCount();
                             outputs.Add(sntPair);
 
-                            if (outputs.Count == m_maxTokenSizePerBatch)
+                            if (currentTokenCountsInBatch >= m_maxTokenSizePerBatch)
                             {
                                 batch = new T();
                                 batch.CreateBatch(outputs);
                                 yield return batch;
 
                                 outputs = new List<SntPair>();
+                                currentTokenCountsInBatch = 0;
                             }
                         }
 

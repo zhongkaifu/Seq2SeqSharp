@@ -123,6 +123,17 @@ namespace Seq2SeqSharp.Corpus
             }
         }
 
+        public int GetTgtTokenCount()
+        {
+            int count = 0;
+            foreach (var group in TgtTokenGroups)
+            {
+                count += group.Count;
+            }
+
+            return count;
+        }
+
         private static void CreateGroup(string line, List<List<string>> sntGroup)
         {
             string[] groups = line.Split('\t');
