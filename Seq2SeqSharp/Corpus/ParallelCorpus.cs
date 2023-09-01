@@ -442,10 +442,13 @@ namespace Seq2SeqSharp.Tools
                             var srcLine = srcLines[i];
                             var tgtLine = tgtLines[i];
 
-                            if ((100 * batchIdx / m_batchNumInTotal) > currentBatchPercent)
+                            if (m_batchNumInTotal > 0)
                             {
-                                Logger.WriteLine($"Processing batch '{batchIdx}/{m_batchNumInTotal}'."); // The '{i}th' record in this batch is: Source = '{srcLine}' Target = '{tgtLine}'");
-                                currentBatchPercent++;
+                                if ((100 * batchIdx / m_batchNumInTotal) > currentBatchPercent)
+                                {
+                                    Logger.WriteLine($"Processing batch '{batchIdx}/{m_batchNumInTotal}'."); // The '{i}th' record in this batch is: Source = '{srcLine}' Target = '{tgtLine}'");
+                                    currentBatchPercent++;
+                                }
                             }
 
                             SntPair sntPair = new SntPair(srcLine, tgtLine);
