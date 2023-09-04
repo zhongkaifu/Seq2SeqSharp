@@ -38,6 +38,7 @@ namespace Seq2SeqSharp.Tools
 
         private string m_indexedDataSetFilePath = "";
         private int m_batchNumInTotal = 0;
+        private int m_startBatchId = 0;
 
         public List<Dictionary<string, int>> CountTokenFreqs()
         {
@@ -340,6 +341,11 @@ namespace Seq2SeqSharp.Tools
                         string[] tgtLines = br.ReadString().Split("\n");
                         batchIdx++;
 
+                        if (batchIdx < m_startBatchId)
+                        {
+                            continue;
+                        }
+
                         T batch;
                         int currentTokenCountsInBatch = 0;
                         for (int i = 0; i < sizeInBatch; i++)
@@ -353,7 +359,7 @@ namespace Seq2SeqSharp.Tools
                                     Logger.WriteLine($"Processing batch '{batchIdx}/{m_batchNumInTotal}'."); // The '{i}th' record in this batch is: Target = '{tgtLine}'");
                                     currentBatchPercent++;
                                 }
-                            }
+                            }                            
 
                             SntPair sntPair = new SntPair(tgtLine, tgtLine);
                             currentTokenCountsInBatch += sntPair.GetTgtTokenCount();
@@ -393,7 +399,7 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public MonoCorpus(string corpusFilePath, string tgtLangName, int maxTokenSizePerBatch, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random, TooLongSequence tooLongSequence = TooLongSequence.Ignore, string indexedFilePath = "")
+        public MonoCorpus(string corpusFilePath, string tgtLangName, int maxTokenSizePerBatch, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random, TooLongSequence tooLongSequence = TooLongSequence.Ignore, string indexedFilePath = "", int startBatchId = 0)
         {
             Logger.WriteLine($"Loading mono corpus from '{corpusFilePath}' Files search pattern '*.{tgtLangName}.snt' MaxTgtSentLength = '{maxTgtSentLength}', aggregateLengthForShuffle = '{shuffleEnums}', TooLongSequence = '{tooLongSequence}'");
             m_maxTokenSizePerBatch = maxTokenSizePerBatch;
@@ -402,6 +408,7 @@ namespace Seq2SeqSharp.Tools
             m_shuffleEnums = shuffleEnums;
             CorpusName = corpusFilePath;
             m_indexedDataSetFilePath = indexedFilePath;
+            m_startBatchId = startBatchId;
 
             m_tgtFileList = new List<string>();
             string[] files = Directory.GetFiles(corpusFilePath, $"*.{tgtLangName}.snt", SearchOption.TopDirectoryOnly);

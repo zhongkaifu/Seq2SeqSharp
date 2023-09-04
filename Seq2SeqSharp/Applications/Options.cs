@@ -186,8 +186,11 @@ namespace Seq2SeqSharp.Applications
         [Arg("Training corpus folder path", nameof(TrainCorpusPath))]
         public string TrainCorpusPath = null;
 
-        [Arg("Indexed data set file paht", nameof(IndexedCorpusPath))]
+        [Arg("Indexed data set file paht. The default value is empty.", nameof(IndexedCorpusPath))]
         public string IndexedCorpusPath = null;
+
+        [Arg("The batch id that the tool will start to process. The default value is 0", nameof(StartBatchId))]
+        public int StartBatchId = 0;
 
         [Arg("The max degress of parallelism in task. Default is 1", nameof(TaskParallelism))]
         public int TaskParallelism = 1;
