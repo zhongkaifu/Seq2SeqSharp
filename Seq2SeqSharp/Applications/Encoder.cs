@@ -58,22 +58,22 @@ namespace Seq2SeqSharp.Applications
         }
 
         static public IWeightTensor Run(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, IEncoder encoder, IModel modelMetaData, ShuffleEnums shuffleType,
-            IWeightTensor srcEmbedding, IWeightTensor segmentEmbedding, List<List<int>> srcSntsIds, float[] originalSrcLengths, bool amp = false)
+            IWeightTensor srcEmbedding, IWeightTensor posEmbeddings, IWeightTensor segmentEmbedding, List<List<int>> srcSntsIds, float[] originalSrcLengths, bool amp = false)
         {
             // Reset networks
             encoder.Reset(computeGraph.GetWeightFactory(), srcSntsIds.Count);
 
-            IWeightTensor encOutput = InnerRunner(computeGraph, srcSntsIds, originalSrcLengths, shuffleType, encoder, modelMetaData, srcEmbedding, segmentEmbedding, amp);
+            IWeightTensor encOutput = InnerRunner(computeGraph, srcSntsIds, originalSrcLengths, shuffleType, encoder, modelMetaData, srcEmbedding, posEmbeddings, segmentEmbedding, amp);
             return encOutput;
         }
 
-        public static IWeightTensor BuildTensorForSourceTokenGroupAt(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, ShuffleEnums shuffleType, IEncoder encoder, IModel modelMetaData, IWeightTensor srcEmbedding, IWeightTensor segmentEmbedding, int groupId)
+        public static IWeightTensor BuildTensorForSourceTokenGroupAt(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, ShuffleEnums shuffleType, IEncoder encoder, IModel modelMetaData, IWeightTensor srcEmbedding, IWeightTensor posEmbeddings, IWeightTensor segmentEmbedding, int groupId)
         {
             var contextTokens = InsertCLSToken(sntPairBatch.GetSrcTokens(groupId));
             var originalSrcContextLength = BuildInTokens.PadSentences(contextTokens);
             var contextTokenIds = modelMetaData.SrcVocab.GetWordIndex(contextTokens);
 
-            IWeightTensor encContextOutput = InnerRunner(computeGraph, contextTokenIds, originalSrcContextLength, shuffleType, encoder, modelMetaData, srcEmbedding, segmentEmbedding);
+            IWeightTensor encContextOutput = InnerRunner(computeGraph, contextTokenIds, originalSrcContextLength, shuffleType, encoder, modelMetaData, srcEmbedding, posEmbeddings, segmentEmbedding);
 
             int contextPaddedLen = contextTokens[0].Count;
             float[] contextCLSIdxs = new float[sntPairBatch.BatchSize];
@@ -88,14 +88,14 @@ namespace Seq2SeqSharp.Applications
         }
 
         static private IWeightTensor InnerRunner(IComputeGraph computeGraph, List<List<int>> srcTokensList, float[] originalSrcLengths, ShuffleEnums shuffleType, IEncoder encoder, IModel modelMetaData,
-           IWeightTensor srcEmbedding, IWeightTensor segmentEmbedding, bool amp = false)
+           IWeightTensor srcEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, bool amp = false)
         {
             int batchSize = srcTokensList.Count;
             int srcSeqPaddedLen = srcTokensList[0].Count;
             IWeightTensor srcSelfMask = (shuffleType == ShuffleEnums.NoPaddingInSrc || shuffleType == ShuffleEnums.NoPadding || batchSize == 1) ? null : computeGraph.BuildPadSelfMask(srcSeqPaddedLen, originalSrcLengths, elementType: amp ? DType.Float16 : DType.Float32); // The length of source sentences are same in a single mini-batch, so we don't have source mask.
 
             // Encoding input source sentences
-            var encOutput = RunEncoder(computeGraph, srcTokensList, encoder, modelMetaData, srcEmbedding, srcSelfMask, segmentEmbedding, amp: amp);
+            var encOutput = RunEncoder(computeGraph, srcTokensList, encoder, modelMetaData, srcEmbedding, srcSelfMask, posEmbedding, segmentEmbedding, amp: amp);
             if (srcSelfMask != null)
             {
                 srcSelfMask.Dispose();
@@ -114,11 +114,17 @@ namespace Seq2SeqSharp.Applications
         /// <param name="reversEncoder"></param>
         /// <param name="embeddings"></param>
         /// <returns></returns>
-        static private IWeightTensor RunEncoder(IComputeGraph g, List<List<int>> seqs, IEncoder encoder, IModel modelMetaData, IWeightTensor embeddings, IWeightTensor selfMask,
+        static private IWeightTensor RunEncoder(IComputeGraph g, List<List<int>> seqs, IEncoder encoder, IModel modelMetaData, IWeightTensor embeddings, IWeightTensor selfMask, IWeightTensor posEmbeddings,
             IWeightTensor segmentEmbeddings, bool amp = false)
         {
             int batchSize = seqs.Count;
             var inputEmbs = TensorUtils.CreateTokensEmbeddings(seqs, g, embeddings, segmentEmbeddings, modelMetaData.SrcVocab, (float)Math.Sqrt(embeddings.Columns), enableTagEmbedding: modelMetaData.EnableTagEmbeddings, amp: amp);
+
+            if (modelMetaData.EncoderType == EncoderTypeEnums.Transformer && posEmbeddings != null)
+            {
+                inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbeddings, batchSize, inputEmbs, 0.0f);
+            }
+
             return encoder.Encode(inputEmbs, batchSize, g, selfMask);
         }
     }

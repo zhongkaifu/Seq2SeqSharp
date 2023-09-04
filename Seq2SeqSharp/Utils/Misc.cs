@@ -116,20 +116,28 @@ namespace Seq2SeqSharp.Utils
             return optimizer;
         }
 
-        public static MultiProcessorNetworkWrapper<IWeightTensor> CreateAuxEmbeddings(RoundArray<int> raDeviceIds, int hiddenDim, int maxSentLength, IModel modelMetaData, DType elementType = DType.Float32, bool isTrainable = true)
+        public static (MultiProcessorNetworkWrapper<IWeightTensor>, MultiProcessorNetworkWrapper<IWeightTensor>) CreateAuxEmbeddings(RoundArray<int> raDeviceIds, int hiddenDim, int maxSentLength, IModel modelMetaData, DType elementType = DType.Float32, bool isTrainable = true, bool createAPE = false)
         {
+            MultiProcessorNetworkWrapper<IWeightTensor> posEmbeddings = null;
             MultiProcessorNetworkWrapper<IWeightTensor> segmentEmbeddings = null;
 
             if (modelMetaData.EncoderType != EncoderTypeEnums.BiLSTM || modelMetaData.DecoderType != DecoderTypeEnums.AttentionLSTM)
             {
+                if (createAPE)
+                {
+                    posEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(PositionEmbedding.BuildPositionWeightTensor(
+                        maxSentLength + 2,
+                        hiddenDim, raDeviceIds.GetNextItem(), "PosEmbedding", false, elementType: elementType), raDeviceIds.ToArray(), true);
+                }
+
                 if (modelMetaData.EnableSegmentEmbeddings)
                 {
-                    segmentEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.MaxSegmentNum, modelMetaData.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, name: "SegmentEmbedding", 
+                    segmentEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.MaxSegmentNum, modelMetaData.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, name: "SegmentEmbedding",
                         isTrainable: isTrainable, dtype: elementType), raDeviceIds.ToArray());
                 }
             }
 
-            return segmentEmbeddings;
+            return (posEmbeddings, segmentEmbeddings);
         }
 
 

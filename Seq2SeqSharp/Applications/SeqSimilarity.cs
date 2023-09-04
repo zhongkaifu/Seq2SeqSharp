@@ -34,6 +34,8 @@ namespace Seq2SeqSharp.Applications
 
         private MultiProcessorNetworkWrapper<IEncoder> m_encoder; //The encoders over devices.
         private MultiProcessorNetworkWrapper<IWeightTensor> m_segmentEmbedding;
+        private MultiProcessorNetworkWrapper<IWeightTensor> m_posEmbedding = null;
+
         private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
         private readonly SeqSimilarityOptions m_options;
         private MemoryCache m_memoryCache;
@@ -81,7 +83,7 @@ namespace Seq2SeqSharp.Applications
             var raDeviceIds = new RoundArray<int>(DeviceIds);
             m_encoder = Encoder.CreateEncoders(model, m_options, raDeviceIds);
             m_encoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer($"FeedForward_Encoder", model.HiddenDim, model.ClsVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
-            m_segmentEmbedding = Misc.CreateAuxEmbeddings(raDeviceIds, model.HiddenDim, Math.Max(m_options.MaxTrainSentLength, m_options.MaxTestSentLength), model);
+            (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, model.HiddenDim, Math.Max(m_options.MaxTrainSentLength, m_options.MaxTestSentLength), model, createAPE: false);
 
             Logger.WriteLine($"Creating embeddings. Shape = '({model.SrcVocab.Count} ,{model.EncoderEmbeddingDim})'");
             m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { model.SrcVocab.Count, model.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), normType: NormType.Uniform, fanOut: true, name: "SrcEmbeddings", 
@@ -93,13 +95,14 @@ namespace Seq2SeqSharp.Applications
         /// <summary>
         /// Get networks on specific devices
         /// </summary>
-        private (IEncoder, IWeightTensor, IFeedForwardLayer, IWeightTensor) GetNetworksOnDeviceAt(int deviceId)
+        private (IEncoder, IWeightTensor, IFeedForwardLayer, IWeightTensor, IWeightTensor) GetNetworksOnDeviceAt(int deviceId)
         {
             var deviceIdIdx = TensorAllocator.GetDeviceIdIndex(deviceId);
             return (m_encoder.GetNetworkOnDevice(deviceIdIdx),
                     m_srcEmbedding.GetNetworkOnDevice(deviceIdIdx),
                     m_encoderFFLayer.GetNetworkOnDevice(deviceIdIdx),
-                    m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx));
+                    m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx),
+                    m_posEmbedding?.GetNetworkOnDevice(deviceIdIdx));
         }
 
         private string GenerateCacheKey(List<List<string>> strs)
@@ -130,7 +133,7 @@ namespace Seq2SeqSharp.Applications
             var nrs = new List<NetworkResult>();
             var nr = new NetworkResult { Output = new List<List<List<string>>>() };
 
-            (IEncoder encoder, IWeightTensor srcEmbedding, IFeedForwardLayer encoderFFLayer, IWeightTensor segmentEmbedding) = GetNetworksOnDeviceAt(computeGraph.DeviceId);
+            (IEncoder encoder, IWeightTensor srcEmbedding, IFeedForwardLayer encoderFFLayer, IWeightTensor segmentEmbedding, IWeightTensor posEmbeddings) = GetNetworksOnDeviceAt(computeGraph.DeviceId);
 
             IWeightTensor encOutput1;
             IWeightTensor encOutput2;
@@ -140,7 +143,7 @@ namespace Seq2SeqSharp.Applications
                 string cacheKey1 = GenerateCacheKey(sntPairBatch.GetSrcTokens(0));
                 if (!m_memoryCache.TryGetValue(cacheKey1, out encOutput1))
                 {
-                    encOutput1 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, segmentEmbedding, 0); // output shape: [batch_size, dim]
+                    encOutput1 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, posEmbeddings, segmentEmbedding, 0); // output shape: [batch_size, dim]
 
                     var cacheEntryOptions = new MemoryCacheEntryOptions().SetSize(1);
                     m_memoryCache.Set(cacheKey1, encOutput1.CopyWeightsRef($"cache_{encOutput1.Name}", false, graphToBind: null), cacheEntryOptions);
@@ -149,7 +152,7 @@ namespace Seq2SeqSharp.Applications
                 string cacheKey2 = GenerateCacheKey(sntPairBatch.GetSrcTokens(1));
                 if (!m_memoryCache.TryGetValue(cacheKey2, out encOutput2))
                 {
-                    encOutput2 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, segmentEmbedding, 1); // output_shape: [batch_size, dim]
+                    encOutput2 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, posEmbeddings, segmentEmbedding, 1); // output_shape: [batch_size, dim]
 
                     var cacheEntryOptions = new MemoryCacheEntryOptions().SetSize(1);
                     m_memoryCache.Set(cacheKey2, encOutput2.CopyWeightsRef($"cache_{encOutput2.Name}", false, graphToBind: null), cacheEntryOptions);
@@ -158,8 +161,8 @@ namespace Seq2SeqSharp.Applications
             else
             {
                 //We always run encoder network during training time or using GPUs
-                encOutput1 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, segmentEmbedding, 0); // output shape: [batch_size, dim]
-                encOutput2 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, segmentEmbedding, 1); // output_shape: [batch_size, dim]
+                encOutput1 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, posEmbeddings, segmentEmbedding, 0); // output shape: [batch_size, dim]
+                encOutput2 = Encoder.BuildTensorForSourceTokenGroupAt(computeGraph, sntPairBatch, m_shuffleType, encoder, m_modelMetaData, srcEmbedding, posEmbeddings, segmentEmbedding, 1); // output_shape: [batch_size, dim]
             }
 
             if (m_modelMetaData.SimilarityType.Equals("Continuous", StringComparison.InvariantCultureIgnoreCase))
