@@ -52,12 +52,12 @@ namespace TensorSharp
 
 
 
-        public static Tensor SiLU(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("Swish", result, src); }
+        public static Tensor SiLU(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("SiLU", result, src); }
 
 
-        public static Tensor SwishD(Tensor result, Tensor srcW, Tensor resG) { return (Tensor)OpRegistry.Invoke("SwishD", result, srcW, resG); }
+        public static Tensor SiLUD(Tensor result, Tensor srcW, Tensor resG) { return (Tensor)OpRegistry.Invoke("SiLUD", result, srcW, resG); }
 
-        public static Tensor AddSwishD(Tensor result, Tensor srcG, Tensor srcW, Tensor resG) { return (Tensor)OpRegistry.Invoke("AddSwishD", result, srcG, srcW, resG); }
+        public static Tensor AddSiLUD(Tensor result, Tensor srcG, Tensor srcW, Tensor resG) { return (Tensor)OpRegistry.Invoke("AddSiLUD", result, srcG, srcW, resG); }
 
 
 
@@ -67,10 +67,18 @@ namespace TensorSharp
 
         public static Tensor Relu(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("relu", result, src); }
 
-
         public static Tensor ReluD(Tensor result, Tensor w, Tensor g) { return (Tensor)OpRegistry.Invoke("relud", result, w, g); }
 
         public static Tensor AddReluD(Tensor result, Tensor t, Tensor w, Tensor g) { return (Tensor)OpRegistry.Invoke("addrelud", result, t, w, g); }
+
+
+
+        public static Tensor LeakyReLU(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("LeakyReLU", result, src); }
+
+        public static Tensor LeakyReLUD(Tensor result, Tensor w, Tensor g) { return (Tensor)OpRegistry.Invoke("LeakyReLUD", result, w, g); }
+
+        public static Tensor AddLeakyReLUD(Tensor result, Tensor t, Tensor w, Tensor g) { return (Tensor)OpRegistry.Invoke("AddLeakyReLUD", result, t, w, g); }
+
 
         public static Tensor Sqrt(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("sqrt", result, src); }
 

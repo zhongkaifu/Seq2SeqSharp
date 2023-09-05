@@ -69,18 +69,18 @@ template<typename T> INLINE_FUNC T Lerp(T a, T b, T weight) {
 }
 
 
-template<typename T> INLINE_FUNC T Swish(T w) {
+template<typename T> INLINE_FUNC T SiLU(T w) {
 	return w / (T(1) + expf(-w));
 }
 
-template<typename T> INLINE_FUNC T SwishD(T w, T resG) {
+template<typename T> INLINE_FUNC T SiLUD(T w, T resG) {
 
   T sig = T(1) / (T(1) + expf(-w));
   T grad = sig * (T(1) + w * (T(1) - sig));
   return resG * grad;
 }
 
-template<typename T> INLINE_FUNC T AddSwishD(T t, T w, T resG) {
+template<typename T> INLINE_FUNC T AddSiLUD(T t, T w, T resG) {
 
   T sig = T(1) / (T(1) + expf(-w));
   T grad = sig * (T(1) + w * (T(1) - sig));
@@ -151,6 +151,29 @@ template <typename T> INLINE_FUNC T addrelud(T t, T w, T g) {
 	return t;
 }
 
+
+
+template <typename T> INLINE_FUNC T LeakyReLU(T w) {
+	if (w < T(0))
+		return T(0.01) * w;
+	return w;
+}
+
+
+template <typename T> INLINE_FUNC T LeakyReLUD(T w, T g) {
+	if (w >= T(0))
+		return g;
+	return T(0.01) * g;
+}
+
+
+template <typename T> INLINE_FUNC T AddLeakyReLUD(T t, T w, T g) {
+	if (w >= T(0))
+		return t + g;
+	return t + T(0.01) * g;
+}
+
+
 template <typename T> INLINE_FUNC T Clamp(T val, T min, T max) {
 	if (val < min)
 		return min;
@@ -171,13 +194,13 @@ template <typename T> INLINE_FUNC T MaskFill(T t, T mask, T defValue) {
         public const string Code16 = @"
 #include <cuda_fp16.h>
 
-template<typename T> INLINE_FUNC T SwishHalf(T wh) {
+template<typename T> INLINE_FUNC T SiLUHalf(T wh) {
     float w = __half2float(wh);
 	float res = w / (1.0 + expf(-w));
     return __float2half(res);
 }
 
-template<typename T> INLINE_FUNC T SwishDHalf(T wh, T resGh) {
+template<typename T> INLINE_FUNC T SiLUDHalf(T wh, T resGh) {
 
   float w = __half2float(wh);
   float resG = __half2float(resGh);
@@ -187,7 +210,7 @@ template<typename T> INLINE_FUNC T SwishDHalf(T wh, T resGh) {
   return __float2half(resG * grad);
 }
 
-template<typename T> INLINE_FUNC T AddSwishDHalf(T th, T wh, T resGh) {
+template<typename T> INLINE_FUNC T AddSiLUDHalf(T th, T wh, T resGh) {
 
   float t = __half2float(th);
   float w = __half2float(wh);
@@ -204,6 +227,29 @@ template <typename T> INLINE_FUNC T addreludhalf(T t, T w, T g) {
 		return __hadd(t, g);
 	return t;
 }
+
+template <typename T> INLINE_FUNC T LeakyReLUHalf(T w) {
+	if (w < T(0))
+		return __hmul(T(0.01), w);
+	return w;
+}
+
+
+template <typename T> INLINE_FUNC T LeakyReLUDHalf(T w, T g) {
+	if (w >= T(0))
+		return g;
+	return __hmul(T(0.01), g);
+}
+
+
+template <typename T> INLINE_FUNC T AddLeakyReLUDHalf(T t, T w, T g) {
+	if (w >= T(0))
+		return __hadd(t, g);
+
+	return __hadd(t, __hmul(T(0.01), g));
+}
+
+
 
 ";
     }

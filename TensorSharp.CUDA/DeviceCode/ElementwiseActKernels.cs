@@ -32,9 +32,14 @@ namespace TensorSharp.CUDA.DeviceCode
             AppendTTTFunc(result, "relud", "relud");
             AppendTTTTFunc(result, "addrelud", "addrelud");
 
-            AppendTTFunc(result, "Swish", "Swish");
-            AppendTTTFunc(result, "SwishD", "SwishD");
-            AppendTTTTFunc(result, "AddSwishD", "AddSwishD");
+            AppendTTFunc(result, "SiLU", "SiLU");
+            AppendTTTFunc(result, "SiLUD", "SiLUD");
+            AppendTTTTFunc(result, "AddSiLUD", "AddSiLUD");
+
+
+            AppendTTFunc(result, "LeakyReLU", "LeakyReLU");
+            AppendTTTFunc(result, "LeakyReLUD", "LeakyReLUD");
+            AppendTTTTFunc(result, "AddLeakyReLUD", "AddLeakyReLUD");
 
             if (TSCudaContext.ElementType == DType.Float16)
             {
@@ -44,9 +49,14 @@ namespace TensorSharp.CUDA.DeviceCode
                 AppendTTTFunc(result, "relud", "relud", DType.Float16);
                 AppendTTTTFunc(result, "addrelud", "addreludhalf", DType.Float16);
 
-                AppendTTFunc(result, "Swish", "SwishHalf", DType.Float16);
-                AppendTTTFunc(result, "SwishD", "SwishDHalf", DType.Float16);
-                AppendTTTTFunc(result, "AddSwishD", "AddSwishDHalf", DType.Float16);
+                AppendTTFunc(result, "SiLU", "SiLUHalf", DType.Float16);
+                AppendTTTFunc(result, "SiLUD", "SiLUDHalf", DType.Float16);
+                AppendTTTTFunc(result, "AddSiLUD", "AddSiLUDHalf", DType.Float16);
+
+
+                AppendTTFunc(result, "LeakyReLU", "LeakyReLUHalf", DType.Float16);
+                AppendTTTFunc(result, "LeakyReLUD", "LeakyReLUDHalf", DType.Float16);
+                AppendTTTTFunc(result, "AddLeakyReLUD", "AddLeakyReLUDHalf", DType.Float16);
             }
 
             return result.ToString();

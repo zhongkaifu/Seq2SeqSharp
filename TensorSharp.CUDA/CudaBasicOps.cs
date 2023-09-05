@@ -421,14 +421,29 @@ namespace TensorSharp.CUDA
 
 
 
-        [RegisterOpStorageType("Swish", typeof(CudaStorage))]
-        public Tensor Swish(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseActKernels, "Swish", result, src); }
 
-        [RegisterOpStorageType("SwishD", typeof(CudaStorage))]
-        public Tensor SwishD(Tensor result, Tensor srcW, Tensor resG) { return ElementwiseTTTOp.Invoke(elementwiseActKernels, "SwishD", result, srcW, resG); }
+        [RegisterOpStorageType("LeakyReLU", typeof(CudaStorage))]
+        public Tensor LeakyReLU(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseActKernels, "LeakyReLU", result, src); }
 
-        [RegisterOpStorageType("AddSwishD", typeof(CudaStorage))]
-        public Tensor AddSwishD(Tensor result, Tensor srcG, Tensor srcW, Tensor resG) { return ElementwiseTTTTOp.Invoke(elementwiseActKernels, "AddSwishD", result, srcG, srcW, resG); }
+        [RegisterOpStorageType("LeakyReLUD", typeof(CudaStorage))]
+        public Tensor LeakyReLUD(Tensor result, Tensor w, Tensor g) { return ElementwiseTTTOp.Invoke(elementwiseActKernels, "LeakyReLUD", result, w, g); }
+
+        [RegisterOpStorageType("AddLeakyReLUD", typeof(CudaStorage))]
+        public Tensor AddLeakyReLUD(Tensor result, Tensor t, Tensor w, Tensor g) { return ElementwiseTTTTOp.Invoke(elementwiseActKernels, "AddLeakyReLUD", result, t, w, g); }
+
+
+
+
+
+
+        [RegisterOpStorageType("SiLU", typeof(CudaStorage))]
+        public Tensor SiLU(Tensor result, Tensor src) { return ElementwiseTTOp.Invoke(elementwiseActKernels, "SiLU", result, src); }
+
+        [RegisterOpStorageType("SiLUD", typeof(CudaStorage))]
+        public Tensor SiLUD(Tensor result, Tensor srcW, Tensor resG) { return ElementwiseTTTOp.Invoke(elementwiseActKernels, "SiLUD", result, srcW, resG); }
+
+        [RegisterOpStorageType("AddSiLUD", typeof(CudaStorage))]
+        public Tensor AddSiLUD(Tensor result, Tensor srcG, Tensor srcW, Tensor resG) { return ElementwiseTTTTOp.Invoke(elementwiseActKernels, "AddSiLUD", result, srcG, srcW, resG); }
 
 
 

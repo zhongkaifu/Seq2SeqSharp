@@ -193,7 +193,7 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
   "ShuffleType": "NoPadding",
   "Task": "Train",
   "TooLongSequence": "Ignore",
-  "ActivateFunc": "Relu",
+  "ActivateFunc": "ReLU",
   "LogVerbose": "Normal",
   "TgtLang": "TGT",
   "TrainCorpusPath": ".\\data\\train",

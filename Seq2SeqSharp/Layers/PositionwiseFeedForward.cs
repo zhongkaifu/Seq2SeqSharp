@@ -89,7 +89,8 @@ namespace Seq2SeqSharp
             //Feed forward
             var ffnResult = feedForwardLayer1.Process(inputNorm, batchSize, g);
             // Activate function
-            var actFFNResult = ((m_activateFunc == ActivateFuncEnums.SiLU) ? g.SiLU(ffnResult) : g.Relu(ffnResult, inPlace: true));
+            var actFFNResult = RunActivateFunction(g, ffnResult);
+
             var ffn2Result = feedForwardLayer2.Process(actFFNResult, batchSize, g); // Shape: [batchSize * newTokenIdx, input_dim]
 
             //Skip connection and layer normaliztion
@@ -118,6 +119,25 @@ namespace Seq2SeqSharp
             return addFFNResult;
 
         }
+
+        private IWeightTensor RunActivateFunction(IComputeGraph g, IWeightTensor tokenEmbs)
+        {
+            if (m_activateFunc == ActivateFuncEnums.SiLU)
+            {
+                tokenEmbs = g.SiLU(tokenEmbs);
+            }
+            else if (m_activateFunc == ActivateFuncEnums.ReLU)
+            {
+                tokenEmbs = g.ReLU(tokenEmbs, inPlace: true);
+            }
+            else if (m_activateFunc == ActivateFuncEnums.LeakyReLU)
+            {
+                tokenEmbs = g.LeakyReLU(tokenEmbs, inPlace: true);
+            }
+
+            return tokenEmbs;
+        }
+
 
         public virtual List<IWeightTensor> GetParams()
         {

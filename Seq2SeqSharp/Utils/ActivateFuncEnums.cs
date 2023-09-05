@@ -13,7 +13,8 @@ namespace Seq2SeqSharp.Utils
     public enum ActivateFuncEnums
     {
         ReLU,
-        SiLU
+        SiLU,
+        LeakyReLU
 
     }
 }

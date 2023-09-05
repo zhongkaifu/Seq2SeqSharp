@@ -821,32 +821,32 @@ namespace TensorSharp
 			Apply4(result, srcX, srcW, srcG, func);
 		}
 
-		unsafe static public void Swish(Tensor result, Tensor src)
+		unsafe static public void SiLU(Tensor result, Tensor src)
 		{
 			unsafe void func(float* r, float* s)
 			{
-				*r = Swish(*s);
+				*r = SiLU(*s);
 			};
 
 			Apply2(result, src, func);
 		}
 
 
-		unsafe static public void SwishD(Tensor result, Tensor srcW, Tensor resG)
+		unsafe static public void SiLUD(Tensor result, Tensor srcW, Tensor resG)
 		{
 			unsafe void func(float* r, float* y, float* x)
 			{
-				*r = SwishD(*y, *x);
+				*r = SiLUD(*y, *x);
 			}
 
 			Apply3(result, srcW, resG, func);
 		}
 
-		unsafe static public void AddSwishD(Tensor result, Tensor srcG, Tensor srcW, Tensor resG)
+		unsafe static public void AddSiLUD(Tensor result, Tensor srcG, Tensor srcW, Tensor resG)
 		{
 			unsafe void func(float* r, float* x, float* w, float* g)
 			{
-				*r = AddSwishD(*x, *w, *g);
+				*r = AddSiLUD(*x, *w, *g);
 			}
 
 			Apply4(result, srcG, srcW, resG, func);
@@ -854,7 +854,39 @@ namespace TensorSharp
 
 
 
-		unsafe static public void AddMulV(Tensor result, Tensor srcX, Tensor srcY, float val)
+        unsafe static public void LeakyReLU(Tensor result, Tensor src)
+        {
+            unsafe void func(float* r, float* s)
+            {
+                *r = LeakyReLU(*s);
+            };
+
+            Apply2(result, src, func);
+        }
+
+
+        unsafe static public void LeakyReLUD(Tensor result, Tensor srcW, Tensor resG)
+        {
+            unsafe void func(float* r, float* y, float* x)
+            {
+                *r = LeakyReLUD(*y, *x);
+            }
+
+            Apply3(result, srcW, resG, func);
+        }
+
+        unsafe static public void AddLeakyReLUD(Tensor result, Tensor srcG, Tensor srcW, Tensor resG)
+        {
+            unsafe void func(float* r, float* x, float* w, float* g)
+            {
+                *r = AddLeakyReLUD(*x, *w, *g);
+            }
+
+            Apply4(result, srcG, srcW, resG, func);
+        }
+
+
+        unsafe static public void AddMulV(Tensor result, Tensor srcX, Tensor srcY, float val)
 		{
 			unsafe void func(float* r, float* x, float* y)
 			{
@@ -1558,14 +1590,40 @@ namespace TensorSharp
 			return t;
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		static float Swish(float w)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static float LeakyReLU(float w)
+        {
+            if (w < 0.0f)
+                return 0.01f * w;
+            return w;
+
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static float LeakyReLUD(float w, float g)
+        {
+            if (w >= 0.0f)
+                return g;
+            return 0.01f * g;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static float AddLeakyReLUD(float t, float w, float g)
+        {
+            if (w >= 0.0f)
+                return t + g;
+            return t + 0.01f * g;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static float SiLU(float w)
 		{
 			return w / (1.0f + (float)Math.Exp(-w));
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		static float SwishD(float w, float resG)
+		static float SiLUD(float w, float resG)
 		{
 			float sig = 1.0f / (1.0f + (float)Math.Exp(-w));
 			float grad = sig * (1.0f + w * (1.0f - sig));
@@ -1573,7 +1631,7 @@ namespace TensorSharp
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		static float AddSwishD(float t, float w, float resG)
+		static float AddSiLUD(float t, float w, float resG)
 		{
 			float sig = 1.0f / (1.0f + (float)Math.Exp(-w));
 			float grad = sig * (1.0f + w * (1.0f - sig));

@@ -534,35 +534,62 @@ namespace TensorSharp.Cpu
             return writeTarget;
         }
 
-        [RegisterOpStorageType("Swish", typeof(CpuStorage))]
-        public Tensor Swish(Tensor result, Tensor srcW)
+        [RegisterOpStorageType("SiLU", typeof(CpuStorage))]
+        public Tensor SiLU(Tensor result, Tensor srcW)
         {
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, srcW, false, srcW.Sizes);
-            TensorApplyCPU.Swish(writeTarget, srcW);
+            TensorApplyCPU.SiLU(writeTarget, srcW);
 
             return writeTarget;
         }
 
 
-        [RegisterOpStorageType("AddSwishD", typeof(CpuStorage))]
-        public Tensor AddSwishD(Tensor result, Tensor srcG, Tensor srcW, Tensor resG)
+        [RegisterOpStorageType("AddSiLUD", typeof(CpuStorage))]
+        public Tensor AddSiLUD(Tensor result, Tensor srcG, Tensor srcW, Tensor resG)
         {
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, srcW, false, srcW.Sizes);
-            TensorApplyCPU.AddSwishD(writeTarget, srcG, srcW, resG);
+            TensorApplyCPU.AddSiLUD(writeTarget, srcG, srcW, resG);
 
             return writeTarget;
         }
 
-        [RegisterOpStorageType("SwishD", typeof(CpuStorage))]
-        public Tensor SwishD(Tensor result, Tensor srcW, Tensor resG)
+        [RegisterOpStorageType("SiLUD", typeof(CpuStorage))]
+        public Tensor SiLUD(Tensor result, Tensor srcW, Tensor resG)
         {
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, srcW, false, srcW.Sizes);
-            TensorApplyCPU.SwishD(writeTarget, srcW, resG);
+            TensorApplyCPU.SiLUD(writeTarget, srcW, resG);
 
             return writeTarget;
         }
 
 
+        [RegisterOpStorageType("LeakyReLU", typeof(CpuStorage))]
+        public Tensor LeakyReLU(Tensor result, Tensor srcW)
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, srcW, false, srcW.Sizes);
+            TensorApplyCPU.LeakyReLU(writeTarget, srcW);
+
+            return writeTarget;
+        }
+
+
+        [RegisterOpStorageType("AddLeakyReLUD", typeof(CpuStorage))]
+        public Tensor AddLeakyReLUD(Tensor result, Tensor srcG, Tensor srcW, Tensor resG)
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, srcW, false, srcW.Sizes);
+            TensorApplyCPU.AddLeakyReLUD(writeTarget, srcG, srcW, resG);
+
+            return writeTarget;
+        }
+
+        [RegisterOpStorageType("LeakyReLUD", typeof(CpuStorage))]
+        public Tensor LeakyReLUD(Tensor result, Tensor srcW, Tensor resG)
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, srcW, false, srcW.Sizes);
+            TensorApplyCPU.LeakyReLUD(writeTarget, srcW, resG);
+
+            return writeTarget;
+        }
 
         [RegisterOpStorageType("addrelud", typeof(CpuStorage))]
         public Tensor AddReluD(Tensor result, Tensor src, Tensor w, Tensor g) 

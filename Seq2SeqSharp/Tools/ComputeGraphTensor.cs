@@ -151,7 +151,7 @@ namespace Seq2SeqSharp.Tools
                     if (m.NeedGradient)
                     {
                         res.ReleaseWeight();
-                        Ops.AddSwishD(m.TGradient, m.TGradient, mTWeight, res.TGradient);
+                        Ops.AddSiLUD(m.TGradient, m.TGradient, mTWeight, res.TGradient);
 
                     }
                     res.Dispose();
@@ -941,8 +941,51 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+        public IWeightTensor LeakyReLU(IWeightTensor w, bool inPlace = false)
+        {
+            WeightTensor m = w as WeightTensor;
+            WeightTensor res = null;
+            if (inPlace)
+            {
+                res = m.CopyWeightsRef($"{GetHashString(w.Name)}.LeakyReLU", needGradient: m.NeedGradient, graphToBind: this);
+            }
+            else
+            {
+                res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.LeakyReLU", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
+            }
+            VisualizeNodes(w, res);
 
-        public IWeightTensor Relu(IWeightTensor w, bool inPlace = false)
+
+            Ops.LeakyReLU(res.TWeight, m.TWeight);
+            if (m_needsBackprop)
+            {
+                Tensor mTWeight = m.TWeight.CopyRef();
+                void backward()
+                {
+                    if (m.NeedGradient)
+                    {
+                        res.ReleaseWeight();
+
+                        if (inPlace && m.IsGradientNull() && res.TGradient.IsOwnerExclusive())
+                        {
+                            m.TGradient = res.TGradient.CopyRef();
+                            Ops.LeakyReLUD(m.TGradient, mTWeight, m.TGradient);
+                        }
+                        else
+                        {
+                            Ops.AddLeakyReLUD(m.TGradient, m.TGradient, mTWeight, res.TGradient);
+                        }
+                    }
+                    mTWeight.Dispose();
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
+        public IWeightTensor ReLU(IWeightTensor w, bool inPlace = false)
         {
             WeightTensor m = w as WeightTensor;
             WeightTensor res = null;

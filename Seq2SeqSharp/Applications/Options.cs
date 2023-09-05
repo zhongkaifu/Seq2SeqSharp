@@ -168,7 +168,7 @@ namespace Seq2SeqSharp.Applications
         [Arg("How to deal with too long sequence. It can be Ignore or Truncation", nameof(TooLongSequence))]
         public TooLongSequence TooLongSequence = TooLongSequence.Ignore;
 
-        [Arg("Activate function used in the model. It can be Relu or Swish", nameof(ActivateFunc))]
+        [Arg("Activate function used in the model. It can be ReLU, SiLU and LeakyReLU", nameof(ActivateFunc))]
         public ActivateFuncEnums ActivateFunc = ActivateFuncEnums.ReLU;
 
         [Arg("The level of log to output", nameof(LogVerbose))]

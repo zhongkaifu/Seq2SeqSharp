@@ -139,7 +139,9 @@ namespace Seq2SeqSharp.Layers
 
 
                     tokenEmbs = gExp.Mul(tokenEmbs, m_Whd1_i);
-                    tokenEmbs = ((m_activateFunc == ActivateFuncEnums.SiLU) ? gExp.SiLU(tokenEmbs) : gExp.Relu(tokenEmbs, inPlace: true));
+
+                    tokenEmbs = RunActivateFunction(gExp, tokenEmbs);
+
                     tokenEmbs = gExp.Mul(tokenEmbs, m_Whd2_i);
                     tokenEmbs = g.EltMul(tokenEmbs, topValue_eI);
 
@@ -156,7 +158,25 @@ namespace Seq2SeqSharp.Layers
 
             return input;
         }
-       
+
+        private IWeightTensor RunActivateFunction(IComputeGraph gExp, IWeightTensor tokenEmbs)
+        {
+            if (m_activateFunc == ActivateFuncEnums.SiLU)
+            {
+                tokenEmbs = gExp.SiLU(tokenEmbs);
+            }
+            else if (m_activateFunc == ActivateFuncEnums.ReLU)
+            {
+                tokenEmbs = gExp.ReLU(tokenEmbs, inPlace: true);
+            }
+            else if (m_activateFunc == ActivateFuncEnums.LeakyReLU)
+            {
+                tokenEmbs = gExp.LeakyReLU(tokenEmbs, inPlace: true);
+            }
+
+            return tokenEmbs;
+        }
+
         public virtual List<IWeightTensor> GetParams()
         {
             List<IWeightTensor> response = new List<IWeightTensor>();
