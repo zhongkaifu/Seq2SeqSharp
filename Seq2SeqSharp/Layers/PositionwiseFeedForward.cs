@@ -124,7 +124,7 @@ namespace Seq2SeqSharp
         {
             if (m_activateFunc == ActivateFuncEnums.SiLU)
             {
-                tokenEmbs = g.SiLU(tokenEmbs);
+                tokenEmbs = g.SiLU(tokenEmbs, inPlace: true);
             }
             else if (m_activateFunc == ActivateFuncEnums.ReLU)
             {

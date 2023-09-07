@@ -29,7 +29,7 @@ namespace Seq2SeqSharp
         IWeightTensor Tanh(IWeightTensor w);
         IWeightTensor Sigmoid(IWeightTensor w);
         IWeightTensor ReLU(IWeightTensor w, bool inPlace = false);
-        IWeightTensor SiLU(IWeightTensor w);
+        IWeightTensor SiLU(IWeightTensor w, bool inPlace = false);
         IWeightTensor LeakyReLU(IWeightTensor w, bool inPlace = false);
 
         IWeightTensor Affine(IWeightTensor m1, IWeightTensor m2, IWeightTensor mbias, float alpha = 1.0f);

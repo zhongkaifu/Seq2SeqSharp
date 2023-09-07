@@ -163,7 +163,7 @@ namespace Seq2SeqSharp.Layers
         {
             if (m_activateFunc == ActivateFuncEnums.SiLU)
             {
-                tokenEmbs = gExp.SiLU(tokenEmbs);
+                tokenEmbs = gExp.SiLU(tokenEmbs, inPlace: true);
             }
             else if (m_activateFunc == ActivateFuncEnums.ReLU)
             {

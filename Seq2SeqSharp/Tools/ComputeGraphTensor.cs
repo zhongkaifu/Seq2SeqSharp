@@ -136,10 +136,20 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightTensor SiLU(IWeightTensor w)
+        public IWeightTensor SiLU(IWeightTensor w, bool inPlace = false)
         {
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.SiLU", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
+
+            WeightTensor res = null;
+            // We only enable in-place when we don't need to run back-prop
+            if (inPlace && !m_needsBackprop)
+            {
+                res = m.CopyWeightsRef($"{GetHashString(w.Name)}.SiLU", needGradient: m.NeedGradient, graphToBind: this);
+            }
+            else
+            {
+                res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.SiLU", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
+            }
 
             VisualizeNodes(w, res);
             Ops.SiLU(res.TWeight, m.TWeight);
