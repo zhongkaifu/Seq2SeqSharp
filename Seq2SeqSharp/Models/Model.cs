@@ -211,8 +211,8 @@ namespace Seq2SeqSharp.Models
                 }
 
                 (double min, double max, double distortion) = vq.BuildCodebook(vqSize);
-                if (Math.Abs(max - min) <= 2.0)
-                {
+             //   if (Math.Abs(max - min) <= 2.0)
+             //   {
                     Name2CodeBook.Add(name, vq.CodeBook);
 
                     byte[] bweights = new byte[weights.Length / 2];
@@ -225,12 +225,12 @@ namespace Seq2SeqSharp.Models
                     }
 
                     Name2WeightsVQ.Add(name, bweights);
-                }
-                else
-                {
-                    Logger.WriteLine($"Distortion({distortion}) is too large, so we keep the original values.");
-                    Name2Weights.Add(name, weights);
-                }
+             //   }
+             //   else
+             //   {
+             //       Logger.WriteLine($"Distortion({distortion}) is too large, so we keep the original values.");
+             //       Name2Weights.Add(name, weights);
+             //   }
             }
             else
             {

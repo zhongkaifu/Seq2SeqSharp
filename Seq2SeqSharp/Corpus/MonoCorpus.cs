@@ -359,7 +359,11 @@ namespace Seq2SeqSharp.Tools
                                     Logger.WriteLine($"Processing batch '{batchIdx}/{m_batchNumInTotal}'."); // The '{i}th' record in this batch is: Target = '{tgtLine}'");
                                     currentBatchPercent++;
                                 }
-                            }                            
+                            }
+                            else if (batchIdx % 10000 == 0)
+                            {
+                                Logger.WriteLine($"Processing batch '{batchIdx}'");
+                            }
 
                             SntPair sntPair = new SntPair(tgtLine, tgtLine);
                             currentTokenCountsInBatch += sntPair.GetTgtTokenCount();
