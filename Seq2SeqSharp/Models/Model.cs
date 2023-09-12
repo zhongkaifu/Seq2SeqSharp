@@ -89,6 +89,8 @@ namespace Seq2SeqSharp.Models
         public Dictionary<string, byte[]> Name2WeightsVQ { get; set; }       
         public Dictionary<string, double[]> Name2CodeBook { get; set; }
 
+        public PositionEmbeddingEnums PEType { get; set; }
+
         public Model() { }
         public Model(Options opts,Vocab srcVocab)
         {
@@ -106,6 +108,7 @@ namespace Seq2SeqSharp.Models
             ExpertsPerTokenFactor = opts.ExpertsPerTokenFactor;
             ActivateFunc = opts.ActivateFunc;
             VQType = opts.VQType;
+            PEType = opts.PEType;
 
             Name2Weights = new Dictionary<string, float[]>();
             Name2WeightsHalf= new Dictionary<string, ushort[]>();
@@ -135,6 +138,7 @@ namespace Seq2SeqSharp.Models
             Name2WeightsHalf = m.Name2WeightsHalf;
             Name2WeightsVQ = m.Name2WeightsVQ;
             Name2CodeBook = m.Name2CodeBook;
+            PEType = m.PEType;
 
             if (Name2Weights == null)
             {
@@ -409,6 +413,7 @@ namespace Seq2SeqSharp.Models
             Logger.WriteLine($"Expert Size: '{ExpertNum}");
             Logger.WriteLine($"Experts per token factor: '{ExpertsPerTokenFactor}'");
             Logger.WriteLine($"Codebook size for model vector quantization: '{VQType}'");
+            Logger.WriteLine($"Positional Embedding Type: '{PEType}'");
 
 
             if (!SimilarityType.IsNullOrEmpty())

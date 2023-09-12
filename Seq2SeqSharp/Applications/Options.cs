@@ -243,6 +243,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("The seed value of random generator", nameof(RandomSeed))]
         public int RandomSeed = -1;
 
+        [Arg("The Positional Embeddings Type. It supports APE, NoPE and RoPE", nameof(PEType))]
+        public PositionEmbeddingEnums PEType = PositionEmbeddingEnums.APE;
+
         public void ValidateOptions()
         {
             if (AMP == true && ProcessorType != ProcessorTypeEnums.GPU)

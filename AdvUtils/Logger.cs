@@ -45,8 +45,16 @@ namespace AdvUtils
             else
                 Console.WriteLine(sLine);
 
-            if (s_sw != null)
-                s_sw.WriteLine(sLine);
+            try
+            {
+                if (s_sw != null)
+                    s_sw.WriteLine(sLine);
+            }
+            catch (Exception err)
+            {
+                Console.Error.WriteLine($"Failed to output log to file '{LogFile}'. Error = '{err.Message}'");
+                s_sw = null;
+            }
 
         }
 
@@ -76,8 +84,16 @@ namespace AdvUtils
 
             Console.ResetColor();
 
-            if (s_sw != null)
-                s_sw.WriteLine(sLine);
+            try
+            {
+                if (s_sw != null)
+                    s_sw.WriteLine(sLine);
+            }
+            catch (Exception err)
+            {
+                Console.Error.WriteLine($"Failed to output log to file '{LogFile}'. Error = '{err.Message}'");
+                s_sw = null;
+            }
 
         }
 

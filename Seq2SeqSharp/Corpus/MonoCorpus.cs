@@ -346,6 +346,11 @@ namespace Seq2SeqSharp.Tools
                             continue;
                         }
 
+                        if (batchIdx % 10000 == 0)
+                        {
+                            Logger.WriteLine($"Processing batch '{batchIdx}'");
+                        }
+
                         T batch;
                         int currentTokenCountsInBatch = 0;
                         for (int i = 0; i < sizeInBatch; i++)
@@ -359,11 +364,7 @@ namespace Seq2SeqSharp.Tools
                                     Logger.WriteLine($"Processing batch '{batchIdx}/{m_batchNumInTotal}'."); // The '{i}th' record in this batch is: Target = '{tgtLine}'");
                                     currentBatchPercent++;
                                 }
-                            }
-                            else if (batchIdx % 10000 == 0)
-                            {
-                                Logger.WriteLine($"Processing batch '{batchIdx}'");
-                            }
+                            }                            
 
                             SntPair sntPair = new SntPair(tgtLine, tgtLine);
                             currentTokenCountsInBatch += sntPair.GetTgtTokenCount();

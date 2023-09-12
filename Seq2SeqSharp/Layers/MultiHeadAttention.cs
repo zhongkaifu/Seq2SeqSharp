@@ -9,6 +9,7 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
 using Seq2SeqSharp.Tools;
+using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
 using TensorSharp;
@@ -42,7 +43,10 @@ namespace Seq2SeqSharp
 
         private readonly bool m_sharedQKV;
 
-        public MultiHeadAttention(string name, int multiHeadNum, int hiddenDim, int inputDim, float dropoutRatio, int deviceId, bool isTrainable, bool sharedQKV = false, float learningRateFactor = 1.0f, DType elementType = DType.Float32)
+        private readonly PositionEmbeddingEnums m_PEType;
+
+        public MultiHeadAttention(string name, int multiHeadNum, int hiddenDim, int inputDim, float dropoutRatio, int deviceId, bool isTrainable, 
+            bool sharedQKV = false, float learningRateFactor = 1.0f, DType elementType = DType.Float32, PositionEmbeddingEnums peType = PositionEmbeddingEnums.APE)
         {
             m_name = name;
             m_hiddenDim = hiddenDim;
@@ -50,6 +54,7 @@ namespace Seq2SeqSharp
             m_d = m_hiddenDim / m_multiHeadNum;
             m_dropoutRatio = dropoutRatio;
             m_sharedQKV = sharedQKV;
+            m_PEType = peType;
 
             W0 = new WeightTensor(new long[2] { hiddenDim, hiddenDim }, deviceId, name: $"{name}.{nameof(W0)}", isTrainable: isTrainable, normType: NormType.Uniform, learningRateFactor: learningRateFactor, dtype: elementType);
             b0 = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(b0)}", isTrainable: isTrainable, dtype: elementType);
@@ -97,7 +102,10 @@ namespace Seq2SeqSharp
 
             //Multi-head attentions
             IWeightTensor Qs = g.View(g.AsContiguous(g.Transpose(allQ, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, m_d });
-            Qs = g.RoPE(Qs, seqLenQ);
+            if (m_PEType == PositionEmbeddingEnums.RoPE)
+            {
+                Qs = g.RoPE(Qs, seqLenQ);
+            }
 
             int newTokensIdx = seqLenQ;
             IWeightTensor m_cacheQs = null;
@@ -119,12 +127,17 @@ namespace Seq2SeqSharp
                 Qs = g.Peek(Qs, 1, seqLenQ - newTokensIdx, newTokensIdx); // Shape: [batchSize * m_multiHeadNum, relPosSize, m_d]
             }
 
-            //IWeightTensor Ks = g.View(g.AsContiguous(g.Transpose(g.Transpose(allK, 1, 2), 2, 3)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenQ });
-
-            IWeightTensor Ks = g.View(g.AsContiguous(g.Transpose(allK, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, m_d });
-            Ks = g.RoPE(Ks, seqLenQ);
-            Ks = g.View(g.AsContiguous(g.Transpose(Ks, 1, 2)), dims: new long[] {batchSize * m_multiHeadNum, m_d, seqLenQ });
-
+            IWeightTensor Ks = null;
+            if (m_PEType == PositionEmbeddingEnums.RoPE)
+            {
+                Ks = g.View(g.AsContiguous(g.Transpose(allK, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, m_d });
+                Ks = g.RoPE(Ks, seqLenQ);
+                Ks = g.View(g.AsContiguous(g.Transpose(Ks, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenQ });
+            }
+            else
+            {
+                Ks = g.View(g.AsContiguous(g.Transpose(g.Transpose(allK, 1, 2), 2, 3)), dims: new long[] { batchSize * m_multiHeadNum, m_d, seqLenQ });
+            }
 
             IWeightTensor Vs = g.View(g.AsContiguous(g.Transpose(allV, 1, 2)), dims: new long[] { batchSize * m_multiHeadNum, seqLenQ, m_d });
 

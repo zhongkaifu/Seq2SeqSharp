@@ -39,19 +39,20 @@ namespace Seq2SeqSharp.Applications
             return newTokens;
         }
 
-        public static MultiProcessorNetworkWrapper<IEncoder> CreateEncoders(IModel modelMetaData, Options options, RoundArray<int> raDeviceIds, DType elementType = DType.Float32)
+        public static MultiProcessorNetworkWrapper<IEncoder> CreateEncoders(IModel model, Options options, RoundArray<int> raDeviceIds, DType elementType = DType.Float32)
         {
             MultiProcessorNetworkWrapper<IEncoder> encoder = null;
-            if (modelMetaData.EncoderType == EncoderTypeEnums.BiLSTM)
+            if (model.EncoderType == EncoderTypeEnums.BiLSTM)
             {
                 encoder = new MultiProcessorNetworkWrapper<IEncoder>(
-                    new BiEncoder("BiLSTMEncoder", modelMetaData.HiddenDim, modelMetaData.EncoderEmbeddingDim, modelMetaData.EncoderLayerDepth, raDeviceIds.GetNextItem(), isTrainable: options.IsEncoderTrainable), raDeviceIds.ToArray());
+                    new BiEncoder("BiLSTMEncoder", model.HiddenDim, model.EncoderEmbeddingDim, model.EncoderLayerDepth, raDeviceIds.GetNextItem(), isTrainable: options.IsEncoderTrainable), raDeviceIds.ToArray());
             }
             else
             {
                 encoder = new MultiProcessorNetworkWrapper<IEncoder>(
-                    new TransformerEncoder("TransformerEncoder", modelMetaData.MultiHeadNum, modelMetaData.HiddenDim, modelMetaData.IntermediateDim, modelMetaData.EncoderEmbeddingDim, modelMetaData.EncoderLayerDepth, options.DropoutRatio, raDeviceIds.GetNextItem(),
-                    isTrainable: options.IsEncoderTrainable, learningRateFactor: options.EncoderStartLearningRateFactor, activateFunc: modelMetaData.ActivateFunc, expertNum: modelMetaData.ExpertNum, expertsPerTokenFactor: modelMetaData.ExpertsPerTokenFactor, elementType), raDeviceIds.ToArray());
+                    new TransformerEncoder("TransformerEncoder", model.MultiHeadNum, model.HiddenDim, model.IntermediateDim, model.EncoderEmbeddingDim, model.EncoderLayerDepth, options.DropoutRatio, raDeviceIds.GetNextItem(),
+                    isTrainable: options.IsEncoderTrainable, learningRateFactor: options.EncoderStartLearningRateFactor, activateFunc: model.ActivateFunc, expertNum: model.ExpertNum, expertsPerTokenFactor: model.ExpertsPerTokenFactor, 
+                    elementType, peType: model.PEType), raDeviceIds.ToArray());
             }
 
             return encoder;

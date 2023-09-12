@@ -30,6 +30,7 @@ namespace Seq2SeqSharp.Applications
         private MultiProcessorNetworkWrapper<IDecoder> m_decoder = null; //The decoders over devices
         private MultiProcessorNetworkWrapper<IFeedForwardLayer> m_decoderFFLayer = null ; //The feed forward layers over devices after all layers in decoder
         private MultiProcessorNetworkWrapper<IWeightTensor> m_segmentEmbedding = null;
+        private MultiProcessorNetworkWrapper<IWeightTensor> m_posEmbedding = null;
 
         private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
         readonly Seq2SeqOptions m_options = null;
@@ -125,7 +126,8 @@ namespace Seq2SeqSharp.Applications
             m_decoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("FeedForward_Decoder_0", model.HiddenDim, model.TgtVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),
                 isTrainable: (m_options.Task == ModeEnums.Train), learningRateFactor: m_options.DecoderStartLearningRateFactor, elementType), DeviceIds);
 
-            (_, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, model.HiddenDim, Math.Max(m_options.MaxTgtSentLength, m_options.MaxValidTgtSentLength), model, elementType, isTrainable: (m_options.Task == ModeEnums.Train));
+            (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, model.HiddenDim, Math.Max(m_options.MaxTgtSentLength, m_options.MaxValidTgtSentLength), model, elementType, 
+                isTrainable: (m_options.Task == ModeEnums.Train), createAPE: (model.PEType == PositionEmbeddingEnums.APE));
             m_tgtEmbedding = CreateTgtEmbeddings(model, raDeviceIds, m_options.IsTgtEmbeddingTrainable && (m_options.Task == ModeEnums.Train), m_options.DecoderStartLearningRateFactor, elementType);
 
             return (true);
@@ -134,13 +136,14 @@ namespace Seq2SeqSharp.Applications
         /// <summary>
         /// Get networks on specific devices
         /// </summary>
-        private (IDecoder, IFeedForwardLayer, IWeightTensor, IWeightTensor) GetNetworksOnDeviceAt(int deviceId)
+        private (IDecoder, IFeedForwardLayer, IWeightTensor, IWeightTensor, IWeightTensor) GetNetworksOnDeviceAt(int deviceId)
         {
             var deviceIdIdx = TensorAllocator.GetDeviceIdIndex(deviceId);
             return (m_decoder.GetNetworkOnDevice(deviceIdIdx),
                     m_decoderFFLayer.GetNetworkOnDevice(deviceIdIdx),
                     m_tgtEmbedding.GetNetworkOnDevice(deviceIdIdx),
-                    m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx));
+                    m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx),
+                    m_posEmbedding?.GetNetworkOnDevice(deviceIdIdx));
         }
 
         private string GenerateCacheKey(List<List<string>> strs)
@@ -194,7 +197,7 @@ namespace Seq2SeqSharp.Applications
         /// <returns>The cost of forward part</returns>
         public override List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, DecodingOptions decodingOptions, bool isTraining)
         {
-            (var decoder, var decoderFFLayer, var tgtEmbedding, var segmentEmbedding) = GetNetworksOnDeviceAt(computeGraph.DeviceId);
+            (var decoder, var decoderFFLayer, var tgtEmbedding, var segmentEmbedding, var posEmbeddings) = GetNetworksOnDeviceAt(computeGraph.DeviceId);
             List<NetworkResult> nrs = new List<NetworkResult>();
 
             // Generate output decoder sentences
@@ -209,7 +212,8 @@ namespace Seq2SeqSharp.Applications
             if (isTraining)
             {
                 (var c, _) = Decoder.GPTDecode(tgtTokensList, computeGraph, decoder as GPTDecoder, decoderFFLayer, tgtEmbedding, m_modelMetaData.TgtVocab, m_shuffleType,
-                    m_options.DropoutRatio, decodingOptions, isTraining, lossType: m_options.LossType, focalLossGamma: m_options.FocalLossGamma, segmentEmbeddings: segmentEmbedding, amp: m_options.AMP);
+                    m_options.DropoutRatio, decodingOptions, isTraining, lossType: m_options.LossType, focalLossGamma: m_options.FocalLossGamma, 
+                    segmentEmbeddings: segmentEmbedding, amp: m_options.AMP, posEmbeddings: posEmbeddings);
                 nr.Cost = c;
                 nr.Output = null;
             }           
@@ -248,7 +252,8 @@ namespace Seq2SeqSharp.Applications
                             (var cost2, var bssSeqList) = Decoder.GPTDecode(batch2tgtTokens, g, decoder as GPTDecoder, decoderFFLayer, tgtEmbedding,
                                                                             m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, decodingOptions, isTraining,
                                                                             outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus,
-                                                                            blockedTokens: decodingOptions.BlockedTokens, segmentEmbeddings: segmentEmbedding, cachedTensors: cachedTensors, amp: m_options.AMP);
+                                                                            blockedTokens: decodingOptions.BlockedTokens, segmentEmbeddings: segmentEmbedding, 
+                                                                            cachedTensors: cachedTensors, amp: m_options.AMP, posEmbeddings: posEmbeddings);
 
                             bssSeqList = Decoder.SwapBeamAndBatch(bssSeqList); // Swap shape: (beam_search_size, batch_size) -> (batch_size, beam_search_size)
                             batch2beam2seq = Decoder.CombineBeamSearchResults(batch2beam2seq, bssSeqList);

@@ -281,7 +281,8 @@ namespace Seq2SeqSharp.Models
             MaxSegmentNum = m.MaxSegmentNum;
             PointerGenerator = m.PointerGenerator;
             ExpertNum = m.ExpertNum;
-            ExpertsPerTokenFactor = m.ExpertsPerTokenFactor;            
+            ExpertsPerTokenFactor = m.ExpertsPerTokenFactor;              
+            PEType= m.PEType;
         }
         public static Model_4_ProtoBufSerializer Create(Model m) => new Model_4_ProtoBufSerializer(m);
 
@@ -312,5 +313,7 @@ namespace Seq2SeqSharp.Models
         [ProtoMember(25)] public Dictionary<string, byte[]> Name2WeightsVQ { get; set; }
         [ProtoMember(26)] public Dictionary<string, double[]> Name2CodeBook { get; set; }
         [ProtoMember(27)] public Dictionary<string, ushort[]> Name2WeightsHalf { get; set; }
+
+        [ProtoMember(28)] public PositionEmbeddingEnums PEType { get; set; }
     }
 }
