@@ -661,6 +661,15 @@ namespace TensorSharp.CUDA
         public Tensor LayerNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps = 1e-09f) { return advFuncKernels.LayerNormGrad(outGrad, alphaGrad, betaGrad, inGrad, y, x, alpha, beta, eps); }
 
 
+
+        [RegisterOpStorageType("rmsnorm", typeof(CudaStorage))]
+        public Tensor RMSNorm(Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-09f) { return advFuncKernels.RMSNorm(result, src, alpha, beta, eps); }
+        [RegisterOpStorageType("rmsnormgrad", typeof(CudaStorage))]
+        public Tensor RMSNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps = 1e-09f) { return advFuncKernels.RMSNormGrad(outGrad, alphaGrad, betaGrad, inGrad, y, x, alpha, beta, eps); }
+
+
+
+
         [RegisterOpStorageType("addlayernorm", typeof(CudaStorage))]
         public Tensor AddLayerNorm(Tensor result, Tensor src1, Tensor src2, Tensor alpha, Tensor beta, float eps = 1e-09f) { return advFuncKernels.AddLayerNorm(result, src1, src2, alpha, beta, eps); }
         [RegisterOpStorageType("addlayernormgrad", typeof(CudaStorage))]

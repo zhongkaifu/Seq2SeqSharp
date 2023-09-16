@@ -915,12 +915,35 @@ namespace TensorSharp.Cpu
             }
             catch (Exception err)
             {
-                Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"LayerNormGrad exception: '{err.Message}', CallStack:'{err.StackTrace}'");
+                Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"{nameof(LayerNormGrad)} exception: '{err.Message}', CallStack:'{err.StackTrace}'");
                 throw;
             }
         }
 
+        [RegisterOpStorageType("rmsnorm", typeof(CpuStorage))]
+        public Tensor RMSNorm(Tensor result, Tensor src, Tensor gamma_, Tensor beta_, float eps)
+        {
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
+            TensorApplyCPU.RMSNorm(writeTarget, src, gamma_, beta_, eps, (int)src.Sizes[0], (int)src.Sizes[1]);
+            return writeTarget;
+        }
 
+        [RegisterOpStorageType("rmsnormgrad", typeof(CpuStorage))]
+        public Tensor RMSNormGrad(Tensor result, Tensor gradGamma_, Tensor gradBeta_, Tensor adj_, Tensor y_, Tensor x_, Tensor gamma_, Tensor beta_, float eps)
+        {
+            try
+            {
+                Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, adj_, false, adj_.Sizes);
+                TensorApplyCPU.RMSNormGrad(writeTarget, gradGamma_, gradBeta_, adj_, y_, x_, gamma_, beta_, (int)adj_.Sizes[0], (int)adj_.Sizes[1], eps);
+
+                return writeTarget;
+            }
+            catch (Exception err)
+            {
+                Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"{nameof(RMSNormGrad)} exception: '{err.Message}', CallStack:'{err.StackTrace}'");
+                throw;
+            }
+        }
 
         private readonly MethodInfo addlayerNorm_func = NativeWrapper.GetMethod("TS_AddLayerNorm");
         [RegisterOpStorageType("addlayernorm", typeof(CpuStorage))]

@@ -1405,7 +1405,77 @@ namespace TensorSharp
 		}
 
 
-		unsafe static public void LayerNormGrad(Tensor gradX_,
+
+        unsafe static public void RMSNorm(Tensor out_,
+            Tensor in_,
+            Tensor gamma_,
+            Tensor beta_,
+            float eps,
+            int rows,
+            int cols)
+        {
+            float* outPtr = (float*)CpuNativeHelpers.GetBufferStart(out_);
+            float* inPtr = (float*)CpuNativeHelpers.GetBufferStart(in_);
+            float* alpha = (float*)CpuNativeHelpers.GetBufferStart(gamma_);
+            float* beta = (beta_ != null) ? (float*)CpuNativeHelpers.GetBufferStart(beta_) : null;
+
+            for (int j = 0; j < rows; ++j)
+            {
+                float* so = outPtr + j * cols;
+                float* sp = inPtr + j * cols;
+
+                Span<float> spanSP = new Span<float>(sp, cols);
+                int vectorSize = Vector<float>.Count;
+                int i = 0;
+                float sqSum = 0.0f;
+
+                for (i = 0; i < cols - vectorSize; i += vectorSize)
+                {
+                    Vector<float> vecSp = new Vector<float>(spanSP.Slice(i));
+                    sqSum += Vector.Dot(vecSp, vecSp);
+                }
+                for (; i < cols; ++i)
+                {
+                    float ex = sp[i];
+                    sqSum += ex * ex;
+                }
+
+                float sigma = (float)Math.Sqrt(eps + sqSum / cols);
+
+                Span<float> spanSO = new Span<float>(so, cols);
+                Span<float> spanAlpha = new Span<float>(alpha, cols);
+                Span<float> spanBeta = (beta != null) ? new Span<float>(beta, cols) : null;
+                Vector<float> vecSigma = new Vector<float>(sigma);
+
+                for (i = 0; i < cols - vectorSize; i += vectorSize)
+                {
+                    Vector<float> vecSp = new Vector<float>(spanSP.Slice(i));
+                    Vector<float> vecAlpha = new Vector<float>(spanAlpha.Slice(i));
+
+                    Vector<float> vecT = vecAlpha * (vecSp / vecSigma);
+
+                    if (spanBeta != null)
+                    {
+                        Vector<float> vecBeta = new Vector<float>(spanBeta.Slice(i));
+                        vecT += vecBeta;
+                    }
+
+                    vecT.CopyTo(spanSO.Slice(i));
+                }
+                for (; i < cols; ++i)
+                {
+                    float t = alpha[i] * (sp[i] / sigma);
+                    if (beta != null)
+                    {
+                        t += beta[i];
+                    }
+
+                    so[i] = t;
+                }
+            }
+        }
+
+        unsafe static public void LayerNormGrad(Tensor gradX_,
 			Tensor gradGamma_,
 			Tensor gradBeta_,
 			Tensor adj_,
@@ -1518,7 +1588,113 @@ namespace TensorSharp
 		}
 
 
-		unsafe static public void Adam(Tensor tw, Tensor tg, Tensor tv, Tensor tm, int rows, int cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
+        unsafe static public void RMSNormGrad(Tensor gradX_,
+            Tensor gradGamma_,
+            Tensor gradBeta_,
+            Tensor adj_,
+            Tensor y_,
+            Tensor x_,
+            Tensor gamma_,
+            Tensor beta_,
+            int rows,
+            int cols,
+            float eps)
+        {
+            float* gradX = (float*)CpuNativeHelpers.GetBufferStart(gradX_);
+            float* gradGamma = (float*)CpuNativeHelpers.GetBufferStart(gradGamma_);
+            float* gradBeta = gradBeta_ != null ? (float*)CpuNativeHelpers.GetBufferStart(gradBeta_) : null;
+            float* adj = (float*)CpuNativeHelpers.GetBufferStart(adj_);
+            float* y = (float*)CpuNativeHelpers.GetBufferStart(y_);
+            float* x = (float*)CpuNativeHelpers.GetBufferStart(x_);
+            float* gamma = (float*)CpuNativeHelpers.GetBufferStart(gamma_);
+            float* beta = beta_ != null ? (float*)CpuNativeHelpers.GetBufferStart(beta_) : null;
+
+            if (beta != null)
+            {
+                for (int j = 0; j < rows; ++j)
+                {
+                    float* xRow = x + j * cols;
+                    float* yRow = y + j * cols;
+                    float* adjRow = adj + j * cols;
+                    float* gradXRow = gradX + j * cols;
+
+                    float sum_adj = 0.0f;
+                    float sum_adj_x = 0.0f;
+                    float sum_sqr = 0.0f;
+
+                    for (int i = 0; i < cols; ++i)
+                    {
+                        sum_adj_x += adjRow[i] * (yRow[i] - (beta != null ? beta[i] : 0.0f)) / gamma[i];
+                        sum_adj += adjRow[i];
+                    }
+
+                    for (int i = 0; i < cols; ++i)
+                    {
+                        float ex = xRow[i];
+                        sum_sqr += ex * ex;
+                    }
+
+                    float sigma = (float)Math.Sqrt(eps + sum_sqr / cols);
+                    for (int i = 0; i < cols; ++i)
+                    {
+                        float grad_x = 0.0f;
+                        float x_hat = (yRow[i] - beta[i]) / gamma[i];
+                        grad_x += cols * adjRow[i];
+                        grad_x -= sum_adj;
+                        grad_x -= sum_adj_x * x_hat;
+                        grad_x /= cols * sigma;
+
+                        gradXRow[i] += gamma[i] * grad_x;
+                        gradGamma[i] += adjRow[i] * x_hat;
+                        gradBeta[i] += adjRow[i];
+                    }
+                }
+            }
+            else
+            {
+                for (int j = 0; j < rows; ++j)
+                {
+                    float* xRow = x + j * cols;
+                    float* yRow = y + j * cols;
+                    float* adjRow = adj + j * cols;
+                    float* gradXRow = gradX + j * cols;
+
+                    float sum_adj = 0.0f;
+                    float sum_adj_x = 0.0f;
+                    float sum_sqr = 0.0f;
+
+                    for (int i = 0; i < cols; ++i)
+                    {
+                        sum_adj_x += adjRow[i] * (yRow[i] - (beta != null ? beta[i] : 0.0f)) / gamma[i];
+                        sum_adj += adjRow[i];
+                    }
+
+                    for (int i = 0; i < cols; ++i)
+                    {
+                        float ex = xRow[i];
+                        sum_sqr += ex * ex;
+                    }
+
+                    float sigma = (float)Math.Sqrt(eps + sum_sqr / cols);
+
+                    for (int i = 0; i < cols; ++i)
+                    {
+                        float grad_x = 0.0f;
+                        float x_hat = yRow[i] / gamma[i];
+                        grad_x += cols * adjRow[i];
+                        grad_x -= sum_adj;
+                        grad_x -= sum_adj_x * x_hat;
+                        grad_x /= cols * sigma;
+
+                        gradXRow[i] += gamma[i] * grad_x;
+                        gradGamma[i] += adjRow[i] * x_hat;
+                    }
+                }
+            }
+        }
+
+
+        unsafe static public void Adam(Tensor tw, Tensor tg, Tensor tv, Tensor tm, int rows, int cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
 		{
 			float* w = (float*)CpuNativeHelpers.GetBufferStart(tw);
 			float* g = (float*)CpuNativeHelpers.GetBufferStart(tg);

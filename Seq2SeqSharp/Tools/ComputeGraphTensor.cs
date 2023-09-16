@@ -2184,6 +2184,40 @@ namespace Seq2SeqSharp.Tools
         }
 
 
+        public IWeightTensor RMSNorm(IWeightTensor src, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-9f)
+        {
+            WeightTensor srcT = src as WeightTensor;
+            WeightTensor alphaT = alpha as WeightTensor;
+            WeightTensor betaT = beta as WeightTensor;
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(srcT.Sizes, m_deviceId, name: $"{GetHashString(src.Name, alpha.Name, beta.Name)}.RMSNorm", graphToBind: this, needGradient: srcT.NeedGradient, dtype: src.ElementType);
+            VisualizeNodes(new IWeightTensor[] { src, alpha, beta }, res);
+
+            Ops.RMSNorm(res.TWeight, srcT.TWeight, alphaT.TWeight, betaT.TWeight, eps);
+            if (m_needsBackprop)
+            {
+                var srcTWeight = srcT.TWeight.CopyRef();
+                var resTWeight = res.TWeight.CopyRef();
+                void backward()
+                {
+                    if (srcT.NeedGradient)
+                    {
+                        Ops.RMSNormGrad(srcT.TGradient, alphaT.TGradient, betaT.TGradient, res.TGradient, resTWeight, srcTWeight, alphaT.TWeight, betaT.TWeight, eps);
+                    }
+                    srcTWeight.Dispose();
+                    resTWeight.Dispose();
+
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+
+                alphaT.UnbindFromComputeGraph();
+                betaT.UnbindFromComputeGraph();
+            }
+
+            return res;
+        }
+
 
         ///// <summary>
         ///// LayerNorm (src1 + src2)

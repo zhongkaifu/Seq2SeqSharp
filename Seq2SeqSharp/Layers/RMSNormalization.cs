@@ -17,13 +17,13 @@ using TensorSharp;
 namespace Seq2SeqSharp
 {
     [Serializable]
-    internal class LayerNormalization : INormalization
+    internal class RMSNormalization : INormalization
     {
         private readonly IWeightTensor m_alpha;
         private readonly IWeightTensor m_beta;
         private readonly float m_epsilon;
 
-        public LayerNormalization(string name, int dim, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, float epsilon = 1e-06f, DType elementType = DType.Float32)
+        public RMSNormalization(string name, int dim, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, float epsilon = 1e-06f, DType elementType = DType.Float32)
         {
             m_alpha = new WeightTensor(new long[2] { 1, dim }, 1.0f, deviceId, name: $"{name}.{nameof(m_alpha)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: elementType);
             m_beta = new WeightTensor(new long[2] { 1, dim }, 0, deviceId, name: $"{name}.{nameof(m_beta)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: elementType);
@@ -32,22 +32,10 @@ namespace Seq2SeqSharp
 
         public IWeightTensor Norm(IWeightTensor input, IComputeGraph g)
         {
-            var result = g.LayerNorm(input, m_alpha, m_beta, m_epsilon);
+            var result = g.RMSNorm(input, m_alpha, m_beta, m_epsilon);
             return result;
         }
-
-        ///// <summary>
-        ///// LayerNorm (input1 + input2)
-        ///// </summary>
-        ///// <param name="input1"></param>
-        ///// <param name="input2"></param>
-        ///// <param name="g"></param>
-        ///// <returns></returns>
-        //public IWeightTensor AddNorm(IWeightTensor input1, IWeightTensor input2, IComputeGraph g)
-        //{
-        //    return g.AddLayerNorm(input1, input2, m_alpha, m_beta);
-        //}
-
+      
         public virtual List<IWeightTensor> GetParams()
         {
             List<IWeightTensor> response = new List<IWeightTensor>

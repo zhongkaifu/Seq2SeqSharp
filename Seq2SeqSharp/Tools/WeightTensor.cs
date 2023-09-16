@@ -20,7 +20,7 @@ using Seq2SeqSharp.Utils;
 
 namespace Seq2SeqSharp.Tools
 {
-    public enum NormType
+    public enum RandomInitType
     {
         None,
         Uniform,
@@ -66,7 +66,7 @@ namespace Seq2SeqSharp.Tools
 
         private readonly bool m_fanIn = false;
         private readonly bool m_fanOut = false;
-        private readonly NormType m_normType = NormType.None;
+        private readonly RandomInitType m_normType = RandomInitType.None;
 
         private readonly DType m_elementType  =  DType.Float32;
 
@@ -166,7 +166,7 @@ namespace Seq2SeqSharp.Tools
 
         public DType ElementType => m_elementType;
 
-        public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, NormType normType = NormType.None, bool fanIn = false, bool fanOut = false, float learningRateFactor = 1.0f, IComputeGraph graphToBind = null, bool needGradient = true, DType dtype = DType.Float32)
+        public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, RandomInitType initType = RandomInitType.None, bool fanIn = false, bool fanOut = false, float learningRateFactor = 1.0f, IComputeGraph graphToBind = null, bool needGradient = true, DType dtype = DType.Float32)
         {
             Name = name;
             DeviceId = deviceId;
@@ -177,7 +177,7 @@ namespace Seq2SeqSharp.Tools
             Sizes = sizes;
             m_fanIn = fanIn;
             m_fanOut = fanOut;
-            m_normType = normType;
+            m_normType = initType;
             m_elementType= dtype;
 
             if (graphToBind != null)
@@ -188,7 +188,7 @@ namespace Seq2SeqSharp.Tools
 
             if (isTrainable)
             {
-                if (normType == NormType.Uniform)
+                if (initType == RandomInitType.Uniform)
                 {
                     var scale = (float)Math.Sqrt(6.0 / (double)(Rows + Columns));
 
@@ -204,7 +204,7 @@ namespace Seq2SeqSharp.Tools
                     float[] w = TensorSharp.RandomGenerator.BuildRandomUniformWeight(Sizes, -scale, scale);
                     SetWeightArray(w);
                 }
-                else if (normType == NormType.Normal)
+                else if (initType == RandomInitType.Normal)
                 {
                     float[] w = TensorSharp.RandomGenerator.BuildRandomUniformWeight(Sizes, -1.0f, 1.0f);
                     SetWeightArray(w);
@@ -245,7 +245,7 @@ namespace Seq2SeqSharp.Tools
 
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
-            return new WeightTensor(Sizes, deviceId, Name, IsTrainable, normType: m_normType, fanIn: m_fanIn, fanOut: m_fanOut, needGradient: NeedGradient, dtype: m_elementType);
+            return new WeightTensor(Sizes, deviceId, Name, IsTrainable, initType: m_normType, fanIn: m_fanIn, fanOut: m_fanOut, needGradient: NeedGradient, dtype: m_elementType);
         }
 
         public void ZeroGradient()

@@ -9,6 +9,7 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
 using AdvUtils;
+using Seq2SeqSharp.Enums;
 using Seq2SeqSharp.Layers;
 using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
@@ -33,18 +34,19 @@ namespace Seq2SeqSharp
         private readonly int m_deviceId;
         private readonly bool m_isTrainable;
         private readonly float m_learningRateFactor;
-        private readonly LayerNormalization layerNorm;
+        private readonly INormalization layerNorm;
         private readonly ActivateFuncEnums m_activateFunc;
         private readonly int m_expertNum;
         private readonly int m_expertsPerTokenFactor;
         private readonly DType m_elementType;
         private readonly PositionEmbeddingEnums m_peType;
+        private readonly NormEnums m_normType;
 
         public GPTDecoder(string name, int multiHeadNum, int hiddenDim, int intermediateDim, int inputDim, int depth, float dropoutRatio, int deviceId, 
             bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.ReLU, int expertNum = 1, 
-            int expertsPerTokenFactor = 1, DType elementType = DType.Float32, PositionEmbeddingEnums peType = PositionEmbeddingEnums.APE)
+            int expertsPerTokenFactor = 1, DType elementType = DType.Float32, PositionEmbeddingEnums peType = PositionEmbeddingEnums.APE, NormEnums normType = NormEnums.LayerNorm)
         {
-            Logger.WriteLine($"Creating transformer decoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', IntermediateDim = '{intermediateDim}', InputDim = '{inputDim}', Depth = '{depth}', MultiHeadNum = '{multiHeadNum}', ElementType = '{elementType}', Positional Embedding = '{peType}'");
+            Logger.WriteLine($"Creating transformer decoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', IntermediateDim = '{intermediateDim}', InputDim = '{inputDim}', Depth = '{depth}', MultiHeadNum = '{multiHeadNum}', ElementType = '{elementType}', Positional Embedding = '{peType}'， Norm = '{normType}'");
 
             m_name = name;
             m_multiHeadNum = multiHeadNum;
@@ -61,6 +63,7 @@ namespace Seq2SeqSharp
             m_expertsPerTokenFactor = expertsPerTokenFactor;
             m_elementType= elementType;
             m_peType = peType;
+            m_normType = normType;
 
             if (hiddenDim != inputDim)
             {
@@ -68,11 +71,11 @@ namespace Seq2SeqSharp
             }
 
             m_selfAttns.Add(new MultiHeadAttention($"{name}.SelfAttn_0", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId, 
-                isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor, elementType: elementType, peType: peType));
+                isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor, elementType: elementType, peType: peType, normType: normType));
             for (int i = 1; i < depth; i++)
             {
                 m_selfAttns.Add(new MultiHeadAttention($"{name}.SelfAttn_{i}", multiHeadNum, hiddenDim, hiddenDim, m_dropoutRatio, deviceId, 
-                    isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor, elementType: elementType, peType: peType));
+                    isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor, elementType: elementType, peType: peType, normType: normType));
             }
 
             for (int i = 0; i < depth; i++)
@@ -83,13 +86,18 @@ namespace Seq2SeqSharp
                 }
                 else
                 {
-                    m_feedForwards.Add(new PositionwiseFeedForward($"{name}.PosFFN_{i}", hiddenDim, intermediateDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, activateFunc: activateFunc, elementType: elementType));
+                    m_feedForwards.Add(new PositionwiseFeedForward($"{name}.PosFFN_{i}", hiddenDim, intermediateDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, activateFunc: activateFunc, elementType: elementType, normType: normType));
                 }
             }
 
-
-            layerNorm = new LayerNormalization($"{name}.{nameof(layerNorm)}", hiddenDim, deviceId, isTrainable, learningRateFactor: learningRateFactor, elementType: elementType);
-
+            if (normType == NormEnums.LayerNorm)
+            {
+                layerNorm = new LayerNormalization($"{name}.{nameof(layerNorm)}", hiddenDim, deviceId, isTrainable, learningRateFactor: learningRateFactor, elementType: elementType);
+            }
+            else
+            {
+                layerNorm = new RMSNormalization($"{name}.{nameof(layerNorm)}", hiddenDim, deviceId, isTrainable, learningRateFactor: learningRateFactor, elementType: elementType);
+            }
         }
 
         public int GetDeviceId()
@@ -152,7 +160,7 @@ namespace Seq2SeqSharp
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
             return new GPTDecoder(m_name, m_multiHeadNum, m_hiddenDim, m_intermediateDim, m_inputDim, m_depth, m_dropoutRatio, deviceId, m_isTrainable, learningRateFactor: m_learningRateFactor, activateFunc: m_activateFunc, expertNum: m_expertNum, 
-                expertsPerTokenFactor: m_expertsPerTokenFactor, elementType: m_elementType, peType: m_peType);
+                expertsPerTokenFactor: m_expertsPerTokenFactor, elementType: m_elementType, peType: m_peType, normType: m_normType);
         }
 
         public List<IWeightTensor> GetParams()

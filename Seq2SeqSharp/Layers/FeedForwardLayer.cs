@@ -40,7 +40,7 @@ namespace Seq2SeqSharp
             m_isTrainable = isTrainable;
             m_elementType = elementType;
 
-            m_Whd = new WeightTensor(new long[2] { inputDim, outputDim }, deviceId, name: $"{name}.{nameof(m_Whd)}", normType: NormType.Uniform, isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: elementType);
+            m_Whd = new WeightTensor(new long[2] { inputDim, outputDim }, deviceId, name: $"{name}.{nameof(m_Whd)}", initType: RandomInitType.Uniform, isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: elementType);
             m_Bd = new WeightTensor(new long[2] { 1, outputDim }, 0, deviceId, name: $"{name}.{nameof(m_Bd)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: elementType);
         }
 

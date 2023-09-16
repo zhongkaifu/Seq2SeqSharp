@@ -9,6 +9,7 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
 using AdvUtils;
+using Seq2SeqSharp.Enums;
 using Seq2SeqSharp.Layers;
 using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
@@ -19,7 +20,7 @@ namespace Seq2SeqSharp
 {
     internal class PositionwiseFeedForward : IFeedForwardLayer
     {
-        private readonly LayerNormalization layerNorm2;
+        private readonly INormalization layerNorm2;
         private readonly FeedForwardLayer feedForwardLayer1;
         private readonly FeedForwardLayer feedForwardLayer2;
 
@@ -29,16 +30,24 @@ namespace Seq2SeqSharp
 
         private ActivateFuncEnums m_activateFunc;
 
-        public PositionwiseFeedForward(string name, int hiddenDim, int intermediateDim, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.ReLU, DType elementType = DType.Float32)
+        public PositionwiseFeedForward(string name, int hiddenDim, int intermediateDim, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.ReLU, DType elementType = DType.Float32, NormEnums normType = NormEnums.LayerNorm)
         {
             m_name = name;
             m_dropoutRatio = dropoutRatio;
             m_activateFunc = activateFunc;
             m_elementType= elementType;
 
-            Logger.WriteLine($"Creating positionwise feed forward layer. Name = '{name}', HiddenDim = '{hiddenDim}', IntermediateDim = '{intermediateDim}', DeviceId = '{deviceId}', Dropout ratio = '{dropoutRatio}', IsTrainable = '{isTrainable}', Learning rate factor = '{learningRateFactor}', Activate Function = '{activateFunc}'");
+            Logger.WriteLine($"Creating positionwise feed forward layer. Name = '{name}', HiddenDim = '{hiddenDim}', IntermediateDim = '{intermediateDim}', DeviceId = '{deviceId}', Dropout ratio = '{dropoutRatio}', IsTrainable = '{isTrainable}', Learning rate factor = '{learningRateFactor}', Activate Function = '{activateFunc}', Norm = '{normType}'");
 
-            layerNorm2 = new LayerNormalization($"{name}.{nameof(layerNorm2)}", hiddenDim, deviceId, isTrainable, learningRateFactor: learningRateFactor, elementType: elementType);
+            if (normType == NormEnums.LayerNorm)
+            {
+                layerNorm2 = new LayerNormalization($"{name}.{nameof(layerNorm2)}", hiddenDim, deviceId, isTrainable, learningRateFactor: learningRateFactor, elementType: elementType);
+            }
+            else
+            {
+                layerNorm2 = new RMSNormalization($"{name}.{nameof(layerNorm2)}", hiddenDim, deviceId, isTrainable, learningRateFactor: learningRateFactor, elementType: elementType);
+            }
+
             feedForwardLayer1 = new FeedForwardLayer($"{name}.{nameof(feedForwardLayer1)}", hiddenDim, intermediateDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, elementType: elementType);
             feedForwardLayer2 = new FeedForwardLayer($"{name}.{nameof(feedForwardLayer2)}", intermediateDim, hiddenDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, elementType: elementType);
         }

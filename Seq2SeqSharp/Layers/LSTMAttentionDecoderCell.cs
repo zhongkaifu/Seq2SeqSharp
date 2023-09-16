@@ -40,7 +40,7 @@ namespace Seq2SeqSharp
 
             Logger.WriteLine($"Create LSTM attention decoder cell '{name}' HiddemDim = '{hiddenDim}', InputDim = '{inputDim}', ContextDim = '{contextDim}', DeviceId = '{deviceId}'");
 
-            m_Wxhc = new WeightTensor(new long[2] { inputDim + hiddenDim + contextDim, hiddenDim * 4 }, deviceId, normType: NormType.Uniform, name: $"{name}.{nameof(m_Wxhc)}", isTrainable: isTrainable, dtype: elementType);
+            m_Wxhc = new WeightTensor(new long[2] { inputDim + hiddenDim + contextDim, hiddenDim * 4 }, deviceId, initType: RandomInitType.Uniform, name: $"{name}.{nameof(m_Wxhc)}", isTrainable: isTrainable, dtype: elementType);
             m_b = new WeightTensor(new long[2] { 1, hiddenDim * 4 }, 0, deviceId, name: $"{name}.{nameof(m_b)}", isTrainable: isTrainable, dtype: elementType);
 
             m_layerNorm1 = new LayerNormalization($"{name}.{nameof(m_layerNorm1)}", hiddenDim * 4, deviceId, isTrainable, elementType: elementType);

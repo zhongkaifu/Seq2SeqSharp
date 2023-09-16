@@ -47,10 +47,10 @@ namespace Seq2SeqSharp.Layers
 
             layerNorm = new LayerNormalization($"{name}.{nameof(layerNorm)}", hiddenDim, deviceId, isTrainable, learningRateFactor: learningRateFactor, elementType: elementType);
 
-            m_Whd1 = new WeightTensor(new long[3] { expertNum, hiddenDim, hiddenDim * 4 }, deviceId, name: $"{name}.{nameof(m_Whd1)}", normType: NormType.Uniform, isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: elementType);
-            m_Whd2 = new WeightTensor(new long[3] { expertNum, hiddenDim * 4, hiddenDim }, deviceId, name: $"{name}.{nameof(m_Whd2)}", normType: NormType.Uniform, isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: elementType);
+            m_Whd1 = new WeightTensor(new long[3] { expertNum, hiddenDim, hiddenDim * 4 }, deviceId, name: $"{name}.{nameof(m_Whd1)}", initType: RandomInitType.Uniform, isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: elementType);
+            m_Whd2 = new WeightTensor(new long[3] { expertNum, hiddenDim * 4, hiddenDim }, deviceId, name: $"{name}.{nameof(m_Whd2)}", initType: RandomInitType.Uniform, isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: elementType);
 
-            m_Router = new WeightTensor(new long[2] { hiddenDim, expertNum }, deviceId, name: $"{name}.{nameof(m_Router)}", normType: NormType.Uniform, isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: elementType);
+            m_Router = new WeightTensor(new long[2] { hiddenDim, expertNum }, deviceId, name: $"{name}.{nameof(m_Router)}", initType: RandomInitType.Uniform, isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: elementType);
             m_RouterBias = new WeightTensor(new long[2] { 1, expertNum }, 0, deviceId, name: $"{name}.{nameof(m_RouterBias)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: elementType);
 
         }

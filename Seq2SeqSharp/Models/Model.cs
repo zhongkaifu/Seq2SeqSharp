@@ -90,6 +90,7 @@ namespace Seq2SeqSharp.Models
         public Dictionary<string, double[]> Name2CodeBook { get; set; }
 
         public PositionEmbeddingEnums PEType { get; set; }
+        public NormEnums NormType { get; set; }
 
         public Model() { }
         public Model(Options opts,Vocab srcVocab)
@@ -109,6 +110,7 @@ namespace Seq2SeqSharp.Models
             ActivateFunc = opts.ActivateFunc;
             VQType = opts.VQType;
             PEType = opts.PEType;
+            NormType = opts.NormType;
 
             Name2Weights = new Dictionary<string, float[]>();
             Name2WeightsHalf= new Dictionary<string, ushort[]>();
@@ -139,6 +141,7 @@ namespace Seq2SeqSharp.Models
             Name2WeightsVQ = m.Name2WeightsVQ;
             Name2CodeBook = m.Name2CodeBook;
             PEType = m.PEType;
+            NormType = m.NormType;
 
             if (Name2Weights == null)
             {

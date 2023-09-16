@@ -23,6 +23,7 @@ namespace Seq2SeqSharp
         public int EncoderLayerDepth { get; set; }
         public VQTypeEnums VQType { get; set; }
         public PositionEmbeddingEnums PEType { get; set; }
+        public NormEnums NormType { get; set; }
         public ActivateFuncEnums ActivateFunc { get; set; }
         public int ExpertNum { get; set; }
         public int ExpertsPerTokenFactor { get; set; }

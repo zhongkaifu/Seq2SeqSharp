@@ -17,6 +17,7 @@ Mixture of Experts network that could easily train huge model with less computin
 Support Automatic Mixed Precesion (FP16)  
 Built-in SentencePiece supported  
 Rotary Positional Embeddings  
+Layer Norm and RMS Norm  
 Python package supported  
 Tags embeddings mechanism  
 Prompted Decoders  
@@ -193,7 +194,9 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
   "ShuffleType": "NoPadding",
   "Task": "Train",
   "TooLongSequence": "Ignore",
-  "ActivateFunc": "ReLU",
+  "ActivateFunc": "LeakyReLU",
+  "PEType": "RoPE",
+  "NormType": "LayerNorm",
   "LogVerbose": "Normal",
   "TgtLang": "TGT",
   "TrainCorpusPath": ".\\data\\train",

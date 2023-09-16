@@ -283,6 +283,7 @@ namespace Seq2SeqSharp.Models
             ExpertNum = m.ExpertNum;
             ExpertsPerTokenFactor = m.ExpertsPerTokenFactor;              
             PEType= m.PEType;
+            NormType = m.NormType;
         }
         public static Model_4_ProtoBufSerializer Create(Model m) => new Model_4_ProtoBufSerializer(m);
 
@@ -315,5 +316,6 @@ namespace Seq2SeqSharp.Models
         [ProtoMember(27)] public Dictionary<string, ushort[]> Name2WeightsHalf { get; set; }
 
         [ProtoMember(28)] public PositionEmbeddingEnums PEType { get; set; }
+        [ProtoMember(29)] public NormEnums NormType { get; set; }
     }
 }

@@ -246,6 +246,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("The Positional Embeddings Type. It supports APE, NoPE and RoPE", nameof(PEType))]
         public PositionEmbeddingEnums PEType = PositionEmbeddingEnums.APE;
 
+        [Arg("The type of normalization. It supports LayerNorm and RMSNorm", nameof(NormType))]
+        public NormEnums NormType = NormEnums.LayerNorm;
+
         public void ValidateOptions()
         {
             if (AMP == true && ProcessorType != ProcessorTypeEnums.GPU)

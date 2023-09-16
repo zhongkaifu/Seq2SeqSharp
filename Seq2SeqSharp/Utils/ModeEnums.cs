@@ -44,4 +44,10 @@ namespace Seq2SeqSharp.Enums
         INT8 = 256,
         INT4 = 16
     }
+
+    public enum NormEnums
+    {
+        LayerNorm = 0,
+        RMSNorm = 1
+    }
 }
