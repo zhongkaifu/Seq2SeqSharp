@@ -495,10 +495,26 @@ namespace Seq2SeqSharp.Tools
                 m_backprop.Add(backward);
 
                 // These tensors' weights will be used during back-propogation, so we unbind them from the computing graph
-                m1.UnbindFromComputeGraph();
-                m2.UnbindFromComputeGraph();
-                m3.UnbindFromComputeGraph();
-                m4.UnbindFromComputeGraph();
+
+                if (m2.NeedGradient)
+                {
+                    m1.UnbindFromComputeGraph();
+                }
+
+                if (m1.NeedGradient)
+                {
+                    m2.UnbindFromComputeGraph();
+                }
+
+                if (m4.NeedGradient)
+                {
+                    m3.UnbindFromComputeGraph();
+                }
+
+                if (m3.NeedGradient)
+                {
+                    m4.UnbindFromComputeGraph();
+                }
             }
 
 
