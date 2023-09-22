@@ -499,11 +499,11 @@ namespace Seq2SeqSharp.Tools
                     halves[i] = new half(v[i]);
                 }
 
-                TWeight.SetElementsAsHalf(halves);
+                m_TWeight.SetElementsAsHalf(halves);
             }
             else
             {
-                TWeight.SetElementsAsFloat(v);
+                m_TWeight.SetElementsAsFloat(v);
             }
         }
 
@@ -514,7 +514,7 @@ namespace Seq2SeqSharp.Tools
                 throw new InvalidCastException($"Inconsistent element type in weights '{Name}'");
             }
 
-            TWeight.SetElementsAsHalf(v);
+            m_TWeight.SetElementsAsHalf(v);
         }
 
         public WeightTensor CopyWeightsRef(string name, bool needGradient, IComputeGraph graphToBind)
