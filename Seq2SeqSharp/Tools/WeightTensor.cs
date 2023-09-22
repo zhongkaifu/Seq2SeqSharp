@@ -59,7 +59,7 @@ namespace Seq2SeqSharp.Tools
         private Tensor m_TGradient = null;
         private static readonly object locker = new object();
 
-        private bool releasedWeight = false;
+       // private bool releasedWeight = false;
         private readonly IComputeGraph m_computeGraphToBind;
 
         private string m_GradientSetName = "None";
@@ -83,10 +83,10 @@ namespace Seq2SeqSharp.Tools
         {
             get
             {
-                if (releasedWeight)
-                {
-                    throw new Exception($"The weight '{Name}' has been released, you cannot access it.");
-                }
+                //if (releasedWeight)
+                //{
+                //    throw new Exception($"The weight '{Name}' has been released, you cannot access it.");
+                //}
 
                 if (m_TWeight == null)
                 {
@@ -118,7 +118,7 @@ namespace Seq2SeqSharp.Tools
                             }
                         }
                     }
-                    releasedWeight = false;
+                 //   releasedWeight = false;
                 }
             }
         }
@@ -499,11 +499,11 @@ namespace Seq2SeqSharp.Tools
                     halves[i] = new half(v[i]);
                 }
 
-                m_TWeight.SetElementsAsHalf(halves);
+                TWeight.SetElementsAsHalf(halves);
             }
             else
             {
-                m_TWeight.SetElementsAsFloat(v);
+                TWeight.SetElementsAsFloat(v);
             }
         }
 
@@ -514,14 +514,14 @@ namespace Seq2SeqSharp.Tools
                 throw new InvalidCastException($"Inconsistent element type in weights '{Name}'");
             }
 
-            m_TWeight.SetElementsAsHalf(v);
+            TWeight.SetElementsAsHalf(v);
         }
 
         public WeightTensor CopyWeightsRef(string name, bool needGradient, IComputeGraph graphToBind)
         {
             WeightTensor result = new WeightTensor(Sizes, DeviceId, name, needGradient: needGradient, graphToBind: graphToBind, dtype: m_elementType)
             {
-                m_TWeight = m_TWeight.CopyRef()
+                TWeight = TWeight.CopyRef()
             };
 
             return result;
@@ -544,7 +544,7 @@ namespace Seq2SeqSharp.Tools
             {
                 m_TWeight.Dispose();
                 m_TWeight = null;
-                releasedWeight = true;
+              //  releasedWeight = true;
             }
         }
 
