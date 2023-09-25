@@ -168,6 +168,14 @@ namespace Seq2SeqSharp.Models
         {
             Logger.WriteLine($"Adding weights '{name}' to the model.");
 
+            for (int i = 0; i < weights.Length; i++)
+            {
+                if (weights[i] == float.NaN)
+                {
+                    throw new InvalidOperationException($"The weights '{name}' is corrupted due to Nan value.");
+                }
+            }
+
             if (VQType == VQTypeEnums.FLOAT16)
             {             
                 var weightsHalf = new ushort[weights.Length];
@@ -251,6 +259,14 @@ namespace Seq2SeqSharp.Models
 
             if (Name2Weights.ContainsKey(name))
             {
+                for (int i = 0; i < Name2Weights[name].Length; i++)
+                {
+                    if (Name2Weights[name][i] == float.NaN)
+                    {
+                        throw new InvalidOperationException($"The weights '{name}' is corrupted due to Nan value.");
+                    }
+                }
+
                 weight = Name2Weights[name];
             }
             else if (Name2WeightsHalf.ContainsKey(name))
@@ -270,6 +286,11 @@ namespace Seq2SeqSharp.Models
                 weight = new float[Name2WeightsVQ[name].Length];
                 for (int i = 0; i < Name2WeightsVQ[name].Length; i++)
                 {
+                    if (codeBook[Name2WeightsVQ[name][i]] == float.NaN)
+                    {
+                        throw new InvalidOperationException($"The weights '{name}' is corrupted due to Nan value.");
+                    }
+
                     weight[i] = (float)codeBook[Name2WeightsVQ[name][i]];
                 }
             }
@@ -311,6 +332,10 @@ namespace Seq2SeqSharp.Models
                 weights = new half[values.Length];
                 for (int i = 0; i < values.Length; i++)
                 {
+                    if (values[i] == float.NaN)
+                    {
+                        throw new InvalidOperationException($"The weights '{name}' is corrupted due to Nan value.");
+                    }
                     weights[i] = new half(values[i]);
                 }
             }
@@ -320,6 +345,10 @@ namespace Seq2SeqSharp.Models
                 weights = new half[values.Length];
                 for (int i = 0; i < values.Length; i++)
                 {
+                    if (values[i] == float.NaN)
+                    {
+                        throw new InvalidOperationException($"The weights '{name}' is corrupted due to Nan value.");
+                    }
                     weights[i] = new half(values[i]);
                 }
             }
@@ -336,6 +365,11 @@ namespace Seq2SeqSharp.Models
                 weights = new half[Name2WeightsVQ[name].Length];
                 for (int i = 0; i < Name2WeightsVQ[name].Length; i++)
                 {
+                    if (codeBook[Name2WeightsVQ[name][i]] == float.NaN)
+                    {
+                        throw new InvalidOperationException($"The weights '{name}' is corrupted due to Nan value.");
+                    }
+
                     weights[i] = new half(codeBook[Name2WeightsVQ[name][i]]);
                 }
             }
