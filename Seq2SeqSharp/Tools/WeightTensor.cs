@@ -58,8 +58,6 @@ namespace Seq2SeqSharp.Tools
         private Tensor m_TWeight = null;
         private Tensor m_TGradient = null;
         private static readonly object locker = new object();
-
-       // private bool releasedWeight = false;
         private readonly IComputeGraph m_computeGraphToBind;
 
         private string m_GradientSetName = "None";
@@ -83,11 +81,6 @@ namespace Seq2SeqSharp.Tools
         {
             get
             {
-                //if (releasedWeight)
-                //{
-                //    throw new Exception($"The weight '{Name}' has been released, you cannot access it.");
-                //}
-
                 if (m_TWeight == null)
                 {
                     m_TWeight = new Tensor(m_allocator, m_elementType, Sizes);
@@ -118,7 +111,6 @@ namespace Seq2SeqSharp.Tools
                             }
                         }
                     }
-                 //   releasedWeight = false;
                 }
             }
         }
@@ -247,6 +239,23 @@ namespace Seq2SeqSharp.Tools
         {
             return new WeightTensor(Sizes, deviceId, Name, IsTrainable, initType: m_normType, fanIn: m_fanIn, fanOut: m_fanOut, needGradient: NeedGradient, dtype: m_elementType);
         }
+
+
+        public bool IsWeightsCorrupted()
+        {
+            float[] weights = ToWeightArray();
+
+            for (int i = 0; i < weights.Length; i++)
+            {
+                if (float.IsNaN(weights[i]) || float.IsInfinity(weights[i]))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
 
         public void ZeroGradient()
         {
@@ -544,7 +553,6 @@ namespace Seq2SeqSharp.Tools
             {
                 m_TWeight.Dispose();
                 m_TWeight = null;
-              //  releasedWeight = true;
             }
         }
 

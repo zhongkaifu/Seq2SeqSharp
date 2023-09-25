@@ -20,53 +20,33 @@ namespace Seq2SeqSharp.Tools
         int Rows { get; set; }
         int Columns { get; set; }
         string Name { get; set; }
-
         bool IsTrainable { get; set; }
-
         bool NeedGradient { get; set; }
-
         int DeviceId { get; set; }
-
         float LearningRateFactor { get; set; }
-
         DType ElementType { get;}
+        IAllocator Allocator { get; }
 
         float GetWeightAt(long[] indices);
         float GetGradientAt(long[] indices);
-
         void SetWeightAt(float val, long[] indices);
-
         void CopyWeightsToGradients(IWeightTensor src);
-
         List<int> GetTopNMaxWeightIdx(int topN);
-
         void SetWeightArray(float[] v);
-
         void ReleaseWeight();
         void ReleaseGradient();
-
         void ZeroGradient();
         void CleanWeight();
-
         WeightTensor CopyWeightsRef(string name, bool needGradient, IComputeGraph graphToBind);
-
         void CopyWeightsFrom(IWeightTensor src);
         void AddGradientFrom(IWeightTensor src);
-
         float[] ToWeightArray();
-
         void UnbindFromComputeGraph();
-
         bool IsGradientNull();
-
-        IAllocator Allocator { get; }
-
         void FillGradient(float val);
-
         void Clamp(float min, float max);
-
         long ElementCount { get; }
-
         void PrintWeights();
+        bool IsWeightsCorrupted();
     }
 }

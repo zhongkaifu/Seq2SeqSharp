@@ -416,9 +416,13 @@ namespace Seq2SeqSharp.Tools
 
                             if (float.IsNaN(cost))
                             {
-                                Logger.WriteLine(Logger.Level.warn, "The cost result is Nan, so it seems weights are corrupted. Let's roll back to the previous best checkpoint.");
+                                Logger.WriteLine(Logger.Level.warn, "The cost result is Nan,  so we won't update weights at this time.");
 
-                                LoadModel();
+                                if (IsWeightsCorrupted())
+                                {
+                                    throw new WeightsCorruptedException($"The weights has been corrupted. Abort training and please check checkpoint files.");
+                                }
+
                                 break;
                             }
 
@@ -461,19 +465,12 @@ namespace Seq2SeqSharp.Tools
                             {
                                 string oomMessage = string.Empty;
                                 bool isOutOfMemException = false;
-                                bool isArithmeticException = false;
                                 foreach (var excep in err.InnerExceptions)
                                 {
                                     if (excep is OutOfMemoryException)
                                     {
                                         GC.Collect();
                                         isOutOfMemException = true;
-                                        oomMessage = excep.Message;
-                                        break;
-                                    }
-                                    else if (excep is ArithmeticException)
-                                    {
-                                        isArithmeticException = true;
                                         oomMessage = excep.Message;
                                         break;
                                     }
@@ -492,14 +489,9 @@ namespace Seq2SeqSharp.Tools
                                         break;
                                     }
                                 }
-                                else if (isArithmeticException)
-                                {
-                                    Logger.WriteLine($"Arithmetic exception: '{err.Message}'");
-                                    break;
-                                }
                                 else
                                 {
-                                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}, Call stack: {err.StackTrace}");
+                                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Inner Exception: {err.Message}, Call stack: {err.StackTrace}");
                                     throw err;
                                 }
                             }
@@ -519,10 +511,10 @@ namespace Seq2SeqSharp.Tools
                                 break;
                             }
                         }
-                        catch (ArithmeticException err)
+                        catch (WeightsCorruptedException err)
                         {
-                            Logger.WriteLine($"Arithmetic exception: '{err.Message}'");
-                            break;
+                            Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}, Call stack: {err.StackTrace}");
+                            throw;
                         }
                         catch (Exception err)
                         {
@@ -1206,6 +1198,22 @@ namespace Seq2SeqSharp.Tools
                 Logger.WriteLine($"Loading parameter '{name}'");
                 mpnw.Load(model);
             }
+        }
+
+
+        internal bool IsWeightsCorrupted()
+        {
+            var weights = GetParametersFromDefaultDevice();
+
+            foreach (var weight in weights)
+            {
+                if (weight.IsWeightsCorrupted())
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
