@@ -192,6 +192,12 @@ namespace Seq2SeqSharp.Tools
         protected abstract T LoadModel(string suffix = "");
         protected bool SaveModelRoutine<ProtoBuf_T>(T model, Func<T, ProtoBuf_T> createModel4SerializeFunc, bool createBackupPrevious = false, string suffix = "")
         {
+            Logger.WriteLine("Checking if all weights are normal.");
+            if (IsWeightsCorrupted())
+            {
+                throw new WeightsCorruptedException($"The weights has been corrupted. Abort training and please check checkpoint files.");
+            }
+
             string modelFilePath = m_modelFilePath + suffix;
             var fn = Path.GetFullPath(modelFilePath);
             var dir = Path.GetDirectoryName(fn); if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
@@ -311,6 +317,13 @@ namespace Seq2SeqSharp.Tools
             CopyWeightsFromDefaultDeviceToAllOtherDevices();
 
             model.ClearWeights();
+
+            Logger.WriteLine("Checking if all loaded weights are normal.");
+            if (IsWeightsCorrupted())
+            {
+                throw new WeightsCorruptedException($"The weights has been corrupted. Abort training and please check checkpoint files.");
+            }
+
 
             return (model);
         }

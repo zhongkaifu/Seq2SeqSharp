@@ -2386,7 +2386,12 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-
+        /// <summary>       
+        /// </summary>
+        /// <param name="src">shape: [D1, D2, D3, ... Dn-1, Dn, Dn+1, ...Dm]</param>
+        /// <param name="dim"></param>
+        /// <param name="index"></param>
+        /// <returns>Remove "dim" from the output tensor. shape: [D1, D2, D3, ... Dn-1, Dn+1, ...Dm]</returns>
         public IWeightTensor Select(IWeightTensor src, int dim, int index)
         {
             WeightTensor s = src as WeightTensor;
