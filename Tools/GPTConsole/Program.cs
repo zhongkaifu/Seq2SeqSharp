@@ -22,7 +22,7 @@ using Seq2SeqSharp.Optimizer;
 using Seq2SeqSharp.Utils;
 using Seq2SeqSharp.Applications;
 
-namespace Seq2SeqConsole
+namespace GPTConsole
 {
     internal static class Program
     {
@@ -51,7 +51,7 @@ namespace Seq2SeqConsole
                 }
 
                 Logger.Verbose = opts.LogVerbose;
-                Logger.LogFile = $"{nameof(Seq2SeqConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log";
+                Logger.LogFile = $"{nameof(GPTConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log";
 
                 ShowOptions(args, opts);
 
