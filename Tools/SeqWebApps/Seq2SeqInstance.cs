@@ -182,22 +182,15 @@ namespace Seq2SeqWebApps
 
             var srcInput = (m_srcSpm != null) ? m_srcSpm.Encode(rawSrcInput) : rawSrcInput;
             List<string> srcTokens = srcInput.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
-            List<List<String>> batchTokens = new List<List<string>>();
-            batchTokens.Add(srcTokens);
-
-            List<List<List<string>>> srcGroupBatchTokens = new List<List<List<string>>>();
-            srcGroupBatchTokens.Add(batchTokens);
-
+            List<List<String>> srcBatchTokens = new List<List<string>>();
+            srcBatchTokens.Add(srcTokens);
 
             var tgtInput = (m_tgtSpm != null) ? m_tgtSpm.Encode(rawTgtInput) : rawTgtInput;
             List<string> tgtTokens = tgtInput.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
             tokenNumToGenerate += tgtTokens.Count;
 
-            List<List<String>> batchTokens2 = new List<List<string>>();
-            batchTokens2.Add(tgtTokens);
-
-            List<List<List<string>>> tgtGroupBatchTokens = new List<List<List<string>>>();
-            tgtGroupBatchTokens.Add(batchTokens2);
+            List<List<String>> tgtBatchTokens = new List<List<string>>();
+            tgtBatchTokens.Add(tgtTokens);
 
             DecodingOptions decodingOptions = opts.CreateDecodingOptions();
             decodingOptions.MaxTgtSentLength = tokenNumToGenerate;
@@ -223,11 +216,11 @@ namespace Seq2SeqWebApps
 
                 if (m_modelType == ModelType.EncoderDecoder)
                 {
-                    nrs = m_seq2seq.Test<Seq2SeqCorpusBatch>(srcGroupBatchTokens, tgtGroupBatchTokens, decodingOptions);
+                    nrs = m_seq2seq.Test<Seq2SeqCorpusBatch>(srcBatchTokens, tgtBatchTokens, decodingOptions);
                 }
                 else
                 {
-                    nrs = m_seq2seq.Test<SeqCorpusBatch>(tgtGroupBatchTokens, tgtGroupBatchTokens, decodingOptions);
+                    nrs = m_seq2seq.Test<SeqCorpusBatch>(tgtBatchTokens, tgtBatchTokens, decodingOptions);
                 }
 
                 string rst = String.Join(" ", nrs[0].Output[0][0].ToArray(), 0, nrs[0].Output[0][0].Count);

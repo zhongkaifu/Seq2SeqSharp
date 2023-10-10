@@ -55,28 +55,14 @@ namespace Seq2SeqSharp.Utils
 
     public static class Misc
     {
-        public static void AppendNewBatch(List<List<List<string>>> inputBatchs, string line, int maxTokenLength)
+        public static void AppendNewBatch(List<List<string>> inputBatchs, string line, int maxTokenLength)
         {
-            string[] groups = line.Trim().Split('\t');
-
-            if (inputBatchs.Count == 0)
+            List<string> tokens = line.Trim().Split(' ').ToList();
+            if (tokens.Count > maxTokenLength - 2)
             {
-                for (int i = 0; i < groups.Length; i++)
-                {
-                    inputBatchs.Add(new List<List<string>>());
-                }
+                tokens = tokens.GetRange(0, maxTokenLength - 2);
             }
-
-            for (int i = 0; i < groups.Length; i++)
-            {
-                var group = groups[i];
-                List<string> tokens = group.Trim().Split(' ').ToList();
-                if (tokens.Count > maxTokenLength - 2)
-                {
-                    tokens = tokens.GetRange(0, maxTokenLength - 2);
-                }
-                inputBatchs[i].Add(tokens);
-            }
+            inputBatchs.Add(tokens);            
         }
 
 

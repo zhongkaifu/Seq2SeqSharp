@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.Corpus
 {
-    public interface IBatchStreamReader<T> where T : ISntPairBatch, new()
+    public interface IBatchStreamReader<T> where T : IPairBatch, new()
     {
-        (int, ISntPairBatch) GetNextBatch();
+        (int, IPairBatch) GetNextBatch();
     }
 }

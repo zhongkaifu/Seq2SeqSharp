@@ -6,4 +6,10 @@
         CPU,
         CPU_MKL
     }
+
+    public enum LearningRateTypeEnums
+    {
+        Decay,
+        CosineDecay
+    }
 }

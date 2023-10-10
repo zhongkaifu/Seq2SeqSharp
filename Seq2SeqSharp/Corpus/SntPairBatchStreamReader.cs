@@ -17,7 +17,7 @@ using AdvUtils;
 
 namespace Seq2SeqSharp.Corpus
 {
-    public class SntPairBatchStreamReader<T> : IBatchStreamReader<T> where T : ISntPairBatch, new()
+    public class SntPairBatchStreamReader<T> : IBatchStreamReader<T> where T : IPairBatch, new()
     {
         static object locker = new object();
 
@@ -56,10 +56,10 @@ namespace Seq2SeqSharp.Corpus
         }
 
 
-        public (int, ISntPairBatch) GetNextBatch()
+        public (int, IPairBatch) GetNextBatch()
         {
-            List<List<List<string>>> inputBatchs = new List<List<List<string>>>(); // shape: (feature_group_size, batch_size, sequence_length)
-            List<List<List<string>>> outputBatchs = new List<List<List<string>>>(); // shape: (feature_group_size, batch_size, sequence_length)
+            List<List<string>> inputBatchs = new List<List<string>>(); // shape: [batch_size, sequence_length]
+            List<List<string>> outputBatchs = new List<List<string>>(); // shape: [batch_size, sequence_length]
 
             lock (locker)
             {

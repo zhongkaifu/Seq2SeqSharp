@@ -25,10 +25,11 @@ namespace Seq2SeqSharp.Applications
     public class SeqClassification : BaseSeq2SeqFramework<SeqClassificationModel>
     {
         public Vocab SrcVocab => m_modelMetaData.SrcVocab;
-        public List<Vocab> ClsVocabs => m_modelMetaData.ClsVocabs;
 
         private MultiProcessorNetworkWrapper<IWeightTensor> m_srcEmbedding; //The embeddings over devices for target
-        private MultiProcessorNetworkWrapper<IFeedForwardLayer>[] m_encoderFFLayer; //The feed forward layers over devices after all layers in encoder
+        private MultiProcessorNetworkWrapper<IFeedForwardLayer> m_encoderFFLayer; //The feed forward layers over devices after all layers in encoder
+
+        public Vocab TgtVocab => m_modelMetaData.TgtVocab;
 
         private MultiProcessorNetworkWrapper<IEncoder> m_encoder; //The encoders over devices.
         private MultiProcessorNetworkWrapper<IWeightTensor> m_segmentEmbedding;
@@ -37,7 +38,7 @@ namespace Seq2SeqSharp.Applications
         private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
         private readonly SeqClassificationOptions m_options;
 
-        public SeqClassification(SeqClassificationOptions options, Vocab srcVocab = null, List<Vocab> clsVocabs = null)
+        public SeqClassification(SeqClassificationOptions options, Vocab srcVocab = null, Vocab tgtVocab = null)
            : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions,
                  runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq, maxDegressOfParallelism: options.TaskParallelism, 
                  cudaMemoryAllocatorType: options.CudaMemoryAllocatorType, elementType: options.AMP ? DType.Float16 : DType.Float32)
@@ -50,7 +51,7 @@ namespace Seq2SeqSharp.Applications
 
             if (File.Exists(m_options.ModelFilePath))
             {
-                if (srcVocab != null || clsVocabs != null)
+                if (srcVocab != null || tgtVocab != null)
                 {
                     throw new ArgumentException($"Model '{m_options.ModelFilePath}' exists and it includes vocabulary, so input vocabulary must be null.");
                 }
@@ -59,7 +60,7 @@ namespace Seq2SeqSharp.Applications
             }
             else
             {
-                m_modelMetaData = new SeqClassificationModel(options, srcVocab, clsVocabs);
+                m_modelMetaData = new SeqClassificationModel(options, srcVocab, tgtVocab);
 
                 //Initializng weights in encoders and decoders
                 CreateTrainableParameters(m_modelMetaData);
@@ -74,16 +75,13 @@ namespace Seq2SeqSharp.Applications
             Logger.WriteLine($"Creating encoders...");
             var raDeviceIds = new RoundArray<int>(DeviceIds);
             m_encoder = Encoder.CreateEncoders(model, m_options, raDeviceIds);
-            m_encoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>[model.ClsVocabs.Count];
-            for (int i = 0; i < model.ClsVocabs.Count; i++)
-            {
-                m_encoderFFLayer[i] = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer($"FeedForward_Encoder_{i}", model.HiddenDim, model.ClsVocabs[i].Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
-            }
+            m_encoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer($"FeedForward_Encoder", model.HiddenDim, model.TgtVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
+
 
             (m_positionalEmbeddings, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, model.HiddenDim, m_options.MaxSentLength, model, createAPE: (model.PEType == PositionEmbeddingEnums.APE));
 
             Logger.WriteLine($"Creating embeddings. Shape = '({model.SrcVocab.Count} ,{model.EncoderEmbeddingDim})'");
-            m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { model.SrcVocab.Count, model.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), initType: RandomInitType.Uniform, fanOut: true, name: "SrcEmbeddings", 
+            m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { model.SrcVocab.Count, model.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), initType: RandomInitType.Uniform, fanOut: true, name: "SrcEmbeddings",
                 isTrainable: m_options.IsEmbeddingTrainable), DeviceIds);
 
             return true;
@@ -94,19 +92,12 @@ namespace Seq2SeqSharp.Applications
         /// </summary>
         /// <param name="deviceIdIdx"></param>
         /// <returns></returns>
-        private (IEncoder, IWeightTensor, List<IFeedForwardLayer>, IWeightTensor, IWeightTensor) GetNetworksOnDeviceAt(int deviceId)
+        private (IEncoder, IWeightTensor, IFeedForwardLayer, IWeightTensor, IWeightTensor) GetNetworksOnDeviceAt(int deviceId)
         {
             var deviceIdIdx = TensorAllocator.GetDeviceIdIndex(deviceId);
-
-            List<IFeedForwardLayer> feedForwardLayers = new List<IFeedForwardLayer>();
-            foreach (var item in m_encoderFFLayer)
-            {
-                feedForwardLayers.Add(item.GetNetworkOnDevice(deviceIdIdx));
-            }
-
             return (m_encoder.GetNetworkOnDevice(deviceIdIdx),
                     m_srcEmbedding.GetNetworkOnDevice(deviceIdIdx),
-                    feedForwardLayers,
+                    m_encoderFFLayer.GetNetworkOnDevice(deviceIdIdx),
                     m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx), m_positionalEmbeddings?.GetNetworkOnDevice(deviceIdIdx));
         }
 
@@ -118,15 +109,15 @@ namespace Seq2SeqSharp.Applications
         /// <param name="tgtSnts">A batch of output tokenized sentences in target side</param>
         /// <param name="deviceIdIdx">The index of current device</param>
         /// <returns>The cost of forward part</returns>
-        public override List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, DecodingOptions decodingOptions, bool isTraining)
+        public override List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, IPairBatch sntPairBatch, DecodingOptions decodingOptions, bool isTraining)
         {
             List<NetworkResult> nrs = new List<NetworkResult>();
 
-            (IEncoder encoder, IWeightTensor srcEmbedding, List<IFeedForwardLayer> encoderFFLayer, IWeightTensor segmentEmbedding, IWeightTensor posEmbeddings) = GetNetworksOnDeviceAt(computeGraph.DeviceId);
-            var srcSnts = sntPairBatch.GetSrcTokens(0);
+            (IEncoder encoder, IWeightTensor srcEmbedding, var encoderFFLayer, IWeightTensor segmentEmbedding, IWeightTensor posEmbeddings) = GetNetworksOnDeviceAt(computeGraph.DeviceId);
+            var srcSnts = sntPairBatch.GetSrcTokens();
             var originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
             var srcTokensList = m_modelMetaData.SrcVocab.GetWordIndex(srcSnts);
-            IWeightTensor encOutput = Encoder.Run(computeGraph, sntPairBatch, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbeddings, segmentEmbedding, srcTokensList, originalSrcLengths);
+            IWeightTensor encOutput = Encoder.Run(computeGraph, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbeddings, segmentEmbedding, srcTokensList, originalSrcLengths);
 
             int srcSeqPaddedLen = srcSnts[0].Count;
             int batchSize = srcSnts.Count;
@@ -145,40 +136,39 @@ namespace Seq2SeqSharp.Applications
 
             var indice = computeGraph.CreateTensorWeights(new long[] { batchSize, 1 }, clsIdxs);
             IWeightTensor clsWeightTensor = computeGraph.IndexSelect(encOutput, indice);
-            for (int i = 0; i < m_encoderFFLayer.Length; i++)
+
+            NetworkResult nr = new NetworkResult
             {
-                NetworkResult nr = new NetworkResult
-                {
-                    Output = new List<List<List<string>>>()
-                };
+                Output = new List<List<List<string>>>()
+            };
 
-                IWeightTensor ffLayer = encoderFFLayer[i].Process(clsWeightTensor, batchSize, computeGraph);
-                IWeightTensor probs = computeGraph.Softmax(ffLayer, inPlace: true);
+            IWeightTensor ffLayer = encoderFFLayer.Process(clsWeightTensor, batchSize, computeGraph);
+            IWeightTensor probs = computeGraph.Softmax(ffLayer, inPlace: true);
 
-                if (isTraining)
-                {
-                    var tgtSnts = sntPairBatch.GetTgtTokens(i);
-                    var tgtTokensLists = m_modelMetaData.ClsVocabs[i].GetWordIndex(tgtSnts);
-                    var tgtTokensTensor = computeGraph.CreateTokensTensor(tgtTokensLists);
-                    nr.Cost = computeGraph.CrossEntropyLoss(probs, tgtTokensTensor);
-                }
-                else
-                {
-                    // Output "i"th target word
-                    using var targetIdxTensor = computeGraph.Argmax(probs, 1);
-                    float[] targetIdx = targetIdxTensor.ToWeightArray();
-                    List<string> targetWords = m_modelMetaData.ClsVocabs[i].ConvertIdsToString(targetIdx.ToList());
-                    nr.Output.Add(new List<List<string>>());
-
-                    for (int k = 0; k < batchSize; k++)
-                    {
-                        nr.Output[0].Add(new List<string>());
-                        nr.Output[0][k].Add(targetWords[k]);
-                    }
-                }
-
-                nrs.Add(nr);
+            if (isTraining)
+            {
+                var tgtSnts = sntPairBatch.GetTgtTokens();
+                var tgtTokensLists = m_modelMetaData.TgtVocab.GetWordIndex(tgtSnts);
+                var tgtTokensTensor = computeGraph.CreateTokensTensor(tgtTokensLists);
+                nr.Cost = computeGraph.CrossEntropyLoss(probs, tgtTokensTensor);
             }
+            else
+            {
+                // Output "i"th target word
+                using var targetIdxTensor = computeGraph.Argmax(probs, 1);
+                float[] targetIdx = targetIdxTensor.ToWeightArray();
+                List<string> targetWords = m_modelMetaData.TgtVocab.ConvertIdsToString(targetIdx.ToList());
+                nr.Output.Add(new List<List<string>>());
+
+                for (int k = 0; k < batchSize; k++)
+                {
+                    nr.Output[0].Add(new List<string>());
+                    nr.Output[0][k].Add(targetWords[k]);
+                }
+            }
+
+            nrs.Add(nr);
+
             return nrs;
         }
     }

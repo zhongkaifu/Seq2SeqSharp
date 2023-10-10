@@ -64,7 +64,16 @@ namespace Seq2SeqConsole
                         maxTgtSentLength: opts.MaxTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence, indexedFilePath: opts.IndexedCorpusPath, startBatchId: opts.StartBatchId);
 
                     // Create learning rate
-                    ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount, opts.LearningRateStepDownFactor, opts.UpdateNumToStepDownLearningRate);
+                    ILearningRate learningRate = null;
+
+                    if (opts.LearnRateType == LearningRateTypeEnums.CosineDecay)
+                    {
+                        learningRate = new CosineDecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.LearningRateDecaySteps, opts.WeightsUpdateCount);
+                    }
+                    else
+                    {
+                        learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount, opts.LearningRateStepDownFactor, opts.UpdateNumToStepDownLearningRate);
+                    }
 
                     // Create optimizer
                     IOptimizer optimizer = Misc.CreateOptimizer(opts);

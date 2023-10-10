@@ -349,8 +349,8 @@ namespace Seq2SeqSharp.Tools
         static DateTime lastCheckDT = DateTime.Now;
         public void PrintWeights()
         {
-            if (DateTime.Now - lastCheckDT >= TimeSpan.FromMinutes(5.0f))
-            {
+         //   if (DateTime.Now - lastCheckDT >= TimeSpan.FromMinutes(5.0f))
+         //   {
                 lastCheckDT = DateTime.Now;
                 var weights = ToWeightArray();
 
@@ -365,7 +365,7 @@ namespace Seq2SeqSharp.Tools
                 sb.Append("]");
 
                 Logger.WriteLine(sb.ToString());
-            }
+         //   }
         }
 
         public void AddSoftmaxGradient(WeightTensor src, bool inPlace = false)

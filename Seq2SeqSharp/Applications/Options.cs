@@ -159,6 +159,12 @@ namespace Seq2SeqSharp.Applications
         [Arg("Starting Learning rate", nameof(StartLearningRate))]
         public float StartLearningRate = 0.0006f;
 
+        [Arg("The decay steps of learning rate", nameof(LearningRateDecaySteps))]
+        public int LearningRateDecaySteps = 200000; // 200K
+
+        [Arg("The type of learning rate", nameof(LearnRateType))]
+        public LearningRateTypeEnums LearnRateType = LearningRateTypeEnums.Decay;
+
         [Arg("Shuffle Type. It could be NoPaddingInSrc, NoPaddingInTgt and Random", nameof(ShuffleType))]
         public ShuffleEnums ShuffleType = ShuffleEnums.Random;
 
@@ -206,6 +212,11 @@ namespace Seq2SeqSharp.Applications
 
         [Arg("Run validation every certain updates", nameof(RunValidEveryUpdates))]
         public int RunValidEveryUpdates = 10000;
+
+
+        [Arg("Save checkpoint every certain updates. The default value is 10000", nameof(SaveModelEveryUpdates))]
+        public int SaveModelEveryUpdates = 10000;
+
 
         [Arg("Valid corpus folder path", nameof(ValidCorpusPaths))]
         public string ValidCorpusPaths = null;

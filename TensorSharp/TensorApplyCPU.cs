@@ -1131,7 +1131,7 @@ namespace TensorSharp
 				for (int id = 0; id < cols; id++)
 				{
 					int i = id / 2;
-					float theta = (float)Math.Pow(10000.0, -2.0 * i / cols);
+					float theta = (float)Math.Pow(500000.0, -2.0 * i / cols);
 					float theta_m = theta * m;
 					float cos_theta_m = (float)Math.Cos(theta_m);
 					float sin_theta_m = (float)Math.Sin(theta_m);
@@ -1164,7 +1164,7 @@ namespace TensorSharp
 				for (int id = 0; id < cols; id++)
 				{
 					int i = id / 2;
-					float theta = (float)Math.Pow(10000.0, -2.0 * i / cols);
+					float theta = (float)Math.Pow(500000.0, -2.0 * i / cols);
 					float theta_m = theta * m;
 					float cos_theta_m = (float)Math.Cos(theta_m);
 					float sin_theta_m = (float)Math.Sin(theta_m);

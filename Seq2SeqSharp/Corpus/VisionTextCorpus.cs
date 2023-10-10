@@ -10,6 +10,7 @@
 
 using AdvUtils;
 using Seq2SeqSharp.Corpus;
+using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
 using System;
 using System.Collections;
@@ -19,12 +20,21 @@ using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Threading;
 
-namespace Seq2SeqSharp.Tools
+namespace Seq2SeqSharp.Corpus
 {
-    public class MonoCorpus<T> : ICorpus<T> where T : ISntPairBatch, new()
+
+    /// <summary>
+    /// Vision-Text Corpus
+    /// Src side are picture file paths
+    /// Tgt side are the aligned text
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public class VisionTextCorpus<T> : ICorpus<T> where T : IVisionSntPairBatch, new()
     {
+        internal int m_maxSrcTokenSize = 32;
         internal int m_maxTgtTokenSize = 32;
         internal int m_maxTokenSizePerBatch = 1;
+        internal List<string> m_srcFileList;
         internal List<string> m_tgtFileList;
         internal ShuffleEnums m_shuffleEnums;
 
@@ -36,9 +46,8 @@ namespace Seq2SeqSharp.Tools
 
         private TooLongSequence m_tooLongSequence = TooLongSequence.Ignore;
 
-        private string m_indexedDataSetFilePath = "";
+        private string m_sortedIndexedDataSetFilePath = "";
         private int m_batchNumInTotal = 0;
-        private int m_startBatchId = 0;
 
         public List<Dictionary<string, int>> CountTokenFreqs()
         {
@@ -57,14 +66,12 @@ namespace Seq2SeqSharp.Tools
                     }
 
                     string tgtLine = srTgt.ReadLine();
-
                     if (tgtLine.IsNullOrEmpty())
                     {
                         break;
                     }
 
                     string[] tgtGroups = tgtLine.Split('\t');
-
 
                     if (td.Count == 0)
                     {
@@ -107,7 +114,7 @@ namespace Seq2SeqSharp.Tools
             int corpusSize = 0;
             int tooLongTgtSntCnt = 0;
             string randomFileName = Path.GetRandomFileName();
-            Logger.WriteLine($"Loading and shuffling corpus from '{m_tgtFileList.Count}' files.");
+            Logger.WriteLine($"Loading and shuffling corpus from '{m_srcFileList.Count}' files.");
 
             string binaryDataSetFilePath = randomFileName + ".tmp";
             BinaryWriter bw = new BinaryWriter(new FileStream(binaryDataSetFilePath, FileMode.Create));
@@ -115,21 +122,32 @@ namespace Seq2SeqSharp.Tools
             Dictionary<long, LinkedList<long>> len2offsets = new Dictionary<long, LinkedList<long>>();
             Dictionary<long, long> len2lengths = new Dictionary<long, long>();
 
-            for (int i = 0; i < m_tgtFileList.Count; i++)
+            for (int i = 0; i < m_srcFileList.Count; i++)
             {
+                StreamReader srSrc = new StreamReader(m_srcFileList[i]);
                 StreamReader srTgt = new StreamReader(m_tgtFileList[i]);
 
                 while (true)
                 {
-                    if (srTgt.EndOfStream)
+                    if (srSrc.EndOfStream && srTgt.EndOfStream)
                     {
                         break;
                     }
 
-                    RawSntPair rawSntPair = new RawSntPair(null, srTgt.ReadLine(), 0, m_maxTgtTokenSize, m_tooLongSequence == TooLongSequence.Truncation);
+                    RawSntPair rawSntPair = new RawSntPair(srSrc.ReadLine(), srTgt.ReadLine(), m_maxSrcTokenSize, m_maxTgtTokenSize, m_tooLongSequence == TooLongSequence.Truncation);
                     if (rawSntPair.IsEmptyPair())
                     {
                         break;
+                    }
+
+                    if (String.IsNullOrEmpty(rawSntPair.SrcSnt))
+                    {
+                        throw new InvalidDataException($"Source Line is empty. The data set is corrupted. SourceLine = '{rawSntPair.SrcSnt}', TargetLine = '{rawSntPair.TgtSnt}'");
+                    }
+
+                    if (String.IsNullOrEmpty(rawSntPair.TgtSnt))
+                    {
+                        throw new InvalidDataException($"Target Line is empty. The data set is corrupted. SourceLine = '{rawSntPair.SrcSnt}', TargetLine = '{rawSntPair.TgtSnt}'");
                     }
 
                     if (m_showTokenDist)
@@ -154,18 +172,9 @@ namespace Seq2SeqSharp.Tools
                     }
 
                     long offset = bw.BaseStream.Position;
-                    bw.Write(rawSntPair.TgtSnt);
+                    bw.Write(String.Join("\n", new string[] { rawSntPair.SrcSnt, rawSntPair.TgtSnt }));
 
-                    long length = 0;
-                    if (m_shuffleEnums == ShuffleEnums.NoPadding)
-                    {
-                        length = rawSntPair.GroupLenId;
-                    }
-                    else
-                    {
-                        length = rawSntPair.TgtGroupLenId;
-                    }
-
+                    long length = rawSntPair.TgtGroupLenId;                   
                     if (len2offsets.ContainsKey(length) == false)
                     {
                         len2offsets.Add(length, new LinkedList<long>());
@@ -177,6 +186,7 @@ namespace Seq2SeqSharp.Tools
                     Interlocked.Increment(ref corpusSize);
                 }
 
+                srSrc.Close();
                 srTgt.Close();
             }
 
@@ -191,7 +201,7 @@ namespace Seq2SeqSharp.Tools
 
             if (m_showTokenDist)
             {
-                Logger.WriteLine($"AggregateLength = '{m_shuffleEnums}'");
+                Logger.WriteLine($"AggregateSrcLength = '{m_shuffleEnums}'");
                 Logger.WriteLine($"Tgt token length distribution");
 
                 int tgtTotalNum = 0;
@@ -249,8 +259,8 @@ namespace Seq2SeqSharp.Tools
                 (var length2offsets, var length2counts, string tmpDataSetFilePath) = BuildIndex();
                 Logger.WriteLine($"Start to sort and shuffle data set by length.");
 
-                m_indexedDataSetFilePath = tmpDataSetFilePath + ".sorted";
-                using (BinaryWriter bw = new BinaryWriter(new FileStream(m_indexedDataSetFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 40960000)))
+                m_sortedIndexedDataSetFilePath = tmpDataSetFilePath + ".sorted";
+                using (BinaryWriter bw = new BinaryWriter(new FileStream(m_sortedIndexedDataSetFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 40960000)))
                 using (MemoryMappedFile mmf = MemoryMappedFile.CreateFromFile(tmpDataSetFilePath))
                 using (MemoryMappedViewStream mms = mmf.CreateViewStream())
                 {
@@ -263,6 +273,7 @@ namespace Seq2SeqSharp.Tools
 
                             int totalTgtTokenSize = 0;
                             int sentSize = 0;
+                            List<string> srcLines = new List<string>();
                             List<string> tgtLines = new List<string>();
                             while (totalTgtTokenSize < m_maxTokenSizePerBatch && offsets.Any())
                             {
@@ -271,8 +282,14 @@ namespace Seq2SeqSharp.Tools
                                 length2counts[length]--;
 
                                 br.BaseStream.Seek(offset, SeekOrigin.Begin);
-                                string tgtLine = br.ReadString();
+
+                                string[] srcTgtLine = br.ReadString().Split("\n");
+                                string srcLine = srcTgtLine[0];
+                                string tgtLine = srcTgtLine[1];
+
                                 totalTgtTokenSize += tgtLine.Split(' ').Length;
+
+                                srcLines.Add(srcLine);
                                 tgtLines.Add(tgtLine);
 
 
@@ -280,6 +297,7 @@ namespace Seq2SeqSharp.Tools
                             }
 
                             bw.Write(sentSize);
+                            bw.Write(String.Join("\n", srcLines));
                             bw.Write(String.Join("\n", tgtLines));
 
                             m_batchNumInTotal++;
@@ -312,19 +330,19 @@ namespace Seq2SeqSharp.Tools
 
         public IEnumerator<T> GetEnumerator()
         {
-            if (String.IsNullOrEmpty(m_indexedDataSetFilePath) || File.Exists(m_indexedDataSetFilePath) == false)
+            if (String.IsNullOrEmpty(m_sortedIndexedDataSetFilePath) || File.Exists(m_sortedIndexedDataSetFilePath) == false)
             {
                 PrepareDataSet();
             }
             else
             {
-                Logger.WriteLine($"Use existing indexed data set '{m_indexedDataSetFilePath}'");
+                Logger.WriteLine($"Use existing sorted indexed data set file '{m_sortedIndexedDataSetFilePath}'");
             }
 
             int batchIdx = 0;
             int currentBatchPercent = 0;
 
-            using (MemoryMappedFile mmf = MemoryMappedFile.CreateFromFile(m_indexedDataSetFilePath))
+            using (MemoryMappedFile mmf = MemoryMappedFile.CreateFromFile(m_sortedIndexedDataSetFilePath))
             using (MemoryMappedViewStream mms = mmf.CreateViewStream())
             {
                 using (BinaryReader br = new BinaryReader(mms))
@@ -338,60 +356,37 @@ namespace Seq2SeqSharp.Tools
                         }
 
                         List<IPair> outputs = new List<IPair>();
-                        string[] tgtLines = br.ReadString().Split("\n");
+
+                        string[] srcLines = br.ReadString().Split("\n"); // List of picture file path
+                        string[] tgtLines = br.ReadString().Split("\n");// List of text
                         batchIdx++;
 
-                        if (batchIdx < m_startBatchId)
-                        {
-                            continue;
-                        }
-
-                        if (batchIdx % 10000 == 0)
-                        {
-                            Logger.WriteLine($"Processing batch '{batchIdx}'");
-                        }
-
-                        T batch;
-                        int currentTokenCountsInBatch = 0;
                         for (int i = 0; i < sizeInBatch; i++)
                         {
+                            var srcLine = srcLines[i];
                             var tgtLine = tgtLines[i];
 
                             if (m_batchNumInTotal > 0)
                             {
                                 if ((100 * batchIdx / m_batchNumInTotal) > currentBatchPercent)
                                 {
-                                    Logger.WriteLine($"Processing batch '{batchIdx}/{m_batchNumInTotal}'."); // The '{i}th' record in this batch is: Target = '{tgtLine}'");
+                                    Logger.WriteLine($"Processing batch '{batchIdx}/{m_batchNumInTotal}'."); // The '{i}th' record in this batch is: Source = '{srcLine}' Target = '{tgtLine}'");
                                     currentBatchPercent++;
                                 }
-                            }                            
-
-                            IPair sntPair = new SntPair(tgtLine, tgtLine);
-                            currentTokenCountsInBatch += sntPair.GetTgtTokenCount();
-                            outputs.Add(sntPair);
-
-                            if (currentTokenCountsInBatch >= m_maxTokenSizePerBatch)
-                            {
-                                batch = new T();
-                                batch.CreateBatch(outputs);
-                                yield return batch;
-
-                                outputs = new List<IPair>();
-                                currentTokenCountsInBatch = 0;
                             }
+
+                            IPair sntPair = new VisionSntPair(srcLine, tgtLine);
+                            outputs.Add(sntPair);
                         }
 
-                        if (outputs.Count > 0)
-                        {
-                            batch = new T();
-                            batch.CreateBatch(outputs);
-                            yield return batch;
-                        }
+                        var batch = new T();
+                        batch.CreateBatch(outputs);
+                        yield return batch;
                     }
                 }
             }
 
-            File.Delete(m_indexedDataSetFilePath);
+            File.Delete(m_sortedIndexedDataSetFilePath);
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -399,25 +394,72 @@ namespace Seq2SeqSharp.Tools
             return GetEnumerator();
         }
 
-        public MonoCorpus()
+        public VisionTextCorpus()
         {
 
         }
 
-        public MonoCorpus(string corpusFilePath, string tgtLangName, int maxTokenSizePerBatch, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random, TooLongSequence tooLongSequence = TooLongSequence.Ignore, string indexedFilePath = "", int startBatchId = 0)
+        /// <summary>
+        /// Build vocabulary from training corpus
+        /// </summary>
+        /// <param name="vocabSize"></param>
+        public Vocab BuildVocabs(int tgtVocabSize = 45000, int minFreq = 1)
         {
-            Logger.WriteLine($"Loading mono corpus from '{corpusFilePath}' Files search pattern '*.{tgtLangName}.snt' MaxTgtSentLength = '{maxTgtSentLength}', aggregateLengthForShuffle = '{shuffleEnums}', TooLongSequence = '{tooLongSequence}'");
+            CorpusBatch.t_ds = CountTokenFreqs();
+
+            (var srcVocabs, var tgtVocabs) = CorpusBatch.GenerateVocabs(0, tgtVocabSize, minFreq);
+            return tgtVocabs[0];
+        }
+
+        public VisionTextCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int maxTokenSizePerBatch, int maxSrcSentLength = 32, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random, TooLongSequence tooLongSequence = TooLongSequence.Ignore, string indexedFilePath = null)
+        {
+            Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSrcSentLength = '{maxSrcSentLength}',  MaxTgtSentLength = '{maxTgtSentLength}', aggregateSrcLengthForShuffle = '{shuffleEnums}', TooLongSequence = '{tooLongSequence}'");
             m_maxTokenSizePerBatch = maxTokenSizePerBatch;
+            m_maxSrcTokenSize = maxSrcSentLength;
             m_maxTgtTokenSize = maxTgtSentLength;
+
             m_tooLongSequence = tooLongSequence;
+
             m_shuffleEnums = shuffleEnums;
             CorpusName = corpusFilePath;
-            m_indexedDataSetFilePath = indexedFilePath;
-            m_startBatchId = startBatchId;
+            m_sortedIndexedDataSetFilePath = indexedFilePath;
 
+            m_srcFileList = new List<string>();
             m_tgtFileList = new List<string>();
-            string[] files = Directory.GetFiles(corpusFilePath, $"*.{tgtLangName}.snt", SearchOption.TopDirectoryOnly);
-            m_tgtFileList.AddRange(files);           
+            string[] files = Directory.GetFiles(corpusFilePath, $"*.*", SearchOption.TopDirectoryOnly);
+
+            Dictionary<string, string> srcKey2FileName = new Dictionary<string, string>();
+            Dictionary<string, string> tgtKey2FileName = new Dictionary<string, string>();
+
+            string srcSuffix = $".{srcLangName}.snt";
+            string tgtSuffix = $".{tgtLangName}.snt";
+
+            foreach (string file in files)
+            {
+                if (file.EndsWith(srcSuffix, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    string srcKey = file.Substring(0, file.Length - srcSuffix.Length);
+                    srcKey2FileName.Add(srcKey, file);
+
+                    Logger.WriteLine($"Add source file '{file}' to key '{srcKey}'");
+                }
+
+                if (file.EndsWith(tgtSuffix, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    string tgtKey = file.Substring(0, file.Length - tgtSuffix.Length);
+                    tgtKey2FileName.Add(tgtKey, file);
+
+
+                    Logger.WriteLine($"Add target file '{file}' to key '{tgtKey}'");
+                }
+            }
+
+            foreach (var pair in srcKey2FileName)
+            {
+                m_srcFileList.Add(pair.Value);
+                m_tgtFileList.Add(tgtKey2FileName[pair.Key]);
+            }
+
         }
     }
 }

@@ -21,14 +21,12 @@ namespace Seq2SeqSharp
     {
         public SeqLabelModel() { }
         public SeqLabelModel(SeqLabelOptions opts, Vocab srcVocab, Vocab clsVocab)
-            : base(opts, srcVocab)
+            : base(opts, srcVocab, clsVocab)
         {
-            ClsVocab = clsVocab;
         }
         public SeqLabelModel(Model_4_ProtoBufSerializer m)
             : base(m)
         {
-            ClsVocabs = m.ClsVocabs?.Select(v => v.ToVocab()).ToList();
         }
         public static SeqLabelModel Create(Model_4_ProtoBufSerializer m) => new SeqLabelModel(m);
     }

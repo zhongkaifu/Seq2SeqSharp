@@ -14,29 +14,25 @@ namespace Seq2SeqSharp.Corpus
 {
     public class SeqLabelingCorpusBatch : CorpusBatch
     {
-        public override void CreateBatch(List<SntPair> sntPairs)
+        public override void CreateBatch(List<IPair> sntPairs)
         {
             base.CreateBatch(sntPairs);
         }
 
 
-        public override void CreateBatch(List<List<List<string>>> srcTokensGroups, List<List<List<string>>> tgtTokensGroups = null)
+        public override void CreateBatch(List<List<string>> srcTokens, List<List<string>> tgtTokens = null)
         {
-            SrcTknsGroups = srcTokensGroups;
-            TgtTknsGroups = new List<List<List<string>>>
-            {
-                InitializeHypTokens("")
-            };
+            SrcBatchTokens = srcTokens;
+            TgtBatchTokens = InitializeHypTokens("");
         }
 
         public override ISntPairBatch CloneSrcTokens()
         {
             Seq2SeqCorpusBatch spb = new Seq2SeqCorpusBatch
             {
-                SrcTknsGroups = SrcTknsGroups,
-                TgtTknsGroups = new List<List<List<string>>>()
+                SrcBatchTokens = SrcBatchTokens,
+                TgtBatchTokens = InitializeHypTokens("")
             };
-            spb.TgtTknsGroups.Add(InitializeHypTokens(""));
 
             return spb;
         }

@@ -35,10 +35,8 @@ namespace Seq2SeqSharp
         public int MultiHeadNum { get; set; }
         public Vocab SrcVocab { get; set; }
         public Vocab TgtVocab { get; set; }
-        public List<Vocab> ClsVocabs { get; set; }
         public bool EnableCoverageModel { get; set; }
         public bool SharedEmbeddings { get; set; }
-        public Vocab ClsVocab { get; set; }
 
         public string SimilarityType { get; set; }
 

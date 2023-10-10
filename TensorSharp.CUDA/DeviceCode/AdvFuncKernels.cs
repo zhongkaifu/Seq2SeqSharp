@@ -668,7 +668,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
         if(id < cols)
         {          
              int i = id / 2;
-             float theta = __powf(10000.0, -2.0 * i / cols);
+             float theta = __powf(500000.0, -2.0 * i / cols);
              float theta_m = theta * m;
              float cos_theta_m = __cosf(theta_m);
              float sin_theta_m = __sinf(theta_m);
@@ -704,7 +704,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
         if(id < cols)
         {          
              int i = id / 2;
-             float theta = __powf(10000.0, -2.0 * i / cols);
+             float theta = __powf(500000.0, -2.0 * i / cols);
              float theta_m = theta * m;
              float cos_theta_m = __cosf(theta_m);
              float sin_theta_m = __sinf(theta_m);
@@ -1430,7 +1430,7 @@ __global__ void RoPEGradHalf(__half* __restrict__ grad, __half* __restrict__ adj
         if(id < cols)
         {          
              int i = id / 2;
-             float theta = __powf(10000.0, -2.0 * i / cols);
+             float theta = __powf(500000.0, -2.0 * i / cols);
              float theta_m = theta * m;
              float cos_theta_m = __cosf(theta_m);
              float sin_theta_m = __sinf(theta_m);
@@ -1468,7 +1468,7 @@ __global__ void RoPEGradHalf(__half* __restrict__ grad, __half* __restrict__ adj
         if(id < cols)
         {          
              int i = id / 2;
-             float theta = __powf(10000.0, -2.0 * i / cols);
+             float theta = __powf(500000.0, -2.0 * i / cols);
              float theta_m = theta * m;
              float cos_theta_m = __cosf(theta_m);
              float sin_theta_m = __sinf(theta_m);

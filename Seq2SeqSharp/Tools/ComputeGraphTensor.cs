@@ -2171,7 +2171,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor alphaT = alpha as WeightTensor;
             WeightTensor betaT = beta as WeightTensor;
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(srcT.Sizes, m_deviceId, name: $"{GetHashString(src.Name, alpha.Name, beta.Name)}.LayerNorm", graphToBind: this, needGradient: srcT.NeedGradient, dtype: src.ElementType);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(srcT.Sizes, m_deviceId, name: $"{GetHashString(src.Name, alpha.Name, beta.Name)}.LayerNorm", graphToBind: this, needGradient: srcT.NeedGradient || alphaT.NeedGradient || betaT.NeedGradient, dtype: src.ElementType);
             VisualizeNodes(new IWeightTensor[] { src, alpha, beta }, res);
 
             Ops.LayerNorm(res.TWeight, srcT.TWeight, alphaT.TWeight, betaT.TWeight, eps);
@@ -2181,7 +2181,7 @@ namespace Seq2SeqSharp.Tools
                 var resTWeight = res.TWeight.CopyRef();
                 void backward()
                 {
-                    if (srcT.NeedGradient)
+                    if (srcT.NeedGradient || alphaT.NeedGradient || betaT.NeedGradient)
                     {
                         Ops.LayerNormGrad(srcT.TGradient, alphaT.TGradient, betaT.TGradient, res.TGradient, resTWeight, srcTWeight, alphaT.TWeight, betaT.TWeight, eps);
                     }
@@ -2482,40 +2482,40 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="paddedLength"></param>
-        /// <param name="appliedLengths"></param>
-        /// <returns>shape: (batch_size, sequence_padded_length, dim)</returns>
-        public IWeightTensor BuildFeatureMask(int paddedLength, List<int> appliedLengths, int dim)
-        {
-            float[] buf = new float[appliedLengths.Count * paddedLength * dim];
-            Array.Fill(buf, 0.0f);
+        ///// <summary>
+        ///// 
+        ///// </summary>
+        ///// <param name="paddedLength"></param>
+        ///// <param name="appliedLengths"></param>
+        ///// <returns>shape: (batch_size, sequence_padded_length, dim)</returns>
+        //public IWeightTensor BuildFeatureMask(int paddedLength, List<int> appliedLengths, int dim)
+        //{
+        //    float[] buf = new float[appliedLengths.Count * paddedLength * dim];
+        //    Array.Fill(buf, 0.0f);
 
-            for (int k = 0; k < appliedLengths.Count; k++)
-            {
-                for (int i = 0; i < appliedLengths[k]; i++)
-                {
-                    Array.Fill(buf, 1.0f, k * (paddedLength * dim) + i * dim, dim);
-                }
-            }
+        //    for (int k = 0; k < appliedLengths.Count; k++)
+        //    {
+        //        for (int i = 0; i < appliedLengths[k]; i++)
+        //        {
+        //            Array.Fill(buf, 1.0f, k * (paddedLength * dim) + i * dim, dim);
+        //        }
+        //    }
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { appliedLengths.Count, paddedLength, dim }, m_deviceId, name: $"FeatureMask_{m_deviceId}", graphToBind: this, needGradient: false);
-            res.SetWeightArray(buf);
+        //    WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { appliedLengths.Count, paddedLength, dim }, m_deviceId, name: $"FeatureMask_{m_deviceId}", graphToBind: this, needGradient: false);
+        //    res.SetWeightArray(buf);
 
-            if (m_needsBackprop)
-            {
-                void backward()
-                {
-                    res.Dispose();
-                }
-                m_backprop.Add(backward);
-            }
+        //    if (m_needsBackprop)
+        //    {
+        //        void backward()
+        //        {
+        //            res.Dispose();
+        //        }
+        //        m_backprop.Add(backward);
+        //    }
 
-            return res;
+        //    return res;
 
-        }
+        //}
 
         public IWeightTensor BuildPadSelfMask(int paddedLength, float[] originalLengths, DType elementType = DType.Float32)
         {

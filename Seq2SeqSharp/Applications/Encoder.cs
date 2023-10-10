@@ -58,7 +58,7 @@ namespace Seq2SeqSharp.Applications
             return encoder;
         }
 
-        static public IWeightTensor Run(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, IEncoder encoder, IModel modelMetaData, ShuffleEnums shuffleType,
+        static public IWeightTensor Run(IComputeGraph computeGraph, IEncoder encoder, IModel modelMetaData, ShuffleEnums shuffleType,
             IWeightTensor srcEmbedding, IWeightTensor posEmbeddings, IWeightTensor segmentEmbedding, List<List<int>> srcSntsIds, float[] originalSrcLengths, bool amp = false)
         {
             // Reset networks
@@ -66,26 +66,6 @@ namespace Seq2SeqSharp.Applications
 
             IWeightTensor encOutput = InnerRunner(computeGraph, srcSntsIds, originalSrcLengths, shuffleType, encoder, modelMetaData, srcEmbedding, posEmbeddings, segmentEmbedding, amp);
             return encOutput;
-        }
-
-        public static IWeightTensor BuildTensorForSourceTokenGroupAt(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, ShuffleEnums shuffleType, IEncoder encoder, IModel modelMetaData, IWeightTensor srcEmbedding, IWeightTensor posEmbeddings, IWeightTensor segmentEmbedding, int groupId)
-        {
-            var contextTokens = InsertCLSToken(sntPairBatch.GetSrcTokens(groupId));
-            var originalSrcContextLength = BuildInTokens.PadSentences(contextTokens);
-            var contextTokenIds = modelMetaData.SrcVocab.GetWordIndex(contextTokens);
-
-            IWeightTensor encContextOutput = InnerRunner(computeGraph, contextTokenIds, originalSrcContextLength, shuffleType, encoder, modelMetaData, srcEmbedding, posEmbeddings, segmentEmbedding);
-
-            int contextPaddedLen = contextTokens[0].Count;
-            float[] contextCLSIdxs = new float[sntPairBatch.BatchSize];
-            for (int j = 0; j < sntPairBatch.BatchSize; j++)
-            {
-                contextCLSIdxs[j] = j * contextPaddedLen;
-            }
-
-            var indice = computeGraph.CreateTensorWeights(new long[] { contextCLSIdxs.Length, 1 }, contextCLSIdxs);
-            IWeightTensor contextCLSOutput = computeGraph.IndexSelect(encContextOutput, indice);
-            return contextCLSOutput;
         }
 
         static private IWeightTensor InnerRunner(IComputeGraph computeGraph, List<List<int>> srcTokensList, float[] originalSrcLengths, ShuffleEnums shuffleType, IEncoder encoder, IModel modelMetaData,

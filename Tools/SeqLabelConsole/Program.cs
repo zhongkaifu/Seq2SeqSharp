@@ -182,12 +182,11 @@ namespace SeqLabelConsole
             }
         }
 
-        public static List<List<List<string>>> ConstructInputTokens(List<string> input)
+        public static List<List<string>> ConstructInputTokens(List<string> input)
         {
             List<List<string>> inputSeqs = new List<List<string>>() { input };
-            List<List<List<string>>> inputSeqsGroups = new List<List<List<string>>>() { inputSeqs };
 
-            return inputSeqsGroups;
+            return inputSeqs;
         }
         private static void ShowOptions(string[] args)
         {

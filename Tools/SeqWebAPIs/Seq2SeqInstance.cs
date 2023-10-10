@@ -47,10 +47,9 @@ namespace Seq2SeqWebAPI
 
             var tokens = input.Split(' ').ToList();
             var batchTokens = new List<List<string>> { tokens };
-            var groupBatchTokens = new List<List<List<string>>> { batchTokens };
 
             DecodingOptions decodingOptions = opts.CreateDecodingOptions();
-            var nrs = m_seq2seq.Test<Seq2SeqCorpusBatch>(groupBatchTokens, null, decodingOptions);
+            var nrs = m_seq2seq.Test<Seq2SeqCorpusBatch>(batchTokens, null, decodingOptions);
             var out_tokens = nrs[0].Output[0][0];
 
             string rst = null;

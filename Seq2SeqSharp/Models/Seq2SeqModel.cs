@@ -22,28 +22,24 @@ namespace Seq2SeqSharp
         public Seq2SeqModel() { }
 
         public Seq2SeqModel(Seq2SeqOptions opts, Vocab srcVocab, Vocab tgtVocab)
-            : base(opts, srcVocab)
+            : base(opts, srcVocab, tgtVocab)
         {
             DecoderEmbeddingDim = opts.TgtEmbeddingDim;
             DecoderLayerDepth = opts.DecoderLayerDepth;
             DecoderType = opts.DecoderType;
             EnableCoverageModel = opts.EnableCoverageModel;
             SharedEmbeddings = opts.SharedEmbeddings;
-            TgtVocab = tgtVocab;
             PointerGenerator = opts.PointerGenerator;
         }
 
         public Seq2SeqModel(Model_4_ProtoBufSerializer m)
             : base(m)
         {
-            ClsVocabs = m.ClsVocabs?.Select(v => v.ToVocab()).ToList();
-
             DecoderEmbeddingDim = m.DecoderEmbeddingDim;
             DecoderLayerDepth = m.DecoderLayerDepth;
             DecoderType = m.DecoderType;
             EnableCoverageModel = m.EnableCoverageModel;
             SharedEmbeddings = m.SharedEmbeddings;
-            TgtVocab = m.TgtVocab?.ToVocab();
         }
         public static Seq2SeqModel Create(Model_4_ProtoBufSerializer m) => new Seq2SeqModel(m);
     }

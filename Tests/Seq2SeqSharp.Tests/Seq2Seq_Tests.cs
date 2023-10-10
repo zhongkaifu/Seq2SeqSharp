@@ -197,14 +197,14 @@ public class Seq2Seq_Tests
 
         foreach (var batch in trainCorpus)
         {
-            var srcBatch = batch.GetSrcTokens(0);
+            var srcBatch = batch.GetSrcTokens();
             foreach (var srcTokens in srcBatch)
             {
                 Assert.IsTrue(srcTokens[0] == BuildInTokens.BOS);
                 Assert.IsTrue(srcTokens[srcTokens.Count - 1] == BuildInTokens.EOS);
             }
 
-            var tgtBatch = batch.GetTgtTokens(0);
+            var tgtBatch = batch.GetTgtTokens();
             foreach (var tgtTokens in tgtBatch)
             {
                 Assert.IsTrue(tgtTokens[0] == BuildInTokens.BOS);

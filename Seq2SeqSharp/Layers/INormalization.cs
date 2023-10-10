@@ -2,7 +2,7 @@
 
 namespace Seq2SeqSharp.Layers
 {
-    internal interface INormalization : INeuralUnit
+    public interface INormalization : INeuralUnit
     {
         IWeightTensor Norm(IWeightTensor input, IComputeGraph g);
     }

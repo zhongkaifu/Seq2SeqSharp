@@ -431,7 +431,7 @@ namespace Seq2SeqSharp.Tools
                             break;
                         }
 
-                        List<SntPair> outputs = new List<SntPair>();
+                        List<IPair> outputs = new List<IPair>();
 
                         string[] srcLines = br.ReadString().Split("\n");
                         string[] tgtLines = br.ReadString().Split("\n");
@@ -451,7 +451,7 @@ namespace Seq2SeqSharp.Tools
                                 }
                             }
 
-                            SntPair sntPair = new SntPair(srcLine, tgtLine);
+                            IPair sntPair = new SntPair(srcLine, tgtLine);
                             outputs.Add(sntPair);
                         }
 

@@ -195,13 +195,13 @@ namespace Seq2SeqSharp.Applications
         /// <param name="tgtSnts">A batch of output tokenized sentences in target side</param>
         /// <param name="deviceIdIdx">The index of current device</param>
         /// <returns>The cost of forward part</returns>
-        public override List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, ISntPairBatch sntPairBatch, DecodingOptions decodingOptions, bool isTraining)
+        public override List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, IPairBatch sntPairBatch, DecodingOptions decodingOptions, bool isTraining)
         {
             (var decoder, var decoderFFLayer, var tgtEmbedding, var segmentEmbedding, var posEmbeddings) = GetNetworksOnDeviceAt(computeGraph.DeviceId);
             List<NetworkResult> nrs = new List<NetworkResult>();
 
             // Generate output decoder sentences
-            var tgtSnts = sntPairBatch.GetSrcTokens(0);
+            var tgtSnts = sntPairBatch.GetSrcTokens();
             int batchSize = tgtSnts.Count;
             var tgtTokensList = m_modelMetaData.TgtVocab.GetWordIndex(tgtSnts);
             NetworkResult nr = new NetworkResult();

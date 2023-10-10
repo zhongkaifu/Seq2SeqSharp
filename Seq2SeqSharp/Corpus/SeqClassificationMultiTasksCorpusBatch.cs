@@ -10,29 +10,29 @@ namespace Seq2SeqSharp.Corpus
     public class SeqClassificationMultiTasksCorpusBatch : CorpusBatch
     {
 
-        public override void CreateBatch(List<SntPair> sntPairs)
+        public override void CreateBatch(List<IPair> sntPairs)
         {
             base.CreateBatch(sntPairs);
 
-            TryAddPrefix(SrcTknsGroups[0], BuildInTokens.CLS);
+            TryAddPrefix(SrcBatchTokens, BuildInTokens.CLS);
         }
 
 
-        public override void CreateBatch(List<List<List<string>>> srcTokensGroups, List<List<List<string>>> tgtTokensGroups = null)
+        public override void CreateBatch(List<List<string>> srcTokens, List<List<string>> tgtTokens = null)
         {
-            SrcTknsGroups = srcTokensGroups;
-            TgtTknsGroups = null;
+            SrcBatchTokens = srcTokens;
+            TgtBatchTokens = null;
 
 
-            TryAddPrefix(SrcTknsGroups[0], BuildInTokens.CLS);
+            TryAddPrefix(SrcBatchTokens, BuildInTokens.CLS);
         }
 
         public override ISntPairBatch CloneSrcTokens()
         {
             SeqClassificationMultiTasksCorpusBatch spb = new SeqClassificationMultiTasksCorpusBatch
             {
-                SrcTknsGroups = SrcTknsGroups,
-                TgtTknsGroups = null
+                SrcBatchTokens = SrcBatchTokens,
+                TgtBatchTokens = null
             };
 
             return spb;

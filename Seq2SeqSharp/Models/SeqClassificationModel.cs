@@ -20,15 +20,13 @@ namespace Seq2SeqSharp.Models
     public class SeqClassificationModel : Model
     {
         public SeqClassificationModel() { }
-        public SeqClassificationModel(SeqClassificationOptions opts, Vocab srcVocab, List<Vocab> clsVocabs)
-            : base(opts, srcVocab)
+        public SeqClassificationModel(SeqClassificationOptions opts, Vocab srcVocab, Vocab tgtVocab)
+            : base(opts, srcVocab, tgtVocab)
         {
-            ClsVocabs = clsVocabs;
         }
         public SeqClassificationModel(Model_4_ProtoBufSerializer m)
             : base(m)
         {
-            ClsVocabs = m.ClsVocabs?.Select(v => v.ToVocab()).ToList();
         }
         public static SeqClassificationModel Create(Model_4_ProtoBufSerializer m) => new SeqClassificationModel(m);
     }

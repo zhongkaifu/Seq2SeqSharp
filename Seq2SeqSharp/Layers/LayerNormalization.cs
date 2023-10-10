@@ -8,10 +8,12 @@
 // Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
+using ManagedCuda.VectorTypes;
 using Seq2SeqSharp.Layers;
 using Seq2SeqSharp.Tools;
 using System;
 using System.Collections.Generic;
+using System.Xml.Linq;
 using TensorSharp;
 
 namespace Seq2SeqSharp
@@ -23,8 +25,23 @@ namespace Seq2SeqSharp
         private readonly IWeightTensor m_beta;
         private readonly float m_epsilon;
 
+        private readonly string m_name;
+        private readonly int m_dim;
+        private readonly int m_deviceId;
+        private readonly bool m_isTrainable;
+        private readonly float m_learningRateFactor;
+        private readonly DType m_elementType;
+
+
         public LayerNormalization(string name, int dim, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, float epsilon = 1e-06f, DType elementType = DType.Float32)
         {
+            m_name = name;
+            m_dim = dim;
+            m_deviceId = deviceId;
+            m_isTrainable= isTrainable;
+            m_learningRateFactor= learningRateFactor;
+            m_elementType= elementType;
+
             m_alpha = new WeightTensor(new long[2] { 1, dim }, 1.0f, deviceId, name: $"{name}.{nameof(m_alpha)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: elementType);
             m_beta = new WeightTensor(new long[2] { 1, dim }, 0, deviceId, name: $"{name}.{nameof(m_beta)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: elementType);
             m_epsilon = epsilon;
@@ -74,12 +91,12 @@ namespace Seq2SeqSharp
 
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
-            throw new NotImplementedException();
+            return new LayerNormalization(m_name, m_dim, deviceId, m_isTrainable, m_learningRateFactor, m_epsilon, m_elementType);
         }
 
         public int GetDeviceId()
         {
-            throw new NotImplementedException();
+            return m_deviceId;
         }
     }
 }

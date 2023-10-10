@@ -40,7 +40,6 @@ namespace Seq2SeqSharp.Models
         public int MultiHeadNum { get; set; }
         public Vocab SrcVocab { get; set; }
         public Vocab TgtVocab { get; set; }
-        public List<Vocab> ClsVocabs { get; set; }
         public bool EnableCoverageModel { get; set; }
         public bool SharedEmbeddings { get; set; }
 
@@ -52,34 +51,6 @@ namespace Seq2SeqSharp.Models
 
         public bool PointerGenerator { get; set; }
 
-        public Vocab ClsVocab
-        {
-            get
-            {
-                if (ClsVocabs == null)
-                {
-                    ClsVocabs = new List<Vocab>
-                    {
-                        new Vocab()
-                    };
-                }
-
-                return ClsVocabs[0];
-            }
-
-            set
-            {
-                if (ClsVocabs == null)
-                {
-                    ClsVocabs = new List<Vocab>
-                    {
-                        new Vocab()
-                    };
-                }
-
-                ClsVocabs[0] = value;
-            }
-        }
 
         public Dictionary<string, float[]> Name2Weights { get; set; }
 
@@ -93,7 +64,7 @@ namespace Seq2SeqSharp.Models
         public NormEnums NormType { get; set; }
 
         public Model() { }
-        public Model(Options opts,Vocab srcVocab)
+        public Model(Options opts,Vocab srcVocab, Vocab tgtVocab)
         {
             HiddenDim = opts.HiddenSize;
             IntermediateDim = opts.IntermediateSize;
@@ -101,6 +72,7 @@ namespace Seq2SeqSharp.Models
             EncoderType = opts.EncoderType;
             MultiHeadNum = opts.MultiHeadNum;
             SrcVocab = srcVocab;
+            TgtVocab = tgtVocab;
             EncoderEmbeddingDim = opts.SrcEmbeddingDim;
             EnableSegmentEmbeddings = opts.EnableSegmentEmbeddings;
             EnableTagEmbeddings = opts.EnableTagEmbeddings;
@@ -126,6 +98,7 @@ namespace Seq2SeqSharp.Models
             EncoderType = m.EncoderType;
             MultiHeadNum = m.MultiHeadNum;
             SrcVocab = m.SrcVocab?.ToVocab();
+            TgtVocab= m.TgtVocab?.ToVocab();
             EncoderEmbeddingDim = m.EncoderEmbeddingDim;
             EnableSegmentEmbeddings = m.EnableSegmentEmbeddings;
             EnableTagEmbeddings = m.EnableTagEmbeddings;
@@ -431,15 +404,6 @@ namespace Seq2SeqSharp.Models
             if (TgtVocab != null)
             {
                 Logger.WriteLine($"Target vocabulary size: '{TgtVocab.Count}'");
-            }
-
-            if (ClsVocabs != null)
-            {
-                Logger.WriteLine($"The number of CLS vocabularies: '{ClsVocabs.Count}' ");
-                for (int i = 0; i < ClsVocabs.Count; i++)
-                {
-                    Logger.WriteLine($"CLS vocabulary {i} size: {ClsVocabs[i].Count}");
-                }
             }
         }
     }

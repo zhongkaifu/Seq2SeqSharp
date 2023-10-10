@@ -98,7 +98,7 @@ namespace Seq2SeqSharp
         IWeightTensor LeftShiftTokens(List<List<int>> input, int lastTokenToPad);
         IWeightTensor CreateTokensTensor(List<List<int>> input, DType elementType = DType.Float32);
 
-        IWeightTensor BuildFeatureMask(int paddedLength, List<int> appliedLengths, int dim);
+        //IWeightTensor BuildFeatureMask(int paddedLength, List<int> appliedLengths, int dim);
 
         IWeightTensor Sum(IWeightTensor w, int dim);
         IWeightTensor Mean(IWeightTensor w, int dim);

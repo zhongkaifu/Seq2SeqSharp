@@ -6,25 +6,36 @@ using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.Corpus
 {
-    public interface ISntPairBatch
+    public interface IPairBatch
     {
         int BatchSize { get; }
         int SrcTokenCount { get; set; }
         int TgtTokenCount { get; set; }
 
-        void CreateBatch(List<SntPair> sntPairs);
-        void CreateBatch(List<List<List<string>>> srcTokensGroups, List<List<List<string>>> tgtTokensGroups);
+        IPairBatch GetRange(int idx, int count);
+        IPairBatch CloneSrcTokens();
 
+        List<List<string>> GetSrcTokens();
+        List<List<string>> GetTgtTokens();
 
-        ISntPairBatch CloneSrcTokens();
+        void CreateBatch(List<IPair> sntPairs);
 
-        ISntPairBatch GetRange(int idx, int count);
+        void CreateBatch(List<List<string>> srcTokens, List<List<string>> tgtTokens);
 
-        List<List<string>> GetSrcTokens(int group);
-        List<List<string>> GetTgtTokens(int group);
+        int GetTgtGroupSize();
+    }
+
+    public interface ISntPairBatch : IPairBatch
+    {
+
 
         int GetSrcGroupSize();
-        int GetTgtGroupSize();
 
+
+    }
+
+
+    public interface IVisionSntPairBatch : IPairBatch
+    {
     }
 }

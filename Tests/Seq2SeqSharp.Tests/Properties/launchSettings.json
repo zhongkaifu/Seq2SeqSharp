@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Seq2SeqSharp.Tests": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:49917;http://localhost:49918"
+    }
+  }
+}

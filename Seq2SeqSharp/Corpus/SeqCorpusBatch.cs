@@ -15,37 +15,34 @@ namespace Seq2SeqSharp.Corpus
     public class SeqCorpusBatch : CorpusBatch
     {
 
-        public override void CreateBatch(List<SntPair> sntPairs)
+        public override void CreateBatch(List<IPair> sntPairs)
         {
             base.CreateBatch(sntPairs);
 
-            TryAddPrefix(SrcTknsGroups[0], BuildInTokens.BOS);
-            TryAddSuffix(SrcTknsGroups[0], BuildInTokens.EOS);
-            TryAddPrefix(TgtTknsGroups[0], BuildInTokens.BOS);
-            TryAddSuffix(TgtTknsGroups[0], BuildInTokens.EOS);
+            TryAddPrefix(SrcBatchTokens, BuildInTokens.BOS);
+            TryAddSuffix(SrcBatchTokens, BuildInTokens.EOS);
+            TryAddPrefix(TgtBatchTokens, BuildInTokens.BOS);
+            TryAddSuffix(TgtBatchTokens, BuildInTokens.EOS);
         }
 
 
-        public override void CreateBatch(List<List<List<string>>> srcTokensGroups, List<List<List<string>>> tgtTokensGroups)
+        public override void CreateBatch(List<List<string>> srcTokens, List<List<string>> tgtTokens)
         {
 
-            SrcTknsGroups = srcTokensGroups;
+            SrcBatchTokens = srcTokens;
 
-            TryAddPrefix(SrcTknsGroups[0], BuildInTokens.BOS);
+            TryAddPrefix(SrcBatchTokens, BuildInTokens.BOS);
             //TryAddSuffix(SrcTknsGroups[0], BuildInTokens.EOS);
 
 
-            if (tgtTokensGroups != null)
+            if (tgtTokens != null)
             {
-                TgtTknsGroups = tgtTokensGroups;
-                TryAddPrefix(TgtTknsGroups[0], BuildInTokens.BOS);
+                TgtBatchTokens = tgtTokens;
+                TryAddPrefix(TgtBatchTokens, BuildInTokens.BOS);
             }
             else
             {
-                TgtTknsGroups = new List<List<List<string>>>
-               {
-                    InitializeHypTokens(BuildInTokens.BOS)
-                };
+                TgtBatchTokens = InitializeHypTokens(BuildInTokens.BOS);                
             }
         }
 
@@ -53,10 +50,9 @@ namespace Seq2SeqSharp.Corpus
         {
             Seq2SeqCorpusBatch spb = new Seq2SeqCorpusBatch
             {
-                SrcTknsGroups = SrcTknsGroups,
-                TgtTknsGroups = new List<List<List<string>>>()
+                SrcBatchTokens = SrcBatchTokens,
+                TgtBatchTokens = InitializeHypTokens(BuildInTokens.BOS)
             };
-            spb.TgtTknsGroups.Add(InitializeHypTokens(BuildInTokens.BOS));
 
             return spb;
         }

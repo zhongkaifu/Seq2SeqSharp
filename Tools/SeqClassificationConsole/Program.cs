@@ -105,43 +105,36 @@ namespace SeqClassificationConsole
                         Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
                         ss = new SeqClassification(opts);
                        
-                        for (int i = 0; i < ss.ClsVocabs.Count; i++)
-                        {
-                            taskId2metrics.Add(i, new List<IMetric>());
-                            taskId2metrics[i].Add(new MultiLabelsFscoreMetric("", ss.ClsVocabs[i].GetAllTokens(keepBuildInTokens: false)));
-                        }
+
+                            taskId2metrics.Add(0, new List<IMetric>());
+                            taskId2metrics[0].Add(new MultiLabelsFscoreMetric("", ss.TgtVocab.GetAllTokens(keepBuildInTokens: false)));
+                        
                     }
                     else
                     {
                         // Load or build vocabulary
                         Vocab srcVocab = null;
-                        List<Vocab> tgtVocabs = null;
+                        Vocab tgtVocab = null;
                         if (!opts.SrcVocab.IsNullOrEmpty() && !opts.TgtVocab.IsNullOrEmpty() )
                         {
                             Logger.WriteLine($"Loading source vocabulary from '{opts.SrcVocab}' and target vocabulary from '{opts.TgtVocab}'.");
                             // Vocabulary files are specified, so we load them
                             srcVocab = new Vocab(opts.SrcVocab);
-
-                            tgtVocabs = new List<Vocab>
-                            {
-                                new Vocab(opts.TgtVocab)
-                            };
+                            tgtVocab = new Vocab(opts.TgtVocab);
                         }
                         else
                         {
                             Logger.WriteLine($"Building vocabulary from training corpus.");
                             // We don't specify vocabulary, so we build it from train corpus
-                            (srcVocab, tgtVocabs) = trainCorpus.BuildVocabs(opts.SrcVocabSize, opts.TgtVocabSize);
+                            (srcVocab, tgtVocab) = trainCorpus.BuildVocabs(opts.SrcVocabSize, opts.TgtVocabSize);
                         }
 
-                        for (int i = 0; i < tgtVocabs.Count; i++)
-                        {
-                            taskId2metrics.Add(i, new List<IMetric>());
-                            taskId2metrics[i].Add(new MultiLabelsFscoreMetric("", tgtVocabs[i].GetAllTokens(keepBuildInTokens: false)));
-                        }
+                            taskId2metrics.Add(0, new List<IMetric>());
+                            taskId2metrics[0].Add(new MultiLabelsFscoreMetric("", tgtVocab.GetAllTokens(keepBuildInTokens: false)));
+                        
 
                         //New training
-                        ss = new SeqClassification(opts, srcVocab, tgtVocabs);
+                        ss = new SeqClassification(opts, srcVocab, tgtVocab);
                     }
 
                     // Add event handler for monitoring
@@ -158,13 +151,9 @@ namespace SeqClassificationConsole
                     // Create metrics
                     ss = new SeqClassification(opts);
                     Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>();
-
-                    for (int i = 0; i < ss.ClsVocabs.Count; i++)
-                    {
-                        taskId2metrics.Add(i, new List<IMetric>());
-                        taskId2metrics[i].Add(new MultiLabelsFscoreMetric("", ss.ClsVocabs[i].GetAllTokens(keepBuildInTokens: false)));
-                    }
-
+                        taskId2metrics.Add(0, new List<IMetric>());
+                        taskId2metrics[0].Add(new MultiLabelsFscoreMetric("", ss.TgtVocab.GetAllTokens(keepBuildInTokens: false)));
+                   
                     ss = new SeqClassification(opts);
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;
 

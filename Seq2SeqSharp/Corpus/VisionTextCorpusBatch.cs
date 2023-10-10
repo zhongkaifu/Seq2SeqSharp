@@ -1,35 +1,58 @@
-﻿// Copyright (c) Zhongkai Fu. All rights reserved.
-// https://github.com/zhongkaifu/Seq2SeqSharp
-//
-// This file is part of Seq2SeqSharp.
-//
-// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
-//
-// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
-
+﻿using AdvUtils;
+using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
-using AdvUtils;
-using Seq2SeqSharp.Utils;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.Corpus
 {
-    public class CorpusBatch : ISntPairBatch
+    public class VisionSntPair : IPair
     {
-        public List<List<string>> SrcBatchTokens = null; // shape [batch_size, seq_size]
+        public string visPath;
+        public List<string> TgtTokens; //shape: [sequence_length]
+
+        public VisionSntPair(string srcLine, string tgtLine)
+        {
+            visPath = srcLine;
+            TgtTokens = tgtLine.Split(' ').ToList();
+        }
+
+        public int GetTgtTokenCount()
+        {
+            return TgtTokens.Count;
+        }
+
+        public string PrintSrcTokens()
+        {
+            return visPath;
+        }
+
+        public string PrintTgtTokens()
+        {
+            return string.Join(" ", TgtTokens.Count);
+        }
+
+    }
+
+    public class VisionTextCorpusBatch : IVisionSntPairBatch
+    {
+        public List<string> SrcBatchPaths = null;
         public List<List<string>> TgtBatchTokens = null; // shape [batch_size, seq_size]
 
-        public int BatchSize => SrcBatchTokens.Count;
+        public int BatchSize => SrcBatchPaths.Count;
 
-        public int SrcTokenCount { get; set; }
+        public int SrcTokenCount { get; set; } = 1;
         public int TgtTokenCount { get; set; }
 
-        public virtual IPairBatch CloneSrcTokens()
+        public IPairBatch CloneSrcTokens()
         {
-            throw new NotImplementedException();
+            VisionTextCorpusBatch spb = new VisionTextCorpusBatch();
+            spb.SrcBatchPaths = SrcBatchPaths;
+            spb.TgtBatchTokens = InitializeHypTokens(BuildInTokens.BOS);
+
+            return spb;
         }
 
         public static void TryAddPrefix(List<List<string>> tokens, string prefix)
@@ -71,28 +94,29 @@ namespace Seq2SeqSharp.Corpus
 
         public virtual void CreateBatch(List<IPair> sntPairs)
         {
-            SrcTokenCount = 0;
             TgtTokenCount = 0;
-
-            SrcBatchTokens = new List<List<string>>();
+            SrcBatchPaths = new List<string>();
             TgtBatchTokens = new List<List<string>>();
+
+            int tgtTknsGroupNum = TgtBatchTokens.Count;
 
             for (int i = 0; i < sntPairs.Count; i++)
             {
-                SntPair pair = sntPairs[i] as SntPair;
+                VisionSntPair pair = sntPairs[i] as VisionSntPair;
 
-                SrcBatchTokens.Add(pair.SrcTokens);
-                SrcTokenCount += pair.SrcTokens.Count;
-
+                SrcBatchPaths.Add(pair.visPath);
                 TgtBatchTokens.Add(pair.TgtTokens);
                 TgtTokenCount += pair.TgtTokens.Count;
             }
+
+            TryAddPrefix(TgtBatchTokens, BuildInTokens.BOS);
+            TryAddSuffix(TgtBatchTokens, BuildInTokens.EOS);
         }
 
         public IPairBatch GetRange(int idx, int count)
         {
-            CorpusBatch cb = new CorpusBatch();
-            cb.SrcBatchTokens = SrcBatchTokens.GetRange(idx, count);
+            VisionTextCorpusBatch cb = new VisionTextCorpusBatch();
+            cb.SrcBatchPaths = SrcBatchPaths.GetRange(idx, count);
             cb.TgtBatchTokens = TgtBatchTokens.GetRange(idx, count);
 
             return cb;
@@ -100,7 +124,7 @@ namespace Seq2SeqSharp.Corpus
 
         public List<List<string>> GetSrcTokens()
         {
-            return SrcBatchTokens;
+            return new List<List<string>> { SrcBatchPaths };
         }
 
         public List<List<string>> GetTgtTokens()
@@ -113,7 +137,7 @@ namespace Seq2SeqSharp.Corpus
             List<List<string>> hypTkns = new List<List<string>>();
             for (int i = 0; i < BatchSize; i++)
             {
-                if (!prefix.IsNullOrEmpty() )
+                if (!prefix.IsNullOrEmpty())
                 {
                     hypTkns.Add(new List<string>() { prefix });
                 }
@@ -129,81 +153,26 @@ namespace Seq2SeqSharp.Corpus
 
 
         // count up all words
-        public static List<Dictionary<string, int>> s_ds = new List<Dictionary<string, int>>();
         public static List<Dictionary<string, int>> t_ds = new List<Dictionary<string, int>>();
 
-
-
-        static public void MergeTokensCountSrcTgt(int srcGroupIdx, int tgtGroupIdx)
-        {
-            Logger.WriteLine($"Merge tokens from source group '{srcGroupIdx}' to target group '{tgtGroupIdx}'");
-            foreach (var pair in t_ds[tgtGroupIdx])
-            {
-                if (s_ds[srcGroupIdx].ContainsKey(pair.Key))
-                {
-                    s_ds[srcGroupIdx][pair.Key] += pair.Value;
-                }
-                else
-                {
-                    s_ds[srcGroupIdx].Add(pair.Key, pair.Value);
-                }
-            }
-
-            t_ds[tgtGroupIdx] = s_ds[srcGroupIdx];
-
-        }
-
-        static public void ReduceSrcTokensToSingleGroup()
-        {
-            Logger.WriteLine($"Reduce source vocabs group from '{s_ds.Count}' to 1");
-            Dictionary<string, int> rst = new Dictionary<string, int>();
-
-            foreach (var dict in s_ds)
-            {
-                foreach (var pair in dict)
-                {
-                    if (rst.ContainsKey(pair.Key))
-                    {
-                        rst[pair.Key] += pair.Value;
-                    }
-                    else
-                    {
-                        rst.Add(pair.Key, pair.Value);
-                    }
-
-                }
-            }
-
-            s_ds.Clear();
-            s_ds.Add(rst);
-        }
-       
         /// <summary>
         /// Build vocabulary from training corpus
         /// </summary>
         /// <param name="vocabSize"></param>
         /// <param name="sharedSrcTgtVocabGroupMapping">The mappings for shared vocabularies between source side and target side. The values in the mappings are group ids. For example: sharedSrcTgtVocabGroupMapping[0] = 1 means the first group in source
         /// side and the second group in target side are shared vocabulary</param>
-        static public (List<Vocab>, List<Vocab>) GenerateVocabs(int srcVocabSize = 45000, int tgtVocabSize = 45000, int minFreq = 1)
+        static public List<Vocab> GenerateVocabs(int tgtVocabSize = 45000, int minFreq = 1)
         {
             Logger.WriteLine($"Building vocabulary from corpus.");
-
-            List<Vocab> srcVocabs = null;
-            if (srcVocabSize > 0)
-            {
-                srcVocabs = InnerBuildVocab(srcVocabSize, s_ds, "Source", minFreq);
-            }
 
             List<Vocab> tgtVocabs = null;
             if (tgtVocabSize > 0)
             {
                 tgtVocabs = InnerBuildVocab(tgtVocabSize, t_ds, "Target", minFreq);
             }
-
-            s_ds.Clear();
             t_ds.Clear();
 
-            return (srcVocabs, tgtVocabs);
+            return tgtVocabs;
         }
 
         private static List<Vocab> InnerBuildVocab(int vocabSize, List<Dictionary<string, int>> ds, string tag, int minFreq = 1)
@@ -274,10 +243,10 @@ namespace Seq2SeqSharp.Corpus
 
             return vocabs;
         }
-    
+
         public int GetSrcGroupSize()
         {
-            return SrcBatchTokens.Count;
+            return SrcBatchPaths.Count;
         }
 
         public int GetTgtGroupSize()
@@ -285,9 +254,23 @@ namespace Seq2SeqSharp.Corpus
             return TgtBatchTokens.Count;
         }
 
-        public virtual void CreateBatch(List<List<string>> srcTokensGroups, List<List<string>> tgtTokensGroups)
+        public void CreateBatch(List<List<string>> srcTokens, List<List<string>> tgtTokens)
         {
-            throw new NotImplementedException();
+            SrcBatchPaths = new List<string>();
+            foreach (var src in srcTokens)
+            {
+                SrcBatchPaths.Add(src[0]);
+            }
+
+            if (tgtTokens != null)
+            {
+                TgtBatchTokens = tgtTokens;
+                TryAddPrefix(TgtBatchTokens, BuildInTokens.BOS);
+            }
+            else
+            {
+                TgtBatchTokens = InitializeHypTokens(BuildInTokens.BOS);
+            }
         }
     }
 }
