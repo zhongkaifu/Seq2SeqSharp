@@ -66,7 +66,7 @@ namespace GPTConsole
                     // Create learning rate
                     ILearningRate learningRate = null;
 
-                    if (opts.LearnRateType == LearningRateTypeEnums.CosineDecay)
+                    if (opts.LearningRateType == LearningRateTypeEnums.CosineDecay)
                     {
                         learningRate = new CosineDecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.LearningRateDecaySteps, opts.WeightsUpdateCount);
                     }

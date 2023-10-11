@@ -22,41 +22,14 @@ namespace Seq2SeqSharp.Applications
 
         static int TOKEN_W = 16;
         static int TOKEN_H = 16;
-
-        static int TOTAL_TOKEN_NUM_PER_IMG = (IMAGE_W / TOKEN_W) * (IMAGE_H / TOKEN_H);
     
-        static private IWeightTensor LoadImageToTokens(IComputeGraph g, string filePath, bool rotation = false, bool horizFlip = false, bool vertFlip = false, bool brigtness = false, bool contrast = false)
+        static private IWeightTensor LoadImageToTokens(IComputeGraph g, string filePath)
         {
 
             List<float[]> tokens = new List<float[]>();
 
             using (Image<Rgb24> image = Image.Load<Rgb24>(filePath))
             {
-                if (rotation == true)
-                {
-                    image.Mutate(x => x.Rotate(90.0f));
-                }
-
-                if (horizFlip == true)
-                {
-                    image.Mutate(x => x.Flip(FlipMode.Horizontal));
-                }
-
-                if (vertFlip == true)
-                {
-                    image.Mutate(x => x.Flip(FlipMode.Vertical));
-                }
-
-                if (brigtness == true)
-                {
-                    image.Mutate(x => x.Brightness(0.5f));
-                }
-
-                if (contrast == true)
-                {
-                    image.Mutate(x => x.Contrast(0.5f));
-                }
-
                 int newWidth = 0;
                 int newHeight = 0;
                 if (image.Width < image.Height)
@@ -117,7 +90,7 @@ namespace Seq2SeqSharp.Applications
         //Size(token) = TOTAL_TOKEN_NUM_PER_IMG
         //Size(embedding_dim) = 768
         //Shape: [batchsize, TOTAL_TOKEN_NUM_PER_IMG, 768]
-        static private IWeightTensor InnerEncode(IComputeGraph g, List<string> imgPaths, bool trainMode = false)
+        static private IWeightTensor InnerEncode(IComputeGraph g, List<string> imgPaths)
         {
             int batchSize = imgPaths.Count;
             List<IWeightTensor> batchTokens = new List<IWeightTensor>();
@@ -125,36 +98,17 @@ namespace Seq2SeqSharp.Applications
             foreach (var picPath in imgPaths)
             {
                 batchTokens.Add(LoadImageToTokens(g, picPath)); //shape: [TOTAL_TOKEN_NUM_PER_IMG, 768]  
-
-                if (trainMode)
-                {
-                    batchTokens.Add(LoadImageToTokens(g, picPath, rotation: true)); //shape: [TOTAL_TOKEN_NUM_PER_IMG, 768]  
-                    batchTokens.Add(LoadImageToTokens(g, picPath, horizFlip: true)); //shape: [TOTAL_TOKEN_NUM_PER_IMG, 768]  
-                    batchTokens.Add(LoadImageToTokens(g, picPath, vertFlip: true)); //shape: [TOTAL_TOKEN_NUM_PER_IMG, 768]  
-                    batchTokens.Add(LoadImageToTokens(g, picPath, brigtness: true)); //shape: [TOTAL_TOKEN_NUM_PER_IMG, 768]  
-                    batchTokens.Add(LoadImageToTokens(g, picPath, contrast: true)); //shape: [TOTAL_TOKEN_NUM_PER_IMG, 768]  
-                }
             }
 
             var res = g.Concate(batchTokens, 0);
             return res;            
         }
 
-        static public IWeightTensor Run(IComputeGraph g, List<string> imgPaths, IEncoder encoder, IFeedForwardLayer srcEmbeddings, IWeightTensor posEmbeddings, INormalization layerNorm1, INormalization layerNorm2, IWeightTensor cls, bool trainMode = false)
+        static public IWeightTensor Run(IComputeGraph g, List<string> imgPaths, IEncoder encoder, IFeedForwardLayer srcEmbeddings, IWeightTensor posEmbeddings, IWeightTensor cls)
         {
             int batchSize = imgPaths.Count;
-            var inputEmbs = InnerEncode(g, imgPaths, trainMode);
-
-            if (trainMode)
-            {
-                batchSize = batchSize * 6;
-            }
-
-
-        //    inputEmbs = layerNorm1.Norm(inputEmbs, g);
+            var inputEmbs = InnerEncode(g, imgPaths);
             inputEmbs = srcEmbeddings.Process(inputEmbs, batchSize, g);
-            //     inputEmbs = g.ReLU  (inputEmbs);
-            //   inputEmbs = layerNorm2.Norm(inputEmbs, g);
 
             inputEmbs = g.View(inputEmbs, dims: new long[] { batchSize, -1, 768 });
 

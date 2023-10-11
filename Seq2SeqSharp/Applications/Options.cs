@@ -162,8 +162,8 @@ namespace Seq2SeqSharp.Applications
         [Arg("The decay steps of learning rate", nameof(LearningRateDecaySteps))]
         public int LearningRateDecaySteps = 200000; // 200K
 
-        [Arg("The type of learning rate", nameof(LearnRateType))]
-        public LearningRateTypeEnums LearnRateType = LearningRateTypeEnums.Decay;
+        [Arg("The type of learning rate", nameof(LearningRateType))]
+        public LearningRateTypeEnums LearningRateType = LearningRateTypeEnums.Decay;
 
         [Arg("Shuffle Type. It could be NoPaddingInSrc, NoPaddingInTgt and Random", nameof(ShuffleType))]
         public ShuffleEnums ShuffleType = ShuffleEnums.Random;

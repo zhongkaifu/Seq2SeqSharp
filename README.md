@@ -2,11 +2,12 @@
 
 [![.NET](https://github.com/zhongkaifu/Seq2SeqSharp/actions/workflows/dotnet.yml/badge.svg)](https://github.com/zhongkaifu/Seq2SeqSharp/actions/workflows/dotnet.yml)
 # Seq2SeqSharp  
-Seq2SeqSharp is a tensor based fast & flexible encoder-decoder deep neural network framework written by .NET (C#). It can be used for sequence-to-sequence task, sequence-labeling task and sequence-classification task and other NLP tasks. Seq2SeqSharp supports both CPUs and GPUs and is able to run cross-platforms, such as Windows and Linux (x86, x64 and ARM) without any modification and recompilation.  
+Seq2SeqSharp is a tensor based fast & flexible deep neural network framework written by .NET (C#). It can be used for sequence-to-sequence task, sequence-labeling task, sequence-classification task and others for text and images. Seq2SeqSharp supports both CPUs and GPUs and is able to run cross-platforms, such as Windows and Linux (x86, x64 and ARM) without any modification and recompilation.  
 
 # Features  
 Pure C# framework   
 Transformer encoder and decoder with pointer generator  
+Vision Transformer encoder for images  
 GPTDecoder  
 Attention based LSTM decoder with coverage model  
 Bi-directional LSTM encoder  
@@ -247,6 +248,9 @@ For example: given the input sentence "▁i ▁would ▁like ▁to ▁drink ▁w
 GPTConsole is a command line tool for GPT style model training and testing. Given text in input file per line, the model will continue generating the rest of text.  
 This tool is pretty similiar to Seq2SeqConsole and most of parameters are reusable. The main difference is that GPTConsole does not have settings for source side and encoders. Its all settings are for target side and decoder only.  
 
+## ImgSeqConsole is for image caption task  
+ImgSeqConsole is a command line tool for image caption task. Given a list of image file path, the model will generate descriptions of these images.  
+
 ## SeqClassification for sequence-classification task  
 SeqClassification is used to classify input sequence to a certain category.  Given an input sequence, the tool will add a [CLS] tag at the beginning of sequence, and then send it to the encoder. At top layer of the encoder, it will run softmax against [CLS] and decide which category the sequence belongs to.  
 This tool can be used to train a model for sequence-classification task, and test the model.  
@@ -299,7 +303,6 @@ Here is the configuration file for model training.
 
 ### Data format for SeqCliassificationConsole tool  
 It also uses two files for each pair of data and follows the same naming convention as Seq2SeqConsole tool in above. The source file includes tokens as input to the model, and the target file includes the corresponding tags that model will predict. Each line contains one record.  
-The model supports multi-classifiers, so tags in the target file are split by tab character, such as [Tag1] \t [Tag2] \t ... \t [TagN]. Each classifiers predicts one tag.  
 
 Here is an example:  
 | Tag                  |  Tokens in Sequence                                                                                                                                                                                                                                                                                                                                            |
@@ -308,11 +311,6 @@ Here is an example:
 | Orthopedics          | How can I recuperate if my ankle is twisted? [SEP] I twisted my ankle when I went down the stairs, and now it is red and swollen. X-rays were taken and there were no fractures. May I ask how to recuperate to get better as soon as possible.                                                                                                                |
 
 "Otorhinolaryngology" and "Orthopedics" are tags for classification and the rest of the tokens in each line are tokens for input sequence. This is an example that given title and description in medical domain, asking model to predict which specialty it should be classified. [SEP] is used to split title and description in the sequence, but it's not required in other tasks.  
-
-## Seq2SeqClassificationConsole for sequence-to-sequence and classification multi-tasks  
-Here is the graph that what the model looks like:  
-![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Images/Seq2SeqClassificationModel.jpeg)
-
 
 ## SeqLabelConsole for sequence-labeling task  
 The usage of **SeqLabelConsole.exe** is similar as **Seq2SeqConsole.exe** in above, you can just type it in the console and it will show you usage.  
@@ -388,9 +386,6 @@ Here is the configuration file for model training.
     "Optimizer":"Adam"
 }
 ```
-
-## SeqSimilarityConsole for sequences similarity calculation  
-Each line in data set contains two sequences and the tool can calculate their similairy. These two sequences are split by tab character.  
 
 # Demos and released models    
 From 2.7.0 version, Seq2SeqSharp models are deployed on Hugging Face and you can also play demos there.  
@@ -838,5 +833,8 @@ In Seq2SeqConsole project, it shows you how to initialize and train your network
 
 # Todo List  
 If you are interested in below items, please let me know. Becuase African proverb says "If you want to go fast, go alone. If you want to go far, go together" :)  
-Multimodal models  
+Support Mac Devices  
 And More...  
+
+## Star History
+[![Star History Chart](https://api.star-history.com/svg?repos=zhongkaifu/Seq2SeqSharp&type=Date)](https://star-history.com/#zhongkaifu/Seq2SeqSharp)
