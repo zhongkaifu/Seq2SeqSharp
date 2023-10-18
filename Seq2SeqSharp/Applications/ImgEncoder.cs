@@ -104,11 +104,14 @@ namespace Seq2SeqSharp.Applications
             return res;            
         }
 
-        static public IWeightTensor Run(IComputeGraph g, List<string> imgPaths, IEncoder encoder, IFeedForwardLayer srcEmbeddings, IWeightTensor posEmbeddings, IWeightTensor cls, int dim)
+        static public IWeightTensor Run(IComputeGraph g, List<string> imgPaths, IEncoder encoder, IFeedForwardLayer srcEmbeddings, IWeightTensor posEmbeddings, IWeightTensor cls, int dim, INormalization layernorm)
         {
             int batchSize = imgPaths.Count;
             var inputEmbs = InnerEncode(g, imgPaths);
+
+            inputEmbs = layernorm.Norm(inputEmbs, g);
             inputEmbs = srcEmbeddings.Process(inputEmbs, batchSize, g);
+            inputEmbs = g.SiLU(inputEmbs);
 
             inputEmbs = g.View(inputEmbs, dims: new long[] { batchSize, -1, dim });
 
