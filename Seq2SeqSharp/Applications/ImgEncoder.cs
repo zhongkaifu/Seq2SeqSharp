@@ -104,22 +104,20 @@ namespace Seq2SeqSharp.Applications
             return res;            
         }
 
-        static public IWeightTensor Run(IComputeGraph g, List<string> imgPaths, IEncoder encoder, IFeedForwardLayer srcEmbeddings, IWeightTensor posEmbeddings, IWeightTensor cls)
+        static public IWeightTensor Run(IComputeGraph g, List<string> imgPaths, IEncoder encoder, IFeedForwardLayer srcEmbeddings, IWeightTensor posEmbeddings, IWeightTensor cls, int dim)
         {
             int batchSize = imgPaths.Count;
             var inputEmbs = InnerEncode(g, imgPaths);
             inputEmbs = srcEmbeddings.Process(inputEmbs, batchSize, g);
 
-            inputEmbs = g.View(inputEmbs, dims: new long[] { batchSize, -1, 768 });
+            inputEmbs = g.View(inputEmbs, dims: new long[] { batchSize, -1, dim });
 
-            cls = g.View(cls, dims: new long[] { 1, 1, 768 });
-            cls = g.Expand(cls, dims: new long[] { batchSize, 1, 768 });
+            cls = g.View(cls, dims: new long[] { 1, 1, dim });
+            cls = g.Expand(cls, dims: new long[] { batchSize, 1, dim });
 
             inputEmbs = g.Concate(1, cls, inputEmbs);
 
-            inputEmbs = g.View(inputEmbs, dims: new long[] { -1, 768 });
-
-
+            inputEmbs = g.View(inputEmbs, dims: new long[] { -1, dim });
 
             inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbeddings, batchSize, inputEmbs, 0.0f);           
             return encoder.Encode(inputEmbs, batchSize, g, null);
