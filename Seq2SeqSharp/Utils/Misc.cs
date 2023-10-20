@@ -19,6 +19,7 @@ using Seq2SeqSharp.Tools;
 using TensorSharp;
 using M = System.Runtime.CompilerServices.MethodImplAttribute;
 using O = System.Runtime.CompilerServices.MethodImplOptions;
+using ManagedCuda;
 
 namespace Seq2SeqSharp.Utils
 {
@@ -50,6 +51,30 @@ namespace Seq2SeqSharp.Utils
         public static string GetTimeStamp(DateTime timeStamp)
         {
             return string.Format("{0:yyyy}_{0:MM}_{0:dd}_{0:HH}h_{0:mm}m_{0:ss}s", timeStamp);
+        }
+
+        /// <summary>
+        /// Get the number of GPU's or CPU cores in the system
+        /// </summary>
+        /// <param name="GPU">true: get the number of GPUs in the system (default), false: get the number of CPU cores in the system</param>
+        /// <returns>number of GPUs or CPU cores in the system</returns>
+        public static int GetDeviceCount(bool GPU = true)
+        {
+            try
+            {
+                if (GPU)
+                {
+                    return CudaContext.GetDeviceCount();
+                }
+                else
+                {
+                    return Environment.ProcessorCount;
+                }
+            }
+            catch (Exception)
+            {
+                return 0;
+            }
         }
     }
 

@@ -1,4 +1,5 @@
-﻿using ManagedCuda;
+﻿using AdvUtils;
+using ManagedCuda;
 using ManagedCuda.BasicTypes;
 using ManagedCuda.CudaBlas;
 using System;
@@ -189,18 +190,12 @@ namespace TensorSharp.CUDA
             }
         }
 
-
         public void Precompile()
-        {
-            Precompile(Console.Write);
-        }
-
-        public void Precompile(Action<string> precompileProgressWriter)
         {
             Assembly assembly = Assembly.GetExecutingAssembly();
             foreach (Tuple<Type, IEnumerable<PrecompileAttribute>> applyType in assembly.TypesWithAttribute<PrecompileAttribute>(true).Where(x => !x.Item1.IsAbstract))
             {
-                precompileProgressWriter("Precompiling " + applyType.Item1.Name + "\n");
+                Logger.WriteLine("Precompiling " + applyType.Item1.Name);
 
                 IPrecompilable instance = (IPrecompilable)Activator.CreateInstance(applyType.Item1);
                 instance.Precompile(Compiler);
