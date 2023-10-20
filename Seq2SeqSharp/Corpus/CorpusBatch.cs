@@ -129,8 +129,8 @@ namespace Seq2SeqSharp.Corpus
 
 
         // count up all words
-        public static List<Dictionary<string, int>> s_ds = new List<Dictionary<string, int>>();
-        public static List<Dictionary<string, int>> t_ds = new List<Dictionary<string, int>>();
+        public static List<Dictionary<string, long>> s_ds = new List<Dictionary<string, long>>();
+        public static List<Dictionary<string, long>> t_ds = new List<Dictionary<string, long>>();
 
 
 
@@ -156,7 +156,7 @@ namespace Seq2SeqSharp.Corpus
         static public void ReduceSrcTokensToSingleGroup()
         {
             Logger.WriteLine($"Reduce source vocabs group from '{s_ds.Count}' to 1");
-            Dictionary<string, int> rst = new Dictionary<string, int>();
+            Dictionary<string, long> rst = new Dictionary<string, long>();
 
             foreach (var dict in s_ds)
             {
@@ -206,14 +206,14 @@ namespace Seq2SeqSharp.Corpus
             return (srcVocabs, tgtVocabs);
         }
 
-        private static List<Vocab> InnerBuildVocab(int vocabSize, List<Dictionary<string, int>> ds, string tag, int minFreq = 1)
+        private static List<Vocab> InnerBuildVocab(int vocabSize, List<Dictionary<string, long>> ds, string tag, int minFreq = 1)
         {
             List<Vocab> vocabs = new List<Vocab>();
 
             for (int i = 0; i < ds.Count; i++)
             {
                 Vocab vocab = new Vocab();
-                SortedDictionary<int, List<string>> sd = new SortedDictionary<int, List<string>>();
+                SortedDictionary<long, List<string>> sd = new SortedDictionary<long, List<string>>();
 
                 var s_d = ds[i];
                 foreach (var kv in s_d)

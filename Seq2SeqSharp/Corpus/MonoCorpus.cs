@@ -40,9 +40,9 @@ namespace Seq2SeqSharp.Tools
         private int m_batchNumInTotal = 0;
         private int m_startBatchId = 0;
 
-        public List<Dictionary<string, int>> CountTokenFreqs()
+        public List<Dictionary<string, long>> CountTokenFreqs()
         {
-            List<Dictionary<string, int>> td = new List<Dictionary<string, int>>();
+            List<Dictionary<string, long>> td = new List<Dictionary<string, long>>();
 
             for (int i = 0; i < m_tgtFileList.Count; i++)
             {
@@ -70,7 +70,7 @@ namespace Seq2SeqSharp.Tools
                     {
                         for (int j = 0; j < tgtGroups.Length; j++)
                         {
-                            td.Add(new Dictionary<string, int>());
+                            td.Add(new Dictionary<string, long>());
                         }
                     }
 

@@ -52,10 +52,10 @@ namespace Seq2SeqSharp.Tools
         private string m_sortedIndexedDataSetFilePath = "";
         private int m_batchNumInTotal = 0;
 
-        public (List<Dictionary<string, int>>, List<Dictionary<string, int>>) CountTokenFreqs()
+        public (List<Dictionary<string, long>>, List<Dictionary<string, long>>) CountTokenFreqs()
         {
-            List<Dictionary<string, int>> sd = new List<Dictionary<string, int>>();
-            List<Dictionary<string, int>> td = new List<Dictionary<string, int>>();
+            List<Dictionary<string, long>> sd = new List<Dictionary<string, long>>();
+            List<Dictionary<string, long>> td = new List<Dictionary<string, long>>();
 
             for (int i = 0; i < m_srcFileList.Count; i++)
             {
@@ -90,8 +90,8 @@ namespace Seq2SeqSharp.Tools
                     {
                         for (int j = 0; j < srcGroups.Length; j++)
                         {
-                            sd.Add(new Dictionary<string, int>());
-                            td.Add(new Dictionary<string, int>());
+                            sd.Add(new Dictionary<string, long>());
+                            td.Add(new Dictionary<string, long>());
                         }
                     }
 
