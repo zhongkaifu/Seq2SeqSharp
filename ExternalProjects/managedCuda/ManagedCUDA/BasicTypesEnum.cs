@@ -1156,7 +1156,12 @@ namespace ManagedCuda.BasicTypes
         /// <summary>
         /// Compute device class 8.6.
         /// </summary>
-        Compute_86 = 86
+        Compute_86 = 86,
+
+        /// <summary>
+        /// Compute device class 8.9.
+        /// </summary>
+        Compute_89 = 89
     }
 
     /// <summary>
