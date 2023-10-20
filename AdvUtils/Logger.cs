@@ -2,16 +2,62 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace AdvUtils
 {
+    /// <summary>
+    /// Progress Callback delegate with three functionalities: 
+    ///   1. post a callback message to the caller routine 
+    ///   2. post a callback progress value (%) to the caller routine for long operations 
+    ///   3. Signal if the long process must be canceled for stopping long operations on request of the caller
+    /// </summary>
+    /// <param name="value">progress value in % (0-100)</param>
+    /// <param name="log">progress message</param>
+    /// <param name="type">type of message, for example, 0: log, 1: error, etc.</param>
+    /// <param name="color">request a specific color for the message</param>
+    /// <returns>+1 if the process should be canceled, -1 if not</returns>
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    public delegate int ProgressCallback(
+        int value,
+        StringBuilder log,
+        int type,
+        int color = 0
+        );
+
     public class Logger
     {
         public enum Level { err, warn, info};
-        public enum LogVerbose {None, Normal, Details, Debug };
+
+        public enum LogVerbose {None, Normal, Details, Debug, Callback, Logfileonly, Progress };
 
         public static LogVerbose Verbose = LogVerbose.Normal;
+
+        private static ProgressCallback? s_callback = null;
+
+        private static LogVerbose s_logverbosebackup = LogVerbose.Normal;
+
+        /// <summary>
+        /// Set the callback routine in your code with this to automatically redirect all messages to your callback function
+        /// </summary>
+        public static ProgressCallback? Callback
+        {
+            get => s_callback;
+            set
+            {
+                s_callback = value;
+                if (s_callback != null)
+                {
+                    s_logverbosebackup = Verbose;
+                    Verbose = LogVerbose.Callback;
+                }
+                else
+                {
+                    Verbose = s_logverbosebackup;
+                }
+            }
+        }
 
         public static void WriteLine(string s, params object[] args)
         {
@@ -40,10 +86,27 @@ namespace AdvUtils
 
             string sLine = sb.ToString();
 
-            if (level != Level.info)
-                Console.Error.WriteLine(sLine);
-            else
-                Console.WriteLine(sLine);
+            if (Callback != null && Verbose == LogVerbose.Callback)
+            { // let the caller handle the message
+                StringBuilder sbl = new StringBuilder(sLine);
+                Callback(0, sbl, (int)level);
+            }
+            else if (Callback != null && Verbose == LogVerbose.Progress)
+            { // inform the caller about the progress
+                if (args.Length > 0)
+                {
+                    StringBuilder sbl0 = new StringBuilder("");
+                    Callback((int)args[0], sbl0, (int)level);
+                    return;
+                }
+            }
+            else if (Verbose != LogVerbose.Logfileonly)
+            { // only print on the Console if Logfileonly is not requested
+                if (level != Level.info)
+                    Console.Error.WriteLine(sLine);
+                else
+                    Console.WriteLine(sLine);
+            }
 
             try
             {
@@ -52,10 +115,17 @@ namespace AdvUtils
             }
             catch (Exception err)
             {
-                Console.Error.WriteLine($"Failed to output log to file '{LogFile}'. Error = '{err.Message}'");
+                if (Callback != null && Verbose == LogVerbose.Callback)
+                { // let the caller handle the message
+                    StringBuilder sbl = new StringBuilder($"Failed to write to log file '{LogFile}'. Error = '{err.Message}'");
+                    Callback(0, sbl, (int)level);
+                }
+                else
+                {
+                    Console.Error.WriteLine($"Failed to write to log file '{LogFile}'. Error = '{err.Message}'");
+                }
                 s_sw = null;
             }
-
         }
 
         public static void WriteLine(Level level, ConsoleColor color, string s, params object[] args)
@@ -75,14 +145,28 @@ namespace AdvUtils
 
             string sLine = sb.ToString();
 
-            Console.ForegroundColor = color;
+            if (Callback != null && Verbose == LogVerbose.Callback)
+            { // let the caller handle the message
+                StringBuilder sbl = new StringBuilder(sLine);
+                Callback(0, sbl, (int)level, (int)color);
+            }
+            else if (Callback != null && Verbose == LogVerbose.Progress)
+            { // inform the caller about the progress
+                StringBuilder sbl0 = new StringBuilder("");
+                Callback((int)args[0], sbl0, (int)level);
+                return;
+            }
+            else if (Verbose != LogVerbose.Logfileonly)
+            { // only print on the Console if Logfileonly is not requested
+                Console.ForegroundColor = color;
 
-            if (level != Level.info)
-                Console.Error.WriteLine(sLine);
-            else
-                Console.WriteLine(sLine);
+                if (level != Level.info)
+                    Console.Error.WriteLine(sLine);
+                else
+                    Console.WriteLine(sLine);
 
-            Console.ResetColor();
+                Console.ResetColor();
+            }
 
             try
             {
@@ -91,10 +175,18 @@ namespace AdvUtils
             }
             catch (Exception err)
             {
-                Console.Error.WriteLine($"Failed to output log to file '{LogFile}'. Error = '{err.Message}'");
+                if (Callback != null && Verbose == LogVerbose.Callback)
+                { // let the caller handle the message
+                    StringBuilder sbl = new StringBuilder($"Failed to write to log file '{LogFile}'. Error = '{err.Message}'");
+                    Callback(0, sbl, (int)level);
+                }
+                else
+                {
+                    Console.Error.WriteLine($"Failed to write to log file '{LogFile}'. Error = '{err.Message}'");
+                }
+
                 s_sw = null;
             }
-
         }
 
         public static void Close()
