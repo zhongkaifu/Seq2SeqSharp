@@ -42,7 +42,7 @@ namespace Seq2SeqSharp.Utils
             if (m_archType == ProcessorTypeEnums.GPU)
             {
                 m_cudaContext = new TSCudaContext(m_deviceIds, memoryUsageRatio, compilerOptions, allocatorType, elementType);
-                m_cudaContext.Precompile(Console.Write);
+                m_cudaContext.Precompile();
                 m_cudaContext.CleanUnusedPTX();
 
                 foreach (int deviceId in m_deviceIds)

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AdvUtils;
+using System;
 using System.Reflection;
 using TensorSharp.CUDA.RuntimeCompiler;
 
@@ -28,7 +29,7 @@ namespace TensorSharp.CUDA
                 if (typeof(IPrecompilable).IsAssignableFrom(field.FieldType))
                 {
                     IPrecompilable precompilableField = (IPrecompilable)field.GetValue(instance);
-                    Console.WriteLine("Compiling field " + field.Name);
+                    Logger.WriteLine("Compiling field " + field.Name);
                     precompilableField.Precompile(compiler);
                 }
             }
