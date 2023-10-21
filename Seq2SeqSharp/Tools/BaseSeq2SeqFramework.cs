@@ -230,6 +230,9 @@ namespace Seq2SeqSharp.Tools
                 return (false);
             }
         }
+		
+		// Note(zso): BinaryFormatter deprecated
+		#pragma warning disable SYSLIB0011		
 
         public bool SaveModel_As_BinaryFormatter(bool createBackupPrevious = false, string suffix = "")
         {
@@ -286,6 +289,8 @@ namespace Seq2SeqSharp.Tools
             return model;
         }
 
+		// Note(zso): BinaryFormatter deprecated
+		#pragma warning restore SYSLIB0011
 
         protected T LoadModelRoutine<ProtoBuf_T>(Func<T, bool> initializeParametersFunc, Func<ProtoBuf_T, T> createModelFunc, string suffix = "")
         {
@@ -1147,9 +1152,9 @@ namespace Seq2SeqSharp.Tools
 
                         if (outputToFile)
                         {
-                            File.AppendAllLines($"{taskPrefixName}_src.txt", newSrcSnts);
-                            File.AppendAllLines($"{taskPrefixName}_ref.txt", newRefSnts);
-                            File.AppendAllLines($"{taskPrefixName}_hyp.txt", newHypSnts);
+                            File.AppendAllLines(srcFileName, newSrcSnts);
+                            File.AppendAllLines(refFileName, newRefSnts);
+                            File.AppendAllLines(hypFileName, newHypSnts);							
                         }
 
                     }
