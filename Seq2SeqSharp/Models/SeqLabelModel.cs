@@ -27,6 +27,13 @@ namespace Seq2SeqSharp
         public SeqLabelModel(Model_4_ProtoBufSerializer m)
             : base(m)
         {
+            ClsVocabs = m.ClsVocabs?.Select(v => v.ToVocab()).ToList();
+            if(m.TgtVocab == null && ClsVocabs != null)
+            {
+                TgtVocab = ClsVocabs[0];
+                ClsVocabs.Clear();
+                ClsVocabs = null;
+            }			
         }
         public static SeqLabelModel Create(Model_4_ProtoBufSerializer m) => new SeqLabelModel(m);
     }

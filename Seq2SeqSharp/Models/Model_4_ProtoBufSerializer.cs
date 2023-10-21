@@ -273,6 +273,7 @@ namespace Seq2SeqSharp.Models
             MultiHeadNum = m.MultiHeadNum;
             SrcVocab = m.SrcVocab != null ? new Vocab_4_ProtoBufSerializer(m.SrcVocab) : null;
             TgtVocab = m.TgtVocab != null ? new Vocab_4_ProtoBufSerializer(m.TgtVocab) : null;
+			ClsVocabs = m.ClsVocabs?.Select(c => new Vocab_4_ProtoBufSerializer(c)).ToList();
             EnableCoverageModel = m.EnableCoverageModel;
             SharedEmbeddings = m.SharedEmbeddings;
             SimilarityType = m.SimilarityType;
@@ -299,6 +300,7 @@ namespace Seq2SeqSharp.Models
         [ProtoMember(11)] public int MultiHeadNum { get; set; }
         [ProtoMember(12)] public Vocab_4_ProtoBufSerializer SrcVocab { get; set; }
         [ProtoMember(13)] public Vocab_4_ProtoBufSerializer TgtVocab { get; set; }
+		[ProtoMember(14)] public List<Vocab_4_ProtoBufSerializer> ClsVocabs { get; set; }
         [ProtoMember(15)] public bool EnableCoverageModel { get; set; }
         [ProtoMember(16)] public bool SharedEmbeddings { get; set; }
         [ProtoMember(17)] public string SimilarityType { get; set; }
