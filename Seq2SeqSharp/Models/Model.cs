@@ -40,6 +40,7 @@ namespace Seq2SeqSharp.Models
         public int MultiHeadNum { get; set; }
         public Vocab SrcVocab { get; set; }
         public Vocab TgtVocab { get; set; }
+		public List<Vocab> ClsVocabs { get; set; }
         public bool EnableCoverageModel { get; set; }
         public bool SharedEmbeddings { get; set; }
 
@@ -405,6 +406,11 @@ namespace Seq2SeqSharp.Models
             {
                 Logger.WriteLine($"Target vocabulary size: '{TgtVocab.Count}'");
             }
+			
+            if (ClsVocabs != null)
+            {
+                Logger.WriteLine($"Converting old model cls vocab to tgt vocab.");
+            }			
         }
     }
 }

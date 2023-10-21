@@ -153,7 +153,7 @@ namespace Seq2SeqSharp.Corpus
 
 
         // count up all words
-        public static List<Dictionary<string, int>> t_ds = new List<Dictionary<string, int>>();
+        public static List<Dictionary<string, long>> t_ds = new List<Dictionary<string, long>>();
 
         /// <summary>
         /// Build vocabulary from training corpus
@@ -175,14 +175,14 @@ namespace Seq2SeqSharp.Corpus
             return tgtVocabs;
         }
 
-        private static List<Vocab> InnerBuildVocab(int vocabSize, List<Dictionary<string, int>> ds, string tag, int minFreq = 1)
+        private static List<Vocab> InnerBuildVocab(int vocabSize, List<Dictionary<string, long>> ds, string tag, int minFreq = 1)
         {
             List<Vocab> vocabs = new List<Vocab>();
 
             for (int i = 0; i < ds.Count; i++)
             {
                 Vocab vocab = new Vocab();
-                SortedDictionary<int, List<string>> sd = new SortedDictionary<int, List<string>>();
+                SortedDictionary<long, List<string>> sd = new SortedDictionary<long, List<string>>();
 
                 var s_d = ds[i];
                 foreach (var kv in s_d)
