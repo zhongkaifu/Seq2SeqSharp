@@ -171,7 +171,7 @@ namespace Seq2SeqSharp.Tools
 
         public void InitDevices()
         {
-            string[] cudaCompilerOptions = m_compilerOptions.IsNullOrEmpty() ? null : m_compilerOptions.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            string[] cudaCompilerOptions = m_compilerOptions.IsNullOrEmpty() ? null : Regex.Split(m_compilerOptions, "--").ToList().Where(item => item != "").Select(item => "--" + item).ToArray();
             TensorAllocator.InitDevices(m_processorType, m_deviceIds, m_memoryUsageRatio, cudaCompilerOptions, mklInstructions: m_mklInstructions, enableTensorCore: m_enableTensorCore, m_cudaMemoryAllocatorType, m_elementType);
         }
 
