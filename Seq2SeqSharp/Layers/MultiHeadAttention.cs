@@ -54,6 +54,12 @@ namespace Seq2SeqSharp
             m_name = name;
             m_hiddenDim = hiddenDim;
             m_multiHeadNum = multiHeadNum;
+
+            if (m_hiddenDim % m_multiHeadNum != 0)
+            {
+                throw new ArgumentException("The hidden dim must be divisible by multi-head size.");
+            }
+
             m_d = m_hiddenDim / m_multiHeadNum;
             m_dropoutRatio = dropoutRatio;
             m_sharedQKV = sharedQKV;

@@ -50,9 +50,7 @@ Seq2SeqSharp provides some command line tools that you can run for different typ
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |   
 | Seq2SeqConsole                 | Used for sequence-to-sequence tasks, such as machine translation, automatic summarization and so on                                                                                                                                                       |
 | SeqClassificationConsole       | Used for sequence classification tasks, such as intention detection. It supports multi-tasks, which means a single model can be trained or tested by multi-classification tasks                                                                           |
-| Seq2SeqClassificationConsole   | It's a multi-task based tool. The first task is for sequence-to-sequence, and the second task is for sequence classification. The model is jointly trained by these two tasks. Its model can be also test on Seq2SeqConsole and SeqClassificationConsole  |
-| SeqLabelConsole                | Used for sequence labeling tasks, such as named entity recongizer, postag and other                                                                                                                                                                       |
-| SeqSimilarityConsole           | Used for similarity calculation between two sequences. It supports to both discrete similarity (binary-classifier) and continuous similarity (consine distance)                                                                                           |
+| SeqLabelConsole                | Used for sequence labeling tasks, such as named entity recongizer, postag and other                                                                                                                                                                       |                                                                                   |
 | GPTConsole                     | Used to train and test GPT type models. It can be used for any text generation tasks.                                                                                                                                                                     |
 
 It also provides web service APIs for above tasks.  
@@ -342,14 +340,13 @@ Here is the configuration file for model training.
 ```json
 {
     "Task":"Train",
-    "EmbeddingDim":512,
+    "SrcEmbeddingDim":512,
     "HiddenSize":512,
     "IntermediateSize": 2048,
     "StartLearningRate":0.0006,
     "WeightsUpdateCount":0,
     "EncoderLayerDepth":6,
-    "DecoderLayerDepth":6,
-    "ModelFilePath":"seq_ner_enu.model",
+    "ModelFilePath":"medNer.model",
     "SrcVocab":null,
     "TgtVocab":null,
     "SrcVocabSize":300000,
@@ -357,17 +354,18 @@ Here is the configuration file for model training.
     "SharedEmbeddings":false,
     "SrcEmbeddingModelFilePath":null,
     "TgtEmbeddingModelFilePath":null,
-    "TrainCorpusPath":".\\data\\train\\ner\\train_enu.ner.snt",
+    "TrainCorpusPath":".\\train.snt",
     "ValidCorpusPaths":null,
     "InputTestFile":null,
     "OutputTestFile":null,
     "ShuffleType":"NoPadding",
+    "LearningRateType": "CosineDecay",
     "GradClip":5.0,
     "BatchSize": 1,
     "MaxTokenSizePerBatch": 5120,
     "ValBatchSize":128,
     "DropoutRatio":0,
-    "ProcessorType":"CPU",
+    "ProcessorType":"GPU",
     "EncoderType":"Transformer",
     "MultiHeadNum":8,
     "DeviceIds":"0",
