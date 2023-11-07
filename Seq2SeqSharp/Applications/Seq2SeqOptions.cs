@@ -12,18 +12,22 @@ using AdvUtils;
 using Seq2SeqSharp.Utils;
 using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Seq2SeqSharp.Applications
 {
     public class Seq2SeqOptions : Options
     {
         [Arg("The network depth in decoder.", nameof(DecoderLayerDepth))]
+        [Range(1, 9999)]
         public int DecoderLayerDepth = 1;
 
         [Arg("Starting Learning rate factor for decoders", nameof(DecoderStartLearningRateFactor))]
+        [Range(0.0f, 100.0f)]
         public float DecoderStartLearningRateFactor = 1.0f;
 
         [Arg("Decoder type: None, AttentionLSTM, Transformer, GPTDecoder", nameof(DecoderType))]
+        [RegularExpression("None|AttentionLSTM|Transformer|GPTDecoder")]
         public DecoderTypeEnums DecoderType = DecoderTypeEnums.Transformer;
 
         [Arg("Apply coverage model in decoder", nameof(EnableCoverageModel))]
@@ -38,15 +42,19 @@ namespace Seq2SeqSharp.Applications
         public bool IsTgtEmbeddingTrainable = true;
 
         [Arg("Maxmium src sentence length in valid set", nameof(MaxValidSrcSentLength))]
+        [Range(1, 9999)]
         public int MaxValidSrcSentLength = 32;
 
         [Arg("Maxmium tgt sentence length in valid set", nameof(MaxValidTgtSentLength))]
+        [Range(1, 9999)]
         public int MaxValidTgtSentLength = 32;
 
         [Arg("Maxmium src sentence length in training and test set", nameof(MaxSrcSentLength))]
+        [Range(1, 9999)]
         public int MaxSrcSentLength = 110;
 
         [Arg("Maxmium tgt sentence length in training and test set", nameof(MaxTgtSentLength))]
+        [Range(1, 9999)]
         public int MaxTgtSentLength = 110;
 
         [Arg("The metric for sequence generation task. It supports BLEU and RougeL", nameof(SeqGenerationMetric))]
@@ -56,6 +64,7 @@ namespace Seq2SeqSharp.Applications
         public bool SharedEmbeddings = false;
 
         [Arg("The embedding dim in target side", nameof(TgtEmbeddingDim))]
+        [Range(1, 8192)]
         public int TgtEmbeddingDim = 128;
 
         [Arg("It indicates if pointer generator is enabled or not for seq2seq tasks. It requires shared vocabulary between source and target", nameof(PointerGenerator))]
