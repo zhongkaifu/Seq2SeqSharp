@@ -23,7 +23,7 @@ namespace Seq2SeqSharp.Applications
         public int DecoderLayerDepth = 1;
 
         [Arg("Starting Learning rate factor for decoders", nameof(DecoderStartLearningRateFactor))]
-        [Range(0.0f, 100.0f)]
+        [Range(0.0f, 1.0f)]
         public float DecoderStartLearningRateFactor = 1.0f;
 
         [Arg("Decoder type: None, AttentionLSTM, Transformer, GPTDecoder", nameof(DecoderType))]
@@ -42,29 +42,30 @@ namespace Seq2SeqSharp.Applications
         public bool IsTgtEmbeddingTrainable = true;
 
         [Arg("Maxmium src sentence length in valid set", nameof(MaxValidSrcSentLength))]
-        [Range(1, 9999)]
+        [Range(1, 1280000)]
         public int MaxValidSrcSentLength = 32;
 
         [Arg("Maxmium tgt sentence length in valid set", nameof(MaxValidTgtSentLength))]
-        [Range(1, 9999)]
+        [Range(1, 1280000)]
         public int MaxValidTgtSentLength = 32;
 
         [Arg("Maxmium src sentence length in training and test set", nameof(MaxSrcSentLength))]
-        [Range(1, 9999)]
+        [Range(1, 1280000)]
         public int MaxSrcSentLength = 110;
 
         [Arg("Maxmium tgt sentence length in training and test set", nameof(MaxTgtSentLength))]
-        [Range(1, 9999)]
+        [Range(1, 1280000)]
         public int MaxTgtSentLength = 110;
 
         [Arg("The metric for sequence generation task. It supports BLEU and RougeL", nameof(SeqGenerationMetric))]
+        [RegularExpression("BLEU|RougeL")]
         public string SeqGenerationMetric = "BLEU";
 
         [Arg("Sharing embeddings between source side and target side", nameof(SharedEmbeddings))]
         public bool SharedEmbeddings = false;
 
         [Arg("The embedding dim in target side", nameof(TgtEmbeddingDim))]
-        [Range(1, 8192)]
+        [Range(1, 102400)]
         public int TgtEmbeddingDim = 128;
 
         [Arg("It indicates if pointer generator is enabled or not for seq2seq tasks. It requires shared vocabulary between source and target", nameof(PointerGenerator))]

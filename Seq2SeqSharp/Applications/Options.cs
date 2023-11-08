@@ -56,14 +56,15 @@ namespace Seq2SeqSharp.Applications
         public DecodingStrategyEnums DecodingStrategy = DecodingStrategyEnums.GreedySearch;
 
         [Arg("The Top-P value in decoding. Default is 0.0", nameof(DecodingTopP))]
-        [Range(0.0f, 999.0f)]
+        [Range(0.0f, 1.0f)]
         public float DecodingTopP = 0.0f;
 
         [Arg("The temperature in decoding, Default value is 1.0f", nameof(DecodingTemperature))]
-        [Range(0.0f, 999.9f)]
+        [Range(0.0f, 1.0f)]
         public float DecodingTemperature = 1.0f;
 
         [Arg("The token repeat penalty in decoding, Default value is 2.0f", nameof(DecodingRepeatPenalty))]
+        [Range(0.0f, 999.0f)]
         public float DecodingRepeatPenalty = 2.0f;
 
         [Arg("Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2", nameof(DeviceIds))]
@@ -96,11 +97,11 @@ namespace Seq2SeqSharp.Applications
         public int EncoderLayerDepth = 1;
 
         [Arg("The embedding dim in source side", nameof(SrcEmbeddingDim))]
-        [Range(1, 8192)]
+        [Range(1, 102400)]
         public int SrcEmbeddingDim = 128;
 
         [Arg("Starting Learning rate factor for encoders", nameof(EncoderStartLearningRateFactor))]
-        [Range(0.000000001f, 1.0f)]
+        [Range(0.0f, 1.0f)]
         public float EncoderStartLearningRateFactor = 1.0f;
 
         [Arg("Encoder type: None, LSTM, BiLSTM, Transformer", nameof(EncoderType))]
@@ -119,11 +120,11 @@ namespace Seq2SeqSharp.Applications
         public float GradClip = 3.0f;
 
         [Arg("The hidden layer size of encoder and decoder.", nameof(HiddenSize))]
-        [Range(1, 8192)]
+        [Range(1, 102400)]
         public int HiddenSize = 128;
 
         [Arg("The intermediate layer size", nameof(IntermediateSize))]
-        [Range(1, 8192)]
+        [Range(1, 409600)]
         public int IntermediateSize = 512;
 
         [Arg("The input file for test.", nameof(InputTestFile))]
@@ -218,7 +219,7 @@ namespace Seq2SeqSharp.Applications
         public Logger.LogVerbose LogVerbose = Logger.LogVerbose.Normal;
 
         [Arg("Model vector quantization. Support INT8. Default is disabled.", nameof(VQType))]
-        [RegularExpression("None|INT8|INT4")]
+        [RegularExpression("None|INT8|INT4|FLOAT16")]
         public VQTypeEnums VQType = VQTypeEnums.None;
 
         [Arg("The target language name.", nameof(TgtLang))]
@@ -234,6 +235,7 @@ namespace Seq2SeqSharp.Applications
         public string IndexedCorpusPath = null;
 
         [Arg("The batch id that the tool will start to process. The default value is 0", nameof(StartBatchId))]
+        [Range(0, 9999999)]
         public int StartBatchId = 0;
 
         [Arg("The max degress of parallelism in task. Default is 1", nameof(TaskParallelism))]
@@ -303,12 +305,15 @@ namespace Seq2SeqSharp.Applications
         public int MinTokenFreqInVocab = 1;
 
         [Arg("The seed value of random generator", nameof(RandomSeed))]
+        [Range(-1, 9999999)]
         public int RandomSeed = -1;
 
         [Arg("The Positional Embeddings Type. It supports APE, NoPE and RoPE", nameof(PEType))]
+        [RegularExpression("APE|NoPE|RoPE")]
         public PositionEmbeddingEnums PEType = PositionEmbeddingEnums.APE;
 
         [Arg("The type of normalization. It supports LayerNorm and RMSNorm", nameof(NormType))]
+        [RegularExpression("LayerNorm|RMSNorm")]
         public NormEnums NormType = NormEnums.LayerNorm;
 
         public void ValidateOptions()

@@ -20,7 +20,7 @@ namespace Seq2SeqSharp.Applications
         public bool IsEmbeddingTrainable = true;
 
         [Arg("Maxmium sentence length", nameof(MaxSentLength))]
-        [Range(1, 99999)]
+        [Range(1, 1280000)]
         public int MaxSentLength = 110;
 
 
