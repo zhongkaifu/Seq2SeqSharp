@@ -9,6 +9,7 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
 using AdvUtils;
+using System.ComponentModel.DataAnnotations;
 
 namespace Seq2SeqSharp.Applications
 {
@@ -19,6 +20,7 @@ namespace Seq2SeqSharp.Applications
         public bool IsEmbeddingTrainable = true;
 
         [Arg("Maxmium sentence length", nameof(MaxSentLength))]
+        [Range(1, 1280000)]
         public int MaxSentLength = 110;
 
 
