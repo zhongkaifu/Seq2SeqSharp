@@ -568,8 +568,8 @@ Seq2SeqSharp has several built-in tokens and they are used for certain purposes.
 # Tag Embeddings  
 Seq2SeqSharp has some built-in special embeddings, such as position embeddings and segment embeddings, it also has a another type of special embeddings called "Tag embeddings". When this feature is enabled (EnableTagEmbeddings == true), tokens included in certain tags will add the corresponding tag embeddings into their input embeddings. Here is an example:  
 ![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Images/TagEmbeddings.jpeg)  
-The embedding of "<ANATOMY> will be added to the embedding of token "rotator" and "cuff" and the embedding of "<DISCIPLINE>" will be added to the embedding of token "pathology".  
-The tags in the embedding are in source or target vocabulary. They can be recursive and all relative tags' embeddings will be added to the input. For example: <TAG1> Token1 <TAG2> Token2 </TAG2> </TAG1>. For "Token2", both TAG1's embeddings and TAG2's embeddings will be added to its input embedding. However, for "Token1", only TAG1's embedding will be added to its input embedding.  
+The embedding of \<ANATOMY\> will be added to the embedding of token "rotator" and "cuff" and the embedding of \<DISCIPLINE\> will be added to the embedding of token "pathology".  
+The tags in the embedding could be in source or target vocabulary. They can be recursive and all relative tags' embeddings will be added to the input. For example: \<TAG1\> Token1 \<TAG2\> Token2 \</TAG2\> \</TAG1\>. For "Token2", both TAG1's embeddings and TAG2's embeddings will be applied to its input embedding. However, for "Token1", only TAG1's embedding will be added to its input embedding.  
 
 # Build Your Layers  
 Benefit from automatic differentiation, tensor based compute graph and other features, you can easily build your customized layers by a few code. The only thing you need to implment is forward part, and the framework will automatically build the corresponding backward part for you, and make the network could run on multi-GPUs or CPUs.  

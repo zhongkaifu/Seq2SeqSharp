@@ -1564,6 +1564,8 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
 
   __global__ void BuildSrcTgtMaskHalf(__half* __restrict__ result, float* __restrict__ srcOriginalLengths, float* __restrict__ tgtOriginalLengths, int rows, int cols, int tgtPaddedSeqLen, float value, float maskedValue)
 {
+      __half hvalue = __float2half(value);
+      __half hmaskedValue = __float2half(maskedValue);
 
     for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -1579,14 +1581,13 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
          int srcOriginalLength = srcOriginalLengths[batchIdx];
          int tgtOriginalLength = tgtOriginalLengths[batchIdx];
 
-
          if (id < srcOriginalLength && seqIdxInBatch < tgtOriginalLength)
          {
-             resultRow[id] = __float2half(value);
+             resultRow[id] = hvalue;
          }
          else
          {
-             resultRow[id] = __float2half(maskedValue);
+             resultRow[id] = hmaskedValue;
          }
 
         }
@@ -1597,6 +1598,8 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
 
   __global__ void BuildSelfMaskHalf(__half* __restrict__ result, float* __restrict__ originalLengths, int rows, int cols, int paddedSeqLen, float value, float maskedValue)
 {
+      __half hvalue = __float2half(value);
+      __half hmaskedValue = __float2half(maskedValue);
 
     for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -1613,11 +1616,11 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
 
          if (id < originalLength && seqIdxInBatch < originalLength)
          {
-             resultRow[id] = __float2half(value);
+             resultRow[id] = hvalue;
          }
          else
          {
-             resultRow[id] = __float2half(maskedValue);
+             resultRow[id] = hmaskedValue;
          }
 
         }
@@ -1628,6 +1631,8 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
 
   __global__ void BuildSelfTriMaskHalf(__half* __restrict__ result, float* __restrict__ originalLengths, int rows, int cols, int paddedSeqLen, float value, float maskedValue)
 {
+      __half hvalue = __float2half(value);
+      __half hmaskedValue = __float2half(maskedValue);
 
     for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
@@ -1644,11 +1649,11 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
 
          if (id < originalLength && seqIdxInBatch < originalLength && id <= seqIdxInBatch)
          {
-             resultRow[id] = __float2half(value);
+             resultRow[id] = hvalue;
          }
          else
          {
-             resultRow[id] = __float2half(maskedValue);
+             resultRow[id] = hmaskedValue;
          }
 
         }
@@ -1658,22 +1663,25 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
 }
   __global__ void BuildTriMaskHalf(__half* __restrict__ result, int rows, int cols, float value, float maskedValue)
 {
+      __half hvalue = __float2half(value);
+      __half hmaskedValue = __float2half(maskedValue);
 
     for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
       __half* resultRow = result + j * cols;
+
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
 
             if (id <= j)
             {
-                resultRow[id] = __float2half(value);
+                resultRow[id] = hvalue;
             }
             else
             {
-                resultRow[id] = __float2half(maskedValue);
+                resultRow[id] = hmaskedValue;
             }
         }
       }
@@ -1765,15 +1773,15 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
       __half* so = out + j * cols;
       const __half* sp = in + j * cols;
 
-      extern __shared__ float _share[];     
-      float* _max = _share;
-      _max[threadIdx.x] = -1.70141e+38;
+      extern __shared__ __half _hshare[];     
+      __half* _max = _hshare;
+      _max[threadIdx.x] = -65500;
       
       for(int tid = 0; tid < cols; tid += blockDim.x) {        
         int i = tid + threadIdx.x;
         if(i < cols) {
-          if(__half2float(sp[i]) > _max[threadIdx.x])
-            _max[threadIdx.x] = __half2float(sp[i]);
+          if(__hgt(sp[i], _max[threadIdx.x]))
+            _max[threadIdx.x] = sp[i];
         }
       }
       __syncthreads();      
@@ -1782,24 +1790,24 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
         __syncthreads();
         int skip = (len + 1) >> 1;
         if(threadIdx.x < (len >> 1)) {
-          if(_max[threadIdx.x + skip] > _max[threadIdx.x]) {
+          if(__hgt(_max[threadIdx.x + skip], _max[threadIdx.x])) {
             _max[threadIdx.x] = _max[threadIdx.x + skip];
           }
         }
         len = (len + 1) >> 1;
       }
       __syncthreads();
-      float max = _max[0];
+      __half max = _max[0];
       __syncthreads();
     
-      float* _sum = _share;
+      __half* _sum = _hshare;
       _sum[threadIdx.x] = 0.0;
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols) {         
-          float ex = expf(__half2float(sp[i]) - max);
-          so[i] = __float2half(ex);
-          _sum[threadIdx.x] += ex;
+          half ex = hexp(__hsub(sp[i], max));
+          so[i] = ex;
+          _sum[threadIdx.x] = __hadd(_sum[threadIdx.x], ex);
         }
       }
       __syncthreads();     
@@ -1808,16 +1816,16 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
         __syncthreads();
         int skip = (len + 1) >> 1;
         if(threadIdx.x < (len >> 1))
-          _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+          _sum[threadIdx.x] = __hadd(_sum[threadIdx.x], _sum[threadIdx.x + skip]);
         len = (len + 1) >> 1;
       }
       __syncthreads();
     
-      float sum = _sum[0];
+      __half sum = _sum[0];
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int i = tid + threadIdx.x;
         if(i < cols) {
-          so[i] = __float2half(__half2float(so[i]) / sum);
+          so[i] = __hdiv(so[i], sum);
         }
       }
     }

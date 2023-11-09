@@ -1,41 +1,40 @@
-﻿using AdvUtils;
+﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// https://github.com/zhongkaifu/Seq2SeqSharp
+//
+// This file is part of Seq2SeqSharp.
+//
+// Seq2SeqSharp is licensed under the BSD-3-Clause license found in the LICENSE file in the root directory of this source tree.
+//
+// Seq2SeqSharp is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
+
+using AdvUtils;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Seq2SeqSharp.LearningRate
 {
     public class CosineDecayLearningRate : ILearningRate
     {
-        float m_initial_learning_rate;
         int m_decaySteps;
-        float m_warmup_target;
+        float m_startLearningRate;
         int m_warmupSteps;
-        float m_initial_decay_lr;
-        private int m_weightsUpdateCount = 0;
-        float m_alpha = 0.0f;
+        private int m_weightsUpdateCount = 0; // How many steps have been already done
 
-        public CosineDecayLearningRate(float startLearningRate, int warmupSteps, int decaySteps, int weightsUpdateCount)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="startLearningRate">The starting learning rate after warm up</param>
+        /// <param name="warmupSteps">The steps for warming up</param>
+        /// <param name="decaySteps">The total steps needs to be run</param>
+        /// <param name="alreadyUpdatedSteps">The steps have been finished</param>
+        public CosineDecayLearningRate(float startLearningRate, int warmupSteps, int decaySteps, int alreadyUpdatedSteps)
         {
-            m_initial_learning_rate = 0.0f;
             m_decaySteps = decaySteps;
-            m_warmup_target = startLearningRate;
+            m_startLearningRate = startLearningRate;
             m_warmupSteps = warmupSteps;
+            m_weightsUpdateCount = alreadyUpdatedSteps;
 
-            if (m_warmup_target == 0)
-            {
-                m_initial_decay_lr = m_initial_learning_rate;
-            }
-            else
-            {
-                m_initial_decay_lr = m_warmup_target;
-            }
-
-            m_weightsUpdateCount = weightsUpdateCount;
-
-            Logger.WriteLine($"Creating cosine decay learning rate. StartLearningRate = '{startLearningRate}', WarmupSteps = '{warmupSteps}', WeightsUpdatesCount = '{weightsUpdateCount}', DecaySteps = '{decaySteps}''");
+            Logger.WriteLine($"Creating cosine decay learning rate. StartLearningRate = '{startLearningRate}', WarmupSteps = '{warmupSteps}', WeightsUpdatesCount = '{alreadyUpdatedSteps}', DecaySteps = '{decaySteps}''");
         }
 
         public float GetCurrentLearningRate(int epoch)
@@ -45,17 +44,13 @@ namespace Seq2SeqSharp.LearningRate
             if (m_weightsUpdateCount < m_warmupSteps)
             {
                 float completed_fraction = (float)m_weightsUpdateCount / (float)m_warmupSteps;
-                float total_delta = m_warmup_target - m_initial_learning_rate;
-
-                return completed_fraction * total_delta;
+                return completed_fraction * m_startLearningRate;
             }
             else
             {
                 var step = Math.Min(m_weightsUpdateCount, m_decaySteps);
                 var cosine_decay = 0.5 * (1.0 + Math.Cos(Math.PI * (float)step / (float)m_decaySteps));
-                var decayed = (1.0 - m_alpha) * cosine_decay + m_alpha;
-
-                return (float)(m_initial_decay_lr * decayed);
+                return (float)(m_startLearningRate * cosine_decay);
 
             }
         }

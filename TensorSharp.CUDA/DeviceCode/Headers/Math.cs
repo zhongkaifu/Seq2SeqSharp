@@ -195,9 +195,11 @@ template <typename T> INLINE_FUNC T MaskFill(T t, T mask, T defValue) {
 #include <cuda_fp16.h>
 
 template<typename T> INLINE_FUNC T SiLUHalf(T wh) {
-    float w = __half2float(wh);
-	float res = w / (1.0 + expf(-w));
-    return __float2half(res);
+ //   float w = __half2float(wh);
+	//float res = w / (1.0 + expf(-w));
+ //   return __float2half(res);
+
+    return __hdiv(wh, __hadd(T(1), hexp(__hneg(wh))));
 }
 
 template<typename T> INLINE_FUNC T SiLUDHalf(T wh, T resGh) {
