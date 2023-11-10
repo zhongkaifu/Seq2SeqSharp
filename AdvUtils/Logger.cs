@@ -30,7 +30,7 @@ namespace AdvUtils
     {
         public enum Level { err, warn, info};
 
-        public enum LogVerbose {None, Normal, Details, Debug, Callback, Logfileonly, Progress };
+        public enum LogVerbose {None, Normal, Details, Debug, Callback, CallbackDetails, Logfileonly, Progress };
 
         public static LogVerbose Verbose = LogVerbose.Normal;
 
@@ -86,7 +86,7 @@ namespace AdvUtils
 
             string sLine = sb.ToString();
 
-            if (Callback != null && Verbose == LogVerbose.Callback)
+            if (Callback != null && (Verbose == LogVerbose.Callback || Verbose == LogVerbose.CallbackDetails))
             { // let the caller handle the message
                 StringBuilder sbl = new StringBuilder(sLine);
                 Callback(0, sbl, (int)level);
@@ -115,7 +115,7 @@ namespace AdvUtils
             }
             catch (Exception err)
             {
-                if (Callback != null && Verbose == LogVerbose.Callback)
+                if (Callback != null && (Verbose == LogVerbose.Callback || Verbose == LogVerbose.CallbackDetails))
                 { // let the caller handle the message
                     StringBuilder sbl = new StringBuilder($"Failed to write to log file '{LogFile}'. Error = '{err.Message}'");
                     Callback(0, sbl, (int)level);
@@ -145,7 +145,7 @@ namespace AdvUtils
 
             string sLine = sb.ToString();
 
-            if (Callback != null && Verbose == LogVerbose.Callback)
+            if (Callback != null && (Verbose == LogVerbose.Callback || Verbose == LogVerbose.CallbackDetails))
             { // let the caller handle the message
                 StringBuilder sbl = new StringBuilder(sLine);
                 Callback(0, sbl, (int)level, (int)color);
@@ -175,7 +175,7 @@ namespace AdvUtils
             }
             catch (Exception err)
             {
-                if (Callback != null && Verbose == LogVerbose.Callback)
+                if (Callback != null && (Verbose == LogVerbose.Callback || Verbose == LogVerbose.CallbackDetails))
                 { // let the caller handle the message
                     StringBuilder sbl = new StringBuilder($"Failed to write to log file '{LogFile}'. Error = '{err.Message}'");
                     Callback(0, sbl, (int)level);

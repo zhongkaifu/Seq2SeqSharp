@@ -23,17 +23,20 @@ namespace Seq2SeqSharp.LearningRate
 
         public DecayLearningRate(float startLearningRate, int warmupSteps, int weightsUpdatesCount, float stepDownFactor = 1.0f, int updateNumToStepDownLearningRate = 0)
         {
-            Logger.WriteLine($"Creating decay learning rate. StartLearningRate = '{startLearningRate}', WarmupSteps = '{warmupSteps}', WeightsUpdatesCount = '{weightsUpdatesCount}', StepDownFactor = '{stepDownFactor}', UpdateNumToStepDownLearningRate = '{updateNumToStepDownLearningRate}'");
+            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
+                Logger.WriteLine($"Creating decay learning rate. StartLearningRate = '{startLearningRate}', WarmupSteps = '{warmupSteps}', WeightsUpdatesCount = '{weightsUpdatesCount}', StepDownFactor = '{stepDownFactor}', UpdateNumToStepDownLearningRate = '{updateNumToStepDownLearningRate}'");
 
             if (stepDownFactor != 1.0f)
             {
                 if (updateNumToStepDownLearningRate > 0)
                 {
-                    Logger.WriteLine($"Step down learning rateo to '{stepDownFactor}' * current_learning_rate after every '{updateNumToStepDownLearningRate}' updates.");
+                    if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
+                        Logger.WriteLine($"Step down learning rateo to '{stepDownFactor}' * current_learning_rate after every '{updateNumToStepDownLearningRate}' updates.");
                 }
                 else
                 {
-                    Logger.WriteLine($"Step down learning rateo to '{stepDownFactor}' * current_learning_rate after each epoch.");
+                    if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
+                        Logger.WriteLine($"Step down learning rateo to '{stepDownFactor}' * current_learning_rate after each epoch.");
                 }
             }
 

@@ -36,21 +36,29 @@ namespace Seq2SeqSharp.Corpus
             this.maxSentLength = maxSentLength;
             this.batchSize = batchSize;
 
-            Logger.WriteLine($"Loading lines from '{srcFilePath}'");
+            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
+                Logger.WriteLine($"Loading lines from '{srcFilePath}'");
+
             srcReader = File.ReadLines(srcFilePath).GetEnumerator();
 
-            Logger.WriteLine($"Loading lines from '{tgtFilePath}'");
+            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
+                Logger.WriteLine($"Loading lines from '{tgtFilePath}'");
+
             tgtReader = File.ReadLines(tgtFilePath).GetEnumerator();
 
             if (String.IsNullOrEmpty(srcSPMPath) == false)
             {
-                Logger.WriteLine($"Loading sentence piece model '{srcSPMPath}' for encoding.");
+                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
+                    Logger.WriteLine($"Loading sentence piece model '{srcSPMPath}' for encoding.");
+
                 srcSP = new SentencePiece(srcSPMPath);
             }
 
             if (String.IsNullOrEmpty(tgtSPMPath) == false)
             {
-                Logger.WriteLine($"Loading sentence piece model '{tgtSPMPath}' for encoding.");
+                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
+                    Logger.WriteLine($"Loading sentence piece model '{tgtSPMPath}' for encoding.");
+
                 tgtSP = new SentencePiece(tgtSPMPath);
             }
         }

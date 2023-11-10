@@ -34,7 +34,8 @@ namespace Seq2SeqSharp.Optimizer
 
         public AdamOptimizer(float clipval, float beta1 = 0.9f, float beta2 = 0.98f, bool saveGPUMemoryMode = false)
         {
-            Logger.WriteLine($"Creating Adam optimizer. GradClip = '{clipval}', Beta1 = '{beta1}', Beta2 = '{beta2}', SaveGPUMemoryMode = '{saveGPUMemoryMode}'");
+            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
+                Logger.WriteLine($"Creating Adam optimizer. GradClip = '{clipval}', Beta1 = '{beta1}', Beta2 = '{beta2}', SaveGPUMemoryMode = '{saveGPUMemoryMode}'");
 
             m_cacheName2V = new ConcurrentDictionary<string, Tensor>();
             m_cacheName2M = new ConcurrentDictionary<string, Tensor>();
@@ -77,7 +78,8 @@ namespace Seq2SeqSharp.Optimizer
                     m_cacheName2M[item.Name] = new Tensor(m_saveGPUMemoryMode ? new CpuAllocator(BlasEnum.DotNet) : item.Allocator, DType.Float32, item.Sizes);
                     Ops.Fill(m_cacheName2M[item.Name], 0.0f);
 
-                    Logger.WriteLine($"Added weight '{item.Name}' to optimizer. Learning rate factor = '{item.LearningRateFactor}'");
+                    if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
+                        Logger.WriteLine($"Added weight '{item.Name}' to optimizer. Learning rate factor = '{item.LearningRateFactor}'");
                 }
             }
 

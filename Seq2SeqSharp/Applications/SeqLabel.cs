@@ -72,15 +72,21 @@ namespace Seq2SeqSharp
             if (String.IsNullOrEmpty(m_options.TagWeights) == false)
             {
                 m_tagWeightsList = SplitTagWeights(m_options.TagWeights);
-                Logger.WriteLine("The list of tag weights:");
-                for (int i = 0; i < m_tagWeightsList.Length; i++)
+
+                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
                 {
-                    Logger.WriteLine($"{i}:{m_tagWeightsList[i]}");
+                    Logger.WriteLine("The list of tag weights:");
+                    for (int i = 0; i < m_tagWeightsList.Length; i++)
+                    {
+                        Logger.WriteLine($"{i}:{m_tagWeightsList[i]}");
+                    }
                 }
             }
             else
             {
-                Logger.WriteLine("No tag weights are specified.");
+                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
+                    Logger.WriteLine("No tag weights are specified.");
+
                 m_tagWeightsList = null;
             }
         }
@@ -88,7 +94,9 @@ namespace Seq2SeqSharp
         protected override SeqLabelModel LoadModel(string suffix = "") => base.LoadModelRoutine<Model_4_ProtoBufSerializer>(CreateTrainableParameters, SeqLabelModel.Create, suffix);
         private bool CreateTrainableParameters(IModel model)
         {
-            Logger.WriteLine($"Creating encoders and decoders...");
+            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
+                Logger.WriteLine($"Creating encoders and decoders...");
+
             var raDeviceIds = new RoundArray<int>(DeviceIds);
             m_encoder = Encoder.CreateEncoders(model, m_options, raDeviceIds);
             m_ffLayer = new MultiProcessorNetworkWrapper<FeedForwardLayer>(new FeedForwardLayer("FeedForward", model.HiddenDim, model.TgtVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);

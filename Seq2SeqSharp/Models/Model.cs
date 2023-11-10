@@ -140,7 +140,9 @@ namespace Seq2SeqSharp.Models
 
         public void AddWeights(string name, float[] weights)
         {
-            Logger.WriteLine($"Adding weights '{name}' to the model.");
+            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
+                Logger.WriteLine($"Adding weights '{name}' to the model.");
+
             if (VQType == VQTypeEnums.FLOAT16)
             {             
                 var weightsHalf = new ushort[weights.Length];
@@ -373,6 +375,8 @@ namespace Seq2SeqSharp.Models
 
         public void ShowModelInfo()
         {
+            if (Logger.Verbose == Logger.LogVerbose.None || Logger.Verbose == Logger.LogVerbose.Normal || Logger.Verbose == Logger.LogVerbose.Callback) return;
+
             Logger.WriteLine($"Encoder embedding dim: '{EncoderEmbeddingDim}'");
             Logger.WriteLine($"Decoder embedding dim: '{DecoderEmbeddingDim}'");
             Logger.WriteLine($"Encoder layer depth: '{EncoderLayerDepth}'");

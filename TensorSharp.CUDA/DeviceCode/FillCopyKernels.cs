@@ -28,7 +28,8 @@ namespace TensorSharp.CUDA.DeviceCode
 
             if (TSCudaContext.ElementType == DType.Float16)
             {
-                Logger.WriteLine($"Creating FillCopy kernels for Float16 type.");
+                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
+                    Logger.WriteLine($"Creating FillCopy kernels for Float16 type.");
 
                 result.AddApplyTSHalf("fill", "*a = b;");
                 result.AddApplyTT("copy", "*a = *b;", elementTypes: new DType[] { DType.Float16, DType.Float16 });

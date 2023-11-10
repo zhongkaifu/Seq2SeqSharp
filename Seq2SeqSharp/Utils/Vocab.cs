@@ -138,7 +138,9 @@ namespace Seq2SeqSharp.Utils
 
             if (q % 2 != 0)
             {
-                Logger.WriteLine($"Added a pad token into vocabulary for alignment.");
+                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
+                    Logger.WriteLine($"Added a pad token into vocabulary for alignment.");
+
                 string pad = "[PAD_0]";
                 Items.Add(pad);
                 WordToIndex[pad] = q;

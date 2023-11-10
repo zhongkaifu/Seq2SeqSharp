@@ -227,7 +227,9 @@ namespace Seq2SeqSharp.Corpus
 
                 if (q % 2 != 0)
                 {
-                    Logger.WriteLine($"Added a pad token into vocabulary for alignment.");
+                    if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
+                        Logger.WriteLine($"Added a pad token into vocabulary for alignment.");
+
                     string pad = "[PAD_0]";
                     vocab.WordToIndex[pad] = q;
                     vocab.IndexToWord[q] = pad;
@@ -237,7 +239,8 @@ namespace Seq2SeqSharp.Corpus
 
                 vocabs.Add(vocab);
 
-                Logger.WriteLine($"{tag} Vocab Group '{i}': Original vocabulary size = '{s_d.Count}', Truncated vocabulary size = '{q}', Minimum Token Frequency = '{minFreq}'");
+                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
+                    Logger.WriteLine($"{tag} Vocab Group '{i}': Original vocabulary size = '{s_d.Count}', Truncated vocabulary size = '{q}', Minimum Token Frequency = '{minFreq}'");
 
             }
 
