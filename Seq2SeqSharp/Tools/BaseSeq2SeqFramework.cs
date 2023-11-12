@@ -1267,6 +1267,7 @@ namespace Seq2SeqSharp.Tools
             {
                 if (weight.IsWeightsCorrupted())
                 {
+                    Logger.WriteLine(Logger.Level.err, $"Weight '{weight.Name}' is corrupted.");
                     return true;
                 }
             }
