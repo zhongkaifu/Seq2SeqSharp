@@ -56,8 +56,7 @@ namespace ImgSeqConsole
                     opts = JsonConvert.DeserializeObject<Seq2SeqOptions>(File.ReadAllText(opts.ConfigFilePath));
                 }
 
-                Logger.Verbose = opts.LogVerbose;
-                Logger.LogFile = $"{nameof(ImgSeqConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log";
+                Logger.Initialize(opts.LogDestination, opts.LogLevel, $"{nameof(ImgSeqConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log");
 
                 ShowOptions(args, opts);
 

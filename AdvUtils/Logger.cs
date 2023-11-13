@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
+using System.Diagnostics;
+using static AdvUtils.Logger;
+using System.Drawing;
+using System.Runtime.InteropServices;
 
 namespace AdvUtils
 {
@@ -26,17 +29,27 @@ namespace AdvUtils
         int color = 0
         );
 
-    public class Logger
+    public static class Logger
     {
-        public enum Level { err, warn, info};
+        public enum Destination // Where logs will be going to
+        {
+            None = 0,
+            Console = 1,
+            Logfile = 2,
+            Callback = 4
+        };
 
-        public enum LogVerbose {None, Normal, Details, Debug, Callback, Logfileonly, Progress };
+        public enum Level
+        {
+            none = 0,
+            err = 1,
+            warn = 2,
+            info = 4,
+            debug = 8,
+        };
 
-        public static LogVerbose Verbose = LogVerbose.Normal;
-
+        private static Level m_logLevel;
         private static ProgressCallback? s_callback = null;
-
-        private static LogVerbose s_logverbosebackup = LogVerbose.Normal;
 
         /// <summary>
         /// Set the callback routine in your code with this to automatically redirect all messages to your callback function
@@ -47,182 +60,61 @@ namespace AdvUtils
             set
             {
                 s_callback = value;
-                if (s_callback != null)
-                {
-                    s_logverbosebackup = Verbose;
-                    Verbose = LogVerbose.Callback;
-                }
-                else
-                {
-                    Verbose = s_logverbosebackup;
-                }
             }
+        }
+
+        static public void Initialize(Destination dest, Level logLevel, string logFilePath = "", ProgressCallback callback = null)
+        {
+            if ((dest & Destination.Console) == Destination.Console)
+            {
+                TextWriterTraceListener tr = new TextWriterTraceListener(System.Console.Out);
+                Trace.Listeners.Add(tr);
+            }
+
+            if ((dest & Destination.Logfile) == Destination.Logfile)
+            {
+                TextWriterTraceListener tr = new TextWriterTraceListener(System.IO.File.CreateText(logFilePath));
+                Trace.Listeners.Add(tr);
+            }
+
+            m_logLevel = logLevel;
+            s_callback = callback;
         }
 
         public static void WriteLine(string s, params object[] args)
         {
-            if (Verbose == LogVerbose.None)
-            {
-                return;
-            }
-
-            WriteLine(Level.info, s, args);
+            WriteLine(Level.info, ConsoleColor.White, s, args);
         }
 
         public static void WriteLine(Level level, string s, params object[] args)
         {
-            if (Verbose == LogVerbose.None)
-            {
-                return;
-            }
-
-            StringBuilder sb = new StringBuilder();
-            sb.AppendFormat("{0},{1} ", level.ToString(), DateTime.Now.ToString());
-
-            if (args.Length == 0)
-                sb.Append(s);
-            else
-                sb.AppendFormat(s, args);
-
-            string sLine = sb.ToString();
-
-            if (Callback != null && Verbose == LogVerbose.Callback)
-            { // let the caller handle the message
-                StringBuilder sbl = new StringBuilder(sLine);
-                Callback(0, sbl, (int)level);
-            }
-            else if (Callback != null && Verbose == LogVerbose.Progress)
-            { // inform the caller about the progress
-                if (args.Length > 0)
-                {
-                    StringBuilder sbl0 = new StringBuilder("");
-                    Callback((int)args[0], sbl0, (int)level);
-                    return;
-                }
-            }
-            else if (Verbose != LogVerbose.Logfileonly)
-            { // only print on the Console if Logfileonly is not requested
-                if (level != Level.info)
-                    Console.Error.WriteLine(sLine);
-                else
-                    Console.WriteLine(sLine);
-            }
-
-            try
-            {
-                if (s_sw != null)
-                    s_sw.WriteLine(sLine);
-            }
-            catch (Exception err)
-            {
-                if (Callback != null && Verbose == LogVerbose.Callback)
-                { // let the caller handle the message
-                    StringBuilder sbl = new StringBuilder($"Failed to write to log file '{LogFile}'. Error = '{err.Message}'");
-                    Callback(0, sbl, (int)level);
-                }
-                else
-                {
-                    Console.Error.WriteLine($"Failed to write to log file '{LogFile}'. Error = '{err.Message}'");
-                }
-                s_sw = null;
-            }
+            WriteLine(level, ConsoleColor.White, s, args);
         }
 
         public static void WriteLine(Level level, ConsoleColor color, string s, params object[] args)
         {
-            if (Verbose == LogVerbose.None)
+            if ((level & m_logLevel) == level)
             {
-                return;
-            }
-
-            StringBuilder sb = new StringBuilder();
-            sb.AppendFormat("{0},{1} ", level.ToString(), DateTime.Now.ToString());
-
-            if (args.Length == 0)
-                sb.Append(s);
-            else
-                sb.AppendFormat(s, args);
-
-            string sLine = sb.ToString();
-
-            if (Callback != null && Verbose == LogVerbose.Callback)
-            { // let the caller handle the message
-                StringBuilder sbl = new StringBuilder(sLine);
-                Callback(0, sbl, (int)level, (int)color);
-            }
-            else if (Callback != null && Verbose == LogVerbose.Progress)
-            { // inform the caller about the progress
-                StringBuilder sbl0 = new StringBuilder("");
-                Callback((int)args[0], sbl0, (int)level);
-                return;
-            }
-            else if (Verbose != LogVerbose.Logfileonly)
-            { // only print on the Console if Logfileonly is not requested
                 Console.ForegroundColor = color;
 
-                if (level != Level.info)
-                    Console.Error.WriteLine(sLine);
+                StringBuilder sb = new StringBuilder();
+                sb.AppendFormat("{0},{1} ", level.ToString(), DateTime.Now.ToString());
+
+                if (args.Length == 0)
+                    sb.Append(s);
                 else
-                    Console.WriteLine(sLine);
+                    sb.AppendFormat(s, args);
 
-                Console.ResetColor();
-            }
+                string sLine = sb.ToString();
+                Trace.WriteLine(sLine);
+                Trace.Flush();
 
-            try
-            {
-                if (s_sw != null)
-                    s_sw.WriteLine(sLine);
-            }
-            catch (Exception err)
-            {
-                if (Callback != null && Verbose == LogVerbose.Callback)
-                { // let the caller handle the message
-                    StringBuilder sbl = new StringBuilder($"Failed to write to log file '{LogFile}'. Error = '{err.Message}'");
-                    Callback(0, sbl, (int)level);
-                }
-                else
+                if (Callback != null)
                 {
-                    Console.Error.WriteLine($"Failed to write to log file '{LogFile}'. Error = '{err.Message}'");
+                    Callback(0, sb, (int)level, (int)color);
                 }
-
-                s_sw = null;
-            }
-        }
-
-        public static void Close()
-        {
-            if (s_sw != null)
-            {
-                s_sw.Close();
-                s_sw = null;
             }
 
         }
-
-        public static string? LogFile
-        {
-            get => s_strLogfile;
-            set
-            {
-                if (s_strLogfile == value)
-                    return;
-
-                if (s_sw != null)
-                {
-                    s_sw.Close();
-                    s_sw = null;
-                }
-
-                s_strLogfile = value;
-                if (s_strLogfile != null)
-                {
-                    s_sw = new StreamWriter(s_strLogfile, true, Encoding.UTF8);
-                    s_sw.AutoFlush = true;
-                }
-            }
-        }
-
-        private static string? s_strLogfile = null;
-        private static StreamWriter? s_sw = null;
     }
 }

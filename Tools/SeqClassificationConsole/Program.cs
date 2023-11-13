@@ -66,7 +66,7 @@ namespace SeqClassificationConsole
                     opts = JsonConvert.DeserializeObject<SeqClassificationOptions>(File.ReadAllText(opts.ConfigFilePath));
                 }
 
-                Logger.LogFile = $"{nameof(SeqClassificationConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log";
+                Logger.Initialize(opts.LogDestination, opts.LogLevel, $"{nameof(SeqClassificationConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log");
                 ShowOptions(args, opts);
 
                 DecodingOptions decodingOptions = opts.CreateDecodingOptions();

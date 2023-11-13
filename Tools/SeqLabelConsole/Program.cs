@@ -43,13 +43,11 @@ namespace SeqLabelConsole
 
         private static void Main(string[] args)
         {
-            ShowOptions(args);
-
-            Logger.LogFile = $"{nameof(SeqLabelConsole)}_{Utils.GetTimeStamp(DateTime.Now)}.log";
-
             //Parse command line
-
             ArgParser argParser = new ArgParser(args, opts);
+
+            Logger.Initialize(opts.LogDestination, opts.LogLevel, $"{nameof(SeqLabelConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log");
+            ShowOptions(args);
 
             if (!opts.ConfigFilePath.IsNullOrEmpty())
             {
