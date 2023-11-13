@@ -43,7 +43,7 @@ namespace TensorSharp.CUDA.DeviceCode
 
             if (TSCudaContext.ElementType == DType.Float16)
             {
-                Logger.WriteLine($"Creating elementwise actitive kernels for Float16 type.");
+                Logger.WriteLine(Logger.Level.debug, $"Creating elementwise actitive kernels for Float16 type.");
 
                 AppendTTFunc(result, "relu", "relu", DType.Float16);
                 AppendTTTFunc(result, "relud", "relud", DType.Float16);

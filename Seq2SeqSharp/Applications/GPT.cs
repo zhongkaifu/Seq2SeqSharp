@@ -117,7 +117,8 @@ namespace Seq2SeqSharp.Applications
                 m_tgtEmbedding.Dispose();
             }
 
-            Logger.WriteLine($"Creating decoders...");
+            Logger.WriteLine(Logger.Level.debug, $"Creating decoders...");
+
             var raDeviceIds = new RoundArray<int>(DeviceIds);
 
             DType elementType = m_options.AMP ? DType.Float16 : DType.Float32;

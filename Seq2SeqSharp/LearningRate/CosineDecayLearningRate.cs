@@ -34,7 +34,7 @@ namespace Seq2SeqSharp.LearningRate
             m_warmupSteps = warmupSteps;
             m_weightsUpdateCount = alreadyUpdatedSteps;
 
-            Logger.WriteLine($"Creating cosine decay learning rate. StartLearningRate = '{startLearningRate}', WarmupSteps = '{warmupSteps}', WeightsUpdatesCount = '{alreadyUpdatedSteps}', DecaySteps = '{decaySteps}''");
+            Logger.WriteLine(Logger.Level.debug, $"Creating cosine decay learning rate. StartLearningRate = '{startLearningRate}', WarmupSteps = '{warmupSteps}', WeightsUpdatesCount = '{alreadyUpdatedSteps}', DecaySteps = '{decaySteps}''");
         }
 
         public float GetCurrentLearningRate(int epoch)

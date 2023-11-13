@@ -140,7 +140,8 @@ namespace Seq2SeqSharp.Models
 
         public void AddWeights(string name, float[] weights)
         {
-            Logger.WriteLine($"Adding weights '{name}' to the model.");
+            Logger.WriteLine(Logger.Level.debug, $"Adding weights '{name}' to the model.");
+
             if (VQType == VQTypeEnums.FLOAT16)
             {             
                 var weightsHalf = new ushort[weights.Length];
@@ -373,44 +374,46 @@ namespace Seq2SeqSharp.Models
 
         public void ShowModelInfo()
         {
-            Logger.WriteLine($"Encoder embedding dim: '{EncoderEmbeddingDim}'");
-            Logger.WriteLine($"Decoder embedding dim: '{DecoderEmbeddingDim}'");
-            Logger.WriteLine($"Encoder layer depth: '{EncoderLayerDepth}'");
-            Logger.WriteLine($"Decoder layer depth: '{DecoderLayerDepth}'");
-            Logger.WriteLine($"Encoder type: '{EncoderType}'");
-            Logger.WriteLine($"Decoder type: '{DecoderType}'");
-            Logger.WriteLine($"Hidden layer dim: '{HiddenDim}'");
-            Logger.WriteLine($"Intermediate dim: '{IntermediateDim}");
-            Logger.WriteLine($"Enable segment embeddings: '{EnableSegmentEmbeddings}'");
-            Logger.WriteLine($"Enable shared embeddings: '{SharedEmbeddings}'");
-            Logger.WriteLine($"Enable tag embeddings: '{EnableTagEmbeddings}'");
-            Logger.WriteLine($"Multi-head size: '{MultiHeadNum}'");
-            Logger.WriteLine($"Pointer Generator: '{PointerGenerator}'");
-            Logger.WriteLine($"Expert Size: '{ExpertNum}");
-            Logger.WriteLine($"Experts per token factor: '{ExpertsPerTokenFactor}'");
-            Logger.WriteLine($"Codebook size for model vector quantization: '{VQType}'");
-            Logger.WriteLine($"Positional Embedding Type: '{PEType}'");
+#if DEBUG           
+            Logger.WriteLine(Logger.Level.debug, $"Encoder embedding dim: '{EncoderEmbeddingDim}'");
+            Logger.WriteLine(Logger.Level.debug, $"Decoder embedding dim: '{DecoderEmbeddingDim}'");
+            Logger.WriteLine(Logger.Level.debug, $"Encoder layer depth: '{EncoderLayerDepth}'");
+            Logger.WriteLine(Logger.Level.debug, $"Decoder layer depth: '{DecoderLayerDepth}'");
+            Logger.WriteLine(Logger.Level.debug, $"Encoder type: '{EncoderType}'");
+            Logger.WriteLine(Logger.Level.debug, $"Decoder type: '{DecoderType}'");
+            Logger.WriteLine(Logger.Level.debug, $"Hidden layer dim: '{HiddenDim}'");
+            Logger.WriteLine(Logger.Level.debug, $"Intermediate dim: '{IntermediateDim}");
+            Logger.WriteLine(Logger.Level.debug, $"Enable segment embeddings: '{EnableSegmentEmbeddings}'");
+            Logger.WriteLine(Logger.Level.debug, $"Enable shared embeddings: '{SharedEmbeddings}'");
+            Logger.WriteLine(Logger.Level.debug, $"Enable tag embeddings: '{EnableTagEmbeddings}'");
+            Logger.WriteLine(Logger.Level.debug, $"Multi-head size: '{MultiHeadNum}'");
+            Logger.WriteLine(Logger.Level.debug, $"Pointer Generator: '{PointerGenerator}'");
+            Logger.WriteLine(Logger.Level.debug, $"Expert Size: '{ExpertNum}");
+            Logger.WriteLine(Logger.Level.debug, $"Experts per token factor: '{ExpertsPerTokenFactor}'");
+            Logger.WriteLine(Logger.Level.debug, $"Codebook size for model vector quantization: '{VQType}'");
+            Logger.WriteLine(Logger.Level.debug, $"Positional Embedding Type: '{PEType}'");
 
 
             if (!SimilarityType.IsNullOrEmpty())
             {
-                Logger.WriteLine($"Similarity Type: '{SimilarityType}'");
+                Logger.WriteLine(Logger.Level.debug, $"Similarity Type: '{SimilarityType}'");
             }
 
             if (SrcVocab != null)
             {
-                Logger.WriteLine($"Source vocabulary size: '{SrcVocab.Count}'");
+                Logger.WriteLine(Logger.Level.debug, $"Source vocabulary size: '{SrcVocab.Count}'");
             }
 
             if (TgtVocab != null)
             {
-                Logger.WriteLine($"Target vocabulary size: '{TgtVocab.Count}'");
+                Logger.WriteLine(Logger.Level.debug, $"Target vocabulary size: '{TgtVocab.Count}'");
             }
 			
             if (ClsVocabs != null)
             {
-                Logger.WriteLine($"Converting old model cls vocab to tgt vocab.");
-            }			
+                Logger.WriteLine(Logger.Level.debug, $"Converting old model cls vocab to tgt vocab.");
+            }
+#endif
         }
     }
 }

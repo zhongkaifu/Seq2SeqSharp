@@ -54,7 +54,7 @@ namespace Seq2SeqSharp
             m_enableCoverageModel = enableCoverageModel;
             m_isTrainable = isTrainable;
 
-            Logger.WriteLine($"Creating attention unit '{name}' HiddenDim = '{hiddenDim}', ContextDim = '{contextDim}', DeviceId = '{deviceId}', EnableCoverageModel = '{enableCoverageModel}'");
+            Logger.WriteLine(Logger.Level.debug, $"Creating attention unit '{name}' HiddenDim = '{hiddenDim}', ContextDim = '{contextDim}', DeviceId = '{deviceId}', EnableCoverageModel = '{enableCoverageModel}'");
 
             m_Ua = new WeightTensor(new long[2] { contextDim, hiddenDim }, deviceId, initType: RandomInitType.Uniform, name: $"{name}.{nameof(m_Ua)}", isTrainable: isTrainable, dtype: elementType);
             m_Wa = new WeightTensor(new long[2] { hiddenDim, hiddenDim }, deviceId, initType: RandomInitType.Uniform, name: $"{name}.{nameof(m_Wa)}", isTrainable: isTrainable, dtype: elementType);

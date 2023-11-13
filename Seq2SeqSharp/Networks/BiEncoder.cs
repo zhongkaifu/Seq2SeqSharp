@@ -32,7 +32,7 @@ namespace Seq2SeqSharp
 
         public BiEncoder(string name, int hiddenDim, int inputDim, int depth, int deviceId, bool isTrainable, DType elementType = DType.Float32)
         {
-            Logger.WriteLine($"Creating BiLSTM encoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', InputDim = '{inputDim}', Depth = '{depth}', IsTrainable = '{isTrainable}'");
+            Logger.WriteLine(Logger.Level.debug, $"Creating BiLSTM encoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', InputDim = '{inputDim}', Depth = '{depth}', IsTrainable = '{isTrainable}'");
 
             m_forwardEncoders = new List<LSTMCell>();
             m_backwardEncoders = new List<LSTMCell>();

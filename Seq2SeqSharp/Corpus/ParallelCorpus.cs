@@ -59,7 +59,8 @@ namespace Seq2SeqSharp.Tools
 
             for (int i = 0; i < m_srcFileList.Count; i++)
             {
-                Logger.WriteLine($"Start to count token frequency in '{m_srcFileList[i]}' and '{m_tgtFileList[i]}'.");
+                Logger.WriteLine(Logger.Level.debug, $"Start to count token frequency in '{m_srcFileList[i]}' and '{m_tgtFileList[i]}'.");
+
                 StreamReader srSrc = new StreamReader(m_srcFileList[i]);
                 StreamReader srTgt = new StreamReader(m_tgtFileList[i]);
 
@@ -123,19 +124,20 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
-
+#if DEBUG
             for (int j = 0; j < sd.Count; j++)
             {
-                Logger.WriteLine($"Original token size at group '{j}' source = '{sd[j].Count}' target = '{td[j].Count}'");
+                Logger.WriteLine(Logger.Level.debug, $"Original token size at group '{j}' source = '{sd[j].Count}' target = '{td[j].Count}'");
             }
-
+#endif
             return (sd, td);
         }
 
 
         private (Dictionary<long, LinkedList<long>>, Dictionary<long, long>, string) BuildIndex()
         {
-            Logger.WriteLine($"Start to build index for data set.");
+            Logger.WriteLine(Logger.Level.debug, $"Start to build index for data set.");
+
             SortedDictionary<int, int> dictSrcLenDist = new SortedDictionary<int, int>();
             SortedDictionary<int, int> dictTgtLenDist = new SortedDictionary<int, int>();
             int corpusSize = 0;
@@ -245,7 +247,7 @@ namespace Seq2SeqSharp.Tools
 
             bw.Close();
 
-            Logger.WriteLine($"Shuffled '{corpusSize}' sentence pairs.");
+            Logger.WriteLine(Logger.Level.debug, $"Shuffled '{corpusSize}' sentence pairs.");
 
             if (tooLongSrcSntCnt > 0)
             {
@@ -259,8 +261,11 @@ namespace Seq2SeqSharp.Tools
 
             if (m_showTokenDist)
             {
-                Logger.WriteLine($"AggregateSrcLength = '{m_shuffleEnums}'");
-                Logger.WriteLine($"Src token length distribution");
+                //TODO(Zho): executed even if nothing is printed
+                {
+                    Logger.WriteLine(Logger.Level.debug, $"AggregateSrcLength = '{m_shuffleEnums}'");
+                    Logger.WriteLine(Logger.Level.debug, $"Src token length distribution");
+                }
 
                 int srcTotalNum = 0;
                 foreach (var pair in dictSrcLenDist)
@@ -273,10 +278,10 @@ namespace Seq2SeqSharp.Tools
                 {
                     srcAccNum += pair.Value;
 
-                    Logger.WriteLine($"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value} (acc: {100.0f * (float)srcAccNum / (float)srcTotalNum:F}%)");
+                    Logger.WriteLine(Logger.Level.debug, $"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value} (acc: {100.0f * (float)srcAccNum / (float)srcTotalNum:F}%)");
                 }
 
-                Logger.WriteLine($"Tgt token length distribution");
+                Logger.WriteLine(Logger.Level.debug, $"Tgt token length distribution");
 
                 int tgtTotalNum = 0;
                 foreach (var pair in dictTgtLenDist)
@@ -290,13 +295,13 @@ namespace Seq2SeqSharp.Tools
                 {
                     tgtAccNum += pair.Value;
 
-                    Logger.WriteLine($"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value}  (acc: {100.0f * (float)tgtAccNum / (float)tgtTotalNum:F}%)");
+                    Logger.WriteLine(Logger.Level.debug, $"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value}  (acc: {100.0f * (float)tgtAccNum / (float)tgtTotalNum:F}%)");
                 }
 
                 m_showTokenDist = false;
             }
 
-            Logger.WriteLine($"Finished to build index for data set.");
+            Logger.WriteLine(Logger.Level.debug, $"Finished to build index for data set.");
 
             return (len2offsets, len2lengths, binaryDataSetFilePath);
         }
@@ -331,7 +336,8 @@ namespace Seq2SeqSharp.Tools
             {
                 m_batchNumInTotal = 0;
                 (var length2offsets, var length2counts, string tmpDataSetFilePath) = BuildIndex();
-                Logger.WriteLine($"Start to sort and shuffle data set by length.");
+
+                Logger.WriteLine(Logger.Level.debug, $"Start to sort and shuffle data set by length.");
 
                 m_sortedIndexedDataSetFilePath = tmpDataSetFilePath + ".sorted";
                 using (BinaryWriter bw = new BinaryWriter(new FileStream(m_sortedIndexedDataSetFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 40960000)))
@@ -400,7 +406,8 @@ namespace Seq2SeqSharp.Tools
             }
             catch (Exception err)
             {
-                Logger.WriteLine($"Failed to prepare data set: '{err.Message}', Call Stack = '{err.StackTrace}'");
+                Logger.WriteLine(Logger.Level.err, $"Failed to prepare data set: '{err.Message}'.");
+                Logger.WriteLine(Logger.Level.debug, $"Call Stack = '{err.StackTrace}'");
             }
         }
 
@@ -412,7 +419,7 @@ namespace Seq2SeqSharp.Tools
             }
             else
             {
-                Logger.WriteLine($"Use existing sorted indexed data set file '{m_sortedIndexedDataSetFilePath}'");
+                Logger.WriteLine(Logger.Level.debug, $"Use existing sorted indexed data set file '{m_sortedIndexedDataSetFilePath}'");
             }
 
             int batchIdx = 0;

@@ -72,15 +72,20 @@ namespace Seq2SeqSharp
             if (String.IsNullOrEmpty(m_options.TagWeights) == false)
             {
                 m_tagWeightsList = SplitTagWeights(m_options.TagWeights);
-                Logger.WriteLine("The list of tag weights:");
-                for (int i = 0; i < m_tagWeightsList.Length; i++)
+
+                //TODO(Zho): the for loop is executed even if nothing is printed
                 {
-                    Logger.WriteLine($"{i}:{m_tagWeightsList[i]}");
+                    Logger.WriteLine(Logger.Level.debug, "The list of tag weights:");
+                    for (int i = 0; i < m_tagWeightsList.Length; i++)
+                    {
+                        Logger.WriteLine(Logger.Level.debug, $"{i}:{m_tagWeightsList[i]}");
+                    }
                 }
             }
             else
             {
-                Logger.WriteLine("No tag weights are specified.");
+                Logger.WriteLine(Logger.Level.debug, "No tag weights are specified.");
+
                 m_tagWeightsList = null;
             }
         }
@@ -88,7 +93,8 @@ namespace Seq2SeqSharp
         protected override SeqLabelModel LoadModel(string suffix = "") => base.LoadModelRoutine<Model_4_ProtoBufSerializer>(CreateTrainableParameters, SeqLabelModel.Create, suffix);
         private bool CreateTrainableParameters(IModel model)
         {
-            Logger.WriteLine($"Creating encoders and decoders...");
+            Logger.WriteLine(Logger.Level.debug, $"Creating encoders and decoders...");
+
             var raDeviceIds = new RoundArray<int>(DeviceIds);
             m_encoder = Encoder.CreateEncoders(model, m_options, raDeviceIds);
             m_ffLayer = new MultiProcessorNetworkWrapper<FeedForwardLayer>(new FeedForwardLayer("FeedForward", model.HiddenDim, model.TgtVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(), isTrainable: true), DeviceIds);
