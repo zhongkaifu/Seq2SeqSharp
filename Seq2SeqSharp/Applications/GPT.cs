@@ -227,19 +227,7 @@ namespace Seq2SeqSharp.Applications
                 if (!m_memoryCache.TryGetValue(cacheKey, out cachedTensors))
                 {
                     cachedTensors = new Dictionary<string, IWeightTensor>();
-                    if (Logger.Verbose == Logger.LogVerbose.Debug)
-                    {
-                        Logger.WriteLine($"Missed cached tensor. cacheKey = '{cacheKey}' key length = '{cacheKey.Length}'");
-                    }
                 }
-                else
-                {
-                    if (Logger.Verbose == Logger.LogVerbose.Debug)
-                    {
-                        Logger.WriteLine($"Hit cached tensor. cacheKey = '{cacheKey}' key length = '{cacheKey.Length}'");
-                    }
-                }
-
                 m_memoryCache.Remove(cacheKey);
 
                 for (int i = tgtTokensList[0].Count; i < decodingOptions.MaxTgtSentLength; i++)
@@ -276,11 +264,6 @@ namespace Seq2SeqSharp.Applications
                                 }
                             }
                             cachedTensors = null;
-                        }
-
-                        if (Logger.Verbose == Logger.LogVerbose.Debug)
-                        {
-                            Logger.WriteLine(Logger.Level.warn, $"We have out of memory while generating '{i}th' tokens, so terminate decoding for current sequences.");
                         }
 
                         nr.Status = NetworkResultStatus.OOM;

@@ -79,25 +79,6 @@ namespace Seq2SeqSharp.Layers
             var inputRouterDense = g.Affine(inputNorm, m_Router, m_RouterBias); // [batchSize * seqLen, expertNum]
             var inputRouter = g.Softmax(inputRouterDense); // [batchSize * seqLen, expertNum]
 
-
-            if (Logger.Verbose == Logger.LogVerbose.Debug)
-            {
-                var routerArray = inputRouter.ToWeightArray();
-                for (int i = 0; i < input.Rows; i++)
-                {
-                    StringBuilder sb = new StringBuilder();
-                    for (int j = 0; j < m_expertNum; j++)
-                    {
-                        sb.Append(routerArray[i * m_expertNum + j]);
-                        sb.Append(" ");
-                    }
-
-                    if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                        Logger.WriteLine($"Token '{i}': '{sb.ToString()}'");
-                }
-
-            }
-
             (var topValue, var topIndex) = g.TopK(inputRouter, m_expertsPerTokenFactor); // [batchSize * seqLen, m_expertsPerTokenFactor]
             var topIndexArray = topIndex.ToWeightArray();
             List<float>[] indexs = new List<float>[m_expertNum]; // [expertNum, token_offsets]
@@ -120,12 +101,6 @@ namespace Seq2SeqSharp.Layers
 
             for (int i = 0; i < m_expertNum; i++)
             {
-                if (Logger.Verbose == Logger.LogVerbose.Debug)
-                {
-                    Logger.WriteLine($"Expert '{i}' process '{indexs[i].Count}' tokens.");
-                }
-
-
                 if (indexs[i].Count > 0)
                 {
                     using var gExp = g.CreateSubGraph($"{m_name}_MoEFeedForward_{i}");

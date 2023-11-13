@@ -214,10 +214,6 @@ namespace Seq2SeqSharp.Applications
         [RegularExpression("ReLU|SiLU|LeakyReLU")]
         public ActivateFuncEnums ActivateFunc = ActivateFuncEnums.ReLU;
 
-        [Arg("The level of log to output", nameof(LogVerbose))]
-        [RegularExpression("None|Normal|Details|Debug|Callback|Logfileonly")]
-        public Logger.LogVerbose LogVerbose = Logger.LogVerbose.Normal;
-
         [Arg("Model vector quantization. Support INT8. Default is disabled.", nameof(VQType))]
         [RegularExpression("None|INT8|INT4|FLOAT16")]
         public VQTypeEnums VQType = VQTypeEnums.None;
@@ -315,6 +311,12 @@ namespace Seq2SeqSharp.Applications
         [Arg("The type of normalization. It supports LayerNorm and RMSNorm", nameof(NormType))]
         [RegularExpression("LayerNorm|RMSNorm")]
         public NormEnums NormType = NormEnums.LayerNorm;
+
+        [Arg("Log destination. Supported Values: None = 0, Console = 1, LogFile = 2, Callback = 4, and These values can be combined. For example: Value 3 means the log will be outputted to both Console and LogFile", nameof(LogDestination))]
+        public Logger.Destination LogDestination = (Logger.Destination.Console | Logger.Destination.Logfile);
+
+        [Arg("The level of logs to be printed out. Supported Values: none = 0, err = 1, warn = 2, info = 4 and debug = 8. These values can be combined. For example: Value 15 means err, warn, info and debug will be outputted.", nameof(LogLevel))]
+        public Logger.Level LogLevel = (Logger.Level.err | Logger.Level.warn | Logger.Level.info | Logger.Level.debug);
 
         public void ValidateOptions()
         {

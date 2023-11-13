@@ -14,9 +14,10 @@ using Seq2SeqSharp;
 using Seq2SeqSharp._SentencePiece;
 using Seq2SeqSharp.Utils;
 using Seq2SeqWebApps;
+using TensorSharp;
 using TensorSharp.CUDA.ContextState;
 
-Logger.LogFile = $"{nameof(SeqWebApps)}_{GetTimeStamp(DateTime.Now)}.log";
+Logger.Initialize(Logger.Destination.Console | Logger.Destination.Logfile, Logger.Level.err | Logger.Level.warn | Logger.Level.info | Logger.Level.debug, $"{nameof(SeqWebApps)}_{Utils.GetTimeStamp(DateTime.Now)}.log");
 Logger.WriteLine($"SeqWebApps v2.7.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
 
 var Configuration = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
@@ -42,8 +43,6 @@ if (String.IsNullOrEmpty(Configuration["Seq2Seq:ModelFilePath"]) == false)
     var compilerOptions = Configuration["Seq2Seq:CompilerOptions"];
     var amp = String.IsNullOrEmpty(Configuration["Seq2Seq:AMP"]) ? false : bool.Parse(Configuration["Seq2Seq:AMP"]);
     var cudaMemoryAllocatorType = String.IsNullOrEmpty(Configuration["Seq2Seq:CudaMemoryAllocatorType"]) ? CudaMemoryDeviceAllocatorType.CudaMemoryPool : Configuration["Seq2Seq:CudaMemoryAllocatorType"].ToEnum<CudaMemoryDeviceAllocatorType>();
-
-    Logger.Verbose = String.IsNullOrEmpty(Configuration["Seq2Seq:LogVerbose"]) ? Logger.LogVerbose.Normal : Configuration["Seq2Seq:LogVerbose"].ToEnum<Logger.LogVerbose>();
 
     SentencePiece? srcSpm = null;
     if (String.IsNullOrEmpty(Configuration["SourceSpm:ModelFilePath"]) == false)
