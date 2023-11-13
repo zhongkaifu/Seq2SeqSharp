@@ -30,8 +30,7 @@ namespace Seq2SeqSharp
 
         public FeedForwardLayer(string name, int inputDim, int outputDim, float dropoutRatio, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, DType elementType = DType.Float32)
         {
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Create feed forward layer '{name}' InputDim = '{inputDim}', OutputDim = '{outputDim}', DropoutRatio = '{dropoutRatio}', DeviceId = '{deviceId}'");
+            Logger.WriteLine(Logger.Level.debug, $"Create feed forward layer '{name}' InputDim = '{inputDim}', OutputDim = '{outputDim}', DropoutRatio = '{dropoutRatio}', DeviceId = '{deviceId}'");
 
             m_name = name;
             m_inputDim = inputDim;

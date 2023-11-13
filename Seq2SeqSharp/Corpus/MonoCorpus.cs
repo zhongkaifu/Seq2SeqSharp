@@ -46,8 +46,7 @@ namespace Seq2SeqSharp.Tools
 
             for (int i = 0; i < m_tgtFileList.Count; i++)
             {
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                    Logger.WriteLine($"Start to count token frequency in '{m_tgtFileList[i]}'.");
+                Logger.WriteLine(Logger.Level.debug, $"Start to count token frequency in '{m_tgtFileList[i]}'.");
 
                 StreamReader srTgt = new StreamReader(m_tgtFileList[i]);
 
@@ -92,11 +91,11 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
+            //TODO(Zho): the for loop is executed even if nothing is printed
             {
                 for (int j = 0; j < td.Count; j++)
                 {
-                    Logger.WriteLine($"Original token size at group '{j}' target = '{td[j].Count}'");
+                    Logger.WriteLine(Logger.Level.debug, $"Original token size at group '{j}' target = '{td[j].Count}'");
                 }
             }
 
@@ -106,8 +105,7 @@ namespace Seq2SeqSharp.Tools
 
         private (Dictionary<long, LinkedList<long>>, Dictionary<long, long>, string) BuildIndex()
         {
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Start to build index for data set.");
+            Logger.WriteLine(Logger.Level.debug, $"Start to build index for data set.");
 
             SortedDictionary<int, int> dictTgtLenDist = new SortedDictionary<int, int>();
             int corpusSize = 0;
@@ -188,8 +186,7 @@ namespace Seq2SeqSharp.Tools
 
             bw.Close();
 
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Shuffled '{corpusSize}' sentence pairs.");
+            Logger.WriteLine(Logger.Level.debug, $"Shuffled '{corpusSize}' sentence pairs.");
 
             if (tooLongTgtSntCnt > 0)
             {
@@ -198,10 +195,10 @@ namespace Seq2SeqSharp.Tools
 
             if (m_showTokenDist)
             {
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
+                //TODO(Zho): executed even if nothing is printed
                 {
-                    Logger.WriteLine($"AggregateLength = '{m_shuffleEnums}'");
-                    Logger.WriteLine($"Tgt token length distribution");
+                    Logger.WriteLine(Logger.Level.debug, $"AggregateLength = '{m_shuffleEnums}'");
+                    Logger.WriteLine(Logger.Level.debug, $"Tgt token length distribution");
                 }
 
                 int tgtTotalNum = 0;
@@ -216,15 +213,13 @@ namespace Seq2SeqSharp.Tools
                 {
                     tgtAccNum += pair.Value;
 
-                    if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                        Logger.WriteLine($"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value}  (acc: {100.0f * (float)tgtAccNum / (float)tgtTotalNum:F}%)");
+                    Logger.WriteLine(Logger.Level.debug, $"{pair.Key * 100} ~ {(pair.Key + 1) * 100}: {pair.Value}  (acc: {100.0f * (float)tgtAccNum / (float)tgtTotalNum:F}%)");
                 }
 
                 m_showTokenDist = false;
             }
 
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Finished to build index for data set.");
+            Logger.WriteLine(Logger.Level.debug, $"Finished to build index for data set.");
 
             return (len2offsets, len2lengths, binaryDataSetFilePath);
         }
@@ -260,8 +255,7 @@ namespace Seq2SeqSharp.Tools
                 m_batchNumInTotal = 0;
                 (var length2offsets, var length2counts, string tmpDataSetFilePath) = BuildIndex();
 
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                    Logger.WriteLine($"Start to sort and shuffle data set by length.");
+                Logger.WriteLine(Logger.Level.debug, $"Start to sort and shuffle data set by length.");
 
                 m_indexedDataSetFilePath = tmpDataSetFilePath + ".sorted";
                 using (BinaryWriter bw = new BinaryWriter(new FileStream(m_indexedDataSetFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 40960000)))
@@ -299,8 +293,7 @@ namespace Seq2SeqSharp.Tools
                             m_batchNumInTotal++;
                             if (m_batchNumInTotal % 10000 == 0)
                             {
-                                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                                    Logger.WriteLine($"Batch '{m_batchNumInTotal}' has been processed.");
+                                 Logger.WriteLine(Logger.Level.debug, $"Batch '{m_batchNumInTotal}' has been processed.");
                             }
 
 
@@ -333,8 +326,7 @@ namespace Seq2SeqSharp.Tools
             }
             else
             {
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                    Logger.WriteLine($"Use existing indexed data set '{m_indexedDataSetFilePath}'");
+                Logger.WriteLine(Logger.Level.debug, $"Use existing indexed data set '{m_indexedDataSetFilePath}'");
             }
 
             int batchIdx = 0;

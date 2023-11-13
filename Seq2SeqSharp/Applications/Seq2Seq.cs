@@ -102,8 +102,7 @@ namespace Seq2SeqSharp.Applications
 
         private bool CreateTrainableParameters(IModel model)
         {
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Creating encoders and decoders...");
+            Logger.WriteLine(Logger.Level.debug, $"Creating encoders and decoders...");
 
             var raDeviceIds = new RoundArray<int>(DeviceIds);
             DType elementType = m_options.AMP ? DType.Float16 : DType.Float32;
@@ -124,8 +123,7 @@ namespace Seq2SeqSharp.Applications
                     throw new ArgumentException($"Shared embeddings is required to true for pointer generator.");
                 }
 
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                    Logger.WriteLine($"Create pointer generator weights...");
+                Logger.WriteLine(Logger.Level.debug, $"Create pointer generator weights...");
 
                 m_pointerGenerator = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("PointerGenerator_0", model.HiddenDim, 1, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),
                 isTrainable: true, learningRateFactor: m_options.DecoderStartLearningRateFactor, elementType: m_options.AMP ? TensorSharp.DType.Float16 : TensorSharp.DType.Float32), DeviceIds);

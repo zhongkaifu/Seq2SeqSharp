@@ -43,8 +43,7 @@ namespace Seq2SeqSharp.Layers
             m_hiddenDim = hiddenDim;
             m_expertsPerTokenFactor = expertsPerTokenFactor;
 
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Creating MoE feed forward layer. Name = '{name}', ExpertNum = '{expertNum}', ExpertsPerToken = '{expertsPerTokenFactor}', HiddenDim = '{hiddenDim}', DeviceId = '{deviceId}', Dropout ratio = '{dropoutRatio}', IsTrainable = '{isTrainable}', Learning rate factor = '{learningRateFactor}', Activate Function = '{activateFunc}'");
+            Logger.WriteLine(Logger.Level.debug, $"Creating MoE feed forward layer. Name = '{name}', ExpertNum = '{expertNum}', ExpertsPerToken = '{expertsPerTokenFactor}', HiddenDim = '{hiddenDim}', DeviceId = '{deviceId}', Dropout ratio = '{dropoutRatio}', IsTrainable = '{isTrainable}', Learning rate factor = '{learningRateFactor}', Activate Function = '{activateFunc}'");
 
             layerNorm = new LayerNormalization($"{name}.{nameof(layerNorm)}", hiddenDim, deviceId, isTrainable, learningRateFactor: learningRateFactor, elementType: elementType);
 
@@ -196,8 +195,7 @@ namespace Seq2SeqSharp.Layers
 
             m_activateFunc = (ActivateFuncEnums)stream.GetWeights($"{m_name}.ActivateFunc")[0];
 
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Loading '{m_name}' activate function setting '{m_activateFunc}'");
+            Logger.WriteLine(Logger.Level.debug, $"Loading '{m_name}' activate function setting '{m_activateFunc}'");
 
         }
     }

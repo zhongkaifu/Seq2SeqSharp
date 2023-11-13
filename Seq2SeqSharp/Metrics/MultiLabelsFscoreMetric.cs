@@ -18,8 +18,7 @@ namespace Seq2SeqSharp.Metrics
             m_groupName = groupName;
             ClearStatus();
 
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Added '{string.Join(" ", classLabels)}' labels to '{Name}'.");
+            Logger.WriteLine(Logger.Level.debug, $"Added '{string.Join(" ", classLabels)}' labels to '{Name}'.");
         }
 
         public void ClearStatus()

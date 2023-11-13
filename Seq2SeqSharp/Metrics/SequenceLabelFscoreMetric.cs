@@ -15,8 +15,7 @@ namespace Seq2SeqSharp.Metrics
             m_count = new double[3];
             m_classLabel = classLabel;
 
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Creating sequence label F1 score metric for '{classLabel}'");
+            Logger.WriteLine(Logger.Level.debug, $"Creating sequence label F1 score metric for '{classLabel}'");
         }
 
         public void ClearStatus()

@@ -195,8 +195,7 @@ namespace TensorSharp.CUDA
             Assembly assembly = Assembly.GetExecutingAssembly();
             foreach (Tuple<Type, IEnumerable<PrecompileAttribute>> applyType in assembly.TypesWithAttribute<PrecompileAttribute>(true).Where(x => !x.Item1.IsAbstract))
             {
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                    Logger.WriteLine("Precompiling " + applyType.Item1.Name);
+                Logger.WriteLine(Logger.Level.debug, "Precompiling " + applyType.Item1.Name);
 
                 IPrecompilable instance = (IPrecompilable)Activator.CreateInstance(applyType.Item1);
                 instance.Precompile(Compiler);

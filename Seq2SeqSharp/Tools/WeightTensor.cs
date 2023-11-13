@@ -572,8 +572,7 @@ namespace Seq2SeqSharp.Tools
 
         public void Load(IModel model)
         {
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Loading weights '{Name}' from the model to device '{DeviceId}'...");
+            Logger.WriteLine(Logger.Level.debug, $"Loading weights '{Name}' from the model to device '{DeviceId}'...");
 
             if (m_elementType == DType.Float16)
             {

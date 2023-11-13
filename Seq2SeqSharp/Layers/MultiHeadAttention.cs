@@ -65,8 +65,7 @@ namespace Seq2SeqSharp
             m_sharedQKV = sharedQKV;
             m_PEType = peType;
 
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Creating multi-head attention layer. Name = '{name}', HiddenDim = '{hiddenDim}', multi-head dim = '{multiHeadNum}', DeviceId = '{deviceId}', Dropout ratio = '{dropoutRatio}', IsTrainable = '{isTrainable}', Learning rate factor = '{learningRateFactor}', PE = '{peType}', Norm = '{normType}'");
+            Logger.WriteLine(Logger.Level.debug, $"Creating multi-head attention layer. Name = '{name}', HiddenDim = '{hiddenDim}', multi-head dim = '{multiHeadNum}', DeviceId = '{deviceId}', Dropout ratio = '{dropoutRatio}', IsTrainable = '{isTrainable}', Learning rate factor = '{learningRateFactor}', PE = '{peType}', Norm = '{normType}'");
 
             W0 = new WeightTensor(new long[2] { hiddenDim, hiddenDim }, deviceId, name: $"{name}.{nameof(W0)}", isTrainable: isTrainable, initType: RandomInitType.Uniform, learningRateFactor: learningRateFactor, dtype: elementType);
             b0 = new WeightTensor(new long[2] { 1, hiddenDim }, 0, deviceId, name: $"{name}.{nameof(b0)}", isTrainable: isTrainable, dtype: elementType);

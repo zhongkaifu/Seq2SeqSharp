@@ -1845,15 +1845,13 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
         {
             if (TSCudaContext.ElementType == DType.Float16)
             {
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                    Logger.WriteLine("Building advanced kernels for both FP32 and FP16.");
+                Logger.WriteLine(Logger.Level.debug, "Building advanced kernels for both FP32 and FP16.");
 
                 return Code + CodeHalf;
             }
             else
             {
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                    Logger.WriteLine("Building advanced kernels for both FP32.");
+                Logger.WriteLine(Logger.Level.debug, "Building advanced kernels for both FP32.");
 
                 return Code;
             }

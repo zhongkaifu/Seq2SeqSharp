@@ -316,8 +316,7 @@ namespace Seq2SeqSharp.Tools
             catch (ProtoBuf.ProtoException ex)
             {
                 Logger.WriteLine(Logger.Level.warn, $"Failed to load model '{m_modelFilePath + suffix}' as ProtoBuf format. Let's roll back to binary formatter.");
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                    Logger.WriteLine(Logger.Level.warn, $"Message = '{ex.Message}'");
+                Logger.WriteLine(Logger.Level.debug, $"Message = '{ex.Message}'");
 
                 model = LoadModel_As_BinaryFormatter(initializeParametersFunc, suffix);
             }
@@ -328,8 +327,7 @@ namespace Seq2SeqSharp.Tools
 
             model.ClearWeights();
 
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine("Checking if all loaded weights are normal.");
+            Logger.WriteLine(Logger.Level.debug, "Checking if all loaded weights are normal.");
 
             if (IsWeightsCorrupted())
             {
@@ -348,8 +346,7 @@ namespace Seq2SeqSharp.Tools
 
             if (modelMetaData.SharedEmbeddings)
             {
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                    Logger.WriteLine($"Creating shared embeddings for both source side and target side. Shape = '({modelMetaData.SrcVocab.Count} ,{modelMetaData.EncoderEmbeddingDim})'");
+                Logger.WriteLine(Logger.Level.debug, $"Creating shared embeddings for both source side and target side. Shape = '({modelMetaData.SrcVocab.Count} ,{modelMetaData.EncoderEmbeddingDim})'");
 
                 srcEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.SrcVocab.Count, modelMetaData.EncoderEmbeddingDim },
                     raDeviceIds.GetNextItem(), initType: RandomInitType.Uniform, fanOut: true, name: "SharedEmbeddings", isTrainable: isSrcEmbeddingTrainable, learningRateFactor: encoderStartLearningRateFactor, dtype: elementType), DeviceIds);
@@ -358,14 +355,12 @@ namespace Seq2SeqSharp.Tools
             }
             else
             {
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                    Logger.WriteLine($"Creating embeddings for source side. Shape = '({modelMetaData.SrcVocab.Count} ,{modelMetaData.EncoderEmbeddingDim})'");
+                Logger.WriteLine(Logger.Level.debug, $"Creating embeddings for source side. Shape = '({modelMetaData.SrcVocab.Count} ,{modelMetaData.EncoderEmbeddingDim})'");
 
                 srcEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.SrcVocab.Count, modelMetaData.EncoderEmbeddingDim },
                     raDeviceIds.GetNextItem(), initType: RandomInitType.Uniform, fanOut: true, name: "SrcEmbeddings", isTrainable: isSrcEmbeddingTrainable, learningRateFactor: encoderStartLearningRateFactor, dtype: elementType), DeviceIds);
 
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                    Logger.WriteLine($"Creating embeddings for target side. Shape = '({modelMetaData.TgtVocab.Count} ,{modelMetaData.DecoderEmbeddingDim})'");
+                Logger.WriteLine(Logger.Level.debug, $"Creating embeddings for target side. Shape = '({modelMetaData.TgtVocab.Count} ,{modelMetaData.DecoderEmbeddingDim})'");
 
                 tgtEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.TgtVocab.Count, modelMetaData.DecoderEmbeddingDim },
                     raDeviceIds.GetNextItem(), initType: RandomInitType.Uniform, fanOut: true, name: "TgtEmbeddings", isTrainable: isTgtEmbeddingTrainable, learningRateFactor: decoderStartLearningRateFactor, dtype: elementType), DeviceIds);
@@ -376,8 +371,7 @@ namespace Seq2SeqSharp.Tools
 
         internal MultiProcessorNetworkWrapper<IWeightTensor> CreateTgtEmbeddings(IModel modelMetaData, RoundArray<int> raDeviceIds, bool isTgtEmbeddingTrainable, float decoderStartLearningRateFactor, DType elementType = DType.Float32)
         {
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Creating embeddings for target side. Shape = '({modelMetaData.TgtVocab.Count} ,{modelMetaData.DecoderEmbeddingDim})'");
+            Logger.WriteLine(Logger.Level.debug, $"Creating embeddings for target side. Shape = '({modelMetaData.TgtVocab.Count} ,{modelMetaData.DecoderEmbeddingDim})'");
 
             var tgtEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.TgtVocab.Count, modelMetaData.DecoderEmbeddingDim },
                 raDeviceIds.GetNextItem(), initType: RandomInitType.Uniform, fanOut: true, name: "TgtEmbeddings", isTrainable: isTgtEmbeddingTrainable, learningRateFactor: decoderStartLearningRateFactor, dtype: elementType), DeviceIds);
@@ -427,8 +421,7 @@ namespace Seq2SeqSharp.Tools
             int updatesInOneEpoch = 0;
             float lr = 0.0f;
 
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Start to process training corpus.");
+            Logger.WriteLine(Logger.Level.debug, $"Start to process training corpus.");
 
             List<IPairBatch> sntPairBatchs = new List<IPairBatch>();
 
@@ -602,13 +595,11 @@ namespace Seq2SeqSharp.Tools
 
             batchSplitFactor *= 2;
 
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($" {message} Retrying with batch split factor '{batchSplitFactor}'. Max batch size '{maxBatchSize}', Max token size '{maxTokenSize}'");
+            Logger.WriteLine(Logger.Level.debug, $" {message} Retrying with batch split factor '{batchSplitFactor}'. Max batch size '{maxBatchSize}', Max token size '{maxTokenSize}'");
 
             if (batchSplitFactor > maxBatchSize)
             {
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                    Logger.WriteLine($"Batch split factor is larger than batch size, so ignore current mini-batch.");
+                Logger.WriteLine(Logger.Level.debug, $"Batch split factor is larger than batch size, so ignore current mini-batch.");
 
                 batchSplitFactor = -1;
             }
@@ -1217,8 +1208,7 @@ namespace Seq2SeqSharp.Tools
             RegisterTrainableParameters(this);
             foreach (KeyValuePair<string, IMultiProcessorNetworkWrapper> pair in m_name2network)
             {
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                    Logger.WriteLine($"Loading parameter '{pair.Key}'");
+                Logger.WriteLine(Logger.Level.debug, $"Loading parameter '{pair.Key}'");
 
                 pair.Value.Load(m_modelMetaData);
             }
@@ -1251,8 +1241,7 @@ namespace Seq2SeqSharp.Tools
                 var name = p.Key;
                 var mpnw = p.Value;
 
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                    Logger.WriteLine($"Loading parameter '{name}'");
+                Logger.WriteLine(Logger.Level.debug, $"Loading parameter '{name}'");
 
                 mpnw.Load(model);
             }
@@ -1335,8 +1324,7 @@ namespace Seq2SeqSharp.Tools
             {
                 return;
             }
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Registering trainable parameters.");
+            Logger.WriteLine(Logger.Level.debug, $"Registering trainable parameters.");
 
             m_name2network = new SortedList<string, IMultiProcessorNetworkWrapper>();
 
@@ -1360,8 +1348,7 @@ namespace Seq2SeqSharp.Tools
             {
                 m_name2network.Add(name, networks);
 
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                    Logger.WriteLine($"Register network '{name}'");
+                Logger.WriteLine(Logger.Level.debug, $"Register network '{name}'");
             }
 
             if (childValue is IMultiProcessorNetworkWrapper[] networksArray)
@@ -1372,8 +1359,7 @@ namespace Seq2SeqSharp.Tools
                     string name2 = $"{name}_{idx}";
                     m_name2network.Add(name2, network);
 
-                    if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                        Logger.WriteLine($"Register network '{name2}'");
+                    Logger.WriteLine(Logger.Level.debug, $"Register network '{name2}'");
 
                     idx++;
                 }

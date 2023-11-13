@@ -117,8 +117,7 @@ namespace Seq2SeqSharp.Applications
                 m_tgtEmbedding.Dispose();
             }
 
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Creating decoders...");
+            Logger.WriteLine(Logger.Level.debug, $"Creating decoders...");
 
             var raDeviceIds = new RoundArray<int>(DeviceIds);
 

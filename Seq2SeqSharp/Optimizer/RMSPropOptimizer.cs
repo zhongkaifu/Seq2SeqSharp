@@ -19,8 +19,7 @@ namespace Seq2SeqSharp.Optimizer
 
         public RMSPropOptimizer(float clipval, float decayRate = 0.999f)
         {
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Creating RMSProp optimizer. GradClip = '{clipval}', LR decay rate = '{decayRate}'");
+            Logger.WriteLine(Logger.Level.debug, $"Creating RMSProp optimizer. GradClip = '{clipval}', LR decay rate = '{decayRate}'");
 
             m_cacheName2V = new ConcurrentDictionary<string, Tensor>();
 
@@ -57,8 +56,7 @@ namespace Seq2SeqSharp.Optimizer
                     m_cacheName2V[item.Name] = new Tensor(item.Allocator, DType.Float32, item.Sizes);
                     Ops.Fill(m_cacheName2V[item.Name], 0.0f);
 
-                    if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                        Logger.WriteLine($"Added weight '{item.Name}' to optimizer.");
+                    Logger.WriteLine(Logger.Level.debug, $"Added weight '{item.Name}' to optimizer.");
                 }
             }
 
@@ -82,9 +80,7 @@ namespace Seq2SeqSharp.Optimizer
             catch (Exception err)
             {
                 Logger.WriteLine(Logger.Level.err, $"Exception: '{err.Message}'");
-
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                    Logger.WriteLine(Logger.Level.err, $"Call stack: '{err.StackTrace}'");
+                Logger.WriteLine(Logger.Level.debug, $"Call stack: '{err.StackTrace}'");
 
                 throw;
             }

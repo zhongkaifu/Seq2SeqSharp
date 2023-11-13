@@ -73,19 +73,18 @@ namespace Seq2SeqSharp
             {
                 m_tagWeightsList = SplitTagWeights(m_options.TagWeights);
 
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
+                //TODO(Zho): the for loop is executed even if nothing is printed
                 {
-                    Logger.WriteLine("The list of tag weights:");
+                    Logger.WriteLine(Logger.Level.debug, "The list of tag weights:");
                     for (int i = 0; i < m_tagWeightsList.Length; i++)
                     {
-                        Logger.WriteLine($"{i}:{m_tagWeightsList[i]}");
+                        Logger.WriteLine(Logger.Level.debug, $"{i}:{m_tagWeightsList[i]}");
                     }
                 }
             }
             else
             {
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                    Logger.WriteLine("No tag weights are specified.");
+                Logger.WriteLine(Logger.Level.debug, "No tag weights are specified.");
 
                 m_tagWeightsList = null;
             }
@@ -94,8 +93,7 @@ namespace Seq2SeqSharp
         protected override SeqLabelModel LoadModel(string suffix = "") => base.LoadModelRoutine<Model_4_ProtoBufSerializer>(CreateTrainableParameters, SeqLabelModel.Create, suffix);
         private bool CreateTrainableParameters(IModel model)
         {
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Creating encoders and decoders...");
+            Logger.WriteLine(Logger.Level.debug, $"Creating encoders and decoders...");
 
             var raDeviceIds = new RoundArray<int>(DeviceIds);
             m_encoder = Encoder.CreateEncoders(model, m_options, raDeviceIds);

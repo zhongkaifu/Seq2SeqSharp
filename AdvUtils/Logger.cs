@@ -111,7 +111,12 @@ namespace AdvUtils
 
                 if (Callback != null)
                 {
-                    Callback(0, sb, (int)level, (int)color);
+                    int progress = 0;
+                    if(args.Length > 0) 
+                    {
+                        int.TryParse((string)args[0], out progress);
+                    }
+                    Callback(progress, sb, (int)level, (int)color);
                 }
             }
 

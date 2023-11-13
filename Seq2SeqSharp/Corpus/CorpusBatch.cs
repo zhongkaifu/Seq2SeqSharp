@@ -136,8 +136,7 @@ namespace Seq2SeqSharp.Corpus
 
         static public void MergeTokensCountSrcTgt(int srcGroupIdx, int tgtGroupIdx)
         {
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Merge tokens from source group '{srcGroupIdx}' to target group '{tgtGroupIdx}'");
+            Logger.WriteLine(Logger.Level.debug, $"Merge tokens from source group '{srcGroupIdx}' to target group '{tgtGroupIdx}'");
 
             foreach (var pair in t_ds[tgtGroupIdx])
             {
@@ -157,8 +156,7 @@ namespace Seq2SeqSharp.Corpus
 
         static public void ReduceSrcTokensToSingleGroup()
         {
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Reduce source vocabs group from '{s_ds.Count}' to 1");
+            Logger.WriteLine(Logger.Level.debug, $"Reduce source vocabs group from '{s_ds.Count}' to 1");
 
             Dictionary<string, long> rst = new Dictionary<string, long>();
 
@@ -262,8 +260,7 @@ namespace Seq2SeqSharp.Corpus
 
                 if (q % 2 != 0)
                 {
-                    if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                        Logger.WriteLine($"Added a pad token into vocabulary for alignment.");
+                    Logger.WriteLine(Logger.Level.debug, $"Added a pad token into vocabulary for alignment.");
 
                     string pad = "[PAD_0]";
                     vocab.WordToIndex[pad] = q;
@@ -274,8 +271,7 @@ namespace Seq2SeqSharp.Corpus
 
                 vocabs.Add(vocab);
 
-                if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                    Logger.WriteLine($"{tag} Vocab Group '{i}': Original vocabulary size = '{s_d.Count}', Truncated vocabulary size = '{q}', Minimum Token Frequency = '{minFreq}'");
+                Logger.WriteLine(Logger.Level.debug, $"{tag} Vocab Group '{i}': Original vocabulary size = '{s_d.Count}', Truncated vocabulary size = '{q}', Minimum Token Frequency = '{minFreq}'");
 
             }
 

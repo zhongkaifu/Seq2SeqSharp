@@ -37,8 +37,7 @@ namespace Seq2SeqSharp
             m_activateFunc = activateFunc;
             m_elementType= elementType;
 
-            if (Logger.Verbose != Logger.LogVerbose.None && Logger.Verbose != Logger.LogVerbose.Normal && Logger.Verbose != Logger.LogVerbose.Callback)
-                Logger.WriteLine($"Creating positionwise feed forward layer. Name = '{name}', HiddenDim = '{hiddenDim}', IntermediateDim = '{intermediateDim}', DeviceId = '{deviceId}', Dropout ratio = '{dropoutRatio}', IsTrainable = '{isTrainable}', Learning rate factor = '{learningRateFactor}', Activate Function = '{activateFunc}', Norm = '{normType}'");
+            Logger.WriteLine(Logger.Level.debug, $"Creating positionwise feed forward layer. Name = '{name}', HiddenDim = '{hiddenDim}', IntermediateDim = '{intermediateDim}', DeviceId = '{deviceId}', Dropout ratio = '{dropoutRatio}', IsTrainable = '{isTrainable}', Learning rate factor = '{learningRateFactor}', Activate Function = '{activateFunc}', Norm = '{normType}'");
 
             if (normType == NormEnums.LayerNorm)
             {
