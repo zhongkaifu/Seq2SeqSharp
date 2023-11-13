@@ -1178,7 +1178,7 @@ namespace Seq2SeqSharp.Tools
                 catch (Exception err)
                 {
                     Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: '{err.Message}'");
-                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Call stack: '{err.StackTrace}'");
+                    Logger.WriteLine(Logger.Level.debug, ConsoleColor.Red, $"Call stack: '{err.StackTrace}'");
                 }
             });
         }

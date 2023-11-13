@@ -374,8 +374,7 @@ namespace Seq2SeqSharp.Models
 
         public void ShowModelInfo()
         {
-            //TODO(Zho): should be able to escape all of this at once
-
+#if DEBUG           
             Logger.WriteLine(Logger.Level.debug, $"Encoder embedding dim: '{EncoderEmbeddingDim}'");
             Logger.WriteLine(Logger.Level.debug, $"Decoder embedding dim: '{DecoderEmbeddingDim}'");
             Logger.WriteLine(Logger.Level.debug, $"Encoder layer depth: '{EncoderLayerDepth}'");
@@ -413,7 +412,8 @@ namespace Seq2SeqSharp.Models
             if (ClsVocabs != null)
             {
                 Logger.WriteLine(Logger.Level.debug, $"Converting old model cls vocab to tgt vocab.");
-            }			
+            }
+#endif
         }
     }
 }

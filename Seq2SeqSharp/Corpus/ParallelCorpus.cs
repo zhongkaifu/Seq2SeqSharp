@@ -124,14 +124,12 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
-            //TODO(Zho): the for loop is executed even if nothing is printed
+#if DEBUG
+            for (int j = 0; j < sd.Count; j++)
             {
-                for (int j = 0; j < sd.Count; j++)
-                {
-                    Logger.WriteLine(Logger.Level.debug, $"Original token size at group '{j}' source = '{sd[j].Count}' target = '{td[j].Count}'");
-                }
+                Logger.WriteLine(Logger.Level.debug, $"Original token size at group '{j}' source = '{sd[j].Count}' target = '{td[j].Count}'");
             }
-
+#endif
             return (sd, td);
         }
 
