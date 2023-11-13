@@ -63,8 +63,26 @@ namespace AdvUtils
             }
         }
 
+        static private List<TextWriterTraceListener> m_listeners = null;
+        static private string m_logFilePath = null;
+        static public string LogFilePath => m_logFilePath;
+               
         static public void Initialize(Destination dest, Level logLevel, string logFilePath = "", ProgressCallback callback = null)
         {
+            if (m_listeners != null)
+            {
+                //For re-initialization, we need to close listeners and remove them from Trace at first, and then initialize new listeners
+                foreach (var item in m_listeners)
+                {
+                    item.Close();
+                    Trace.Listeners.Remove(item);
+                }
+            }
+            else
+            {
+                m_listeners= new List<TextWriterTraceListener>();
+            }
+
             if ((dest & Destination.Console) == Destination.Console)
             {
                 TextWriterTraceListener tr = new TextWriterTraceListener(System.Console.Out);
@@ -77,6 +95,9 @@ namespace AdvUtils
                 Trace.Listeners.Add(tr);
             }
 
+            
+
+            m_logFilePath = logFilePath;
             m_logLevel = logLevel;
             s_callback = callback;
         }
