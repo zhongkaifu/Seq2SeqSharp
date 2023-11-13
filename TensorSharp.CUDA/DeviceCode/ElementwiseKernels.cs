@@ -60,7 +60,7 @@ namespace TensorSharp.CUDA.DeviceCode
 
             if (TSCudaContext.ElementType == DType.Float16)
             {
-                Logger.WriteLine($"Creating elementwise kernels for Float16 type.");
+                Logger.WriteLine(Logger.Level.debug, $"Creating elementwise kernels for Float16 type.");
 
                 result.AddApplyTTSHalf("t1_addmulv", "*a = __hadd(*a, __hmul(*b, c));");
                 result.AddApplyTTTSHalf("t2_addmulv", "*a = __hadd(*b, __hmul(*c, d));");

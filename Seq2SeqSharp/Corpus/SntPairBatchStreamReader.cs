@@ -36,21 +36,25 @@ namespace Seq2SeqSharp.Corpus
             this.maxSentLength = maxSentLength;
             this.batchSize = batchSize;
 
-            Logger.WriteLine($"Loading lines from '{srcFilePath}'");
+            Logger.WriteLine(Logger.Level.debug, $"Loading lines from '{srcFilePath}'");
+
             srcReader = File.ReadLines(srcFilePath).GetEnumerator();
 
-            Logger.WriteLine($"Loading lines from '{tgtFilePath}'");
+            Logger.WriteLine(Logger.Level.debug, $"Loading lines from '{tgtFilePath}'");
+
             tgtReader = File.ReadLines(tgtFilePath).GetEnumerator();
 
             if (String.IsNullOrEmpty(srcSPMPath) == false)
             {
-                Logger.WriteLine($"Loading sentence piece model '{srcSPMPath}' for encoding.");
+                Logger.WriteLine(Logger.Level.debug, $"Loading sentence piece model '{srcSPMPath}' for encoding.");
+
                 srcSP = new SentencePiece(srcSPMPath);
             }
 
             if (String.IsNullOrEmpty(tgtSPMPath) == false)
             {
-                Logger.WriteLine($"Loading sentence piece model '{tgtSPMPath}' for encoding.");
+                Logger.WriteLine(Logger.Level.debug, $"Loading sentence piece model '{tgtSPMPath}' for encoding.");
+
                 tgtSP = new SentencePiece(tgtSPMPath);
             }
         }

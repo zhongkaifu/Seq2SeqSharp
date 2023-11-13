@@ -403,7 +403,7 @@ namespace Seq2SeqSharp.Tools
             }
             catch(Exception)
             {
-                Logger.WriteLine($"Failed to update gradient for tensor '{Name}({TGradient.ToString()}) from '{src.Name}' ({src.TGradient.ToString()})");
+                Logger.WriteLine(Logger.Level.err, $"Failed to update gradient for tensor '{Name}({TGradient.ToString()}) from '{src.Name}' ({src.TGradient.ToString()})");
                 throw;
             }
         }
@@ -572,7 +572,7 @@ namespace Seq2SeqSharp.Tools
 
         public void Load(IModel model)
         {
-            Logger.WriteLine($"Loading weights '{Name}' from the model to device '{DeviceId}'...");
+            Logger.WriteLine(Logger.Level.debug, $"Loading weights '{Name}' from the model to device '{DeviceId}'...");
 
             if (m_elementType == DType.Float16)
             {
