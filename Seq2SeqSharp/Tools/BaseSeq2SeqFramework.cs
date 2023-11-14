@@ -388,6 +388,9 @@ namespace Seq2SeqSharp.Tools
                 // Train one epoch over given devices. Forward part is implemented in RunForwardOnSingleDevice function in below, 
                 // backward, weights updates and other parts are implemented in the framework. You can see them in BaseSeq2SeqFramework.cs
                 TrainOneEpoch(i, trainCorpus, validCorpusList, learningRate, optimizer, taskId2metrics, decodingOptions, RunForwardOnSingleDevice);
+
+                // send progress reporting in the form of a percentage value (0-100%)
+                Logger.WriteLine(Logger.Level.info, "", (int)(100 * (i + 1) / maxTrainingEpoch));
             }
 
             SaveModel(createBackupPrevious: false, suffix: $".{m_weightsUpdateCount}");
