@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net7.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="AdvUtils">
+      <HintPath>..\..\Seq2SeqSharp\bin\x64\Debug\AdvUtils.dll</HintPath>
+    </Reference>
+    <Reference Include="Seq2SeqSharp">
+      <HintPath>..\..\Seq2SeqSharp\bin\x64\Debug\Seq2SeqSharp.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>
