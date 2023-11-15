@@ -212,10 +212,10 @@ template<typename T> INLINE_FUNC T SiLUDHalf(T wh, T resGh) {
   //return __float2half(resG * grad);
 
 
-   T sig =  __hdiv(T(1), __hadd(T(1), hexp(__hneg(wh))))
-   T grad = __hmul(sig, __hadd(T(1), __hmul(wh, __hsub(T(1), sig))))
+   T sig =  __hdiv(T(1), __hadd(T(1), hexp(__hneg(wh))));
+   T grad = __hmul(sig, __hadd(T(1), __hmul(wh, __hsub(T(1), sig))));
 
-   return __hmul(resGh, grad)
+   return __hmul(resGh, grad);
 
 }
 
@@ -230,10 +230,10 @@ template<typename T> INLINE_FUNC T AddSiLUDHalf(T th, T wh, T resGh) {
   //return __float2half(t + resG * grad);
 
 
-   T sig =  __hdiv(T(1), __hadd(T(1), hexp(__hneg(wh))))
-   T grad = __hmul(sig, __hadd(T(1), __hmul(wh, __hsub(T(1), sig))))
+   T sig =  __hdiv(T(1), __hadd(T(1), hexp(__hneg(wh))));
+   T grad = __hmul(sig, __hadd(T(1), __hmul(wh, __hsub(T(1), sig))));
 
-   return __hadd(th, __hmul(resGh, grad))
+   return __hadd(th, __hmul(resGh, grad));
 
 }
 
