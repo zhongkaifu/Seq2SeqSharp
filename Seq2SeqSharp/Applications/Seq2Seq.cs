@@ -185,10 +185,10 @@ namespace Seq2SeqSharp.Applications
             var originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
             var srcTokensList = m_modelMetaData.SrcVocab.GetWordIndex(srcSnts);
 
-            if (isTraining && srcSnts[0].Count > m_options.MaxSrcSentLength + 2)
-            {
-                throw new InvalidDataException($"The source sentence is too long. Its length = '{srcSnts[0].Count}', but MaxSrcSentLength is '{m_options.MaxSrcSentLength}'. The sentence is '{string.Join(" ", srcSnts[0])}'");
-            }
+            //if (isTraining && srcSnts[0].Count > m_options.MaxSrcSentLength + 2)
+            //{
+            //    throw new InvalidDataException($"The source sentence is too long. Its length = '{srcSnts[0].Count}', but MaxSrcSentLength is '{m_options.MaxSrcSentLength}'. The sentence is '{string.Join(" ", srcSnts[0])}'");
+            //}
 
             IWeightTensor encOutput;
             if (!isTraining && (m_options.ProcessorType == ProcessorTypeEnums.CPU))
