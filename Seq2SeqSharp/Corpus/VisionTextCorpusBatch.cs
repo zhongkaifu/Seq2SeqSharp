@@ -19,6 +19,11 @@ namespace Seq2SeqSharp.Corpus
             TgtTokens = tgtLine.Split(' ').ToList();
         }
 
+        public int GetSrcTokenCount()
+        {
+            throw new NotImplementedException();
+        }
+
         public int GetTgtTokenCount()
         {
             return TgtTokens.Count;
