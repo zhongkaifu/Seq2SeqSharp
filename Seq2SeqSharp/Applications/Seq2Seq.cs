@@ -126,7 +126,7 @@ namespace Seq2SeqSharp.Applications
                 Logger.WriteLine(Logger.Level.debug, $"Create pointer generator weights...");
 
                 m_pointerGenerator = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("PointerGenerator_0", model.HiddenDim, 1, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),
-                isTrainable: true, learningRateFactor: m_options.DecoderStartLearningRateFactor, elementType: m_options.AMP ? TensorSharp.DType.Float16 : TensorSharp.DType.Float32), DeviceIds);
+                isTrainable: true, learningRateFactor: m_options.DecoderStartLearningRateFactor, elementType: TensorSharp.DType.Float32), DeviceIds); // We always use Float32 type for pointer generator even AMP = true
             }
             else
             {

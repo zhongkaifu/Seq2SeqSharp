@@ -51,7 +51,7 @@ namespace TensorSharp.Cpu
             {
                 if (src.ElementType != m1.ElementType || src.ElementType != m2.ElementType || (result != null && result.ElementType != src.ElementType))
                 {
-                    throw new InvalidOperationException("All tensors must have the same element type");
+                    throw new InvalidOperationException($"All tensors must have the same element type  src = '{src.ElementType}', m1 = '{m1.ElementType}', m2 = '{m2.ElementType}' result = '{result.ElementType}'");
                 }
 
                 if (result != null && !(result.Storage is CpuStorage))
@@ -114,7 +114,7 @@ namespace TensorSharp.Cpu
         {
             if (src.ElementType != m1.ElementType || src.ElementType != m2.ElementType || (result != null && result.ElementType != src.ElementType))
             {
-                throw new InvalidOperationException("All tensors must have the same element type");
+                throw new InvalidOperationException($"All tensors must have the same element type  src = '{src.ElementType}', m1 = '{m1.ElementType}', m2 = '{m2.ElementType}' result = '{result.ElementType}'");
             }
 
             if (result != null && !(result.Storage is CpuStorage))

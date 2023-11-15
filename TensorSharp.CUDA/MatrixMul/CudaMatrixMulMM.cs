@@ -509,7 +509,7 @@ namespace TensorSharp.CUDA.MatrixMul
         {
             if (lhs.ElementType != rhs.ElementType || (result != null && result.ElementType != lhs.ElementType))
             {
-                throw new InvalidOperationException("All tensors must have the same element type");
+                throw new InvalidOperationException($"All tensors must have the same element type lhs = '{lhs.ElementType}', rhs = '{rhs.ElementType}' result = '{result.ElementType}'");
             }
 
             CudaHelpers.ThrowIfDifferentDevices(result, lhs, rhs);

@@ -204,23 +204,36 @@ template<typename T> INLINE_FUNC T SiLUHalf(T wh) {
 
 template<typename T> INLINE_FUNC T SiLUDHalf(T wh, T resGh) {
 
-  float w = __half2float(wh);
-  float resG = __half2float(resGh);
+  //float w = __half2float(wh);
+  //float resG = __half2float(resGh);
 
-  float sig = 1.0 / (1.0 + expf(-w));
-  float grad = sig * (1.0 + w * (1.0 - sig));
-  return __float2half(resG * grad);
+  //float sig = 1.0 / (1.0 + expf(-w));
+  //float grad = sig * (1.0 + w * (1.0 - sig));
+  //return __float2half(resG * grad);
+
+
+   T sig =  __hdiv(T(1), __hadd(T(1), hexp(__hneg(wh))))
+   T grad = __hmul(sig, __hadd(T(1), __hmul(wh, __hsub(T(1), sig))))
+
+   return __hmul(resGh, grad)
+
 }
 
 template<typename T> INLINE_FUNC T AddSiLUDHalf(T th, T wh, T resGh) {
 
-  float t = __half2float(th);
-  float w = __half2float(wh);
-  float resG = __half2float(resGh);
+  //float t = __half2float(th);
+  //float w = __half2float(wh);
+  //float resG = __half2float(resGh);
 
-  float sig = 1.0 / (1.0 + expf(-w));
-  float grad = sig * (1.0 + w * (1.0 - sig));
-  return __float2half(t + resG * grad);
+  //float sig = 1.0 / (1.0 + expf(-w));
+  //float grad = sig * (1.0 + w * (1.0 - sig));
+  //return __float2half(t + resG * grad);
+
+
+   T sig =  __hdiv(T(1), __hadd(T(1), hexp(__hneg(wh))))
+   T grad = __hmul(sig, __hadd(T(1), __hmul(wh, __hsub(T(1), sig))))
+
+   return __hadd(th, __hmul(resGh, grad))
 
 }
 
