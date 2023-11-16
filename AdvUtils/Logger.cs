@@ -120,7 +120,7 @@ namespace AdvUtils
 
                 StringBuilder sb = new StringBuilder();
 
-                if (String.IsNullOrEmpty(s))
+                if (!String.IsNullOrEmpty(s))
                 {
                     sb.AppendFormat("{0},{1} ", level.ToString(), DateTime.Now.ToString());
 
