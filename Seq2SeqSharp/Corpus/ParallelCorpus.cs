@@ -475,9 +475,12 @@ namespace Seq2SeqSharp.Tools
                             }
                         }
 
-                        batch = new T();
-                        batch.CreateBatch(outputs);
-                        yield return batch;                        
+                        if (outputs.Count > 0)
+                        {
+                            batch = new T();
+                            batch.CreateBatch(outputs);
+                            yield return batch;
+                        }
                     }
                 }
             }
