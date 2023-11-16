@@ -629,8 +629,8 @@ namespace TensorSharp.Cpu
                     }
                     catch (Exception err)
                     {
-                        Logger.WriteLine($"Error message: {err.Message}");
-                        Logger.WriteLine($"Call stack: {err.StackTrace}");
+                        Logger.WriteLine(Logger.Level.err, $"Error message: {err.Message}");
+                        Logger.WriteLine(Logger.Level.debug, $"Call stack: {err.StackTrace}");
                         throw;
                     }
                 }
@@ -702,8 +702,8 @@ namespace TensorSharp.Cpu
                     }
                     catch (Exception err)
                     {
-                        Logger.WriteLine($"Error message: {err.Message}");
-                        Logger.WriteLine($"Call stack: {err.StackTrace}");
+                        Logger.WriteLine(Logger.Level.err, $"Error message: {err.Message}");
+                        Logger.WriteLine(Logger.Level.debug, $"Call stack: {err.StackTrace}");
                         throw;
                     }
                 }

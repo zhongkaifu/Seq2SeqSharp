@@ -100,7 +100,8 @@ namespace TensorSharp.CUDA
             }
             catch (Exception err)
             {
-                Logger.WriteLine(Logger.Level.err, $"Error Message = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                Logger.WriteLine(Logger.Level.err, $"Error Message = '{err.Message}'.");
+                Logger.WriteLine(Logger.Level.debug, $"Call Stack = '{err.StackTrace}'");
                 throw;
             }
         }
@@ -127,7 +128,8 @@ namespace TensorSharp.CUDA
             }
             catch (Exception err)
             {
-                Logger.WriteLine(Logger.Level.err, $"Error Message = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                Logger.WriteLine(Logger.Level.err, $"Error Message = '{err.Message}'.");
+                Logger.WriteLine(Logger.Level.debug, $"Call Stack = '{err.StackTrace}'");
                 throw;
             }
         }
@@ -154,7 +156,8 @@ namespace TensorSharp.CUDA
             }
             catch (Exception err)
             {
-                Logger.WriteLine(Logger.Level.err, $"Error Message = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                Logger.WriteLine(Logger.Level.err, $"Error Message = '{err.Message}'.");
+                Logger.WriteLine(Logger.Level.debug, $"Call Stack = '{err.StackTrace}'");
                 throw;
             }
         }
@@ -318,7 +321,8 @@ namespace TensorSharp.CUDA
             }
             catch (Exception err)
             {
-                Logger.WriteLine(Logger.Level.err, $"Failed to run AddmmBatch on GPU. Error message = '{err.Message}', Call stack = '{err.StackTrace}'");
+                Logger.WriteLine(Logger.Level.err, $"Failed to run AddmmBatch on GPU. Error message = '{err.Message}'.");
+                Logger.WriteLine(Logger.Level.debug, $"Call stack = '{err.StackTrace}'");
                 throw;
             }
         }

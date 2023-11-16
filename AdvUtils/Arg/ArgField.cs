@@ -45,7 +45,11 @@ namespace AdvUtils
             }
             catch (Exception err)
             {
-                throw new ArgumentException($"Failed to set value of '{m_a.ToString()}', Error: '{err.Message}', Call Stack: '{err.StackTrace}'");
+                string stt = "";
+#if DEBUG
+                stt = $", Call Stack: '{err.StackTrace}'";
+#endif
+                throw new ArgumentException($"Failed to set value of '{m_a.ToString()}', Error: '{err.Message}'{stt}");
             }
         }
         public void Validate()

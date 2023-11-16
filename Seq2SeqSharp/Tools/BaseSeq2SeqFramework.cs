@@ -227,7 +227,8 @@ namespace Seq2SeqSharp.Tools
             }
             catch (Exception ex)
             {
-                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Failed to save model to file. Exception = '{ex.Message}', Call stack = '{ex.StackTrace}'");
+                Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"Failed to save model to file. Exception = '{ex.Message}'.");
+                Logger.WriteLine(Logger.Level.debug, ConsoleColor.Yellow, $"Call stack = '{ex.StackTrace}'");
                 return (false);
             }
         }
@@ -507,7 +508,8 @@ namespace Seq2SeqSharp.Tools
                                     }
                                     else
                                     {
-                                        Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Inner Exception: {excep.Message}, Call stack: {excep.StackTrace}");
+                                        Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Inner Exception: {excep.Message}.");
+                                        Logger.WriteLine(Logger.Level.debug, ConsoleColor.Red, $"Call stack: {excep.StackTrace}");
                                         throw err;
                                     }
                                 }
@@ -522,13 +524,15 @@ namespace Seq2SeqSharp.Tools
                                 }
                                 else
                                 {
-                                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Inner Exception: {err.Message}, Call stack: {err.StackTrace}");
+                                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Inner Exception: {err.Message}.");
+                                    Logger.WriteLine(Logger.Level.debug, ConsoleColor.Red, $"Call stack: {err.StackTrace}");
                                     throw err;
                                 }
                             }
                             else
                             {
-                                Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}, Call stack: {err.StackTrace}");
+                                Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}.");
+                                Logger.WriteLine(Logger.Level.debug, ConsoleColor.Red, $"Call stack: {err.StackTrace}");
                                 throw err;
                             }
 
@@ -544,12 +548,14 @@ namespace Seq2SeqSharp.Tools
                         }
                         catch (WeightsCorruptedException err)
                         {
-                            Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}, Call stack: {err.StackTrace}");
+                            Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}.");
+                            Logger.WriteLine(Logger.Level.debug, ConsoleColor.Red, $"Call stack: {err.StackTrace}");
                             throw;
                         }
                         catch (Exception err)
                         {
-                            Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}, Call stack: {err.StackTrace}");
+                            Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}.");
+                            Logger.WriteLine(Logger.Level.debug, ConsoleColor.Red, $"Call stack: {err.StackTrace}");
                             throw;
                         }
                     }
@@ -709,7 +715,7 @@ namespace Seq2SeqSharp.Tools
                     catch (Exception err)
                     {
                         Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: '{err.Message}'");
-                        Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Call stack: '{err.StackTrace}'");
+                        Logger.WriteLine(Logger.Level.debug, ConsoleColor.Red, $"Call stack: '{err.StackTrace}'");
 
                         throw;
                     }
@@ -835,7 +841,8 @@ namespace Seq2SeqSharp.Tools
                         }
                         catch (Exception err)
                         {
-                            Logger.WriteLine(Logger.Level.err, $"Test error at processor '{deviceIdx}'. Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                            Logger.WriteLine(Logger.Level.err, $"Test error at processor '{deviceIdx}'. Exception = '{err.Message}'.");
+                            Logger.WriteLine(Logger.Level.debug, $"Call Stack = '{err.StackTrace}'");
                             throw;
                         }
                     });
@@ -868,7 +875,8 @@ namespace Seq2SeqSharp.Tools
             }
             catch (Exception err)
             {
-                Logger.WriteLine(Logger.Level.err, $"Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                Logger.WriteLine(Logger.Level.err, $"Exception = '{err.Message}'.");
+                Logger.WriteLine(Logger.Level.debug, $"Call Stack = '{err.StackTrace}'");
                 throw;
             }
         }
@@ -937,7 +945,8 @@ namespace Seq2SeqSharp.Tools
                     catch (Exception err)
                     {
                         runningGoodSoFar = false;
-                        Logger.WriteLine(Logger.Level.err, $"Test error at processor '{deviceIdx}'. Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                        Logger.WriteLine(Logger.Level.err, $"Test error at processor '{deviceIdx}'. Exception = '{err.Message}'.");
+                        Logger.WriteLine(Logger.Level.debug, $"Call Stack = '{err.StackTrace}'");
                         throw;
                     }
                 });
@@ -946,7 +955,8 @@ namespace Seq2SeqSharp.Tools
             }
             catch (Exception err)
             {
-                Logger.WriteLine(Logger.Level.err, $"Exception = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                Logger.WriteLine(Logger.Level.err, $"Exception = '{err.Message}'.");
+                Logger.WriteLine(Logger.Level.debug, $"Call Stack = '{err.StackTrace}'");
                 throw;
             }
         }
@@ -1180,7 +1190,7 @@ namespace Seq2SeqSharp.Tools
                 }
                 catch (Exception err)
                 {
-                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: '{err.Message}'");
+                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: '{err.Message}'.");
                     Logger.WriteLine(Logger.Level.debug, ConsoleColor.Red, $"Call stack: '{err.StackTrace}'");
                 }
             });

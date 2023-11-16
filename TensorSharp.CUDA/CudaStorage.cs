@@ -89,9 +89,9 @@ namespace TensorSharp.CUDA
             }
             catch (Exception err)
             {
-                Logger.WriteLine($"Failed to get element as float from addr = '{ptr.Pointer}'");
-                Logger.WriteLine($"Exception: {err.Message}");
-                Logger.WriteLine($"Call stack: {err.StackTrace}");
+                Logger.WriteLine(Logger.Level.err, $"Failed to get element as float from addr = '{ptr.Pointer}'");
+                Logger.WriteLine(Logger.Level.err, $"Exception: {err.Message}");
+                Logger.WriteLine(Logger.Level.debug, $"Call stack: {err.StackTrace}");
 
                 throw;
             }
