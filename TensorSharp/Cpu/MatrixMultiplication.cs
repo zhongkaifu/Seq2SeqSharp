@@ -108,7 +108,7 @@ namespace TensorSharp.Cpu
         {
             if (lhs.ElementType != rhs.ElementType || (result != null && result.ElementType != lhs.ElementType))
             {
-                throw new InvalidOperationException("All tensors must have the same element type");
+                throw new InvalidOperationException($"All tensors must have the same element type lhs = '{lhs.ElementType}', rhs = '{rhs.ElementType}' result = '{result.ElementType}'");
             }
 
             if (result != null && !(result.Storage is CpuStorage))
@@ -188,7 +188,7 @@ namespace TensorSharp.Cpu
         {
             if (lhs.ElementType != rhs.ElementType || (result != null && result.ElementType != lhs.ElementType))
             {
-                throw new InvalidOperationException("All tensors must have the same element type");
+                throw new InvalidOperationException($"All tensors must have the same element type  lhs = '{lhs.ElementType}', rhs = '{rhs.ElementType}' result = '{result.ElementType}'");
             }
 
             if (result != null && (result.Storage is CpuStorage))
@@ -313,7 +313,7 @@ namespace TensorSharp.Cpu
         {
             if (lhs.ElementType != rhs.ElementType || (result != null && result.ElementType != lhs.ElementType))
             {
-                throw new InvalidOperationException("All tensors must have the same element type");
+                throw new InvalidOperationException($"All tensors must have the same element type lhs = '{lhs.ElementType}', rhs = '{rhs.ElementType}' result = '{result.ElementType}'");
             }
 
             if (result != null && !(result.Storage is CpuStorage))

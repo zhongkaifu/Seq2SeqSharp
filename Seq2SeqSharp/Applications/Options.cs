@@ -192,7 +192,7 @@ namespace Seq2SeqSharp.Applications
 
         [Arg("The decay steps of learning rate", nameof(LearningRateDecaySteps))]
         [Range(1, 999999999)]
-        public int LearningRateDecaySteps = 200000; // 200K
+        public int LearningRateDecaySteps = 500000; // 500K
 
         [Arg("The type of learning rate", nameof(LearningRateType))]
         [RegularExpression("Decay|CosineDecay")]

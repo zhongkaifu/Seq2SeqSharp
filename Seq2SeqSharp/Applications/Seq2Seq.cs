@@ -126,7 +126,7 @@ namespace Seq2SeqSharp.Applications
                 Logger.WriteLine(Logger.Level.debug, $"Create pointer generator weights...");
 
                 m_pointerGenerator = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("PointerGenerator_0", model.HiddenDim, 1, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),
-                isTrainable: true, learningRateFactor: m_options.DecoderStartLearningRateFactor, elementType: m_options.AMP ? TensorSharp.DType.Float16 : TensorSharp.DType.Float32), DeviceIds);
+                isTrainable: true, learningRateFactor: m_options.DecoderStartLearningRateFactor, elementType: TensorSharp.DType.Float32), DeviceIds); // We always use Float32 type for pointer generator even AMP = true
             }
             else
             {
@@ -185,10 +185,10 @@ namespace Seq2SeqSharp.Applications
             var originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
             var srcTokensList = m_modelMetaData.SrcVocab.GetWordIndex(srcSnts);
 
-            if (isTraining && srcSnts[0].Count > m_options.MaxSrcSentLength + 2)
-            {
-                throw new InvalidDataException($"The source sentence is too long. Its length = '{srcSnts[0].Count}', but MaxSrcSentLength is '{m_options.MaxSrcSentLength}'. The sentence is '{string.Join(" ", srcSnts[0])}'");
-            }
+            //if (isTraining && srcSnts[0].Count > m_options.MaxSrcSentLength + 2)
+            //{
+            //    throw new InvalidDataException($"The source sentence is too long. Its length = '{srcSnts[0].Count}', but MaxSrcSentLength is '{m_options.MaxSrcSentLength}'. The sentence is '{string.Join(" ", srcSnts[0])}'");
+            //}
 
             IWeightTensor encOutput;
             if (!isTraining && (m_options.ProcessorType == ProcessorTypeEnums.CPU))

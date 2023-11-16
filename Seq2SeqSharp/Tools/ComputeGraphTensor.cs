@@ -734,12 +734,13 @@ namespace Seq2SeqSharp.Tools
             Ops.Pow(res.TWeight, m.TWeight, n);
             if (m_needsBackprop)
             {
+                Tensor mTWeight = m.TWeight.CopyRef();
                 void backward()
                 {
                     res.ReleaseWeight();
                     if (m.NeedGradient)
                     {
-                        var tTmp1 = Ops.Pow(null, m.TWeight, n - 1.0f);
+                        var tTmp1 = Ops.Pow(null, mTWeight, n - 1.0f);
                         var tTmp2 = Ops.Mul(null, tTmp1, n);
 
                         Ops.AddMul(m.TGradient, m.TGradient, res.TGradient, tTmp2);
@@ -748,12 +749,10 @@ namespace Seq2SeqSharp.Tools
                         tTmp1.Dispose();
 
                     }
+                    mTWeight.Dispose();
                     res.Dispose();
                 }
                 m_backprop.Add(backward);
-
-                res.UnbindFromComputeGraph();
-
             }
 
             return res;

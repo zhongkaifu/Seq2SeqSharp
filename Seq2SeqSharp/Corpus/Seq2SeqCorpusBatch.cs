@@ -105,6 +105,7 @@ namespace Seq2SeqSharp.Corpus
 
     public interface IPair
     {
+        int GetSrcTokenCount();
         int GetTgtTokenCount();
 
     }
@@ -133,6 +134,11 @@ namespace Seq2SeqSharp.Corpus
         public int GetTgtTokenCount()
         {
             return TgtTokens.Count;
+        }
+
+        public int GetSrcTokenCount()
+        {
+            return SrcTokens.Count;
         }
 
         public string PrintSrcTokens()
