@@ -63,11 +63,11 @@ namespace AdvUtils
             }
         }
 
-        static private List<TextWriterTraceListener> m_listeners = null;
-        static private string m_logFilePath = null;
-        static public string LogFilePath => m_logFilePath;
+        static private List<TextWriterTraceListener>? m_listeners = null;
+        static private string? m_logFilePath = null;
+        static public string? LogFilePath => m_logFilePath;
                
-        static public void Initialize(Destination dest, Level logLevel, string logFilePath = "", ProgressCallback callback = null)
+        static public void Initialize(Destination dest, Level logLevel, string logFilePath = "", ProgressCallback? callback = null)
         {
             if (m_listeners != null)
             {
