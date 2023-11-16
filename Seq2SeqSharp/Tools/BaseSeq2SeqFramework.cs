@@ -391,7 +391,8 @@ namespace Seq2SeqSharp.Tools
                 TrainOneEpoch(i, trainCorpus, validCorpusList, learningRate, optimizer, taskId2metrics, decodingOptions, RunForwardOnSingleDevice);
 
                 // send progress reporting in the form of a percentage value (0-100%)
-                Logger.WriteLine(Logger.Level.info, "", (int)(100 * (i + 1) / maxTrainingEpoch));
+                var finishedEpochPercent = (int)(100 * (i + 1) / maxTrainingEpoch);
+                Logger.WriteLine(Logger.Level.info, $"Finished Epoch Percent: {finishedEpochPercent}%", finishedEpochPercent);
             }
 
             SaveModel(createBackupPrevious: false, suffix: $".{m_weightsUpdateCount}");

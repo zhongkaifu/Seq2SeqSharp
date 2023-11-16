@@ -51,6 +51,7 @@ namespace Seq2SeqSharp.Tools
 
         private string m_sortedIndexedDataSetFilePath = "";
         private int m_batchNumInTotal = 0;
+        private int m_startBatchId = 0;
 
         public (List<Dictionary<string, long>>, List<Dictionary<string, long>>) CountTokenFreqs()
         {
@@ -444,6 +445,17 @@ namespace Seq2SeqSharp.Tools
                         string[] tgtLines = br.ReadString().Split("\n");
                         batchIdx++;
 
+                        if (batchIdx < m_startBatchId)
+                        {
+                            continue;
+                        }
+
+                        if (batchIdx % 10000 == 0)
+                        {
+                            Logger.WriteLine($"Processing batch '{batchIdx}'");
+                        }
+
+
                         T batch;
                         int currentTokenCountsInBatch = 0;
                         for (int i = 0; i < sizeInBatch; i++)
@@ -498,7 +510,7 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int maxTokenSizePerBatch, int maxSrcSentLength = 32, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random, TooLongSequence tooLongSequence = TooLongSequence.Ignore, string indexedFilePath = null)
+        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int maxTokenSizePerBatch, int maxSrcSentLength = 32, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random, TooLongSequence tooLongSequence = TooLongSequence.Ignore, string indexedFilePath = null, int startBatchId = 0)
         {
             Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSrcSentLength = '{maxSrcSentLength}',  MaxTgtSentLength = '{maxTgtSentLength}', aggregateSrcLengthForShuffle = '{shuffleEnums}', TooLongSequence = '{tooLongSequence}'");
             m_maxTokenSizePerBatch = maxTokenSizePerBatch;
@@ -546,7 +558,7 @@ namespace Seq2SeqSharp.Tools
                 m_srcFileList.Add(pair.Value);
                 m_tgtFileList.Add(tgtKey2FileName[pair.Key]);
             }
-
+            m_startBatchId = startBatchId;
         }
     }
 }

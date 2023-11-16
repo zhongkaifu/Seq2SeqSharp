@@ -368,19 +368,19 @@ namespace Seq2SeqSharp.Tools
          //   }
         }
 
-        public void AddSoftmaxGradient(WeightTensor src, bool inPlace = false)
+        public void AddSoftmaxGradient(Tensor srcTWeight, Tensor srcTGradient, bool inPlace = false)
         {
             if (m_TGradient == null)
             {
                 m_allocator = TensorAllocator.Allocator(DeviceId);
-                m_TGradient = new Tensor(m_allocator, src.TGradient.ElementType, Sizes);
-                Ops.SoftmaxGrad(m_TGradient, src.TGradient, src.TWeight, false);
+                m_TGradient = new Tensor(m_allocator, srcTGradient.ElementType, Sizes);
+                Ops.SoftmaxGrad(m_TGradient, srcTGradient, srcTWeight, false);
 
                 m_GradientSetName = "AddSoftmaxGradient";
             }
             else
             {
-                Ops.SoftmaxGrad(m_TGradient, src.TGradient, src.TWeight, !inPlace);
+                Ops.SoftmaxGrad(m_TGradient, srcTGradient, srcTWeight, !inPlace);
             }
         }
 
@@ -452,36 +452,36 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        public void AddSigmoidGradient(WeightTensor src)
+        public void AddSigmoidGradient(Tensor srcTWeight, Tensor srcTGradient)
         {
             if (m_TGradient == null)
             {
                 m_allocator = TensorAllocator.Allocator(DeviceId);
-                m_TGradient = new Tensor(m_allocator, src.TGradient.ElementType, Sizes);
-                Ops.SigmoidD(m_TGradient, src.TWeight, src.TGradient);
+                m_TGradient = new Tensor(m_allocator, srcTGradient.ElementType, Sizes);
+                Ops.SigmoidD(m_TGradient, srcTWeight, srcTGradient);
 
                 m_GradientSetName = "AddSigmoidGradient";
             }
             else
             {
-                Ops.AddSigmoidD(m_TGradient, m_TGradient, src.TWeight, src.TGradient);
+                Ops.AddSigmoidD(m_TGradient, m_TGradient, srcTWeight, srcTGradient);
             }
         }
 
-        public void AddTanhGradient(WeightTensor src)
+        public void AddTanhGradient(Tensor srcTWeight, Tensor srcTGradient)
         {
             if (m_TGradient == null)
             {
                 m_allocator = TensorAllocator.Allocator(DeviceId);
-                m_TGradient = new Tensor(m_allocator, src.TGradient.ElementType, Sizes);
+                m_TGradient = new Tensor(m_allocator, srcTGradient.ElementType, Sizes);
 
-                Ops.TanhD(m_TGradient, src.TWeight, src.TGradient);
+                Ops.TanhD(m_TGradient, srcTWeight, srcTGradient);
 
                 m_GradientSetName = "AddTanhGradient";
             }
             else
             {
-                Ops.AddTanhD(m_TGradient, m_TGradient, src.TWeight, src.TGradient);
+                Ops.AddTanhD(m_TGradient, m_TGradient, srcTWeight, srcTGradient);
             }
         }
 

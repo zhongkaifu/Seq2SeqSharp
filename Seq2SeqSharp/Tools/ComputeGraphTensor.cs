@@ -119,17 +119,22 @@ namespace Seq2SeqSharp.Tools
 
             if (m_needsBackprop)
             {
+                Tensor resTWeight = null;
+                if (m.NeedGradient)
+                {
+                    resTWeight = res.TWeight.CopyRef();
+                }
+
                 void backward()
                 {
                     if (m.NeedGradient)
                     {
-                        m.AddSigmoidGradient(res);
+                        m.AddSigmoidGradient(resTWeight, res.TGradient);
+                        resTWeight.Dispose();
                     }
                     res.Dispose();
                 }
                 m_backprop.Add(backward);
-
-                res.UnbindFromComputeGraph();
             }
 
             return res;
@@ -214,23 +219,32 @@ namespace Seq2SeqSharp.Tools
             Ops.AddTanh(res.TWeight, m1.TWeight, m2.TWeight);
             if (m_needsBackprop)
             {
+                Tensor resTWeight = null;
+                if (m1.NeedGradient || m2.NeedGradient)
+                {
+                    resTWeight = res.TWeight.CopyRef();
+                }
+
                 void backward()
                 {
                     if (m1.NeedGradient)
                     {
-                        m1.AddTanhGradient(res);
+                        m1.AddTanhGradient(resTWeight, res.TGradient);
                     }
 
                     if (m2.NeedGradient)
                     {
-                        m2.AddTanhGradient(res);
+                        m2.AddTanhGradient(resTWeight, res.TGradient);
+                    }
+
+                    if (m1.NeedGradient || m2.NeedGradient)
+                    {
+                        resTWeight.Dispose();
                     }
 
                     res.Dispose();
                 }
                 m_backprop.Add(backward);
-
-                res.UnbindFromComputeGraph();
             }
 
             return res;
@@ -248,21 +262,32 @@ namespace Seq2SeqSharp.Tools
             Ops.AddTanh3(res.TWeight, m1.TWeight, m2.TWeight, m3.TWeight);
             if (m_needsBackprop)
             {
+                Tensor resTWeight = null;
+                if (m1.NeedGradient || m2.NeedGradient || m3.NeedGradient)
+                {
+                    resTWeight = res.TWeight.CopyRef();
+                }
+
                 void backward()
                 {
                     if (m1.NeedGradient)
                     {
-                        m1.AddTanhGradient(res);
+                        m1.AddTanhGradient(resTWeight, res.TGradient);
                     }
 
                     if (m2.NeedGradient)
                     {
-                        m2.AddTanhGradient(res);
+                        m2.AddTanhGradient(resTWeight, res.TGradient);
                     }
 
                     if (m3.NeedGradient)
                     {
-                        m3.AddTanhGradient(res);
+                        m3.AddTanhGradient(resTWeight, res.TGradient);
+                    }
+
+                    if (m1.NeedGradient || m2.NeedGradient || m3.NeedGradient)
+                    {
+                        resTWeight.Dispose();
                     }
 
                     res.Dispose();
@@ -466,55 +491,63 @@ namespace Seq2SeqSharp.Tools
             Ops.MulMulAdd(res.TWeight, m1.TWeight, m2.TWeight, m3.TWeight, m4.TWeight);
             if (m_needsBackprop)
             {
+                Tensor m1TWeight = null;
+                Tensor m2TWeight = null;
+                Tensor m3TWeight = null;
+                Tensor m4TWeight = null;
+
+
+                if (m2.NeedGradient)
+                {
+                    m1TWeight = m1.TWeight.CopyRef();
+                }
+
+                if (m1.NeedGradient)
+                {
+                    m2TWeight = m2.TWeight.CopyRef();
+                }
+
+                if (m4.NeedGradient)
+                {
+                    m3TWeight = m3.TWeight.CopyRef();
+                }
+
+                if (m3.NeedGradient)
+                {
+                    m4TWeight = m4.TWeight.CopyRef();
+                }
+
                 void backward()
                 {
                     res.ReleaseWeight();
 
                     if (m1.NeedGradient)
                     {
-                        m1.AddMulGradient(m2.TWeight, res.TGradient);
+                        m1.AddMulGradient(m2TWeight, res.TGradient);
+                        m2TWeight.Dispose();
                     }
 
                     if (m2.NeedGradient)
                     {
-                        m2.AddMulGradient(m1.TWeight, res.TGradient);
+                        m2.AddMulGradient(m1TWeight, res.TGradient);
+                        m1TWeight.Dispose();
                     }
 
                     if (m3.NeedGradient)
                     {
-                        m3.AddMulGradient(m4.TWeight, res.TGradient);
+                        m3.AddMulGradient(m4TWeight, res.TGradient);
+                        m4TWeight.Dispose();
                     }
 
                     if (m4.NeedGradient)
                     {
-                        m4.AddMulGradient(m3.TWeight, res.TGradient);
+                        m4.AddMulGradient(m3TWeight, res.TGradient);
+                        m3TWeight.Dispose();
                     }
 
                     res.Dispose();
                 }
                 m_backprop.Add(backward);
-
-                // These tensors' weights will be used during back-propogation, so we unbind them from the computing graph
-
-                if (m2.NeedGradient)
-                {
-                    m1.UnbindFromComputeGraph();
-                }
-
-                if (m1.NeedGradient)
-                {
-                    m2.UnbindFromComputeGraph();
-                }
-
-                if (m4.NeedGradient)
-                {
-                    m3.UnbindFromComputeGraph();
-                }
-
-                if (m3.NeedGradient)
-                {
-                    m4.UnbindFromComputeGraph();
-                }
             }
 
 
@@ -531,26 +564,38 @@ namespace Seq2SeqSharp.Tools
             Ops.Mul(res.TWeight, m1.TWeight, m2.TWeight);
             if (m_needsBackprop)
             {
+                Tensor m1TWeight = null;
+                Tensor m2TWeight = null;
+
+                if (m2.NeedGradient)
+                {
+                    m1TWeight = m1.TWeight.CopyRef();
+                }
+
+                if (m1.NeedGradient)
+                {
+                    m2TWeight = m2.TWeight.CopyRef();
+                }
+
                 void backward()
                 {
                     res.ReleaseWeight();
 
                     if (m1.NeedGradient)
                     {
-                        m1.AddMulGradient(m2.TWeight, res.TGradient);
+                        m1.AddMulGradient(m2TWeight, res.TGradient);
+                        m2TWeight.Dispose();
                     }
 
                     if (m2.NeedGradient)
                     {
-                        m2.AddMulGradient(m1.TWeight, res.TGradient);
+                        m2.AddMulGradient(m1TWeight, res.TGradient);
+                        m1TWeight.Dispose();
                     }
 
                     res.Dispose();
                 }
                 m_backprop.Add(backward);
-
-                m1.UnbindFromComputeGraph();
-                m2.UnbindFromComputeGraph();
             }
 
             return res;
@@ -867,11 +912,18 @@ namespace Seq2SeqSharp.Tools
             Ops.Tanh(res.TWeight, m.TWeight);
             if (m_needsBackprop)
             {
+                Tensor resTWeight = null;
+                if (m.NeedGradient)
+                {
+                    resTWeight = res.TWeight.CopyRef();
+                }
+
                 void backward()
                 {
                     if (m.NeedGradient)
                     {
-                        m.AddTanhGradient(res);
+                        m.AddTanhGradient(resTWeight, res.TGradient);
+                        resTWeight.Dispose();
                     }
 
                     res.Dispose();
@@ -1517,6 +1569,12 @@ namespace Seq2SeqSharp.Tools
             Ops.Softmax(res.TWeight, t.TWeight);
             if (m_needsBackprop)
             {
+                Tensor resTWeight = null;
+                if (runGradients && t.NeedGradient)
+                {
+                    resTWeight = res.TWeight.CopyRef();
+                }
+
                 void backward()
                 {
                     if (runGradients && t.NeedGradient)
@@ -1525,15 +1583,13 @@ namespace Seq2SeqSharp.Tools
                         {
                             t.TGradient = res.TGradient.CopyRef();
                         }
-                        t.AddSoftmaxGradient(res, inPlace);
+                        t.AddSoftmaxGradient(resTWeight, res.TGradient, inPlace);
+                        resTWeight.Dispose();
                     }
 
                     res.Dispose();
                 }
                 m_backprop.Add(backward);
-
-                res.UnbindFromComputeGraph();
-
             }
 
             return res;
@@ -2178,21 +2234,22 @@ namespace Seq2SeqSharp.Tools
             {
                 var srcTWeight = srcT.TWeight.CopyRef();
                 var resTWeight = res.TWeight.CopyRef();
+                var alphaTWeight = alphaT.TWeight.CopyRef();
+                var betaTWeight = betaT.TWeight.CopyRef();
                 void backward()
                 {
                     if (srcT.NeedGradient || alphaT.NeedGradient || betaT.NeedGradient)
                     {
-                        Ops.LayerNormGrad(srcT.TGradient, alphaT.TGradient, betaT.TGradient, res.TGradient, resTWeight, srcTWeight, alphaT.TWeight, betaT.TWeight, eps);
+                        Ops.LayerNormGrad(srcT.TGradient, alphaT.TGradient, betaT.TGradient, res.TGradient, resTWeight, srcTWeight, alphaTWeight, betaTWeight, eps);
                     }
                     srcTWeight.Dispose();
                     resTWeight.Dispose();
+                    alphaTWeight.Dispose();
+                    betaTWeight.Dispose();
 
                     res.Dispose();
                 }
                 m_backprop.Add(backward);
-
-                alphaT.UnbindFromComputeGraph();
-                betaT.UnbindFromComputeGraph();
             }
 
             return res;
@@ -2213,21 +2270,22 @@ namespace Seq2SeqSharp.Tools
             {
                 var srcTWeight = srcT.TWeight.CopyRef();
                 var resTWeight = res.TWeight.CopyRef();
+                var alphaTWeight = alphaT.TWeight.CopyRef();
+                var betaTWeight = betaT.TWeight.CopyRef();
                 void backward()
                 {
                     if (srcT.NeedGradient)
                     {
-                        Ops.RMSNormGrad(srcT.TGradient, alphaT.TGradient, betaT.TGradient, res.TGradient, resTWeight, srcTWeight, alphaT.TWeight, betaT.TWeight, eps);
+                        Ops.RMSNormGrad(srcT.TGradient, alphaT.TGradient, betaT.TGradient, res.TGradient, resTWeight, srcTWeight, alphaTWeight, betaTWeight, eps);
                     }
                     srcTWeight.Dispose();
                     resTWeight.Dispose();
+                    alphaTWeight.Dispose();
+                    betaTWeight.Dispose();
 
                     res.Dispose();
                 }
                 m_backprop.Add(backward);
-
-                alphaT.UnbindFromComputeGraph();
-                betaT.UnbindFromComputeGraph();
             }
 
             return res;
