@@ -203,7 +203,8 @@ __global__ void scatterFill_kernel(
             }
             catch (Exception err)
             {
-                Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Error = '{err.Message}', Call stack = '{err.StackTrace}'");
+                Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Error = '{err.Message}'.");
+                Logger.WriteLine(Logger.Level.debug, ConsoleColor.Red, $"Call stack = '{err.StackTrace}'");
                 throw;
             }
         }
@@ -257,7 +258,8 @@ __global__ void scatterFill_kernel(
             }
             catch (Exception err)
             {
-                Logger.WriteLine($"Error = '{err.Message}', Call stack = '{err.StackTrace}'");
+                Logger.WriteLine(Logger.Level.err, $"Error = '{err.Message}'.");
+                Logger.WriteLine(Logger.Level.debug, $"Call stack = '{err.StackTrace}'");
                 throw;
             }
         }

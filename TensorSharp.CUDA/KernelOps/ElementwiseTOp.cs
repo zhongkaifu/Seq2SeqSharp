@@ -41,7 +41,9 @@ namespace TensorSharp.CUDA.KernelOps
             }
             catch (Exception ex)
             {
-                Logger.WriteLine($"Exception message = {ex.Message}, Call stack = {ex.StackTrace}");
+                Logger.WriteLine(Logger.Level.err, $"Exception message = '{ex.Message}'.");
+                Logger.WriteLine(Logger.Level.debug, $"Call stack = '{ex.StackTrace}'");
+
                 throw;
             }
 
@@ -98,7 +100,8 @@ namespace TensorSharp.CUDA.KernelOps
             }
             catch (Exception e)
             {
-                Logger.WriteLine($"Error = '{e.Message}', Call stack = '{e.StackTrace}'");
+                Logger.WriteLine(Logger.Level.err, $"Error = '{e.Message}'.");
+                Logger.WriteLine(Logger.Level.debug, $"Call stack = '{e.StackTrace}'");
                 throw;
             }
         }
@@ -268,7 +271,8 @@ namespace TensorSharp.CUDA.KernelOps
             }
             catch (Exception e)
             {
-                Logger.WriteLine($"Exception message = '{e.Message}', Call stack = '{e.StackTrace}'");
+                Logger.WriteLine(Logger.Level.err, $"Exception message = '{e.Message}'.");
+                Logger.WriteLine(Logger.Level.debug, $"Call stack = '{e.StackTrace}'");
                 throw;
             }
         }
@@ -296,7 +300,8 @@ namespace TensorSharp.CUDA.KernelOps
             }
             catch (Exception e)
             {
-                Logger.WriteLine($"Exception message = '{e.Message}', Call stack = '{e.StackTrace}'");
+                Logger.WriteLine(Logger.Level.err, $"Exception message = '{e.Message}'.");
+                Logger.WriteLine(Logger.Level.debug, $"Call stack = '{e.StackTrace}'");
                 throw;
             }
         }

@@ -313,7 +313,8 @@ namespace Seq2SeqSharp.Tools
             }
             catch (Exception err)
             {
-                Logger.WriteLine($"Failed to prepare data set: '{err.Message}', Call Stack = '{err.StackTrace}'");
+                Logger.WriteLine(Logger.Level.info, $"Failed to prepare data set: '{err.Message}'.");
+                Logger.WriteLine(Logger.Level.debug, $"Call Stack = '{err.StackTrace}'");
             }
         }
 

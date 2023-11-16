@@ -44,7 +44,8 @@ namespace TensorSharp.Cpu
             }
             catch (Exception err)
             {
-                Logger.WriteLine($"Failed to run Copy operation on CPU. Message = '{err.Message}', Call stack = '{err.StackTrace}'");
+                Logger.WriteLine(Logger.Level.err, $"Failed to run Copy operation on CPU. Message = '{err.Message}'.");
+                Logger.WriteLine(Logger.Level.debug, $"Call stack = '{err.StackTrace}'");
                 throw;
             }
         }

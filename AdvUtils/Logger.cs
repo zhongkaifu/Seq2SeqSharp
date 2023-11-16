@@ -63,11 +63,11 @@ namespace AdvUtils
             }
         }
 
-        static private List<TextWriterTraceListener> m_listeners = null;
-        static private string m_logFilePath = null;
-        static public string LogFilePath => m_logFilePath;
+        static private List<TextWriterTraceListener>? m_listeners = null;
+        static private string? m_logFilePath = null;
+        static public string? LogFilePath => m_logFilePath;
                
-        static public void Initialize(Destination dest, Level logLevel, string logFilePath = "", ProgressCallback callback = null)
+        static public void Initialize(Destination dest, Level logLevel, string logFilePath = "", ProgressCallback? callback = null)
         {
             if (m_listeners != null)
             {
@@ -119,23 +119,27 @@ namespace AdvUtils
                 Console.ForegroundColor = color;
 
                 StringBuilder sb = new StringBuilder();
-                sb.AppendFormat("{0},{1} ", level.ToString(), DateTime.Now.ToString());
 
-                if (args.Length == 0)
-                    sb.Append(s);
-                else
-                    sb.AppendFormat(s, args);
+                if (!String.IsNullOrEmpty(s))
+                {
+                    sb.AppendFormat("{0},{1} ", level.ToString(), DateTime.Now.ToString());
 
-                string sLine = sb.ToString();
-                Trace.WriteLine(sLine);
-                Trace.Flush();
+                    if (args.Length == 0)
+                        sb.Append(s);
+                    else
+                        sb.AppendFormat(s, args);
+
+                    string sLine = sb.ToString();
+                    Trace.WriteLine(sLine);
+                    Trace.Flush();
+                }
 
                 if (Callback != null)
                 {
                     int progress = 0;
                     if(args.Length > 0) 
                     {
-                        int.TryParse((string)args[0], out progress);
+                        int.TryParse(args[0].ToString(), out progress);
                     }
                     Callback(progress, sb, (int)level, (int)color);
                 }

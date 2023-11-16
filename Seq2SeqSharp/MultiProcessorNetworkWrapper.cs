@@ -112,7 +112,8 @@ namespace Seq2SeqSharp
                     }
                     catch (Exception err)
                     {
-                        Logger.WriteLine(Logger.Level.err, $"Error Message = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                        Logger.WriteLine(Logger.Level.err, $"Error Message = '{err.Message}'.");
+                        Logger.WriteLine(Logger.Level.debug, $"Call Stack = '{err.StackTrace}'");
                         throw;
                     }
                 });
@@ -158,7 +159,8 @@ namespace Seq2SeqSharp
                     }
                     catch (Exception err)
                     {
-                        Logger.WriteLine(Logger.Level.err, $"Error Message = '{err.Message}', Call Stack = '{err.StackTrace}'");
+                        Logger.WriteLine(Logger.Level.err, $"Error Message = '{err.Message}'.");
+                        Logger.WriteLine(Logger.Level.debug, $"Call Stack = '{err.StackTrace}'");
                         throw;
                     }
                 });

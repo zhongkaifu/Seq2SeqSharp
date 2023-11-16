@@ -53,7 +53,7 @@ namespace TensorSharp.CUDA.ContextState
                 {
                     Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Failed to get kernel '{kernelName}'");
                     Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: '{err.Message}'");
-                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Call stack: '{err.StackTrace}'");
+                    Logger.WriteLine(Logger.Level.debug, ConsoleColor.Red, $"Call stack: '{err.StackTrace}'");
 
                     throw;
                 }

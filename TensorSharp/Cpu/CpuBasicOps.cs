@@ -104,7 +104,9 @@ namespace TensorSharp.Cpu
             }
             catch (Exception err)
             {
-                Logger.WriteLine(Logger.Level.err, $"Exception = '{err.Message}', Call stack = '{err.StackTrace}'");
+                Logger.WriteLine(Logger.Level.err, $"Exception = '{err.Message}'.");
+                Logger.WriteLine(Logger.Level.debug, $"Call stack = '{err.StackTrace}'");
+
                 throw;
             }
         }

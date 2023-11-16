@@ -122,7 +122,7 @@ namespace Seq2SeqSharp.Optimizer
             catch (Exception err)
             {
                 Logger.WriteLine(Logger.Level.err, $"Exception: '{err.Message}'");
-                Logger.WriteLine(Logger.Level.err, $"Call stack: '{err.StackTrace}'");
+                Logger.WriteLine(Logger.Level.debug, $"Call stack: '{err.StackTrace}'");
 
                 throw;
             }
