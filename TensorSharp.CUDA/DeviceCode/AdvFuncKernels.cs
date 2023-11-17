@@ -918,6 +918,28 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
   }
 }
 
+__global__ void IsCorrupted(float *in, unsigned rows, unsigned cols, int *result)
+{
+for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      const float* sp = in + j * cols;      
+      for(int tid = 0; tid < cols; tid += blockDim.x) {        
+        int i = tid + threadIdx.x;
+        if(i < cols) {
+           if (!isfinite(sp[i]))
+           {
+             *result = 1;
+             return;
+           }
+        }
+      }      
+    }
+  }
+}
+
+
+
   __global__ void gSoftmax(float* out, float* in, unsigned rows, unsigned cols)
   {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -1765,6 +1787,27 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
   }
 }
 
+__global__ void IsCorruptedHalf(__half *in, unsigned rows, unsigned cols, int *result)
+{
+for(int bid = 0; bid < rows; bid += gridDim.x) {
+    int j = bid + blockIdx.x;
+    if(j < rows) {
+      const __half* sp = in + j * cols;      
+      for(int tid = 0; tid < cols; tid += blockDim.x) {        
+        int i = tid + threadIdx.x;
+        if(i < cols) {
+           if (!isfinite(__half2float(sp[i])))
+           {
+             *result = 1;
+             return;
+           }
+        }
+      }      
+    }
+  }
+}
+
+
  __global__ void gSoftmaxHalf(__half* out, __half* in, unsigned rows, unsigned cols)
   {
   for(int bid = 0; bid < rows; bid += gridDim.x) {
@@ -2508,6 +2551,57 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
         }
 
 
+        private bool IsCorrupted(TSCudaContext context, Tensor src)
+        {
+            CudaContext cudaContext = context.CudaContextForTensor(src);
+            cudaContext.SetCurrent();
+
+            if (src.IsContiguous() == false)
+            {
+                throw new Exception($"Tensor {nameof(src)} is not contiguous.");
+            }
+
+            int ndim = src.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(src.Sizes, src.Strides);
+            long cols = src.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+
+
+            dim3 block = new dim3((uint)Math.Min(512, cols));
+            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
+
+            int[] rets = new int[1];
+            rets[0] = 0;
+            Tensor result = new Tensor(src.Allocator, DType.Int32, sizes: new long[] { 1, 1 });
+            result.SetElementsAsInt(rets);
+
+            CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
+            CUdeviceptr srcPtr = CudaHelpers.GetBufferStart(src);
+
+            string kernelName = "IsCorrupted";
+            if (src.ElementType == DType.Float16)
+            {
+                kernelName = "IsCorruptedHalf";
+            }
+
+            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float), CUstream.NullStream, srcPtr, rows, cols, resultPtr);
+
+            rets = result.GetElementsAsInt(1);
+            if (rets[0] == 0)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
 
         private void Softmax(TSCudaContext context, Tensor result, Tensor src)
         {
@@ -2689,6 +2783,11 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
             Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float), CUstream.NullStream, gradPtr, adjPtr, valPtr, rows, cols, iAddGrad);
         }
 
+        public bool IsCorrupted(Tensor src)
+        {
+            TSCudaContext context = CudaHelpers.TSContextForTensor(src);
+            return IsCorrupted(context, src);
+        }
 
         public Tensor Softmax(Tensor result, Tensor src)
         {

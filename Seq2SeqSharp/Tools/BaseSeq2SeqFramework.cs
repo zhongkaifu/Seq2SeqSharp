@@ -413,6 +413,24 @@ namespace Seq2SeqSharp.Tools
             Train(maxTrainingEpoch, trainCorpus, validCorpusList, learningRate, taskId2metrics, optimizer, decodingOptions);
         }
 
+
+        private void DumpBatchToLogger(List<IPairBatch> batchs)
+        {
+            foreach (var batch in batchs)
+            {
+                var srcTokensList = batch.GetSrcTokens();
+                var tgtTokensList = batch.GetTgtTokens();
+
+                for (int i = 0; i < srcTokensList.Count; i++)
+                {
+                    var srcSent = String.Join(" ", srcTokensList[i]);
+                    var tgtSent = String.Join(" ", tgtTokensList[i]);
+
+                    Logger.WriteLine(Logger.Level.debug, $"Src = '{srcSent}', Tgt = '{tgtSent}'");
+                }
+            }
+        }
+
         internal void TrainOneEpoch(int ep, ICorpus<IPairBatch> trainCorpus, ICorpus<IPairBatch>[] validCorpusList, ILearningRate learningRate, IOptimizer solver, Dictionary<int, List<IMetric>> taskId2metrics, DecodingOptions decodingOptions,
             Func<IComputeGraph, IPairBatch, DecodingOptions, bool, List<NetworkResult>> forwardOnSingleDevice)
         {
@@ -551,7 +569,14 @@ namespace Seq2SeqSharp.Tools
                         {
                             Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Exception: {err.Message}.");
                             Logger.WriteLine(Logger.Level.debug, ConsoleColor.Red, $"Call stack: {err.StackTrace}");
+                            DumpBatchToLogger(sntPairBatchs);
                             throw;
+                        }
+                        catch (GradientsCorruptedException err)
+                        {
+                            Logger.WriteLine(Logger.Level.warn, ConsoleColor.Yellow, $"We got gradients corruption, ignore current batch: {err.Message}");
+                            DumpBatchToLogger(sntPairBatchs);
+                            break;
                         }
                         catch (Exception err)
                         {

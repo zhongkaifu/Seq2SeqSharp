@@ -10,6 +10,7 @@
 
 using AdvUtils;
 using System;
+using System.Data;
 using System.Reflection;
 using TensorSharp.Core;
 
@@ -1062,6 +1063,22 @@ namespace TensorSharp.Cpu
 
 
             return writeTarget;
+        }
+
+        [RegisterOpStorageType("iscorrupted", typeof(CpuStorage))]
+        public bool IsCorrupted(Tensor src)
+        {
+            int ndim = src.DimensionCount;
+            long storageSize = TensorDimensionHelpers.GetStorageSize(src.Sizes, src.Strides);
+            long cols = src.Sizes[ndim - 1];
+
+            if (storageSize % cols != 0)
+            {
+                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+            }
+
+            long rows = storageSize / cols;
+            return TensorApplyCPU.IsCorrupted(src, (int)rows, (int)cols);
         }
 
 

@@ -1181,6 +1181,23 @@ namespace TensorSharp
 			}
 		}
 
+		unsafe static public bool IsCorrupted(Tensor tIn, int rows, int cols)
+		{
+            float* pIn = (float*)CpuNativeHelpers.GetBufferStart(tIn);
+
+            for (int j = 0; j < rows; ++j)
+            {
+                float* sp = pIn + j * cols;
+                for (int i = 0; i < cols; ++i)
+                {
+					if (float.IsFinite(sp[i]) == false)
+					{
+						return true;
+					}
+                }
+            }
+			return false;
+        }
 
         unsafe static public void Softmax(Tensor tOut, Tensor tIn, int rows, int cols)
 		{
@@ -1219,9 +1236,6 @@ namespace TensorSharp
 				{
 					so[k] /= sum;
 				}
-
-
-
 			}
 		}
 

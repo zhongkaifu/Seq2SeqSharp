@@ -240,22 +240,15 @@ namespace Seq2SeqSharp.Tools
             return new WeightTensor(Sizes, deviceId, Name, IsTrainable, initType: m_normType, fanIn: m_fanIn, fanOut: m_fanOut, needGradient: NeedGradient, dtype: m_elementType);
         }
 
+        public bool IsGradientCorrupted()
+        {
+            return Ops.IsCorrupted(TGradient);
+        }
 
         public bool IsWeightsCorrupted()
         {
-            float[] weights = ToWeightArray();
-
-            for (int i = 0; i < weights.Length; i++)
-            {
-                if (float.IsNaN(weights[i]) || float.IsInfinity(weights[i]))
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            return Ops.IsCorrupted(TWeight);
         }
-
 
         public void ZeroGradient()
         {

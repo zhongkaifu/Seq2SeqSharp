@@ -181,7 +181,7 @@ namespace TensorSharp
         public static Tensor Std(Tensor result, Tensor src, int dimension, bool normByN) { return (Tensor)OpRegistry.Invoke("std", result, src, dimension, normByN); }
         public static Tensor Var(Tensor result, Tensor src, int dimension, bool normByN) { return (Tensor)OpRegistry.Invoke("var", result, src, dimension, normByN); }
 
-
+        public static bool IsCorrupted(Tensor src) { return (bool)OpRegistry.Invoke("iscorrupted", src); }
         public static Tensor Softmax(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("softmax", result, src); }
         public static Tensor SoftmaxGrad(Tensor grad, Tensor adj, Tensor val, bool addGrad = true) { return (Tensor)OpRegistry.Invoke("softmaxgrad", grad, adj, val, addGrad); }
 

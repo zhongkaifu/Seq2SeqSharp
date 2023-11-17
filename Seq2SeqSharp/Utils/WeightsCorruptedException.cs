@@ -18,4 +18,11 @@ namespace Seq2SeqSharp.Utils
 
         public WeightsCorruptedException(string message) : base(message) { }       
     }
+
+    public class GradientsCorruptedException : Exception
+    {
+        public GradientsCorruptedException() { }
+
+        public GradientsCorruptedException(string message) : base(message) { }
+    }
 }

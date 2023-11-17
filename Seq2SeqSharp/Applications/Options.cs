@@ -259,7 +259,6 @@ namespace Seq2SeqSharp.Applications
         [Range(1, 9999999)]
         public int SaveModelEveryUpdates = 10000;
 
-
         [Arg("Valid corpus folder path", nameof(ValidCorpusPaths))]
         public string ValidCorpusPaths = null;
 
@@ -318,6 +317,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("The level of logs to be printed out. Supported Values: none = 0, err = 1, warn = 2, info = 4 and debug = 8. These values can be combined. For example: Value 15 means err, warn, info and debug will be outputted.", nameof(LogLevel))]
         public Logger.Level LogLevel = (Logger.Level.err | Logger.Level.warn | Logger.Level.info | Logger.Level.debug);
 
+
+        [Arg("It indicates if checking tensor corrupted is enabled. Default is enabled", nameof(CheckTensorCorrupted))]
+        public bool CheckTensorCorrupted = true;
         public void ValidateOptions()
         {
             if (AMP == true && ProcessorType != ProcessorTypeEnums.GPU)

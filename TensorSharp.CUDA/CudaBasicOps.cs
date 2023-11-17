@@ -648,6 +648,10 @@ namespace TensorSharp.CUDA
             return advFuncKernels.BuildTriMask(result, value, maskedValue);
         }
 
+
+        [RegisterOpStorageType("iscorrupted", typeof(CudaStorage))]
+        public bool IsCorrupted(Tensor src) { return advFuncKernels.IsCorrupted(src); }
+
         [RegisterOpStorageType("softmax", typeof(CudaStorage))]
         public Tensor Softmax(Tensor result, Tensor src) { return advFuncKernels.Softmax(result, src); }
 
