@@ -452,7 +452,7 @@ namespace Seq2SeqSharp.Tools
 
                         if (batchIdx % 10000 == 0)
                         {
-                            Logger.WriteLine($"Processing batch '{batchIdx}'");
+                            Logger.WriteLine(Logger.Level.debug, $"Processing batch '{batchIdx}'");
                         }
 
 
