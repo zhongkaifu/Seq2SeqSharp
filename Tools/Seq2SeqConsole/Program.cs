@@ -51,7 +51,15 @@ namespace Seq2SeqConsole
                 if (!opts.ConfigFilePath.IsNullOrEmpty())
                 {
                     Console.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
-                    opts = JsonConvert.DeserializeObject<Seq2SeqOptions>(File.ReadAllText(opts.ConfigFilePath));                
+                    try
+                    {
+                        opts = JsonConvert.DeserializeObject<Seq2SeqOptions>(File.ReadAllText(opts.ConfigFilePath));
+                    }
+                    catch(Exception ex)
+                    {
+                        Console.WriteLine($"Failed to parse config file. Error = '{ex.Message}', Stack = '{ex.StackTrace}'");
+                        return;
+                    }
                 }
 
                 Logger.Initialize(opts.LogDestination, opts.LogLevel, $"{nameof(Seq2SeqConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log");
