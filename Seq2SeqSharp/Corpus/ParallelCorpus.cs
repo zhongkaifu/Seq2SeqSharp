@@ -346,6 +346,11 @@ namespace Seq2SeqSharp.Tools
                 Logger.WriteLine(Logger.Level.debug, $"Start to sort and shuffle data set by length.");
 
                 m_sortedIndexedDataSetFilePath = tmpDataSetFilePath + ".sorted";
+
+#if DEBUG
+                string tmp_sortedIndexedDataSetFilePath = tmpDataSetFilePath + ".sorted.txt";
+                using (StreamWriter bwt = new StreamWriter(new FileStream(tmp_sortedIndexedDataSetFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 40960000)))
+#endif
                 using (BinaryWriter bw = new BinaryWriter(new FileStream(m_sortedIndexedDataSetFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 40960000)))
                 using (MemoryMappedFile mmf = MemoryMappedFile.CreateFromFile(tmpDataSetFilePath))
                 using (MemoryMappedViewStream mms = mmf.CreateViewStream())
@@ -387,6 +392,12 @@ namespace Seq2SeqSharp.Tools
                             bw.Write(sentSize);
                             bw.Write(String.Join("\n", srcLines));
                             bw.Write(String.Join("\n", tgtLines));
+
+#if DEBUG
+                            bwt.WriteLine(sentSize);
+                            bwt.WriteLine(String.Join("\n", srcLines));
+                            bwt.WriteLine(String.Join("\n", tgtLines));
+#endif
 
                             m_batchNumInTotal++;
                             if (m_batchNumInTotal % 10000 == 0)
@@ -457,7 +468,7 @@ namespace Seq2SeqSharp.Tools
 
                         if (batchIdx % 10000 == 0)
                         {
-                            Logger.WriteLine($"Processing batch '{batchIdx}'");
+                            Logger.WriteLine(Logger.Level.debug, $"Processing batch '{batchIdx}'");
                         }
 
 
