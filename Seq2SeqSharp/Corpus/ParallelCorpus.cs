@@ -39,7 +39,7 @@ namespace Seq2SeqSharp.Tools
         internal int m_maxTokenSizePerBatch = 1;
         internal List<string> m_srcFileList;
         internal List<string> m_tgtFileList;
-        internal ShuffleEnums m_shuffleEnums;
+        internal PaddingEnums m_paddingEnums;
       
         private bool m_showTokenDist = true;
 
@@ -218,17 +218,22 @@ namespace Seq2SeqSharp.Tools
                     bw.Write(String.Join("\n", new string[] { rawSntPair.SrcSnt, rawSntPair.TgtSnt }));
 
                     long length = 0;
-                    if (m_shuffleEnums == ShuffleEnums.NoPaddingInSrc)
+                    if (m_paddingEnums == PaddingEnums.NoPaddingInSrc)
                     {
                         length = rawSntPair.SrcGroupLenId;
                     }
-                    else if (m_shuffleEnums == ShuffleEnums.NoPadding)
+                    else if (m_paddingEnums == PaddingEnums.NoPadding)
                     {
                         length = rawSntPair.GroupLenId;
                     }
-                    else
+                    else if (m_paddingEnums == PaddingEnums.NoPaddingInTgt)
                     {
                         length = rawSntPair.TgtGroupLenId;
+                    }
+                    else
+                    {
+                        // Completely random shuffle
+                        length = 0;
                     }
 
                     if (len2offsets.ContainsKey(length) == false)
@@ -264,7 +269,7 @@ namespace Seq2SeqSharp.Tools
             {
                 //TODO(Zho): executed even if nothing is printed
                 {
-                    Logger.WriteLine(Logger.Level.debug, $"AggregateSrcLength = '{m_shuffleEnums}'");
+                    Logger.WriteLine(Logger.Level.debug, $"AggregateSrcLength = '{m_paddingEnums}'");
                     Logger.WriteLine(Logger.Level.debug, $"Src token length distribution");
                 }
 
@@ -510,16 +515,16 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int maxTokenSizePerBatch, int maxSrcSentLength = 32, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random, TooLongSequence tooLongSequence = TooLongSequence.Ignore, string indexedFilePath = null, int startBatchId = 0)
+        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int maxTokenSizePerBatch, int maxSrcSentLength = 32, int maxTgtSentLength = 32, PaddingEnums paddingEnums = PaddingEnums.AllowPadding, TooLongSequence tooLongSequence = TooLongSequence.Ignore, string indexedFilePath = null, int startBatchId = 0)
         {
-            Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSrcSentLength = '{maxSrcSentLength}',  MaxTgtSentLength = '{maxTgtSentLength}', aggregateSrcLengthForShuffle = '{shuffleEnums}', TooLongSequence = '{tooLongSequence}'");
+            Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSrcSentLength = '{maxSrcSentLength}',  MaxTgtSentLength = '{maxTgtSentLength}', Token Paading Type = '{paddingEnums}', TooLongSequence = '{tooLongSequence}'");
             m_maxTokenSizePerBatch = maxTokenSizePerBatch;
             m_maxSrcTokenSize = maxSrcSentLength;
             m_maxTgtTokenSize = maxTgtSentLength;
 
             m_tooLongSequence = tooLongSequence;
 
-            m_shuffleEnums = shuffleEnums;
+            m_paddingEnums = paddingEnums;
             CorpusName = corpusFilePath;
             m_sortedIndexedDataSetFilePath = indexedFilePath;
 

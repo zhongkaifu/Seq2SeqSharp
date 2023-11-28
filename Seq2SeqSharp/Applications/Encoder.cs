@@ -58,22 +58,22 @@ namespace Seq2SeqSharp.Applications
             return encoder;
         }
 
-        static public IWeightTensor Run(IComputeGraph computeGraph, IEncoder encoder, IModel modelMetaData, ShuffleEnums shuffleType,
+        static public IWeightTensor Run(IComputeGraph computeGraph, IEncoder encoder, IModel modelMetaData, PaddingEnums paddingType,
             IWeightTensor srcEmbedding, IWeightTensor posEmbeddings, IWeightTensor segmentEmbedding, List<List<int>> srcSntsIds, float[] originalSrcLengths, bool amp = false)
         {
             // Reset networks
             encoder.Reset(computeGraph.GetWeightFactory(), srcSntsIds.Count);
 
-            IWeightTensor encOutput = InnerRunner(computeGraph, srcSntsIds, originalSrcLengths, shuffleType, encoder, modelMetaData, srcEmbedding, posEmbeddings, segmentEmbedding, amp);
+            IWeightTensor encOutput = InnerRunner(computeGraph, srcSntsIds, originalSrcLengths, paddingType, encoder, modelMetaData, srcEmbedding, posEmbeddings, segmentEmbedding, amp);
             return encOutput;
         }
 
-        static private IWeightTensor InnerRunner(IComputeGraph computeGraph, List<List<int>> srcTokensList, float[] originalSrcLengths, ShuffleEnums shuffleType, IEncoder encoder, IModel modelMetaData,
+        static private IWeightTensor InnerRunner(IComputeGraph computeGraph, List<List<int>> srcTokensList, float[] originalSrcLengths, PaddingEnums paddingType, IEncoder encoder, IModel modelMetaData,
            IWeightTensor srcEmbedding, IWeightTensor posEmbedding, IWeightTensor segmentEmbedding, bool amp = false)
         {
             int batchSize = srcTokensList.Count;
             int srcSeqPaddedLen = srcTokensList[0].Count;
-            IWeightTensor srcSelfMask = (shuffleType == ShuffleEnums.NoPaddingInSrc || shuffleType == ShuffleEnums.NoPadding || batchSize == 1) ? null : computeGraph.BuildPadSelfMask(srcSeqPaddedLen, originalSrcLengths, elementType: amp ? DType.Float16 : DType.Float32); // The length of source sentences are same in a single mini-batch, so we don't have source mask.
+            IWeightTensor srcSelfMask = (paddingType == PaddingEnums.NoPaddingInSrc || paddingType == PaddingEnums.NoPadding || batchSize == 1) ? null : computeGraph.BuildPadSelfMask(srcSeqPaddedLen, originalSrcLengths, elementType: amp ? DType.Float16 : DType.Float32); // The length of source sentences are same in a single mini-batch, so we don't have source mask.
 
             // Encoding input source sentences
             var encOutput = RunEncoder(computeGraph, srcTokensList, encoder, modelMetaData, srcEmbedding, srcSelfMask, posEmbedding, segmentEmbedding, amp: amp);

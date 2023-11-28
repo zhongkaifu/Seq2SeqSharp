@@ -5,7 +5,7 @@ import json
 def ParseOptions(config_json):
     opts = Seq2SeqOptions()
     opts.Task = ModeEnums.Train
-    opts.ShuffleType = ShuffleEnums.Random
+    opts.PaddingType = PaddingEnums.AllowPadding
     opts.ProcessorType = ProcessorTypeEnums.GPU
     opts.DecoderType = DecoderTypeEnums.GPTDecoder
     opts.ModelFilePath = "gpt_test.model"
@@ -23,7 +23,7 @@ def ParseOptions(config_json):
 with open("train_opts.json", 'r') as file:
     opts = json.load(file)
 
-trainCorpus = SeqCorpus(corpusFilePath = opts['TrainCorpusPath'], tgtLangName = opts['TgtLang'], maxTokenSizePerBatch = int(opts['MaxTokenSizePerBatch']), maxTgtSentLength = int(opts['MaxTgtSentLength'])) #, shuffleEnums = ShuffleEnums(opts['ShuffleType']), tooLongSequence = TooLongSequence(opts['TooLongSequence']));
+trainCorpus = SeqCorpus(corpusFilePath = opts['TrainCorpusPath'], tgtLangName = opts['TgtLang'], maxTokenSizePerBatch = int(opts['MaxTokenSizePerBatch']), maxTgtSentLength = int(opts['MaxTgtSentLength']))
 
 learningRate = DecayLearningRate(opts['StartLearningRate'], opts['WarmUpSteps'], opts['WeightsUpdateCount'], opts['LearningRateStepDownFactor'], opts['UpdateNumToStepDownLearningRate'])
 optimizer = AdamOptimizer(opts['GradClip'], opts['Beta1'], opts['Beta2'], opts['SaveGPUMemoryMode'])

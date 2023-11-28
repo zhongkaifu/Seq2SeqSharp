@@ -198,9 +198,9 @@ namespace Seq2SeqSharp.Applications
         [RegularExpression("Decay|CosineDecay")]
         public LearningRateTypeEnums LearningRateType = LearningRateTypeEnums.CosineDecay;
 
-        [Arg("Shuffle Type. It could be NoPaddingInSrc, NoPaddingInTgt and Random", nameof(ShuffleType))]
-        [RegularExpression("NoPaddingInSrc|NoPaddingInTgt|NoPadding|Random")]
-        public ShuffleEnums ShuffleType = ShuffleEnums.Random;
+        [Arg("The type of token paddings. It could be NoPaddingInSrc, NoPaddingInTgt, NoPadding and AllowPadding. The default value is NoPadding", nameof(PaddingType))]
+        [RegularExpression("NoPaddingInSrc|NoPaddingInTgt|NoPadding|AllowPadding")]
+        public PaddingEnums PaddingType = PaddingEnums.NoPadding;
 
         [Arg("Task to execute. It supports Train, Valid, Test, DumpVocab, UpdateVocab and Help", nameof(Task))]
         [RegularExpression("Train|Valid|Test|Alignment|DumpVocab|UpdateVocab|VQModel|Help")]

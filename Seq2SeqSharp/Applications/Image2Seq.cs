@@ -31,6 +31,8 @@ namespace Seq2SeqSharp.Applications
         private MultiProcessorNetworkWrapper<IWeightTensor> m_tgtEmbedding; //The embeddings over devices for source
         private MultiProcessorNetworkWrapper<IFeedForwardLayer> m_srcEmbedding; //The embeddings over devices for source
 
+        private MultiProcessorNetworkWrapper<IWeightTensor> m_pixelEmbeddings;
+
         private MultiProcessorNetworkWrapper<IEncoder> m_encoder; //The encoders over devices.
         private MultiProcessorNetworkWrapper<IDecoder> m_decoder; //The decoders over devices
         private MultiProcessorNetworkWrapper<IFeedForwardLayer> m_decoderFFLayer; //The feed forward layers over devices after all layers in decoder
@@ -38,13 +40,15 @@ namespace Seq2SeqSharp.Applications
         private MultiProcessorNetworkWrapper<IWeightTensor> m_posEmbedding = null;
         private MultiProcessorNetworkWrapper<IWeightTensor> m_segmentEmbedding;
 
-        private MultiProcessorNetworkWrapper<INormalization> m_layerNorm = null;
+      //  private MultiProcessorNetworkWrapper<INormalization> m_layerNorm = null;
 
-        private MultiProcessorNetworkWrapper<IWeightTensor> m_cls = null;
+
+
+      //  private MultiProcessorNetworkWrapper<IWeightTensor> m_cls = null;
 
         private MultiProcessorNetworkWrapper<IFeedForwardLayer> m_pointerGenerator;
 
-        private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
+        private readonly PaddingEnums m_paddingType = PaddingEnums.AllowPadding;
         readonly Seq2SeqOptions m_options = null;
 
         public Image2Seq(Seq2SeqOptions options, Vocab srcVocab = null, Vocab tgtVocab = null)
@@ -53,7 +57,7 @@ namespace Seq2SeqSharp.Applications
                   startToRunValidAfterUpdates: options.StartValidAfterUpdates, maxDegressOfParallelism: options.TaskParallelism, mklInstructions: options.MKLInstructions,
                   weightsUpdateCount: options.WeightsUpdateCount, cudaMemoryAllocatorType: options.CudaMemoryAllocatorType, elementType: options.AMP ? DType.Float16 : DType.Float32, saveModelEveryUpdats: options.SaveModelEveryUpdates)
         {
-            m_shuffleType = options.ShuffleType;
+            m_paddingType = options.PaddingType;
             m_options = options;
 
             // Check if options are valided.
@@ -114,19 +118,21 @@ namespace Seq2SeqSharp.Applications
             m_posEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { 1024, model.HiddenDim }, raDeviceIds.GetNextItem(), initType: RandomInitType.Uniform, name: "PositionalEmbedding",
                         learningRateFactor: m_options.EncoderStartLearningRateFactor, isTrainable: true, dtype: elementType), raDeviceIds.ToArray());
 
-            m_cls = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { 1, model.HiddenDim }, raDeviceIds.GetNextItem(), initType: RandomInitType.Uniform, name: "CLS", learningRateFactor: m_options.EncoderStartLearningRateFactor,
-            isTrainable: true, dtype: elementType), raDeviceIds.ToArray());
+          //  m_cls = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { 1, model.HiddenDim }, raDeviceIds.GetNextItem(), initType: RandomInitType.Uniform, name: "CLS", learningRateFactor: m_options.EncoderStartLearningRateFactor,
+          //  isTrainable: true, dtype: elementType), raDeviceIds.ToArray());
 
 
-            m_layerNorm = new MultiProcessorNetworkWrapper<INormalization>(new LayerNormalization($"Src_LayerNorm", 768, raDeviceIds.GetNextItem(), isTrainable: true, learningRateFactor: m_options.EncoderStartLearningRateFactor, elementType: elementType), raDeviceIds.ToArray());
+          //  m_layerNorm = new MultiProcessorNetworkWrapper<INormalization>(new LayerNormalization($"Src_LayerNorm", 768, raDeviceIds.GetNextItem(), isTrainable: true, learningRateFactor: m_options.EncoderStartLearningRateFactor, elementType: elementType), raDeviceIds.ToArray());
 
 
             m_tgtEmbedding = CreateTgtEmbeddings(model, raDeviceIds, m_options.IsTgtEmbeddingTrainable, m_options.DecoderStartLearningRateFactor, elementType: elementType);
 
-            m_srcEmbedding = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("SrcEmbedding_Decoder_0", 768, model.HiddenDim, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),
+            m_srcEmbedding = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("SrcEmbedding_Decoder_0", 768, model.HiddenDim, dropoutRatio: 0.2f, deviceId: raDeviceIds.GetNextItem(),
                 isTrainable: true, learningRateFactor: m_options.EncoderStartLearningRateFactor, elementType: elementType), DeviceIds);
 
-            
+            m_pixelEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { 768, 1 }, raDeviceIds.GetNextItem(), initType: RandomInitType.Uniform, name: "PIXEL", learningRateFactor: m_options.EncoderStartLearningRateFactor,
+             isTrainable: true, dtype: elementType), raDeviceIds.ToArray());
+
 
             if (model.PointerGenerator)
             {
@@ -157,7 +163,7 @@ namespace Seq2SeqSharp.Applications
         /// <summary>
         /// Get networks on specific devices
         /// </summary>
-        private (IEncoder, IDecoder, IFeedForwardLayer, IFeedForwardLayer, IWeightTensor, IWeightTensor, IFeedForwardLayer, IWeightTensor, IWeightTensor, INormalization) GetNetworksOnDeviceAt(int deviceId)
+        private (IEncoder, IDecoder, IFeedForwardLayer, IFeedForwardLayer, IWeightTensor, IWeightTensor, IFeedForwardLayer, IWeightTensor, IWeightTensor) GetNetworksOnDeviceAt(int deviceId)
         {
             var deviceIdIdx = TensorAllocator.GetDeviceIdIndex(deviceId);
             return (m_encoder.GetNetworkOnDevice(deviceIdIdx),
@@ -166,7 +172,8 @@ namespace Seq2SeqSharp.Applications
                     m_srcEmbedding.GetNetworkOnDevice(deviceIdIdx),
                     m_tgtEmbedding.GetNetworkOnDevice(deviceIdIdx),
                     m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx), m_pointerGenerator?.GetNetworkOnDevice(deviceIdIdx), m_posEmbedding?.GetNetworkOnDevice(deviceIdIdx),
-                    m_cls.GetNetworkOnDevice(deviceIdIdx), m_layerNorm.GetNetworkOnDevice(deviceIdIdx));
+                 //   m_cls.GetNetworkOnDevice(deviceIdIdx), m_layerNorm.GetNetworkOnDevice(deviceIdIdx), 
+                    m_pixelEmbeddings.GetNetworkOnDevice(deviceIdIdx));
         }
 
         private string GenerateCacheKey(List<List<string>> strs)
@@ -192,17 +199,17 @@ namespace Seq2SeqSharp.Applications
         /// <returns>The cost of forward part</returns>
         public override List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, IPairBatch sntPairBatch, DecodingOptions decodingOptions, bool isTraining)
         {
-            (var encoder, var decoder, var decoderFFLayer, var srcEmbedding, var tgtEmbedding, var segmentEmbedding, var pointerGenerator, var posEmbeddings, var cls, var layerNorm) = GetNetworksOnDeviceAt(computeGraph.DeviceId);
+            (var encoder, var decoder, var decoderFFLayer, var srcEmbeddings, var tgtEmbedding, var segmentEmbedding, var pointerGenerator, var posEmbeddings, var pixelEmbeddings) = GetNetworksOnDeviceAt(computeGraph.DeviceId);
 
             var srcSnts = sntPairBatch.GetSrcTokens();
-            IWeightTensor encOutput = ImgEncoder.Run(computeGraph, srcSnts[0], encoder, srcEmbedding, posEmbeddings, cls, m_modelMetaData.HiddenDim, layerNorm);
+            IWeightTensor encOutput = ImgEncoder.Run(computeGraph, srcSnts[0], encoder, srcEmbeddings, posEmbeddings, null, m_modelMetaData.HiddenDim, null, pixelEmbeddings);
 
             List<NetworkResult> nrs = new List<NetworkResult>();
 
             // Generate output decoder sentences
             int batchSize = srcSnts[0].Count;
             float[] originalSrcLengths = new float[batchSize];
-            Array.Fill(originalSrcLengths, 257); // 256 tokens from the image + 1 cls token
+            Array.Fill(originalSrcLengths, 256); // 256 tokens from the image + 1 cls token
             var tgtSnts = sntPairBatch.GetTgtTokens();
 
             var tgtTokensList = m_modelMetaData.TgtVocab.GetWordIndex(tgtSnts);
@@ -223,7 +230,7 @@ namespace Seq2SeqSharp.Applications
             {
                 if (isTraining)
                 {
-                    (var c, _) = Decoder.DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType,
+                    (var c, _) = Decoder.DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, originalSrcLengths, m_modelMetaData.TgtVocab, m_paddingType,
                         m_options.DropoutRatio, decodingOptions, isTraining, pointerGenerator: pointerGenerator, srcSeqs: null, lossType: m_options.LossType, focalLossGamma: m_options.FocalLossGamma,
                         segmentEmbeddings: segmentEmbedding, amp: m_options.AMP, posEmbeddings: null);
                     nr.Cost = c;
@@ -241,7 +248,7 @@ namespace Seq2SeqSharp.Applications
 
                     using var g = computeGraph.CreateSubGraph($"TransformerDecoder_Alignment");
                     (var cost2, var bssSeqList) = Decoder.DecodeTransformer(tgtTokensList, g, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding,
-                                                                               originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, decodingOptions, isTraining,
+                                                                               originalSrcLengths, m_modelMetaData.TgtVocab, m_paddingType, 0.0f, decodingOptions, isTraining,
                                                                                outputSentScore: decodingOptions.BeamSearchSize > 1, pointerGenerator: pointerGenerator,
                                                                                srcSeqs: null, teacherForcedAlignment: true, lossType: m_options.LossType, segmentEmbeddings: segmentEmbedding, amp: m_options.AMP, posEmbeddings: null);
                     nr.Cost = 0.0f;
@@ -277,7 +284,7 @@ namespace Seq2SeqSharp.Applications
 
                                 using var g = computeGraph.CreateSubGraph($"TransformerDecoder_Step_{i}");
                                 (var cost2, var bssSeqList) = Decoder.DecodeTransformer(batch2tgtTokens, g, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding,
-                                                                                originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, decodingOptions, isTraining,
+                                                                                originalSrcLengths, m_modelMetaData.TgtVocab, m_paddingType, 0.0f, decodingOptions, isTraining,
                                                                                 outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus,
                                                                                 pointerGenerator: pointerGenerator, srcSeqs: null,
                                                                                 cachedTensors: cachedTensors, alignmentsToSrc: alignmentsToSrc, alignmentScoresToSrc: alignmentScores,

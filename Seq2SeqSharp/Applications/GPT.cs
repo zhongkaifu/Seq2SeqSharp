@@ -32,7 +32,7 @@ namespace Seq2SeqSharp.Applications
         private MultiProcessorNetworkWrapper<IWeightTensor> m_segmentEmbedding = null;
         private MultiProcessorNetworkWrapper<IWeightTensor> m_posEmbedding = null;
 
-        private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
+        private readonly PaddingEnums m_paddingType = PaddingEnums.AllowPadding;
         readonly Seq2SeqOptions m_options = null;
 
         private MemoryCache m_memoryCache;
@@ -42,7 +42,7 @@ namespace Seq2SeqSharp.Applications
                   startToRunValidAfterUpdates: options.StartValidAfterUpdates, maxDegressOfParallelism: options.TaskParallelism, mklInstructions: options.MKLInstructions, weightsUpdateCount: options.WeightsUpdateCount, 
                   enableTensorCore: options.EnableTensorCore, cudaMemoryAllocatorType: options.CudaMemoryAllocatorType, elementType: options.AMP ? DType.Float16 : DType.Float32, randomSeed: options.RandomSeed, saveModelEveryUpdats: options.SaveModelEveryUpdates)
         {
-            m_shuffleType = options.ShuffleType;
+            m_paddingType = options.PaddingType;
             m_options = options;
 
             // Check if options are valided.
@@ -212,7 +212,7 @@ namespace Seq2SeqSharp.Applications
 
             if (isTraining)
             {
-                (var c, _) = Decoder.GPTDecode(tgtTokensList, computeGraph, decoder as GPTDecoder, decoderFFLayer, tgtEmbedding, m_modelMetaData.TgtVocab, m_shuffleType,
+                (var c, _) = Decoder.GPTDecode(tgtTokensList, computeGraph, decoder as GPTDecoder, decoderFFLayer, tgtEmbedding, m_modelMetaData.TgtVocab, m_paddingType,
                     m_options.DropoutRatio, decodingOptions, isTraining, lossType: m_options.LossType, focalLossGamma: m_options.FocalLossGamma, 
                     segmentEmbeddings: segmentEmbedding, amp: m_options.AMP, posEmbeddings: posEmbeddings);
                 nr.Cost = c;
@@ -223,7 +223,7 @@ namespace Seq2SeqSharp.Applications
                 List<List<BeamSearchStatus>> beam2batchStatus = Decoder.InitBeamSearchStatusListList(batchSize, tgtTokensList);
                 Dictionary<string, IWeightTensor> cachedTensors = null;
                 string cacheKey = GenerateCacheKey(tgtSnts);
-                if (!m_memoryCache.TryGetValue(cacheKey, out cachedTensors))
+                if (!m_memoryCache.TryGetValue(cacheKey, out cachedTensors) && decodingOptions.BeamSearchSize == 1)
                 {
                     cachedTensors = new Dictionary<string, IWeightTensor>();
                 }
@@ -239,7 +239,7 @@ namespace Seq2SeqSharp.Applications
                             var batch2tgtTokens = Decoder.ExtractBatchTokens(batchStatus);
                             using var g = computeGraph.CreateSubGraph($"GPTDecoder_Step_{i}");
                             (var cost2, var bssSeqList) = Decoder.GPTDecode(batch2tgtTokens, g, decoder as GPTDecoder, decoderFFLayer, tgtEmbedding,
-                                                                            m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, decodingOptions, isTraining,
+                                                                            m_modelMetaData.TgtVocab, m_paddingType, 0.0f, decodingOptions, isTraining,
                                                                             outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus,
                                                                             blockedTokens: decodingOptions.BlockedTokens, segmentEmbeddings: segmentEmbedding, 
                                                                             cachedTensors: cachedTensors, amp: m_options.AMP, posEmbeddings: posEmbeddings);

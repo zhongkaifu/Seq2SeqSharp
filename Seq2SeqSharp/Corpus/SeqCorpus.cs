@@ -18,8 +18,8 @@ namespace Seq2SeqSharp.Corpus
     public class SeqCorpus : MonoCorpus<SeqCorpusBatch>
     {
 
-        public SeqCorpus(string corpusFilePath, string tgtLangName, int maxTokenSizePerBatch, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random, TooLongSequence tooLongSequence = TooLongSequence.Ignore, string indexedFilePath = "", int startBatchId = 0)
-            : base(corpusFilePath, tgtLangName, maxTokenSizePerBatch, maxTgtSentLength, shuffleEnums: shuffleEnums, tooLongSequence: tooLongSequence, indexedFilePath: indexedFilePath, startBatchId: startBatchId)
+        public SeqCorpus(string corpusFilePath, string tgtLangName, int maxTokenSizePerBatch, int maxTgtSentLength = 32, PaddingEnums paddingEnums = PaddingEnums.AllowPadding, TooLongSequence tooLongSequence = TooLongSequence.Ignore, string indexedFilePath = "", int startBatchId = 0)
+            : base(corpusFilePath, tgtLangName, maxTokenSizePerBatch, maxTgtSentLength, paddingEnums: paddingEnums, tooLongSequence: tooLongSequence, indexedFilePath: indexedFilePath, startBatchId: startBatchId)
         {
 
         }

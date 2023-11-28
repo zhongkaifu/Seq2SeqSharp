@@ -26,7 +26,7 @@ namespace Seq2SeqSharp.Tools
         internal int m_maxTgtTokenSize = 32;
         internal int m_maxTokenSizePerBatch = 1;
         internal List<string> m_tgtFileList;
-        internal ShuffleEnums m_shuffleEnums;
+        internal PaddingEnums m_paddingEnums;
 
         private bool m_showTokenDist = true;
 
@@ -160,13 +160,13 @@ namespace Seq2SeqSharp.Tools
                     bw.Write(rawSntPair.TgtSnt);
 
                     long length = 0;
-                    if (m_shuffleEnums == ShuffleEnums.NoPadding)
+                    if (m_paddingEnums == PaddingEnums.NoPadding)
                     {
                         length = rawSntPair.GroupLenId;
                     }
                     else
                     {
-                        length = rawSntPair.TgtGroupLenId;
+                        length = 0;
                     }
 
                     if (len2offsets.ContainsKey(length) == false)
@@ -196,7 +196,7 @@ namespace Seq2SeqSharp.Tools
             {
                 //TODO(Zho): executed even if nothing is printed
                 {
-                    Logger.WriteLine(Logger.Level.debug, $"AggregateLength = '{m_shuffleEnums}'");
+                    Logger.WriteLine(Logger.Level.debug, $"AggregateLength = '{m_paddingEnums}'");
                     Logger.WriteLine(Logger.Level.debug, $"Tgt token length distribution");
                 }
 
@@ -412,13 +412,13 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public MonoCorpus(string corpusFilePath, string tgtLangName, int maxTokenSizePerBatch, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random, TooLongSequence tooLongSequence = TooLongSequence.Ignore, string indexedFilePath = "", int startBatchId = 0)
+        public MonoCorpus(string corpusFilePath, string tgtLangName, int maxTokenSizePerBatch, int maxTgtSentLength = 32, PaddingEnums paddingEnums = PaddingEnums.AllowPadding, TooLongSequence tooLongSequence = TooLongSequence.Ignore, string indexedFilePath = "", int startBatchId = 0)
         {
-            Logger.WriteLine($"Loading mono corpus from '{corpusFilePath}' Files search pattern '*.{tgtLangName}.snt' MaxTgtSentLength = '{maxTgtSentLength}', aggregateLengthForShuffle = '{shuffleEnums}', TooLongSequence = '{tooLongSequence}'");
+            Logger.WriteLine($"Loading mono corpus from '{corpusFilePath}' Files search pattern '*.{tgtLangName}.snt' MaxTgtSentLength = '{maxTgtSentLength}', Token Padding Type = '{paddingEnums}', TooLongSequence = '{tooLongSequence}'");
             m_maxTokenSizePerBatch = maxTokenSizePerBatch;
             m_maxTgtTokenSize = maxTgtSentLength;
             m_tooLongSequence = tooLongSequence;
-            m_shuffleEnums = shuffleEnums;
+            m_paddingEnums = paddingEnums;
             CorpusName = corpusFilePath;
             m_indexedDataSetFilePath = indexedFilePath;
             m_startBatchId = startBatchId;

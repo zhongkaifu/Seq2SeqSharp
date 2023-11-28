@@ -168,7 +168,7 @@ public class Seq2Seq_Tests
 
         // Load training corpus
         var trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, maxTokenSizePerBatch: opts.MaxTokenSizePerBatch,
-            maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence);
+            maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, paddingEnums: opts.PaddingType, tooLongSequence: opts.TooLongSequence);
 
         // Build vocabularies for training
         (var srcVocab, var tgtVocab) = trainCorpus.BuildVocabs(opts.SrcVocabSize, opts.TgtVocabSize, sharedVocab: true);
@@ -193,7 +193,7 @@ public class Seq2Seq_Tests
 
         // Load training corpus
         var trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, maxTokenSizePerBatch: opts.MaxTokenSizePerBatch,
-            maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence);
+            maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, paddingEnums: opts.PaddingType, tooLongSequence: opts.TooLongSequence);
 
         foreach (var batch in trainCorpus)
         {
@@ -225,7 +225,7 @@ public class Seq2Seq_Tests
 
         // Load training corpus
         var trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, maxTokenSizePerBatch: opts.MaxTokenSizePerBatch,
-            maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence);
+            maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, paddingEnums: opts.PaddingType, tooLongSequence: opts.TooLongSequence);
 
         // Load valid corpus
         var validCorpusList = new List<Seq2SeqCorpus>();
@@ -234,7 +234,7 @@ public class Seq2Seq_Tests
             string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
             foreach (var validCorpusPath in validCorpusPathList)
             {
-                validCorpusList.Add(new Seq2SeqCorpus(validCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValMaxTokenSizePerBatch, opts.MaxValidSrcSentLength, opts.MaxValidTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence));
+                validCorpusList.Add(new Seq2SeqCorpus(validCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValMaxTokenSizePerBatch, opts.MaxValidSrcSentLength, opts.MaxValidTgtSentLength, paddingEnums: opts.PaddingType, tooLongSequence: opts.TooLongSequence));
             }
         }
 
@@ -353,7 +353,7 @@ public class Seq2Seq_Tests
         opts.MaxTgtSentLength = 110;
         opts.MaxValidSrcSentLength = 110;
         opts.MaxValidTgtSentLength = 110;
-        opts.ShuffleType = Utils.ShuffleEnums.NoPadding;
+        opts.PaddingType = Utils.PaddingEnums.NoPadding;
         opts.TooLongSequence = TooLongSequence.Truncation;
         opts.ProcessorType = ProcessorTypeEnums.CPU;
         opts.MaxEpochNum = 3;

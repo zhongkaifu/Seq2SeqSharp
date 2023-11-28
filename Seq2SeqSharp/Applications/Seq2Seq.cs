@@ -38,7 +38,7 @@ namespace Seq2SeqSharp.Applications
 
         private MultiProcessorNetworkWrapper<IFeedForwardLayer> m_pointerGenerator;
 
-        private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
+        private readonly PaddingEnums m_paddingType = PaddingEnums.AllowPadding;
         readonly Seq2SeqOptions m_options = null;
 
         private MemoryCache m_memoryCache;
@@ -49,7 +49,7 @@ namespace Seq2SeqSharp.Applications
                   startToRunValidAfterUpdates: options.StartValidAfterUpdates, maxDegressOfParallelism: options.TaskParallelism, mklInstructions: options.MKLInstructions, 
                   weightsUpdateCount: options.WeightsUpdateCount, cudaMemoryAllocatorType: options.CudaMemoryAllocatorType, elementType: options.AMP ? DType.Float16 : DType.Float32, saveModelEveryUpdats: options.SaveModelEveryUpdates)
         {
-            m_shuffleType = options.ShuffleType;
+            m_paddingType = options.PaddingType;
             m_options = options;
 
             // Check if options are valided.
@@ -197,7 +197,7 @@ namespace Seq2SeqSharp.Applications
                 string cacheKey = GenerateCacheKey(srcSnts);
                 if (!m_memoryCache.TryGetValue(cacheKey, out encOutput))
                 {
-                    encOutput = Encoder.Run(computeGraph, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbeddings, segmentEmbedding, srcTokensList, originalSrcLengths); // Shape: [batchsize * seqLen, embedding_dim]
+                    encOutput = Encoder.Run(computeGraph, encoder, m_modelMetaData, m_paddingType, srcEmbedding, posEmbeddings, segmentEmbedding, srcTokensList, originalSrcLengths); // Shape: [batchsize * seqLen, embedding_dim]
 
                     var cacheEntryOptions = new MemoryCacheEntryOptions().SetSize(1);
                     m_memoryCache.Set(cacheKey, encOutput.CopyWeightsRef($"cache_{encOutput.Name}", false, graphToBind: null), cacheEntryOptions);
@@ -206,7 +206,7 @@ namespace Seq2SeqSharp.Applications
             else
             {
                 // Compute src tensor
-                encOutput = Encoder.Run(computeGraph, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbeddings, segmentEmbedding, srcTokensList, originalSrcLengths, amp:m_options.AMP);
+                encOutput = Encoder.Run(computeGraph, encoder, m_modelMetaData, m_paddingType, srcEmbedding, posEmbeddings, segmentEmbedding, srcTokensList, originalSrcLengths, amp:m_options.AMP);
             }
 
             List<NetworkResult> nrs = new List<NetworkResult>();
@@ -232,7 +232,7 @@ namespace Seq2SeqSharp.Applications
             {
                 if (isTraining)
                 {
-                    (var c, _) = Decoder.DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType,
+                    (var c, _) = Decoder.DecodeTransformer(tgtTokensList, computeGraph, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding, originalSrcLengths, m_modelMetaData.TgtVocab, m_paddingType,
                         m_options.DropoutRatio, decodingOptions, isTraining, pointerGenerator: pointerGenerator, srcSeqs: srcTokensList, lossType: m_options.LossType, focalLossGamma: m_options.FocalLossGamma, 
                         segmentEmbeddings: segmentEmbedding, amp: m_options.AMP, posEmbeddings: posEmbeddings);
                     nr.Cost = c;
@@ -250,7 +250,7 @@ namespace Seq2SeqSharp.Applications
 
                     using var g = computeGraph.CreateSubGraph($"TransformerDecoder_Alignment");
                     (var cost2, var bssSeqList) = Decoder.DecodeTransformer(tgtTokensList, g, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding,
-                                                                               originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, decodingOptions, isTraining,
+                                                                               originalSrcLengths, m_modelMetaData.TgtVocab, m_paddingType, 0.0f, decodingOptions, isTraining,
                                                                                outputSentScore: decodingOptions.BeamSearchSize > 1, pointerGenerator: pointerGenerator, 
                                                                                srcSeqs: srcTokensList, teacherForcedAlignment: true, lossType: m_options.LossType, segmentEmbeddings: segmentEmbedding, amp: m_options.AMP, posEmbeddings: posEmbeddings);
                     nr.Cost = 0.0f;
@@ -286,7 +286,7 @@ namespace Seq2SeqSharp.Applications
 
                                 using var g = computeGraph.CreateSubGraph($"TransformerDecoder_Step_{i}");
                                 (var cost2, var bssSeqList) = Decoder.DecodeTransformer(batch2tgtTokens, g, encOutput, decoder as TransformerDecoder, decoderFFLayer, tgtEmbedding,
-                                                                                originalSrcLengths, m_modelMetaData.TgtVocab, m_shuffleType, 0.0f, decodingOptions, isTraining,
+                                                                                originalSrcLengths, m_modelMetaData.TgtVocab, m_paddingType, 0.0f, decodingOptions, isTraining,
                                                                                 outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus,
                                                                                 pointerGenerator: pointerGenerator, srcSeqs: srcTokensList,
                                                                                 cachedTensors: cachedTensors, alignmentsToSrc: alignmentsToSrc, alignmentScoresToSrc: alignmentScores, 

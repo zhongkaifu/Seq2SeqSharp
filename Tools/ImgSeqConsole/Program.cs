@@ -66,7 +66,7 @@ namespace ImgSeqConsole
                 {
                     // Load train corpus
                     var trainCorpus = new VisionTextCorpus<VisionTextCorpusBatch>(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, maxTokenSizePerBatch: opts.MaxTokenSizePerBatch,
-                        maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence, indexedFilePath: opts.IndexedCorpusPath);
+                        maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, paddingEnums: opts.PaddingType, tooLongSequence: opts.TooLongSequence, indexedFilePath: opts.IndexedCorpusPath);
 
                     // Load valid corpus
                     var validCorpusList = new List<VisionTextCorpus<VisionTextCorpusBatch>>();
@@ -75,7 +75,7 @@ namespace ImgSeqConsole
                         string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
                         foreach (var validCorpusPath in validCorpusPathList)
                         {
-                            validCorpusList.Add(new VisionTextCorpus<VisionTextCorpusBatch>(validCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValMaxTokenSizePerBatch, opts.MaxValidSrcSentLength, opts.MaxValidTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence));
+                            validCorpusList.Add(new VisionTextCorpus<VisionTextCorpusBatch>(validCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValMaxTokenSizePerBatch, opts.MaxValidSrcSentLength, opts.MaxValidTgtSentLength, paddingEnums: opts.PaddingType, tooLongSequence: opts.TooLongSequence));
                         }
 
                     }
@@ -145,7 +145,7 @@ namespace ImgSeqConsole
                     List<IMetric> metrics = CreateMetrics();
 
                     // Load valid corpus
-                    Seq2SeqCorpus validCorpus = new Seq2SeqCorpus(opts.ValidCorpusPaths, opts.SrcLang, opts.TgtLang, opts.ValMaxTokenSizePerBatch, opts.MaxValidSrcSentLength, opts.MaxValidTgtSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence);
+                    Seq2SeqCorpus validCorpus = new Seq2SeqCorpus(opts.ValidCorpusPaths, opts.SrcLang, opts.TgtLang, opts.ValMaxTokenSizePerBatch, opts.MaxValidSrcSentLength, opts.MaxValidTgtSentLength, paddingEnums: opts.PaddingType, tooLongSequence: opts.TooLongSequence);
 
                     ss = new Image2Seq(opts);
                     ss.EvaluationWatcher += Ss_EvaluationWatcher;

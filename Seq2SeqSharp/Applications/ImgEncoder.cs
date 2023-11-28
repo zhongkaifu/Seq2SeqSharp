@@ -23,7 +23,7 @@ namespace Seq2SeqSharp.Applications
         static int TOKEN_W = 16;
         static int TOKEN_H = 16;
     
-        static private IWeightTensor LoadImageToTokens(IComputeGraph g, string filePath)
+        static private IWeightTensor LoadImageToTokens(IComputeGraph g, string filePath, IWeightTensor pixelEmbeddings)
         {
 
             List<float[]> tokens = new List<float[]>();
@@ -55,10 +55,10 @@ namespace Seq2SeqSharp.Applications
                 });
 
 
-                var mean = new[] { 0.485f, 0.456f, 0.406f };
-                var stddev = new[] { 0.229f, 0.224f, 0.225f };
+                //var mean = new[] { 0.485f, 0.456f, 0.406f };
+                //var stddev = new[] { 0.229f, 0.224f, 0.225f };
                 float[] processedImage = new float[IMAGE_W * IMAGE_H * 3];
-
+        
                 image.ProcessPixelRows(accessor =>
                 {
                     for (int y = 0; y < accessor.Height; y++)
@@ -68,15 +68,16 @@ namespace Seq2SeqSharp.Applications
                         {
                             int offset = (y * accessor.Width + x) * 3;
 
-                            processedImage[offset] = ((pixelSpan[x].R / 255f) - mean[0]) / stddev[0];
-                            processedImage[offset + 1] = ((pixelSpan[x].G / 255f) - mean[1]) / stddev[1];
-                            processedImage[offset + 2] = ((pixelSpan[x].B / 255f) - mean[2]) / stddev[2];
+                            processedImage[offset] = pixelSpan[x].R;// ((pixelSpan[x].R / 255f) - mean[0]) / stddev[0];
+                            processedImage[offset + 1] = pixelSpan[x].G + 256; // ((pixelSpan[x].G / 255f) - mean[1]) / stddev[1];
+                            processedImage[offset + 2] = pixelSpan[x].B + 512; // ((pixelSpan[x].B / 255f) - mean[2]) / stddev[2];
                         }
                     }
                 });
 
-
-                IWeightTensor res = g.CreateTensorWeights(sizes: new long[] {IMAGE_W / TOKEN_W, TOKEN_W, IMAGE_H / TOKEN_H, TOKEN_H, 3 }, processedImage);
+                var indice = g.CreateTensorWeights(new long[] { IMAGE_W * IMAGE_H *3, 1 }, processedImage);
+                IWeightTensor res = g.IndexSelect(pixelEmbeddings, indice);
+                res = g.View(res, dims: new long[] {IMAGE_W / TOKEN_W, TOKEN_W, IMAGE_H / TOKEN_H, TOKEN_H, 3 });
                 res = g.AsContiguous(g.Transpose(res, 1, 2)); // shape: [IMAGE_W / TOKEN_W, IMAGE_H / TOKEN_H, TOKEN_W, TOKEN_H, 3]
                 res = g.View(res, dims: new long[] { -1, 768 });
 
@@ -90,37 +91,37 @@ namespace Seq2SeqSharp.Applications
         //Size(token) = TOTAL_TOKEN_NUM_PER_IMG
         //Size(embedding_dim) = 768
         //Shape: [batchsize, TOTAL_TOKEN_NUM_PER_IMG, 768]
-        static private IWeightTensor InnerEncode(IComputeGraph g, List<string> imgPaths)
+        static private IWeightTensor InnerEncode(IComputeGraph g, List<string> imgPaths, IWeightTensor pixelEmbeddings)
         {
             int batchSize = imgPaths.Count;
             List<IWeightTensor> batchTokens = new List<IWeightTensor>();
 
             foreach (var picPath in imgPaths)
             {
-                batchTokens.Add(LoadImageToTokens(g, picPath)); //shape: [TOTAL_TOKEN_NUM_PER_IMG, 768]  
+                batchTokens.Add(LoadImageToTokens(g, picPath, pixelEmbeddings)); //shape: [TOTAL_TOKEN_NUM_PER_IMG, 768]  
             }
 
             var res = g.Concate(batchTokens, 0);
             return res;            
         }
 
-        static public IWeightTensor Run(IComputeGraph g, List<string> imgPaths, IEncoder encoder, IFeedForwardLayer srcEmbeddings, IWeightTensor posEmbeddings, IWeightTensor cls, int dim, INormalization layernorm)
+        static public IWeightTensor Run(IComputeGraph g, List<string> imgPaths, IEncoder encoder, IFeedForwardLayer srcEmbeddings, IWeightTensor posEmbeddings, IWeightTensor cls, int dim, INormalization layernorm, IWeightTensor pixelEmbeddings)
         {
             int batchSize = imgPaths.Count;
-            var inputEmbs = InnerEncode(g, imgPaths);
+            var inputEmbs = InnerEncode(g, imgPaths, pixelEmbeddings);
 
-            inputEmbs = layernorm.Norm(inputEmbs, g);
+            // inputEmbs = layernorm.Norm(inputEmbs, g);
             inputEmbs = srcEmbeddings.Process(inputEmbs, batchSize, g);
-            inputEmbs = g.SiLU(inputEmbs);
+         //   inputEmbs = g.SiLU(inputEmbs);
 
-            inputEmbs = g.View(inputEmbs, dims: new long[] { batchSize, -1, dim });
+            //inputEmbs = g.View(inputEmbs, dims: new long[] { batchSize, -1, dim });
 
-            cls = g.View(cls, dims: new long[] { 1, 1, dim });
-            cls = g.Expand(cls, dims: new long[] { batchSize, 1, dim });
+            //cls = g.View(cls, dims: new long[] { 1, 1, dim });
+            //cls = g.Expand(cls, dims: new long[] { batchSize, 1, dim });
 
-            inputEmbs = g.Concate(1, cls, inputEmbs);
+            //inputEmbs = g.Concate(1, cls, inputEmbs);
 
-            inputEmbs = g.View(inputEmbs, dims: new long[] { -1, dim });
+            //inputEmbs = g.View(inputEmbs, dims: new long[] { -1, dim });
 
             inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbeddings, batchSize, inputEmbs, 0.0f);           
             return encoder.Encode(inputEmbs, batchSize, g, null);

@@ -188,10 +188,10 @@ You can also keep all parameters into a json file and run Seq2SeqConsole.exe -Co
   "MKLInstructions": "AVX2",
   "SrcLang": "SRC",
   "StartLearningRate": 0.0006,
-  "ShuffleType": "NoPadding",
+  "PaddingType": "NoPadding",
   "Task": "Train",
   "TooLongSequence": "Ignore",
-  "ActivateFunc": "Relu",
+  "ActivateFunc": "ReLU",
   "LogVerbose": "Normal",
   "TgtLang": "TGT",
   "TrainCorpusPath": ".\\data\\train",
@@ -286,7 +286,7 @@ Here is the configuration file for model training.
 "StartValidAfterUpdates": 20000,
 "RunValidEveryUpdates": 10000,
 "VocabSize":45000,
-"ShuffleType": "NoPadding",
+"PaddingType": "NoPadding",
 "CompilerOptions":"--use_fast_math --gpu-architecture=compute_70"
 }
 ```
@@ -356,7 +356,7 @@ Here is the configuration file for model training.
     "ValidCorpusPaths":null,
     "InputTestFile":null,
     "OutputTestFile":null,
-    "ShuffleType":"NoPadding",
+    "PaddingType":"NoPadding",
     "GradClip":5.0,
     "BatchSize": 1,
     "MaxTokenSizePerBatch": 5120,
@@ -497,7 +497,7 @@ ss.Test(opts.InputTestFile, opts.OutputFile, opts.BatchSize, decodingOptions, op
 
 And here is another Python example to train English-Chinese machine translation model by Seq2SeqSharp.  
 ```python
-from Seq2SeqSharp import Seq2SeqOptions, ModeEnums, ProcessorTypeEnums, Seq2Seq, Vocab, Seq2SeqCorpus, DecayLearningRate, BleuMetric, Misc, TooLongSequence, ShuffleEnums, AdamOptimizer
+from Seq2SeqSharp import Seq2SeqOptions, ModeEnums, ProcessorTypeEnums, Seq2Seq, Vocab, Seq2SeqCorpus, DecayLearningRate, BleuMetric, Misc, TooLongSequence, PaddingEnums, AdamOptimizer
 import json
 
 def ParseOptions(config_json):
@@ -514,13 +514,13 @@ def ParseOptions(config_json):
 with open("train_opts.json", 'r') as file:
     opts = json.load(file)
 
-trainCorpus = Seq2SeqCorpus(corpusFilePath = opts['TrainCorpusPath'], srcLangName = opts['SrcLang'], tgtLangName = opts['TgtLang'], maxTokenSizePerBatch = int(opts['MaxTokenSizePerBatch']), maxSrcSentLength = int(opts['MaxSrcSentLength']), maxTgtSentLength = int(opts['MaxTgtSentLength'])) #, shuffleEnums = ShuffleEnums(opts['ShuffleType']), tooLongSequence = TooLongSequence(opts['TooLongSequence']));
+trainCorpus = Seq2SeqCorpus(corpusFilePath = opts['TrainCorpusPath'], srcLangName = opts['SrcLang'], tgtLangName = opts['TgtLang'], maxTokenSizePerBatch = int(opts['MaxTokenSizePerBatch']), maxSrcSentLength = int(opts['MaxSrcSentLength']), maxTgtSentLength = int(opts['MaxTgtSentLength'])) #, paddingEnums = PaddingEnums(opts['PaddingType']), tooLongSequence = TooLongSequence(opts['TooLongSequence']));
 
 validCorpusList = []
 if len(opts['ValidCorpusPaths']) > 0:
     validCorpusPaths = opts['ValidCorpusPaths'].split(';')
     for validCorpusPath in validCorpusPaths:
-        validCorpus = Seq2SeqCorpus(validCorpusPath, opts['SrcLang'], opts['TgtLang'], int(opts['ValMaxTokenSizePerBatch']), int(opts['MaxValidSrcSentLength']), int(opts['MaxValidTgtSentLength'])) #, shuffleEnums = opts.ShuffleType, tooLongSequence = opts.TooLongSequence)
+        validCorpus = Seq2SeqCorpus(validCorpusPath, opts['SrcLang'], opts['TgtLang'], int(opts['ValMaxTokenSizePerBatch']), int(opts['MaxValidSrcSentLength']), int(opts['MaxValidTgtSentLength'])) #, paddingEnums = opts.PaddingType, tooLongSequence = opts.TooLongSequence)
         validCorpusList.append(validCorpus)
 
 learningRate = DecayLearningRate(opts['StartLearningRate'], opts['WarmUpSteps'], opts['WeightsUpdateCount'], opts['LearningRateStepDownFactor'], opts['UpdateNumToStepDownLearningRate'])
@@ -761,9 +761,9 @@ Now you already have your customized network and you can play it. See Progream.c
 In Seq2SeqConsole project, it shows you how to initialize and train your network. Here are few steps about how to do it.  
 ```c#
                     Seq2SeqCorpus trainCorpus = new Seq2SeqCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, batchSize: opts.BatchSize,
-                        maxSrcSentLength: opts.MaxSrcTrainSentLength, maxTgtSentLength: opts.MaxTgtTrainSentLength, shuffleEnums: shuffleType);
+                        maxSrcSentLength: opts.MaxSrcTrainSentLength, maxTgtSentLength: opts.MaxTgtTrainSentLength, paddingEnums: paddingType);
                     // Load valid corpus
-                    Seq2SeqCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new Seq2SeqCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.MaxSrcTestSentLength, opts.MaxTgtTestSentLength, shuffleEnums: shuffleType);
+                    Seq2SeqCorpus validCorpus = string.IsNullOrEmpty(opts.ValidCorpusPath) ? null : new Seq2SeqCorpus(opts.ValidCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValBatchSize, opts.MaxSrcTestSentLength, opts.MaxTgtTestSentLength, paddingEnums: paddingType);
 
                     // Create learning rate
                     ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount);

@@ -486,6 +486,11 @@ namespace Seq2SeqSharp.Tools
 
                             //Optmize parameters
                             lr = learningRate.GetCurrentLearningRate(ep);
+                            if (lr == 0.0f)
+                            {
+                                throw new ArgumentException($"Learning rate became to 0.0. Try to set larger LearningRateDecaySteps in options to have more training steps.");
+                            }
+
                             List<IWeightTensor> models = GetParametersFromDefaultDevice();
 
                             m_weightsUpdateCount++;

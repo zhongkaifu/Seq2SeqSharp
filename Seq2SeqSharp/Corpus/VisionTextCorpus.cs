@@ -36,7 +36,7 @@ namespace Seq2SeqSharp.Corpus
         internal int m_maxTokenSizePerBatch = 1;
         internal List<string> m_srcFileList;
         internal List<string> m_tgtFileList;
-        internal ShuffleEnums m_shuffleEnums;
+        internal PaddingEnums m_paddingEnums;
 
         private bool m_showTokenDist = true;
 
@@ -204,7 +204,7 @@ namespace Seq2SeqSharp.Corpus
 
             if (m_showTokenDist)
             {
-                Logger.WriteLine(Logger.Level.debug, $"AggregateSrcLength = '{m_shuffleEnums}'");
+                Logger.WriteLine(Logger.Level.debug, $"AggregateSrcLength = '{m_paddingEnums}'");
                 Logger.WriteLine(Logger.Level.debug, $"Tgt token length distribution");
 
                 int tgtTotalNum = 0;
@@ -416,16 +416,16 @@ namespace Seq2SeqSharp.Corpus
             return tgtVocabs[0];
         }
 
-        public VisionTextCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int maxTokenSizePerBatch, int maxSrcSentLength = 32, int maxTgtSentLength = 32, ShuffleEnums shuffleEnums = ShuffleEnums.Random, TooLongSequence tooLongSequence = TooLongSequence.Ignore, string indexedFilePath = null)
+        public VisionTextCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int maxTokenSizePerBatch, int maxSrcSentLength = 32, int maxTgtSentLength = 32, PaddingEnums paddingEnums = PaddingEnums.AllowPadding, TooLongSequence tooLongSequence = TooLongSequence.Ignore, string indexedFilePath = null)
         {
-            Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSrcSentLength = '{maxSrcSentLength}',  MaxTgtSentLength = '{maxTgtSentLength}', aggregateSrcLengthForShuffle = '{shuffleEnums}', TooLongSequence = '{tooLongSequence}'");
+            Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSrcSentLength = '{maxSrcSentLength}',  MaxTgtSentLength = '{maxTgtSentLength}', Token Padding Type = '{paddingEnums}', TooLongSequence = '{tooLongSequence}'");
             m_maxTokenSizePerBatch = maxTokenSizePerBatch;
             m_maxSrcTokenSize = maxSrcSentLength;
             m_maxTgtTokenSize = maxTgtSentLength;
 
             m_tooLongSequence = tooLongSequence;
 
-            m_shuffleEnums = shuffleEnums;
+            m_paddingEnums = paddingEnums;
             CorpusName = corpusFilePath;
             m_sortedIndexedDataSetFilePath = indexedFilePath;
 

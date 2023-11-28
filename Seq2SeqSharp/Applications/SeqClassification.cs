@@ -35,7 +35,7 @@ namespace Seq2SeqSharp.Applications
         private MultiProcessorNetworkWrapper<IWeightTensor> m_segmentEmbedding;
         private MultiProcessorNetworkWrapper<IWeightTensor> m_positionalEmbeddings = null;
 
-        private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
+        private readonly PaddingEnums m_paddingType = PaddingEnums.AllowPadding;
         private readonly SeqClassificationOptions m_options;
 
         public SeqClassification(SeqClassificationOptions options, Vocab srcVocab = null, Vocab tgtVocab = null)
@@ -43,7 +43,7 @@ namespace Seq2SeqSharp.Applications
                  runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq, maxDegressOfParallelism: options.TaskParallelism, 
                  cudaMemoryAllocatorType: options.CudaMemoryAllocatorType, elementType: options.AMP ? DType.Float16 : DType.Float32, saveModelEveryUpdats: options.SaveModelEveryUpdates)
         {
-            m_shuffleType = options.ShuffleType;
+            m_paddingType = options.PaddingType;
             m_options = options;
 
             // Check if options are valided.
@@ -119,7 +119,7 @@ namespace Seq2SeqSharp.Applications
             var srcSnts = sntPairBatch.GetSrcTokens();
             var originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
             var srcTokensList = m_modelMetaData.SrcVocab.GetWordIndex(srcSnts);
-            IWeightTensor encOutput = Encoder.Run(computeGraph, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbeddings, segmentEmbedding, srcTokensList, originalSrcLengths);
+            IWeightTensor encOutput = Encoder.Run(computeGraph, encoder, m_modelMetaData, m_paddingType, srcEmbedding, posEmbeddings, segmentEmbedding, srcTokensList, originalSrcLengths);
 
             int srcSeqPaddedLen = srcSnts[0].Count;
             int batchSize = srcSnts.Count;

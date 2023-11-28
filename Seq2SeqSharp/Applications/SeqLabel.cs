@@ -32,7 +32,7 @@ namespace Seq2SeqSharp
 
         private MultiProcessorNetworkWrapper<IWeightTensor> m_posEmbedding = null;
 
-        private readonly ShuffleEnums m_shuffleType = ShuffleEnums.Random;
+        private readonly PaddingEnums m_paddingType = PaddingEnums.AllowPadding;
         private readonly SeqLabelOptions m_options;
 
         private readonly float[] m_tagWeightsList = null;
@@ -42,7 +42,7 @@ namespace Seq2SeqSharp
                   runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq, maxDegressOfParallelism: options.TaskParallelism, 
                   cudaMemoryAllocatorType: options.CudaMemoryAllocatorType, elementType: options.AMP ? DType.Float16 : DType.Float32, saveModelEveryUpdats: options.SaveModelEveryUpdates)
         {
-            m_shuffleType = options.ShuffleType;
+            m_paddingType = options.PaddingType;
             m_options = options;
 
             // Check if options are valided.
@@ -164,7 +164,7 @@ namespace Seq2SeqSharp
             int batchSize = srcSnts.Count;
 
             // Encoding input source sentences
-            IWeightTensor encOutput = Encoder.Run(g, encoder, m_modelMetaData, m_shuffleType, srcEmbedding, posEmbeddings, segmentEmbedding, srcTokensList, originalSrcLengths);
+            IWeightTensor encOutput = Encoder.Run(g, encoder, m_modelMetaData, m_paddingType, srcEmbedding, posEmbeddings, segmentEmbedding, srcTokensList, originalSrcLengths);
             IWeightTensor ffLayer = decoderFFLayer.Process(encOutput, batchSize, g);
 
             float cost = 0.0f;

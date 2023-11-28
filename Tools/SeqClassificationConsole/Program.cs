@@ -76,7 +76,7 @@ namespace SeqClassificationConsole
                 {
                     // Load train corpus
                     var trainCorpus = new SeqClassificationMultiTasksCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang,  maxTokenSizePerBatch: opts.MaxTokenSizePerBatch,
-                        maxSentLength: opts.MaxSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence );
+                        maxSentLength: opts.MaxSentLength, paddingEnums: opts.PaddingType, tooLongSequence: opts.TooLongSequence );
 
                     // Load valid corpus
                     var validCorpusList = new List<SeqClassificationMultiTasksCorpus>();
@@ -85,7 +85,7 @@ namespace SeqClassificationConsole
                         string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
                         foreach (var validCorpusPath in validCorpusPathList)
                         {
-                            validCorpusList.Add(new SeqClassificationMultiTasksCorpus(validCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, opts.ValMaxTokenSizePerBatch, opts.MaxSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence ));
+                            validCorpusList.Add(new SeqClassificationMultiTasksCorpus(validCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, opts.ValMaxTokenSizePerBatch, opts.MaxSentLength, paddingEnums: opts.PaddingType, tooLongSequence: opts.TooLongSequence ));
                         }
                     }
 
@@ -164,7 +164,7 @@ namespace SeqClassificationConsole
                         foreach (var validCorpusPath in validCorpusPathList)
                         {
                             Logger.WriteLine($"Loading valid corpus '{validCorpusPath}'");
-                            var validCorpus = new SeqClassificationMultiTasksCorpus(validCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, opts.ValMaxTokenSizePerBatch, opts.MaxSentLength, shuffleEnums: opts.ShuffleType, tooLongSequence: opts.TooLongSequence);
+                            var validCorpus = new SeqClassificationMultiTasksCorpus(validCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, opts.ValMaxTokenSizePerBatch, opts.MaxSentLength, paddingEnums: opts.PaddingType, tooLongSequence: opts.TooLongSequence);
 
                             Logger.WriteLine($"Validating corpus '{validCorpusPath}'");
                             ss.Valid(validCorpus, taskId2metrics, null);

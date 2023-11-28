@@ -4,11 +4,11 @@ using System.Text;
 
 namespace Seq2SeqSharp.Utils
 {
-    public enum ShuffleEnums
+    public enum PaddingEnums
     {
         NoPaddingInSrc = 0,
         NoPaddingInTgt,
         NoPadding,
-        Random
+        AllowPadding
     }
 }

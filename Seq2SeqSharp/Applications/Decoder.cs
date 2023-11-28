@@ -265,7 +265,7 @@ namespace Seq2SeqSharp.Applications
         }
 
         public static (float, List<List<BeamSearchStatus>>) DecodeTransformer(List<List<int>> tgtSeqs, IComputeGraph g, IWeightTensor encOutputs, TransformerDecoder decoder, IFeedForwardLayer decoderFFLayer,
-            IWeightTensor tgtEmbedding, float[] srcOriginalLenghts, Vocab tgtVocab, ShuffleEnums shuffleType, float dropoutRatio, DecodingOptions decodingOptions, bool isTraining = true,
+            IWeightTensor tgtEmbedding, float[] srcOriginalLenghts, Vocab tgtVocab, PaddingEnums paddingType, float dropoutRatio, DecodingOptions decodingOptions, bool isTraining = true,
             bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, IFeedForwardLayer pointerGenerator = null, List<List<int>> srcSeqs = null, Dictionary<string, IWeightTensor> cachedTensors = null,
             List<List<int>> alignmentsToSrc = null, List<List<float>> alignmentScoresToSrc = null, bool teacherForcedAlignment = false, LossEnums lossType = LossEnums.CrossEntropy, float focalLossGamma = 0.0f, float lossSmooth = 1e-9f, 
             List<int> blockedTokens = null, IWeightTensor segmentEmbeddings = null, bool amp = false, IWeightTensor posEmbeddings = null)
@@ -275,14 +275,14 @@ namespace Seq2SeqSharp.Applications
             var tgtOriginalLengths = BuildInTokens.PadSentences(tgtSeqs, eosTokenId);
             int tgtSeqLen = tgtSeqs[0].Count;
             int srcSeqLen = encOutputs.Rows / batchSize;
-            IWeightTensor srcTgtMask = (shuffleType == ShuffleEnums.NoPadding || batchSize == 1) ? null : g.BuildSrcTgtMask(srcSeqLen, tgtSeqLen, tgtOriginalLengths, srcOriginalLenghts, amp ? TensorSharp.DType.Float16 : TensorSharp.DType.Float32);
+            IWeightTensor srcTgtMask = (paddingType == PaddingEnums.NoPadding || batchSize == 1) ? null : g.BuildSrcTgtMask(srcSeqLen, tgtSeqLen, tgtOriginalLengths, srcOriginalLenghts, amp ? TensorSharp.DType.Float16 : TensorSharp.DType.Float32);
             if (srcTgtMask != null)
             {
                 srcTgtMask = g.View(srcTgtMask, new long[] { srcTgtMask.Sizes[0], 1, srcTgtMask.Sizes[1], srcTgtMask.Sizes[2] });
             }
 
             IWeightTensor tgtSelfTriMask;
-            if (shuffleType == ShuffleEnums.NoPadding || shuffleType == ShuffleEnums.NoPaddingInTgt || batchSize == 1)
+            if (paddingType == PaddingEnums.NoPadding || paddingType == PaddingEnums.NoPaddingInTgt || batchSize == 1)
             {
                 tgtSelfTriMask = g.BuildTriMask(tgtSeqLen, batchSize, amp ? TensorSharp.DType.Float16 : TensorSharp.DType.Float32);
                 tgtSelfTriMask = g.View(tgtSelfTriMask, new long[] { 1, 1, tgtSeqLen, tgtSeqLen });
@@ -476,7 +476,7 @@ namespace Seq2SeqSharp.Applications
 
 
         public static (float, List<List<BeamSearchStatus>>) GPTDecode(List<List<int>> tgtSeqs, IComputeGraph g, GPTDecoder decoder, IFeedForwardLayer decoderFFLayer,
-            IWeightTensor tgtEmbedding, Vocab tgtVocab, ShuffleEnums shuffleType, float dropoutRatio, DecodingOptions decodingOptions, bool isTraining = true,
+            IWeightTensor tgtEmbedding, Vocab tgtVocab, PaddingEnums paddingType, float dropoutRatio, DecodingOptions decodingOptions, bool isTraining = true,
             bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, Dictionary<string, IWeightTensor> cachedTensors = null,
             LossEnums lossType = LossEnums.CrossEntropy, float focalLossGamma = 0.0f, float lossSmooth = 1e-9f, List<int> blockedTokens = null, IWeightTensor segmentEmbeddings = null, bool amp = true,
             IWeightTensor posEmbeddings = null)
@@ -487,7 +487,7 @@ namespace Seq2SeqSharp.Applications
             int tgtSeqLen = tgtSeqs[0].Count;
 
             IWeightTensor tgtSelfTriMask;
-            if (shuffleType == ShuffleEnums.NoPadding || shuffleType == ShuffleEnums.NoPaddingInTgt || batchSize == 1)
+            if (paddingType == PaddingEnums.NoPadding || paddingType == PaddingEnums.NoPaddingInTgt || batchSize == 1)
             {
                 tgtSelfTriMask = g.BuildTriMask(tgtSeqLen, batchSize, amp ? TensorSharp.DType.Float16 : TensorSharp.DType.Float32);
                 tgtSelfTriMask = g.View(tgtSelfTriMask, new long[] { 1, 1, tgtSeqLen, tgtSeqLen });

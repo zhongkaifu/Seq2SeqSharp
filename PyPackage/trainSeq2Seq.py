@@ -15,13 +15,13 @@ def ParseOptions(config_json):
 with open("train_opts.json", 'r') as file:
     opts = json.load(file)
 
-trainCorpus = Seq2SeqCorpus(corpusFilePath = opts['TrainCorpusPath'], srcLangName = opts['SrcLang'], tgtLangName = opts['TgtLang'], maxTokenSizePerBatch = int(opts['MaxTokenSizePerBatch']), maxSrcSentLength = int(opts['MaxSrcSentLength']), maxTgtSentLength = int(opts['MaxTgtSentLength'])) #, shuffleEnums = ShuffleEnums(opts['ShuffleType']), tooLongSequence = TooLongSequence(opts['TooLongSequence']));
+trainCorpus = Seq2SeqCorpus(corpusFilePath = opts['TrainCorpusPath'], srcLangName = opts['SrcLang'], tgtLangName = opts['TgtLang'], maxTokenSizePerBatch = int(opts['MaxTokenSizePerBatch']), maxSrcSentLength = int(opts['MaxSrcSentLength']), maxTgtSentLength = int(opts['MaxTgtSentLength']))
 
 validCorpusList = []
 if len(opts['ValidCorpusPaths']) > 0:
     validCorpusPaths = opts['ValidCorpusPaths'].split(';')
     for validCorpusPath in validCorpusPaths:
-        validCorpus = Seq2SeqCorpus(validCorpusPath, opts['SrcLang'], opts['TgtLang'], int(opts['ValMaxTokenSizePerBatch']), int(opts['MaxValidSrcSentLength']), int(opts['MaxValidTgtSentLength'])) #, shuffleEnums = opts.ShuffleType, tooLongSequence = opts.TooLongSequence)
+        validCorpus = Seq2SeqCorpus(validCorpusPath, opts['SrcLang'], opts['TgtLang'], int(opts['ValMaxTokenSizePerBatch']), int(opts['MaxValidSrcSentLength']), int(opts['MaxValidTgtSentLength']))
         validCorpusList.append(validCorpus)
 
 learningRate = DecayLearningRate(opts['StartLearningRate'], opts['WarmUpSteps'], opts['WeightsUpdateCount'], opts['LearningRateStepDownFactor'], opts['UpdateNumToStepDownLearningRate'])
