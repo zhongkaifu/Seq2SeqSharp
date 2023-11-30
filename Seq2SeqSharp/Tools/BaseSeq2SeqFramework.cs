@@ -494,7 +494,7 @@ namespace Seq2SeqSharp.Tools
                             List<IWeightTensor> models = GetParametersFromDefaultDevice();
 
                             m_weightsUpdateCount++;
-                            solver.UpdateWeights(models, processedLine, lr, m_regc, m_weightsUpdateCount);
+                            solver.UpdateWeights(models, sWordCnt + tWordCnt, lr, m_regc, m_weightsUpdateCount);
 
                             costInTotal += cost;
                             updatesInOneEpoch++;
