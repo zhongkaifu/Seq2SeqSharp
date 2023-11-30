@@ -391,13 +391,13 @@ Here is the configuration file for model training.
 
 # Demos and released models    
 From 2.7.0 version, Seq2SeqSharp models are deployed on Hugging Face and you can also play demos there.  
-| Demo                                                   |   Hugging Face Space Url                                |        Hugging Face Model Url                   |  Model Parameters                             |
-| ------------------------------------------------------ | ------------------------------------------------------- | ----------------------------------------------- | --------------------------------------------- |
-| Machine Translation from English to Chinese            | https://huggingface.co/spaces/zhongkaifu/mt_enu_chs     | https://huggingface.co/zhongkaifu/mt_enu_chs    | 117M (6 encoder layers and 6 decoder layers)  |
-| Machine Translation from Chinese to English            | https://huggingface.co/spaces/zhongkaifu/mt_chs_enu     | https://huggingface.co/zhongkaifu/mt_chs_enu    | 117M (6 encoder layers and 6 decoder layers)  |
-| Machine Translation from Japanese or Korean to Chinese | https://huggingface.co/spaces/zhongkaifu/mt_jpnkor_chs  | https://huggingface.co/zhongkaifu/mt_jpnkor_chs | 117M (6 encoder layers and 6 decoder layers)  |
-| Chinese Medical Question and Answer Demo               | https://huggingface.co/spaces/zhongkaifu/medical_qa_chs | https://huggingface.co/zhongkaifu/qa_med_chs    | 117M (6 encoder layers and 6 decoder layers)  |
-| Chinese fiction writer                                 | https://huggingface.co/spaces/zhongkaifu/story_writing  | https://huggingface.co/zhongkaifu/story_writing | 762M (36 decoder layers only, GPT type model) |
+| Demo                                                   |   Hugging Face Space Url                                |        Hugging Face Model Url                   |  Model Parameters       |
+| ------------------------------------------------------ | ------------------------------------------------------- | ----------------------------------------------- | ----------------------- |
+| Machine Translation from English to Chinese            | https://huggingface.co/spaces/zhongkaifu/mt_enu_chs     | https://huggingface.co/zhongkaifu/mt_enu_chs    | 117M (Encoder-Decoder)  |
+| Machine Translation from Chinese to English            | https://huggingface.co/spaces/zhongkaifu/mt_chs_enu     | https://huggingface.co/zhongkaifu/mt_chs_enu    | 117M (Encoder-Decoder)  |
+| Machine Translation from Japanese or Korean to Chinese | https://huggingface.co/spaces/zhongkaifu/mt_jpnkor_chs  | https://huggingface.co/zhongkaifu/mt_jpnkor_chs | 117M (Encoder-Decoder)  |
+| Chinese Medical Question and Answer Demo               | https://huggingface.co/spaces/zhongkaifu/medical_qa_chs | https://huggingface.co/zhongkaifu/qa_med_chs    | 117M (Encoder-Decoder)  |
+| Chinese fiction writer                                 | https://huggingface.co/spaces/zhongkaifu/story_writing  | https://huggingface.co/zhongkaifu/story_writing | 2B   (Decoder only)     |
 
 To deploy binary files and models, you can check Dockerfile in Hugging Face Space urls or "Build & Deployment" section in this document.  
 

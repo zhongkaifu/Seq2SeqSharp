@@ -1,0 +1,63 @@
+﻿# read the doc: https://huggingface.co/docs/hub/spaces-sdks-docker
+# you will also find guides on how best to write your Dockerfile
+
+FROM nvidia/cuda:12.3.0-base-ubuntu22.04
+
+WORKDIR /code
+
+RUN apt-get update
+RUN apt install -y zip
+
+# Install .NET SDK
+RUN apt-get update
+RUN apt-get install -y dotnet-sdk-7.0
+RUN apt-get install -y aspnetcore-runtime-7.0
+RUN apt-get install -y cmake
+RUN apt-get install -y git-lfs
+
+RUN cat /etc/os-release
+RUN apt-get install -y software-properties-common
+
+# Install Cuda
+RUN apt install wget
+RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+RUN dpkg -i cuda-keyring_1.1-1_all.deb
+RUN apt-get update
+RUN apt-get -y install cuda-toolkit-12-3
+
+# Clone Seq2SeqSharp
+RUN git clone https://github.com/zhongkaifu/Seq2SeqSharp.git
+WORKDIR /code/Seq2SeqSharp
+RUN dotnet build Seq2SeqSharp.sln --configuration Release
+
+RUN apt-get install -y build-essential
+
+# Build customized SentencePiece
+WORKDIR /code/Seq2SeqSharp/ExternalProjects
+RUN unzip SentencePiece.zip
+WORKDIR /code/Seq2SeqSharp/ExternalProjects/SentencePiece
+RUN mkdir build
+WORKDIR /code/Seq2SeqSharp/ExternalProjects/SentencePiece/build
+RUN cmake ..
+RUN make -j $(nproc)
+RUN make install
+RUN ldconfig -v
+
+WORKDIR /code
+
+RUN mkdir -p /code/bin
+RUN chmod 777 /code/bin
+WORKDIR /code/bin
+
+# Deploy models, vocabulary and config files
+RUN cp -r /code/Seq2SeqSharp/Tools/SeqWebApps/bin/Release/net7.0/* .
+RUN wget https://huggingface.co/zhongkaifu/story_writing/resolve/main/ybook_2b.model.415000
+RUN wget https://huggingface.co/zhongkaifu/story_writing/resolve/main/chsSpm.model
+RUN wget https://huggingface.co/zhongkaifu/story_writing/resolve/main/Map_SC_TC.txt
+RUN rm appsettings.json
+RUN wget https://huggingface.co/zhongkaifu/story_writing/resolve/main/appsettings.json
+
+# ENV MKL_ENABLE_INSTRUCTIONS=AVX2
+
+# Run application
+CMD ["dotnet","/code/bin/SeqWebApps.dll"]
