@@ -320,6 +320,10 @@ namespace Seq2SeqSharp.Applications
 
         [Arg("It indicates if checking tensor corrupted is enabled. Default is enabled", nameof(CheckTensorCorrupted))]
         public bool CheckTensorCorrupted = true;
+
+        [Arg("If set to true, then the training will intelligently skip minority outlier data records (which are not representative for the training set). Default is disabled.", nameof(IntelligentOutlierRemoval))]
+        public bool IntelligentOutlierRemoval = false;
+
         public void ValidateOptions()
         {
             if (AMP == true && ProcessorType != ProcessorTypeEnums.GPU)

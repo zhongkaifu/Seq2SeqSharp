@@ -45,6 +45,8 @@ namespace Seq2SeqSharp.Tools
 
         private readonly Random rnd = new Random(DateTime.Now.Millisecond);
 
+        public bool IntelligentOutlierRemoval { get; set; }
+
         public string CorpusName { get; set; }
 
         private TooLongSequence m_tooLongSequence = TooLongSequence.Ignore;
@@ -389,22 +391,24 @@ namespace Seq2SeqSharp.Tools
                                 sentSize++;
                             }
 
-                            bw.Write(sentSize);
-                            bw.Write(String.Join("\n", srcLines));
-                            bw.Write(String.Join("\n", tgtLines));
+                            if ((IntelligentOutlierRemoval == true && sentSize > 1) || IntelligentOutlierRemoval == false)
+                            {
+                                bw.Write(sentSize);
+                                bw.Write(String.Join("\n", srcLines));
+                                bw.Write(String.Join("\n", tgtLines));
 
 #if DEBUG
-                            bwt.WriteLine(sentSize);
-                            bwt.WriteLine(String.Join("\n", srcLines));
-                            bwt.WriteLine(String.Join("\n", tgtLines));
+                                bwt.WriteLine(sentSize);
+                                bwt.WriteLine(String.Join("\n", srcLines));
+                                bwt.WriteLine(String.Join("\n", tgtLines));
 #endif
 
-                            m_batchNumInTotal++;
-                            if (m_batchNumInTotal % 10000 == 0)
-                            {
-                                Logger.WriteLine($"Batch '{m_batchNumInTotal}' has been processed.");
+                                m_batchNumInTotal++;
+                                if (m_batchNumInTotal % 10000 == 0)
+                                {
+                                    Logger.WriteLine(Logger.Level.debug, $"Batch '{m_batchNumInTotal}' has been processed.");
+                                }
                             }
-
 
                             if (offsets.Any() == false)
                             {
@@ -526,7 +530,7 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int maxTokenSizePerBatch, int maxSrcSentLength = 32, int maxTgtSentLength = 32, PaddingEnums paddingEnums = PaddingEnums.AllowPadding, TooLongSequence tooLongSequence = TooLongSequence.Ignore, string indexedFilePath = null, int startBatchId = 0)
+        public ParallelCorpus(string corpusFilePath, string srcLangName, string tgtLangName, int maxTokenSizePerBatch, int maxSrcSentLength = 32, int maxTgtSentLength = 32, PaddingEnums paddingEnums = PaddingEnums.AllowPadding, TooLongSequence tooLongSequence = TooLongSequence.Ignore, string indexedFilePath = null, int startBatchId = 0, bool intelligentOutlierRemoval = false)
         {
             Logger.WriteLine($"Loading parallel corpus from '{corpusFilePath}' for source side '{srcLangName}' and target side '{tgtLangName}' MaxSrcSentLength = '{maxSrcSentLength}',  MaxTgtSentLength = '{maxTgtSentLength}', Token Paading Type = '{paddingEnums}', TooLongSequence = '{tooLongSequence}'");
             m_maxTokenSizePerBatch = maxTokenSizePerBatch;
@@ -537,6 +541,7 @@ namespace Seq2SeqSharp.Tools
 
             m_paddingEnums = paddingEnums;
             CorpusName = corpusFilePath;
+            IntelligentOutlierRemoval = intelligentOutlierRemoval;
             m_sortedIndexedDataSetFilePath = indexedFilePath;
 
             m_srcFileList = new List<string>();
