@@ -47,14 +47,7 @@ namespace TensorSharp.CUDA.ContextState
                 retryCount++;
             }
 
-            if (err != null)
-            {
-                throw err;
-            }
-            else
-            {
-                throw new OutOfMemoryException("Out of GPU memory.");
-            }
+            throw new OutOfMemoryException("Out of GPU memory.", err);
         }
 
         public float GetAllocatedMemoryRatio()
