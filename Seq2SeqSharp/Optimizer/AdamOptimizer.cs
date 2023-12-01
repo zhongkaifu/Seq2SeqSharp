@@ -48,7 +48,7 @@ namespace Seq2SeqSharp.Optimizer
             m_checkTensorCorrupted = checkTensorCorrupted;
         }
 
-        public void UpdateWeights(List<IWeightTensor> model, int batchSize, float step_size, float regc, int iter)
+        public void UpdateWeights(List<IWeightTensor> model, int tokenSize, float step_size, float regc, int iter)
         {
             Dictionary<int, List<IWeightTensor>> id2Models = new Dictionary<int, List<IWeightTensor>>();
             Dictionary<string, IWeightTensor> name2tensor = new Dictionary<string, IWeightTensor>();
@@ -94,13 +94,13 @@ namespace Seq2SeqSharp.Optimizer
                 foreach (IWeightTensor item in kv.Value)
                 {
                     WeightTensor m = item as WeightTensor;
-                    UpdateWeightsTensor(m, batchSize, step_size * m.LearningRateFactor, regc, iter);
+                    UpdateWeightsTensor(m, m.NeedGradient ? tokenSize : 1, step_size * m.LearningRateFactor, regc, iter);
                 }
             });
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void UpdateWeightsTensor(WeightTensor m, int batchSize, float step_size, float regc, int iter)
+        private void UpdateWeightsTensor(WeightTensor m, int tokenSize, float step_size, float regc, int iter)
         {
             try
             {
@@ -113,7 +113,7 @@ namespace Seq2SeqSharp.Optimizer
                     Ops.Copy(t2, m_cacheName2M[m.Name]);
 
 
-                    Ops.Adam(m.TWeight, m.TGradient, t1, t2, batchSize, step_size, m_clipval, regc, m_beta2, m_beta1, iter, m_smoothEps);
+                    Ops.Adam(m.TWeight, m.TGradient, t1, t2, tokenSize, step_size, m_clipval, regc, m_beta2, m_beta1, iter, m_smoothEps);
 
                     Ops.Copy(m_cacheName2V[m.Name], t1);
                     t1.Dispose();
@@ -123,7 +123,7 @@ namespace Seq2SeqSharp.Optimizer
                 }
                 else
                 {              
-                    Ops.Adam(m.TWeight, m.TGradient, m_cacheName2V[m.Name], m_cacheName2M[m.Name], batchSize, step_size, m_clipval, regc, m_beta2, m_beta1, iter, m_smoothEps);
+                    Ops.Adam(m.TWeight, m.TGradient, m_cacheName2V[m.Name], m_cacheName2M[m.Name], tokenSize, step_size, m_clipval, regc, m_beta2, m_beta1, iter, m_smoothEps);
                 }
 
             }

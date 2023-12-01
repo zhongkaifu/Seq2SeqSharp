@@ -68,6 +68,9 @@ namespace Seq2SeqSharp.Tools
 
         private readonly DType m_elementType  =  DType.Float32;
 
+        public readonly bool NeedGradientNorm = true;
+
+
         public long ElementCount
         {
             get
@@ -158,7 +161,7 @@ namespace Seq2SeqSharp.Tools
 
         public DType ElementType => m_elementType;
 
-        public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, RandomInitType initType = RandomInitType.None, bool fanIn = false, bool fanOut = false, float learningRateFactor = 1.0f, IComputeGraph graphToBind = null, bool needGradient = true, DType dtype = DType.Float32)
+        public WeightTensor(long[] sizes, int deviceId, string name = "", bool isTrainable = false, RandomInitType initType = RandomInitType.None, bool fanIn = false, bool fanOut = false, float learningRateFactor = 1.0f, IComputeGraph graphToBind = null, bool needGradient = true, DType dtype = DType.Float32, bool needGradientNorm = true)
         {
             Name = name;
             DeviceId = deviceId;
@@ -171,6 +174,7 @@ namespace Seq2SeqSharp.Tools
             m_fanOut = fanOut;
             m_normType = initType;
             m_elementType= dtype;
+            NeedGradientNorm = needGradientNorm;
 
             if (graphToBind != null)
             {
@@ -205,7 +209,7 @@ namespace Seq2SeqSharp.Tools
         }
      
 
-        public WeightTensor(long[] sizes, float c, int deviceId, string name = "", bool isTrainable = false, float learningRateFactor = 1.0f, bool needGradient = true, DType dtype = DType.Float32)
+        public WeightTensor(long[] sizes, float c, int deviceId, string name = "", bool isTrainable = false, float learningRateFactor = 1.0f, bool needGradient = true, DType dtype = DType.Float32, bool needGradientNorm = true)
         {
             Name = name;
             DeviceId = deviceId;
@@ -214,6 +218,7 @@ namespace Seq2SeqSharp.Tools
             LearningRateFactor = learningRateFactor;
             Sizes = sizes;
             m_elementType = dtype;
+            NeedGradientNorm= needGradientNorm;
             m_allocator = TensorAllocator.Allocator(DeviceId);
 
             var tensor = new Tensor(m_allocator, m_elementType, Sizes);

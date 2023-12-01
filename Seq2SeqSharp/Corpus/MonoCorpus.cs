@@ -226,19 +226,23 @@ namespace Seq2SeqSharp.Tools
 
         public long GetNextLength(Dictionary<long, long> len2counts, long totalRecordsNum)
         {
-            long rndItems = rnd.NextInt64(totalRecordsNum);
-            long totalItems = 0;
-            foreach (var pair in len2counts)
-            {
-                long length = pair.Value;
-                if (totalItems <= rndItems && totalItems + length >= rndItems)
-                {
-                    return pair.Key;
-                }
-                totalItems += length;
-            }
+            long[] keys = len2counts.Keys.ToArray();
+            int rndIdx = rnd.Next(keys.Length);
+            return keys[rndIdx];
 
-            return -1;
+            //long rndItems = rnd.NextInt64(totalRecordsNum);
+            //long totalItems = 0;
+            //foreach (var pair in len2counts)
+            //{
+            //    long length = pair.Value;
+            //    if (totalItems <= rndItems && totalItems + length >= rndItems)
+            //    {
+            //        return pair.Key;
+            //    }
+            //    totalItems += length;
+            //}
+
+            //return -1;
         }
 
         public void PrepareDataSet()
