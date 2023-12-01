@@ -84,7 +84,7 @@ namespace Seq2SeqSharp.Applications
             Logger.WriteLine(Logger.Level.debug, $"Creating embeddings. Shape = '({model.SrcVocab.Count} ,{model.EncoderEmbeddingDim})'");
 
             m_srcEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { model.SrcVocab.Count, model.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), initType: RandomInitType.Uniform, fanOut: true, name: "SrcEmbeddings",
-                isTrainable: m_options.IsEmbeddingTrainable), DeviceIds);
+                isTrainable: m_options.IsEmbeddingTrainable, needGradientNorm: false), DeviceIds);
 
             return true;
         }

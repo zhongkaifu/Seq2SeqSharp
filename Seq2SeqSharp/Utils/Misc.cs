@@ -144,7 +144,7 @@ namespace Seq2SeqSharp.Utils
                 if (modelMetaData.EnableSegmentEmbeddings)
                 {
                     segmentEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.MaxSegmentNum, modelMetaData.EncoderEmbeddingDim }, raDeviceIds.GetNextItem(), initType: RandomInitType.Uniform, name: "SegmentEmbedding",
-                        isTrainable: isTrainable, dtype: elementType), raDeviceIds.ToArray());
+                        isTrainable: isTrainable, dtype: elementType, needGradientNorm: false), raDeviceIds.ToArray());
                 }
             }
 

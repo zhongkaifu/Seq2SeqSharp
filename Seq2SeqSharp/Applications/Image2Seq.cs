@@ -116,7 +116,7 @@ namespace Seq2SeqSharp.Applications
                 isTrainable: true, learningRateFactor: m_options.DecoderStartLearningRateFactor, elementType: elementType), DeviceIds);
 
             m_posEmbedding = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { 1024, model.HiddenDim }, raDeviceIds.GetNextItem(), initType: RandomInitType.Uniform, name: "PositionalEmbedding",
-                        learningRateFactor: m_options.EncoderStartLearningRateFactor, isTrainable: true, dtype: elementType), raDeviceIds.ToArray());
+                        learningRateFactor: m_options.EncoderStartLearningRateFactor, isTrainable: true, dtype: elementType, needGradientNorm: false), raDeviceIds.ToArray());
 
           //  m_cls = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { 1, model.HiddenDim }, raDeviceIds.GetNextItem(), initType: RandomInitType.Uniform, name: "CLS", learningRateFactor: m_options.EncoderStartLearningRateFactor,
           //  isTrainable: true, dtype: elementType), raDeviceIds.ToArray());
