@@ -48,7 +48,7 @@ namespace Seq2SeqSharp.Corpus
 
         public int BatchSize => SrcBatchPaths.Count;
 
-        public int SrcTokenCount { get; set; } = 1;
+        public int SrcTokenCount { get; set; } = 768;
         public int TgtTokenCount { get; set; }
 
         public IPairBatch CloneSrcTokens()

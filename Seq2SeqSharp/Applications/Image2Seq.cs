@@ -31,7 +31,7 @@ namespace Seq2SeqSharp.Applications
         private MultiProcessorNetworkWrapper<IWeightTensor> m_tgtEmbedding; //The embeddings over devices for source
         private MultiProcessorNetworkWrapper<IFeedForwardLayer> m_srcEmbedding; //The embeddings over devices for source
 
-        private MultiProcessorNetworkWrapper<IWeightTensor> m_pixelEmbeddings;
+      //  private MultiProcessorNetworkWrapper<IWeightTensor> m_pixelEmbeddings;
 
         private MultiProcessorNetworkWrapper<IEncoder> m_encoder; //The encoders over devices.
         private MultiProcessorNetworkWrapper<IDecoder> m_decoder; //The decoders over devices
@@ -130,8 +130,8 @@ namespace Seq2SeqSharp.Applications
             m_srcEmbedding = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("SrcEmbedding_Decoder_0", 768, model.HiddenDim, dropoutRatio: 0.2f, deviceId: raDeviceIds.GetNextItem(),
                 isTrainable: true, learningRateFactor: m_options.EncoderStartLearningRateFactor, elementType: elementType), DeviceIds);
 
-            m_pixelEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { 768, 1 }, raDeviceIds.GetNextItem(), initType: RandomInitType.Uniform, name: "PIXEL", learningRateFactor: m_options.EncoderStartLearningRateFactor,
-             isTrainable: true, dtype: elementType), raDeviceIds.ToArray());
+            //m_pixelEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { 768, 1 }, raDeviceIds.GetNextItem(), initType: RandomInitType.Uniform, name: "PIXEL", learningRateFactor: m_options.EncoderStartLearningRateFactor,
+            // isTrainable: true, dtype: elementType), raDeviceIds.ToArray());
 
 
             if (model.PointerGenerator)
@@ -163,7 +163,7 @@ namespace Seq2SeqSharp.Applications
         /// <summary>
         /// Get networks on specific devices
         /// </summary>
-        private (IEncoder, IDecoder, IFeedForwardLayer, IFeedForwardLayer, IWeightTensor, IWeightTensor, IFeedForwardLayer, IWeightTensor, IWeightTensor) GetNetworksOnDeviceAt(int deviceId)
+        private (IEncoder, IDecoder, IFeedForwardLayer, IFeedForwardLayer, IWeightTensor, IWeightTensor, IFeedForwardLayer, IWeightTensor) GetNetworksOnDeviceAt(int deviceId)
         {
             var deviceIdIdx = TensorAllocator.GetDeviceIdIndex(deviceId);
             return (m_encoder.GetNetworkOnDevice(deviceIdIdx),
@@ -171,9 +171,9 @@ namespace Seq2SeqSharp.Applications
                     m_decoderFFLayer.GetNetworkOnDevice(deviceIdIdx),
                     m_srcEmbedding.GetNetworkOnDevice(deviceIdIdx),
                     m_tgtEmbedding.GetNetworkOnDevice(deviceIdIdx),
-                    m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx), m_pointerGenerator?.GetNetworkOnDevice(deviceIdIdx), m_posEmbedding?.GetNetworkOnDevice(deviceIdIdx),
+                    m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx), m_pointerGenerator?.GetNetworkOnDevice(deviceIdIdx), m_posEmbedding?.GetNetworkOnDevice(deviceIdIdx));
                  //   m_cls.GetNetworkOnDevice(deviceIdIdx), m_layerNorm.GetNetworkOnDevice(deviceIdIdx), 
-                    m_pixelEmbeddings.GetNetworkOnDevice(deviceIdIdx));
+                   // m_pixelEmbeddings.GetNetworkOnDevice(deviceIdIdx));
         }
 
         private string GenerateCacheKey(List<List<string>> strs)
@@ -199,10 +199,10 @@ namespace Seq2SeqSharp.Applications
         /// <returns>The cost of forward part</returns>
         public override List<NetworkResult> RunForwardOnSingleDevice(IComputeGraph computeGraph, IPairBatch sntPairBatch, DecodingOptions decodingOptions, bool isTraining)
         {
-            (var encoder, var decoder, var decoderFFLayer, var srcEmbeddings, var tgtEmbedding, var segmentEmbedding, var pointerGenerator, var posEmbeddings, var pixelEmbeddings) = GetNetworksOnDeviceAt(computeGraph.DeviceId);
+            (var encoder, var decoder, var decoderFFLayer, var srcEmbeddings, var tgtEmbedding, var segmentEmbedding, var pointerGenerator, var posEmbeddings) = GetNetworksOnDeviceAt(computeGraph.DeviceId);
 
             var srcSnts = sntPairBatch.GetSrcTokens();
-            IWeightTensor encOutput = ImgEncoder.Run(computeGraph, srcSnts[0], encoder, srcEmbeddings, posEmbeddings, null, m_modelMetaData.HiddenDim, null, pixelEmbeddings);
+            IWeightTensor encOutput = ImgEncoder.Run(computeGraph, srcSnts[0], encoder, srcEmbeddings, posEmbeddings, null, m_modelMetaData.HiddenDim, null);
 
             List<NetworkResult> nrs = new List<NetworkResult>();
 
