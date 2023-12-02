@@ -48,7 +48,7 @@ namespace Seq2SeqSharp.Optimizer
             m_checkTensorCorrupted = checkTensorCorrupted;
         }
 
-        public void UpdateWeights(List<IWeightTensor> model, int batchSize, int tokenSize, float step_size, float regc, int iter)
+        public void UpdateWeights(List<IWeightTensor> model, int tokenSize, float step_size, float regc, int iter)
         {
             Dictionary<int, List<IWeightTensor>> id2Models = new Dictionary<int, List<IWeightTensor>>();
             Dictionary<string, IWeightTensor> name2tensor = new Dictionary<string, IWeightTensor>();
@@ -94,7 +94,7 @@ namespace Seq2SeqSharp.Optimizer
                 foreach (IWeightTensor item in kv.Value)
                 {
                     WeightTensor m = item as WeightTensor;
-                    UpdateWeightsTensor(m, m.NeedGradientNorm ? tokenSize : batchSize, step_size * m.LearningRateFactor, regc, iter);
+                    UpdateWeightsTensor(m, tokenSize, step_size * m.LearningRateFactor, regc, iter);
                 }
             });
         }
