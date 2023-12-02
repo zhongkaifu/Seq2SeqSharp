@@ -315,19 +315,13 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public long GetNextLength(Dictionary<long, LinkedList<long>> len2offsets, Dictionary<long, long> len2counts)
+        public long GetNextLength(Dictionary<long, long> len2counts, long totalRecordsNum)
         {
+            long rndItems = rnd.NextInt64(totalRecordsNum);
             long totalItems = 0;
-            foreach (var pair in len2offsets)
+            foreach (var pair in len2counts)
             {
-                totalItems += len2counts[pair.Key];
-            }
-
-            int rndItems = rnd.Next((int)totalItems);
-            totalItems = 0;
-            foreach (var pair in len2offsets)
-            {
-                long length = len2counts[pair.Key];
+                long length = pair.Value;
                 if (totalItems <= rndItems && totalItems + length >= rndItems)
                 {
                     return pair.Key;
@@ -345,6 +339,12 @@ namespace Seq2SeqSharp.Tools
                 m_batchNumInTotal = 0;
                 (var length2offsets, var length2counts, string tmpDataSetFilePath) = BuildIndex();
 
+                long totalRecordsNum = 0;
+                foreach (var pair in length2offsets)
+                {
+                    totalRecordsNum += length2counts[pair.Key];
+                }
+
                 Logger.WriteLine(Logger.Level.debug, $"Start to sort and shuffle data set by length.");
 
                 m_sortedIndexedDataSetFilePath = tmpDataSetFilePath + ".sorted";
@@ -361,7 +361,7 @@ namespace Seq2SeqSharp.Tools
                     {
                         while (length2offsets.Count > 0)
                         {
-                            long length = GetNextLength(length2offsets, length2counts);
+                            long length = GetNextLength(length2counts, totalRecordsNum);
                             LinkedList<long> offsets = length2offsets[length];
 
                             int totalSrcTokenSize = 0;
@@ -374,6 +374,7 @@ namespace Seq2SeqSharp.Tools
                                 long offset = offsets.First.Value;
                                 offsets.RemoveFirst();
                                 length2counts[length]--;
+                                totalRecordsNum--;
 
                                 br.BaseStream.Seek(offset, SeekOrigin.Begin);
 
