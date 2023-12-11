@@ -27,3 +27,23 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+ManagedCuda extended “GPL” license
+
+ManagedCuda is a set of software libraries written by Michael Kunz and distributed by
+Artic Imaging SARL, 540, 1ère Avenue, 06600 Antibes, France
+that provides access to NVIDIA®’s CUDA® API and several of CUDA enabled utility libraries (CUFFT,
+CURAND, CUSPARSE, CUBLAS, CUSOLVER, NPP, NvJitLink, NvJPEG and NVRTC) from the .net
+platform. This license covers the terms and conditions for copying, distribution and modification as
+following.
+ManagedCuda is available under GNU General Public License version 3 or a commercial license.
+The GNU General Public License version 3 does not allow integrating GPLv3 source code or its compiled
+binaries into a BSD licensed project.
+This extended MangedCuda “GPL” license thus grants the Seq2SeqSharp project
+(https://github.com/zhongkaifu/Seq2SeqSharp) the right to use ManagedCuda in form of source
+code or compiled binaries under the following two conditions:
+- Any derivative work of Seq2SeqSharp is allowed to use ManagedCuda under the same license
+terms as Seq2SeqSharp, if ManagedCuda is only used through or for Seq2SeqSharp.
+- If a derivative work of Seq2SeqSharp uses ManagedCuda independently from Seq2SeqSharp,
+the standard GPLv3 license applies for ManagedCuda.
