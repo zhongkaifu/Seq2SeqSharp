@@ -91,7 +91,7 @@ namespace Seq2SeqSharp
                 V = e;
             }
 
-            IWeightTensor eOutput = g.Dropout(V, batchSize, m_dropoutRatio, false);
+            IWeightTensor eOutput = g.Dropout(V, m_dropoutRatio, false);
 
             return eOutput;
         }

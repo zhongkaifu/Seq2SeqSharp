@@ -14,6 +14,7 @@ using Seq2SeqSharp.Utils;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Xml.Linq;
 using TensorSharp;
 
 namespace Seq2SeqSharp.Layers
@@ -70,12 +71,20 @@ namespace Seq2SeqSharp.Layers
 
         }
 
+        //DateTime lastCheckDT = DateTime.Now;
+
         public IWeightTensor Process(IWeightTensor input, int batchSize, IComputeGraph graph, Dictionary<string, IWeightTensor> cachedTensors = null)
         {
             //Computing routing result
             using var g = graph.CreateSubGraph($"{m_name}_MoEFeedForward");
             var inputNorm = layerNorm.Norm(input, g);
             var inputRouterDense = g.Affine(inputNorm, m_Router, m_RouterBias); // [batchSize * seqLen, expertNum]
+
+            var maskTensor = g.CreateTensorWeights(new long[] { 1, m_expertNum }, -65000.0f);
+            maskTensor = g.Dropout(maskTensor, 0.1f);
+            maskTensor = g.Expand(maskTensor, inputRouterDense.Sizes); // [batchSize * seqLen, expertNum]
+            inputRouterDense = g.Add(inputRouterDense, maskTensor);
+
             var inputRouter = g.Softmax(inputRouterDense); // [batchSize * seqLen, expertNum]
 
             (var topValue, var topIndex) = g.TopK(inputRouter, m_expertsPerTokenFactor); // [batchSize * seqLen, m_expertsPerTokenFactor]
@@ -94,6 +103,42 @@ namespace Seq2SeqSharp.Layers
                     indexs[expertIdx].Add(i);
                 }
             }
+
+            ////////////////////////////////////////////
+            //if (DateTime.Now - lastCheckDT >= TimeSpan.FromMinutes(5.0f))
+            //{
+            //    lastCheckDT = DateTime.Now;
+
+            //    Logger.WriteLine(Logger.Level.debug, $"Weight '{m_name}'");
+            //    for (int i = 0; i < indexs.Length; i++)
+            //    {
+            //        Logger.WriteLine(Logger.Level.debug, $"Expert '{i}' is selected by '{indexs[i].Count}' tokens.");
+            //    }
+
+            //    var weights = inputRouter.ToWeightArray();
+
+            //    StringBuilder sb = new StringBuilder();
+
+            //    int colSize = (int)inputRouter.Sizes[^1];
+            //    int idx = 0;
+            //    foreach (var weight in weights)
+            //    {
+            //        sb.Append($"{weight:F4}, ");
+            //        idx++;
+
+            //        if (idx % colSize == 0)
+            //        {
+            //            sb.AppendLine();
+            //        }
+            //    }
+
+            //    sb.Append("]");
+
+            //    Logger.WriteLine(Logger.Level.debug, "*************************");
+            //    Logger.WriteLine(Logger.Level.debug, sb.ToString());
+            //    Logger.WriteLine(Logger.Level.debug, "*************************");
+            //}
+            ////////////////////////////////////////////
 
             List<IWeightTensor> tokenEmbsList = new List<IWeightTensor>();
             List<IWeightTensor> tokenIdxList = new List<IWeightTensor>();

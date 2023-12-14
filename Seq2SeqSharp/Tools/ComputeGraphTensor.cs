@@ -13,6 +13,8 @@ using System.Collections.Generic;
 using System.Linq;
 using TensorSharp;
 using Seq2SeqSharp.Utils;
+using ManagedCuda.BasicTypes;
+using ManagedCuda.VectorTypes;
 
 /// <summary>
 /// Tensor based computing graph written by Zhongkai Fu.
@@ -1328,6 +1330,32 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+        public IWeightTensor TruncateGradient(IWeightTensor w, IWeightTensor mask)
+        {
+            WeightTensor m = w as WeightTensor;
+            WeightTensor mt = mask as WeightTensor;
+            WeightTensor res = m.CopyWeightsRef($"{GetHashString(w.Name)}.TruncateGradient", needGradient: m.NeedGradient, graphToBind: this);
+            int colSize = (int)m.Sizes[1];
+           
+            if (m_needsBackprop)
+            {
+                void backward()
+                {
+                    if (m.NeedGradient)
+                    {
+                        res.ReleaseWeight();
+                        m.AddMulGradient(res.TGradient, mt.TWeight);
+                    }
+                    res.Dispose();
+
+                }
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
+
         public IWeightTensor Argmax(IWeightTensor w, int dim = -1)
         {
             WeightTensor m = w as WeightTensor;
@@ -1403,13 +1431,6 @@ namespace Seq2SeqSharp.Tools
             }
 
             return res;
-        }
-
-        private static double PowerA(double a, double b)
-        {
-            int tmp = (int)(BitConverter.DoubleToInt64Bits(a) >> 32);
-            int tmp2 = (int)(b * (tmp - 1072632447) + 1072632447);
-            return BitConverter.Int64BitsToDouble(((long)tmp2) << 32);
         }
 
         /// <summary>
@@ -1726,6 +1747,14 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"Tensor_CopyFrom_Array", needGradient: false);
             res.TWeight.CopyFrom(values);
+
+            return res;
+        }
+
+        public IWeightTensor CreateTensorWeights(long[] sizes, float value)
+        {
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"Tensor_CopyFrom_Array", needGradient: false);
+            Ops.Fill(res.TWeight, value);
 
             return res;
         }
@@ -2333,7 +2362,7 @@ namespace Seq2SeqSharp.Tools
         //}
 
 
-        public IWeightTensor Dropout(IWeightTensor V, int batchSize, float drop_prob, bool inPlace = false)
+        public IWeightTensor Dropout(IWeightTensor V, float drop_prob, bool inPlace = false)
         {
             if (drop_prob == 0 || !m_needsBackprop)
             {
@@ -2359,26 +2388,30 @@ namespace Seq2SeqSharp.Tools
 
             Ops.Mul(res.TWeight, w.TWeight, noiseExp);
 
-            void backward()
+            if (m_needsBackprop)
             {
-                if (w.NeedGradient)
+                Tensor tn = noiseExp.CopyRef();
+                void backward()
                 {
-                    res.ReleaseWeight();
-
-                    if (inPlace && w.IsGradientNull() && res.TGradient.IsOwnerExclusive())
+                    if (w.NeedGradient)
                     {
-                        w.TGradient = res.TGradient.CopyRef();
+                        res.ReleaseWeight();
+
+                        if (inPlace && w.IsGradientNull() && res.TGradient.IsOwnerExclusive())
+                        {
+                            w.TGradient = res.TGradient.CopyRef();
+                        }
+                        w.AddMulGradient(tn, res.TGradient, inPlace);
                     }
 
-                    w.AddMulGradient(noiseExp, res.TGradient, inPlace);
+                    res.Dispose();
+                    tn.Dispose();
                 }
-
-                res.Dispose();
-                noise.Dispose();
-                noiseExp.Dispose();
+                m_backprop.Add(backward);
             }
-            m_backprop.Add(backward);
 
+            noiseExp.Dispose();
+            noise.Dispose();
 
             return res;
         }
@@ -2659,6 +2692,45 @@ namespace Seq2SeqSharp.Tools
 
             return res;
         }
+
+        public IWeightTensor BuildMaskUntil(List<List<int>> paddedTokensList, int maskEndId, DType elementType = DType.Float32)
+        {
+            int batchSize = paddedTokensList.Count;
+            int seqLength = paddedTokensList[0].Count;
+
+            float[] buf = new float[batchSize * seqLength];
+            Array.Fill(buf, 1.0f);
+
+            for (int batchIdx = 0; batchIdx < batchSize; batchIdx++)
+            {
+                for (int tokenIdx = 0; tokenIdx < seqLength; tokenIdx++)
+                {
+                    int token = paddedTokensList[batchIdx][tokenIdx];
+                    if (token == maskEndId)
+                    {
+                        Array.Fill(buf, 0.0f, batchIdx * seqLength, tokenIdx);
+                    }
+                }
+            }
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { batchSize, seqLength }, m_deviceId, name: $"MaskUntil_{m_deviceId}", graphToBind: this, needGradient: false, dtype: elementType);
+
+            res.SetWeightArray(buf);
+
+            if (m_needsBackprop)
+            {
+                void backward()
+                {
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+            }
+
+
+            return res;
+        }
+
+
 
         private (float, IWeightTensor) CalculateEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float smooth, float gamma)
         {

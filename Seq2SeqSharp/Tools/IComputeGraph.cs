@@ -41,7 +41,7 @@ namespace Seq2SeqSharp
         IWeightTensor AddTanh(IWeightTensor w1, IWeightTensor w2);
         IWeightTensor AddTanh(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3);
         IWeightTensor Peek(IWeightTensor w, int dim, int ix, int num = 1);
-        IWeightTensor Dropout(IWeightTensor V, int batchSize, float drop_prob, bool inPlace = false);
+        IWeightTensor Dropout(IWeightTensor V, float drop_prob, bool inPlace = false);
         IWeightTensor Softmax(IWeightTensor w, bool runGradients = true, bool inPlace = false);
         List<IWeightTensor> SplitColumns2(IWeightTensor w, params int[] sizes);
         (IWeightTensor r1, IWeightTensor r2) SplitColumns(IWeightTensor w, int size1, int size2);
@@ -70,6 +70,7 @@ namespace Seq2SeqSharp
 
         IWeightTensor Zero(long[] sizes);
         IWeightTensor CreateTensorWeights(long[] sizes, float[] values);
+        IWeightTensor CreateTensorWeights(long[] sizes, float value);
         IWeightTensor IndexSelect(IWeightTensor s, IWeightTensor indice, bool clearWeights = false, bool isAdd = false);
         IWeightTensor IndexUpdate(long[] sizes, IWeightTensor s, IWeightTensor indice, bool clearWeights = false);
 

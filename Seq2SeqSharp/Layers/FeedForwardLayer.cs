@@ -57,7 +57,7 @@ namespace Seq2SeqSharp
         public IWeightTensor Process(IWeightTensor inputT, int batchSize, IComputeGraph g, Dictionary<string, IWeightTensor> cachedTensors = null)
         {
             IWeightTensor res = g.Affine(inputT, m_Whd, m_Bd, 1.0f);            
-            return g.Dropout(res, batchSize, m_dropoutRatio, inPlace: true);
+            return g.Dropout(res, m_dropoutRatio, inPlace: true);
         }
 
         public virtual List<IWeightTensor> GetParams()

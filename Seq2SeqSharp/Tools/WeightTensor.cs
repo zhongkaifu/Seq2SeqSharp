@@ -339,26 +339,36 @@ namespace Seq2SeqSharp.Tools
 
 
 
-        static DateTime lastCheckDT = DateTime.Now;
+    //    static DateTime lastCheckDT = DateTime.Now;
         public void PrintWeights()
         {
-         //   if (DateTime.Now - lastCheckDT >= TimeSpan.FromMinutes(5.0f))
-         //   {
-                lastCheckDT = DateTime.Now;
+      //      if (DateTime.Now - lastCheckDT >= TimeSpan.FromMinutes(5.0f))
+      //      {
+      //          lastCheckDT = DateTime.Now;
                 var weights = ToWeightArray();
 
                 StringBuilder sb = new StringBuilder();
                 sb.Append($"Weights for '{Name}': [");
 
+                int colSize = (int)Sizes[^1];
+                int idx = 0;
                 foreach (var weight in weights)
                 {
                     sb.Append($"{weight:F4}, ");
+                    idx++;
+
+                    if (idx % colSize == 0)
+                    {
+                        sb.AppendLine();
+                    }
                 }
 
                 sb.Append("]");
 
-                Logger.WriteLine(sb.ToString());
-         //   }
+                Logger.WriteLine(Logger.Level.debug, "*************************");
+                Logger.WriteLine(Logger.Level.debug, sb.ToString());
+                Logger.WriteLine(Logger.Level.debug, "*************************");
+       //     }
         }
 
         public void AddSoftmaxGradient(Tensor srcTWeight, Tensor srcTGradient, bool inPlace = false)
