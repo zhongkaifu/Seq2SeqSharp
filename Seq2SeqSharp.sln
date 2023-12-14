@@ -46,6 +46,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SeqDictMatchConsole", "Tools\SeqDictMatchConsole\SeqDictMatchConsole.csproj", "{2E076AAD-CBED-4AA0-B1F6-603D57FE5F5A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ExternalProjects", "ExternalProjects", "{C15C991E-2657-4CF3-A976-84334A25DBD2}"
+	ProjectSection(SolutionItems) = preProject
+		ExternalProjects\ManagedCuda seq2seqsharp license.pdf = ExternalProjects\ManagedCuda seq2seqsharp license.pdf
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ManagedCuda.netCore", "ExternalProjects\managedCuda\ManagedCUDA\ManagedCuda.netCore.csproj", "{EDD8E717-C0C4-4A2A-A33F-3968552F0CF1}"
 EndProject
