@@ -519,7 +519,7 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-        public void SetWeightArray(half[] v)
+        private void SetWeightArray(half[] v)
         {
             if (ElementType != DType.Float16)
             {

@@ -541,6 +541,10 @@ __global__ void gAddLayerNormalizationGrad(float* gradX1,
 
 __global__ void Adam(float* __restrict__ w, float* __restrict__ g, float* __restrict__ v, float* __restrict__ m, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
 {
+      float bias_correction1 = 1.0 / (1.0 - powf(decay_rate_m, iter));
+      float bias_correction2 = 1.0 / (1.0 - powf(decay_rate_v, iter));
+      float adapted_learning_rate = step_size * bias_correction1 * rsqrtf(bias_correction2);
+
   for(int bid = 0; bid < rows; bid += gridDim.x) 
   {
     int j = bid + blockIdx.x;
@@ -550,11 +554,6 @@ __global__ void Adam(float* __restrict__ w, float* __restrict__ g, float* __rest
       float* sg = g + j * cols;
       float* sv = v + j * cols;
       float* sm = m + j * cols;
-
-      float bias_correction1 = 1.0 / (1.0 - powf(decay_rate_m, iter));
-      float bias_correction2 = 1.0 / (1.0 - powf(decay_rate_v, iter));
-      float adapted_learning_rate = step_size * bias_correction1 * rsqrtf(bias_correction2);
-
 
       for(int tid = 0; tid < cols; tid += blockDim.x) 
       {        
@@ -1511,6 +1510,10 @@ __global__ void RoPEGradHalf(__half* __restrict__ grad, __half* __restrict__ adj
 
 __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* __restrict__ v, float* __restrict__ m, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
 {
+      float bias_correction1 = 1.0 / (1.0 - powf(decay_rate_m, iter));
+      float bias_correction2 = 1.0 / (1.0 - powf(decay_rate_v, iter));
+      float adapted_learning_rate = step_size * bias_correction1 * rsqrtf(bias_correction2);
+
   for(int bid = 0; bid < rows; bid += gridDim.x) 
   {
     int j = bid + blockIdx.x;
@@ -1520,11 +1523,6 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
       __half* sg = g + j * cols;
       float* sv = v + j * cols;
       float* sm = m + j * cols;
-
-      float bias_correction1 = 1.0 / (1.0 - powf(decay_rate_m, iter));
-      float bias_correction2 = 1.0 / (1.0 - powf(decay_rate_v, iter));
-      float adapted_learning_rate = step_size * bias_correction1 * rsqrtf(bias_correction2);
-
 
       for(int tid = 0; tid < cols; tid += blockDim.x) 
       {        

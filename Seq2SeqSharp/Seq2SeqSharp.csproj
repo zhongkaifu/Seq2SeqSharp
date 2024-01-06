@@ -15,7 +15,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <OutputPath>bin\</OutputPath>
-    <Version>2.7.0</Version>
+    <Version>2.8.6</Version>
     <Description>Seq2SeqSharp is a tensor based fast &amp; flexible encoder-decoder deep neural network framework written by .NET (C#). It can be used for sequence-to-sequence task, sequence-labeling task and sequence-classification task and other NLP tasks. Seq2SeqSharp supports both CPUs (x86, x64 and ARM64) and GPUs. It's powered by .NET core, so Seq2SeqSharp can run on both Windows and Linux without any modification and recompilation.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Title>Seq2SeqSharp</Title>
@@ -30,11 +30,20 @@
     <DefineConstants>TRACE;CUDA</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+	<PropertyGroup>
+		<TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);CopyProjectReferencesToPackage</TargetsForTfmSpecificBuildOutput>
+	</PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\AdvUtils\AdvUtils.csproj" />
-    <ProjectReference Include="..\ExternalProjects\managedCuda\ManagedCUDA\ManagedCuda.netCore.csproj" />
-    <ProjectReference Include="..\TensorSharp.CUDA\TensorSharp.CUDA.csproj" />
-    <ProjectReference Include="..\TensorSharp\TensorSharp.csproj" />
+	  <ProjectReference Include="..\AdvUtils\AdvUtils.csproj">
+	  </ProjectReference>
+	  <ProjectReference Include="..\ExternalProjects\managedCuda\ManagedCUDA\ManagedCuda.netCore.csproj">
+		  <ReferenceOutputAssembly>True</ReferenceOutputAssembly>
+		  <IncludeAssets>ManagedCuda.dll</IncludeAssets>
+	  </ProjectReference>
+	  <ProjectReference Include="..\TensorSharp.CUDA\TensorSharp.CUDA.csproj">
+	  </ProjectReference>
+	  <ProjectReference Include="..\TensorSharp\TensorSharp.csproj">
+	  </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
@@ -53,4 +62,9 @@
       <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
+	<Target DependsOnTargets="ResolveReferences" Name="CopyProjectReferencesToPackage">
+		<ItemGroup>
+			<BuildOutputInPackage Include="@(ReferenceCopyLocalPaths-&gt;WithMetadataValue('ReferenceSourceTarget', 'ProjectReference'))" />
+		</ItemGroup>
+	</Target>
 </Project>
