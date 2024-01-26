@@ -136,13 +136,14 @@ namespace Seq2SeqSharp.Tools
         string m_compilerOptions = null;
         string m_mklInstructions = "AVX2";
         bool m_enableTensorCore = true;
+        bool m_saveGPUMemoryMode = false;
         CudaMemoryDeviceAllocatorType m_cudaMemoryAllocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool;
         DType m_elementType = DType.Float32;
 
         public BaseSeq2SeqFramework(string deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, 
             string compilerOptions = null, int runValidEveryUpdates = 10000, int primaryTaskId = 0, int updateFreq = 1, int startToRunValidAfterUpdates = 0,
             int maxDegressOfParallelism = 1, string mklInstructions = "AVX2", int weightsUpdateCount = 0, bool enableTensorCore = true, CudaMemoryDeviceAllocatorType cudaMemoryAllocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool, 
-            DType elementType = DType.Float32, int randomSeed = -1, int saveModelEveryUpdats = 10000)
+            DType elementType = DType.Float32, int randomSeed = -1, int saveModelEveryUpdats = 10000, bool saveGPUMemoryMode = false)
         {
             m_deviceIds = deviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
             m_compilerOptions = compilerOptions;
@@ -160,6 +161,7 @@ namespace Seq2SeqSharp.Tools
             m_maxDegressOfParallelism = maxDegressOfParallelism;
             m_weightsUpdateCount = weightsUpdateCount;
             m_saveModelEveryUpdates = saveModelEveryUpdats;
+            m_saveGPUMemoryMode = saveGPUMemoryMode;
 
             InitDevices();
 
@@ -187,7 +189,7 @@ namespace Seq2SeqSharp.Tools
             }
 
             // Create computing graph instance and return it
-            return new ComputeGraphTensor(new WeightTensorFactory(), DeviceIds[deviceIdIdx], needBack);
+            return new ComputeGraphTensor(new WeightTensorFactory(), DeviceIds[deviceIdIdx], needBack, saveGPUMemoryMode: m_saveGPUMemoryMode);
         }
       
         public bool SaveModel(bool createBackupPrevious = false, string suffix = "") => SaveModelImpl(m_modelMetaData, createBackupPrevious, suffix);
@@ -788,7 +790,7 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
-            if (m_saveModelEveryUpdates > 0 && m_weightsUpdateCount % m_saveModelEveryUpdates == 0)
+            if (m_saveModelEveryUpdates > 0 && m_weightsUpdateCount % m_saveModelEveryUpdates == 0 && m_weightsUpdateCount > 0)
             {
                 SaveModel(createBackupPrevious: false, suffix: $".{m_weightsUpdateCount}");
             }

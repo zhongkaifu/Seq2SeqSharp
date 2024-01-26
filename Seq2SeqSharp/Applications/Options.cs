@@ -84,7 +84,7 @@ namespace Seq2SeqSharp.Applications
         [Range(1, 8192)]
         public int ExpertNum = 1;
 
-        [Arg("The factor of expert size per token for MoE model. Default is 1", nameof(ExpertsPerTokenFactor))]
+        [Arg("It indicates how many experts will be assigned to each token by router in every MoE layer. Default is 1", nameof(ExpertsPerTokenFactor))]
         [Range(1, 8192)]
         public int ExpertsPerTokenFactor = 1;
 
