@@ -102,7 +102,7 @@ namespace Seq2SeqSharp.Tools
 
         public IComputeGraph CreateSubGraph(string name)
         {
-            ComputeGraphTensor subGraph = new ComputeGraphTensor(m_weightTensorFactory, m_deviceId, m_needsBackprop, m_backprop, isSubGraph: true);
+            ComputeGraphTensor subGraph = new ComputeGraphTensor(m_weightTensorFactory, m_deviceId, m_needsBackprop, m_backprop, isSubGraph: true, saveGPUMemoryMode:m_saveGPUMemoryMode);
             return subGraph;
         }
 
