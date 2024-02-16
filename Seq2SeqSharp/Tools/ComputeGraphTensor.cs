@@ -90,7 +90,7 @@ namespace Seq2SeqSharp.Tools
             m_needsBackprop = needBack;
             m_deviceId = deviceId;
             m_isSubGraph = isSubGraph;
-            m_saveGPUMemoryMode = saveGPUMemoryMode;
+            m_saveGPUMemoryMode = false; // We disable it for now, because it's really timing-cost. If you really want to use it, please enable this feature for those specific operators you want to use, such as activate functions.
 
             m_tensorsBindToCurrentGraph = new List<IWeightTensor>();
         }
