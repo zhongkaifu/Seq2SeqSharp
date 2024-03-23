@@ -273,7 +273,7 @@ namespace Seq2SeqSharp.Applications
         [Arg("The step down factor of learning rate after each epoch. Default is 1.0 which is no step down.", nameof(LearningRateStepDownFactor))]
         [Range(0.01f, 1.0f)]
         public float LearningRateStepDownFactor = 1.0f;
-
+         
         [Arg("The update num to step down learning rate. Default is 0 which means no step down.", nameof(UpdateNumToStepDownLearningRate))]
         [Range(0, 999999)]
         public int UpdateNumToStepDownLearningRate = 0;
@@ -302,6 +302,10 @@ namespace Seq2SeqSharp.Applications
         [Arg("The seed value of random generator", nameof(RandomSeed))]
         [Range(-1, 9999999)]
         public int RandomSeed = -1;
+
+        [Arg("Initial loss Scaling when AMP is enabled. Default is 0 which is disabled.", nameof(InitLossScaling))]
+        [Range(0, 65000)]
+        public float InitLossScaling = 0.0f;
 
         [Arg("The Positional Embeddings Type. It supports APE, NoPE and RoPE", nameof(PEType))]
         [RegularExpression("APE|NoPE|RoPE")]

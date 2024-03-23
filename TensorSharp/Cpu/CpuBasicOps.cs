@@ -1125,16 +1125,16 @@ namespace TensorSharp.Cpu
 
         private readonly MethodInfo rmsProp_func = NativeWrapper.GetMethod("TS_RMSProp");
         [RegisterOpStorageType("rmsprop", typeof(CpuStorage))]
-        public Tensor RMSProp(Tensor tw, Tensor tg, Tensor tc, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
+        public Tensor RMSProp(Tensor tw, Tensor tg, Tensor tc, float gradNormFactor, float step_size, float clipval, float regc, float decay_rate, float eps)
         {
-            NativeWrapper.InvokeTypeMatch(rmsProp_func, tw, tg, tc, (int)tw.Sizes[0], (int)tw.Sizes[1], batchSize, step_size, clipval, regc, decay_rate, eps);
+            NativeWrapper.InvokeTypeMatch(rmsProp_func, tw, tg, tc, (int)tw.Sizes[0], (int)tw.Sizes[1], gradNormFactor, step_size, clipval, regc, decay_rate, eps);
             return tw;
         }
 
         [RegisterOpStorageType("adam", typeof(CpuStorage))]
-        public Tensor Adam(Tensor tw, Tensor tg, Tensor tv, Tensor tm, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
+        public Tensor Adam(Tensor tw, Tensor tg, Tensor tv, Tensor tm, float gradNormFactor, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
         {
-            TensorApplyCPU.Adam(tw, tg, tv, tm, (int)tw.Sizes[0], (int)tw.Sizes[1], batchSize, step_size, clipval, regc, decay_rate_v, decay_rate_m, iter, eps);
+            TensorApplyCPU.Adam(tw, tg, tv, tm, (int)tw.Sizes[0], (int)tw.Sizes[1], gradNormFactor, step_size, clipval, regc, decay_rate_v, decay_rate_m, iter, eps);
             return tw;
         }
 

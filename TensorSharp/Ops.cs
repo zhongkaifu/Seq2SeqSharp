@@ -235,14 +235,14 @@ namespace TensorSharp
         public static Tensor AddLayerNorm(Tensor result, Tensor src1, Tensor src2, Tensor alpha, Tensor beta, float eps = 1e-09f) { return (Tensor)OpRegistry.Invoke("addlayernorm", result, src1, src2, alpha, beta, eps); }
         public static Tensor AddLayerNormGrad(Tensor out1Grad, Tensor out2Grad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x1, Tensor x2, Tensor alpha, Tensor beta, float eps = 1e-09f) { return (Tensor)OpRegistry.Invoke("addlayernormgrad", out1Grad, out2Grad, alphaGrad, betaGrad, inGrad, y, x1, x2, alpha, beta, eps); }
 
-        public static Tensor Adam(Tensor weight, Tensor gradient, Tensor v, Tensor m, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
+        public static Tensor Adam(Tensor weight, Tensor gradient, Tensor v, Tensor m, float gradNormFactor, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
         {
-            return (Tensor)OpRegistry.Invoke("adam", weight, gradient, v, m, batchSize, step_size, clipval, regc, decay_rate_v, decay_rate_m, iter, eps);
+            return (Tensor)OpRegistry.Invoke("adam", weight, gradient, v, m, gradNormFactor, step_size, clipval, regc, decay_rate_v, decay_rate_m, iter, eps);
         }
 
-        public static Tensor RMSProp(Tensor weight, Tensor gradient, Tensor cache, int batchSize, float step_size, float clipval, float regc, float decay_rate, float eps)
+        public static Tensor RMSProp(Tensor weight, Tensor gradient, Tensor cache, float gradNormFactor, float step_size, float clipval, float regc, float decay_rate, float eps)
         {
-            return (Tensor)OpRegistry.Invoke("rmsprop", weight, gradient, cache, batchSize, step_size, clipval, regc, decay_rate, eps);
+            return (Tensor)OpRegistry.Invoke("rmsprop", weight, gradient, cache, gradNormFactor, step_size, clipval, regc, decay_rate, eps);
         }
 
         public static Tensor SumAll(Tensor result, Tensor src) { return (Tensor)OpRegistry.Invoke("sumall", result, src); }

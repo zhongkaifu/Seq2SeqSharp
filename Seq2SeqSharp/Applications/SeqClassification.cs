@@ -41,7 +41,7 @@ namespace Seq2SeqSharp.Applications
         public SeqClassification(SeqClassificationOptions options, Vocab srcVocab = null, Vocab tgtVocab = null)
            : base(options.DeviceIds, options.ProcessorType, options.ModelFilePath, options.MemoryUsageRatio, options.CompilerOptions,
                  runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq, maxDegressOfParallelism: options.TaskParallelism, 
-                 cudaMemoryAllocatorType: options.CudaMemoryAllocatorType, elementType: options.AMP ? DType.Float16 : DType.Float32, saveModelEveryUpdats: options.SaveModelEveryUpdates)
+                 cudaMemoryAllocatorType: options.CudaMemoryAllocatorType, elementType: options.AMP ? DType.Float16 : DType.Float32, saveModelEveryUpdats: options.SaveModelEveryUpdates, initLossScaling: options.InitLossScaling)
         {
             m_paddingType = options.PaddingType;
             m_options = options;
@@ -152,7 +152,7 @@ namespace Seq2SeqSharp.Applications
                 var tgtSnts = sntPairBatch.GetTgtTokens();
                 var tgtTokensLists = m_modelMetaData.TgtVocab.GetWordIndex(tgtSnts);
                 var tgtTokensTensor = computeGraph.CreateTokensTensor(tgtTokensLists);
-                nr.Cost = computeGraph.CrossEntropyLoss(probs, tgtTokensTensor);
+                nr.Cost = computeGraph.CrossEntropyLoss(probs, tgtTokensTensor, lossScaling: LossScaling);
             }
             else
             {

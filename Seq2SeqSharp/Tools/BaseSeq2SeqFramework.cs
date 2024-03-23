@@ -139,11 +139,14 @@ namespace Seq2SeqSharp.Tools
         bool m_saveGPUMemoryMode = false;
         CudaMemoryDeviceAllocatorType m_cudaMemoryAllocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool;
         DType m_elementType = DType.Float32;
+        float m_initLossScaling = 0.0f;
+        
+        public float LossScaling = 0.0f;
 
         public BaseSeq2SeqFramework(string deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, 
             string compilerOptions = null, int runValidEveryUpdates = 10000, int primaryTaskId = 0, int updateFreq = 1, int startToRunValidAfterUpdates = 0,
             int maxDegressOfParallelism = 1, string mklInstructions = "AVX2", int weightsUpdateCount = 0, bool enableTensorCore = true, CudaMemoryDeviceAllocatorType cudaMemoryAllocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool, 
-            DType elementType = DType.Float32, int randomSeed = -1, int saveModelEveryUpdats = 10000, bool saveGPUMemoryMode = false)
+            DType elementType = DType.Float32, int randomSeed = -1, int saveModelEveryUpdats = 10000, bool saveGPUMemoryMode = false, float initLossScaling = 0.0f)
         {
             m_deviceIds = deviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
             m_compilerOptions = compilerOptions;
@@ -162,6 +165,7 @@ namespace Seq2SeqSharp.Tools
             m_weightsUpdateCount = weightsUpdateCount;
             m_saveModelEveryUpdates = saveModelEveryUpdats;
             m_saveGPUMemoryMode = saveGPUMemoryMode;
+            m_initLossScaling = initLossScaling;
 
             InitDevices();
 
@@ -386,6 +390,8 @@ namespace Seq2SeqSharp.Tools
         public void Train(int maxTrainingEpoch, ICorpus<IPairBatch> trainCorpus, ICorpus<IPairBatch>[] validCorpusList, ILearningRate learningRate, Dictionary<int, List<IMetric>> taskId2metrics, IOptimizer optimizer, DecodingOptions decodingOptions)
         {
             Logger.WriteLine("Start to train...");
+            LossScaling = m_initLossScaling;
+
             for (int i = 0; i < maxTrainingEpoch; i++)
             {
                 // Train one epoch over given devices. Forward part is implemented in RunForwardOnSingleDevice function in below, 
@@ -445,6 +451,7 @@ namespace Seq2SeqSharp.Tools
             double avgCostPerWordInTotal = 0.0;
             int updatesInOneEpoch = 0;
             float lr = 0.0f;
+            int contiSuccUpdate = 0;
 
             Logger.WriteLine(Logger.Level.debug, $"Start to process training corpus.");
 
@@ -476,6 +483,7 @@ namespace Seq2SeqSharp.Tools
                                     throw new WeightsCorruptedException($"The weights has been corrupted. Abort training and please check checkpoint files.");
                                 }
 
+                                contiSuccUpdate = 0;
                                 break;
                             }
 
@@ -485,6 +493,15 @@ namespace Seq2SeqSharp.Tools
 
                             //Sum up gradients in all devices, and kept it in default device for parameters optmization
                             SumGradientsToTensorsInDefaultDevice();
+
+                            if (IsGradientsCorrupted())
+                            {
+                                Logger.WriteLine(Logger.Level.warn, $"Gradients is corrupted, so we reduce loss scaling from {LossScaling} to {LossScaling / 2.0f} and skip current batch.");
+                                LossScaling = LossScaling * 0.5f;
+                                contiSuccUpdate = 0;
+                                break;
+                            }
+
 
                             //Optmize parameters
                             lr = learningRate.GetCurrentLearningRate(ep);
@@ -496,7 +513,24 @@ namespace Seq2SeqSharp.Tools
                             List<IWeightTensor> models = GetParametersFromDefaultDevice();
 
                             m_weightsUpdateCount++;
-                            solver.UpdateWeights(models, (int)Math.Max(sWordCnt, tWordCnt), lr, m_regc, m_weightsUpdateCount);
+
+                            float gradNormFactor = Math.Max(sWordCnt, tWordCnt);
+                            if (LossScaling > 0.0f)
+                            {
+                                gradNormFactor = gradNormFactor / LossScaling;
+                            }
+                            solver.UpdateWeights(models, gradNormFactor, lr, m_regc, m_weightsUpdateCount);
+
+                            contiSuccUpdate++;
+                            if (contiSuccUpdate >= 2000)
+                            {
+                                if (LossScaling * 2.0f < 32000.0f)
+                                {
+                                    LossScaling = LossScaling * 2.0f;
+                                }
+
+                                contiSuccUpdate = 0;
+                            }
 
                             costInTotal += cost;
                             updatesInOneEpoch++;
@@ -511,7 +545,8 @@ namespace Seq2SeqSharp.Tools
                                     Update = m_weightsUpdateCount,
                                     ProcessedSentencesInTotal = processedLineInTotal,
                                     ProcessedWordsInTotal = srcWordCntsInTotal + tgtWordCntsInTotal,
-                                    StartDateTime = startDateTime
+                                    StartDateTime = startDateTime,
+                                    LossScaling = LossScaling
                                 });
                             }
 
@@ -593,7 +628,11 @@ namespace Seq2SeqSharp.Tools
                         }
                     }
 
-                    CreateCheckPoint(validCorpusList, taskId2metrics, decodingOptions, forwardOnSingleDevice, avgCostPerWordInTotal);
+                    if (runNetwordSuccssed == true)
+                    {
+                        CreateCheckPoint(validCorpusList, taskId2metrics, decodingOptions, forwardOnSingleDevice, avgCostPerWordInTotal);
+                    }
+
                     sntPairBatchs.Clear();
                 }
             }
@@ -1310,6 +1349,21 @@ namespace Seq2SeqSharp.Tools
             return false;
         }
 
+        internal bool IsGradientsCorrupted()
+        {
+            var weights = GetParametersFromDefaultDevice();
+
+            foreach (var weight in weights)
+            {
+                if (weight.IsGradientCorrupted())
+                {
+                    Logger.WriteLine(Logger.Level.err, $"Gradient '{weight.Name}' is corrupted.");
+                    return true;
+                }
+            }
+
+            return false;
+        }
         /// <summary>
         /// Copy weights from default device to all other devices
         /// </summary>

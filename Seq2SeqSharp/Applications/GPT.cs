@@ -40,7 +40,8 @@ namespace Seq2SeqSharp.Applications
             : base(deviceIds: options.DeviceIds, processorType: options.ProcessorType, modelFilePath: options.ModelFilePath, memoryUsageRatio: options.MemoryUsageRatio,
                   compilerOptions: options.CompilerOptions, runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq,
                   startToRunValidAfterUpdates: options.StartValidAfterUpdates, maxDegressOfParallelism: options.TaskParallelism, mklInstructions: options.MKLInstructions, weightsUpdateCount: options.WeightsUpdateCount, 
-                  enableTensorCore: options.EnableTensorCore, cudaMemoryAllocatorType: options.CudaMemoryAllocatorType, elementType: options.AMP ? DType.Float16 : DType.Float32, randomSeed: options.RandomSeed, saveModelEveryUpdats: options.SaveModelEveryUpdates, saveGPUMemoryMode: options.SaveGPUMemoryMode)
+                  enableTensorCore: options.EnableTensorCore, cudaMemoryAllocatorType: options.CudaMemoryAllocatorType, elementType: options.AMP ? DType.Float16 : DType.Float32, randomSeed: options.RandomSeed, 
+                  saveModelEveryUpdats: options.SaveModelEveryUpdates, saveGPUMemoryMode: options.SaveGPUMemoryMode, initLossScaling: options.InitLossScaling)
         {
             m_paddingType = options.PaddingType;
             m_options = options;
@@ -214,7 +215,7 @@ namespace Seq2SeqSharp.Applications
             {
                 (var c, _) = Decoder.GPTDecode(tgtTokensList, computeGraph, decoder as GPTDecoder, decoderFFLayer, tgtEmbedding, m_modelMetaData.TgtVocab, m_paddingType,
                     m_options.DropoutRatio, decodingOptions, isTraining, lossType: m_options.LossType, focalLossGamma: m_options.FocalLossGamma, lossSmooth: m_options.LossSmooth,
-                    segmentEmbeddings: segmentEmbedding, amp: m_options.AMP, posEmbeddings: posEmbeddings);
+                    segmentEmbeddings: segmentEmbedding, amp: m_options.AMP, posEmbeddings: posEmbeddings, lossScaling: LossScaling);
                 nr.Cost = c;
                 nr.Output = null;
             }           
@@ -242,7 +243,7 @@ namespace Seq2SeqSharp.Applications
                                                                             m_modelMetaData.TgtVocab, m_paddingType, 0.0f, decodingOptions, isTraining,
                                                                             outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus,
                                                                             blockedTokens: decodingOptions.BlockedTokens, segmentEmbeddings: segmentEmbedding, 
-                                                                            cachedTensors: cachedTensors, amp: m_options.AMP, posEmbeddings: posEmbeddings);
+                                                                            cachedTensors: cachedTensors, amp: m_options.AMP, posEmbeddings: posEmbeddings, lossScaling: LossScaling);
 
                             bssSeqList = Decoder.SwapBeamAndBatch(bssSeqList); // Swap shape: (beam_search_size, batch_size) -> (batch_size, beam_search_size)
                             batch2beam2seq = Decoder.CombineBeamSearchResults(batch2beam2seq, bssSeqList);

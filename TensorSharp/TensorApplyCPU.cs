@@ -1708,7 +1708,7 @@ namespace TensorSharp
         }
 
 
-        unsafe static public void Adam(Tensor tw, Tensor tg, Tensor tv, Tensor tm, int rows, int cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
+        unsafe static public void Adam(Tensor tw, Tensor tg, Tensor tv, Tensor tm, int rows, int cols, float gradNormFactor, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
 		{
 			float* w = (float*)CpuNativeHelpers.GetBufferStart(tw);
 			float* g = (float*)CpuNativeHelpers.GetBufferStart(tg);
@@ -1726,7 +1726,7 @@ namespace TensorSharp
 				{
 					if (sg[i] != 0.0)
 					{
-						float g2 = sg[i] / batchSize;
+						float g2 = sg[i] / gradNormFactor;
 
 						if (g2 > clipval)
 						{

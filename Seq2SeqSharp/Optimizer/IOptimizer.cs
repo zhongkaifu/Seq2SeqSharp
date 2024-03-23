@@ -7,6 +7,6 @@ namespace Seq2SeqSharp.Optimizer
 {
     public interface IOptimizer
     {
-        void UpdateWeights(List<IWeightTensor> model, int tokenSize, float step_size, float regc, int iter);
+        void UpdateWeights(List<IWeightTensor> model, float gradNormFactor, float step_size, float regc, int iter);
     }
 }

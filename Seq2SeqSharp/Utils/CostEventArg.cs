@@ -18,6 +18,8 @@ namespace Seq2SeqSharp
         public DateTime StartDateTime { get; set; }
 
         public float LearningRate { get; set; }
+
+        public float LossScaling { get; set; }
     }
 
     public class EvaluationEventArg : EventArgs

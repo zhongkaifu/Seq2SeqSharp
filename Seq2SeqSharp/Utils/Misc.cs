@@ -108,7 +108,7 @@ namespace Seq2SeqSharp.Utils
                 wordPerSec = ep.ProcessedWordsInTotal / ts.TotalSeconds;
             }
 
-            Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate.ToString("e4")}, AvgCost = {ep.AvgCostInTotal.ToString("e4")}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin:F}, WordPerSec = {wordPerSec:F}");
+            Logger.WriteLine($"Update = {ep.Update}, Epoch = {ep.Epoch}, LR = {ep.LearningRate.ToString("e4")}, AvgCost = {ep.AvgCostInTotal.ToString("e4")}, LossScaling = {ep.LossScaling:F}, Sent = {ep.ProcessedSentencesInTotal}, SentPerMin = {sentPerMin:F}, WordPerSec = {wordPerSec:F}");
         }
 
         public static IOptimizer CreateOptimizer(Options opts)
