@@ -1569,7 +1569,7 @@ namespace Seq2SeqSharp.Tools
         /// <param name="seqs"></param>
         /// <param name="topP"></param>
         /// <returns>The sampled index</returns>
-        public IWeightTensor TopPSample(IWeightTensor w, float topP = 1.0f, float repeatPenalty = 2.0f, List<int> blockedTokens = null, List<List<int>> decodedSequences = null)
+        public IWeightTensor TopPSample(IWeightTensor w, float topP = 1.0f, float repeatPenalty = 2.0f, List<List<int>> decodedSequences = null)
         {
             int K = w.Columns;
             WeightTensor m = w as WeightTensor;
@@ -1596,11 +1596,6 @@ namespace Seq2SeqSharp.Tools
                 {
                     float weight = weights[offset + j];
                     int idx = j;
-
-                    if (blockedTokens != null && blockedTokens.Contains(idx))
-                    {
-                        continue;
-                    }
 
                     // Decay weights if tokens has already been generated before
                     if (tokenId2Distance.ContainsKey(idx))

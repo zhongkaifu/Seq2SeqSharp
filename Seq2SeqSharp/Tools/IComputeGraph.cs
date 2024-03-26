@@ -66,7 +66,7 @@ namespace Seq2SeqSharp
         IWeightTensor LessOrEqual(IWeightTensor w, float val);
         IWeightTensor GreaterThan(IWeightTensor w, float val);
 
-        IWeightTensor TopPSample(IWeightTensor w, float topP = 1.0f, float repeatPenalty = 2.0f, List<int> blockedTokens = null, List<List<int>> decodedSequences = null);
+        IWeightTensor TopPSample(IWeightTensor w, float topP = 1.0f, float repeatPenalty = 2.0f, List<List<int>> decodedSequences = null);
 
         IWeightTensor Zero(long[] sizes);
         IWeightTensor CreateTensorWeights(long[] sizes, float[] values);
