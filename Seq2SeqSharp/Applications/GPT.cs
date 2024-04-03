@@ -242,7 +242,7 @@ namespace Seq2SeqSharp.Applications
                             (var cost2, var bssSeqList) = Decoder.GPTDecode(batch2tgtTokens, g, decoder as GPTDecoder, decoderFFLayer, tgtEmbedding,
                                                                             m_modelMetaData.TgtVocab, m_paddingType, 0.0f, decodingOptions, isTraining,
                                                                             outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus,
-                                                                            blockedTokens: decodingOptions.BlockedTokens, segmentEmbeddings: segmentEmbedding, 
+                                                                            segmentEmbeddings: segmentEmbedding, 
                                                                             cachedTensors: cachedTensors, amp: m_options.AMP, posEmbeddings: posEmbeddings, lossScaling: LossScaling);
 
                             bssSeqList = Decoder.SwapBeamAndBatch(bssSeqList); // Swap shape: (beam_search_size, batch_size) -> (batch_size, beam_search_size)
