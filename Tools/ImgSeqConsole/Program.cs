@@ -46,203 +46,203 @@ namespace ImgSeqConsole
 
         private static void Main(string[] args)
         {
-            try
-            {
-                //Parse command line
-                ArgParser argParser = new ArgParser(args, opts);
-                if (!opts.ConfigFilePath.IsNullOrEmpty())
-                {
-                    Console.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
-                    opts = JsonConvert.DeserializeObject<Seq2SeqOptions>(File.ReadAllText(opts.ConfigFilePath));
-                }
+            //try
+            //{
+            //    //Parse command line
+            //    ArgParser argParser = new ArgParser(args, opts);
+            //    if (!opts.ConfigFilePath.IsNullOrEmpty())
+            //    {
+            //        Console.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
+            //        opts = JsonConvert.DeserializeObject<Seq2SeqOptions>(File.ReadAllText(opts.ConfigFilePath));
+            //    }
 
-                Logger.Initialize(opts.LogDestination, opts.LogLevel, $"{nameof(ImgSeqConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log");
+            //    Logger.Initialize(opts.LogDestination, opts.LogLevel, $"{nameof(ImgSeqConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log");
 
-                ShowOptions(args, opts);
+            //    ShowOptions(args, opts);
 
-                DecodingOptions decodingOptions = opts.CreateDecodingOptions();
-                Image2Seq ss = null;
-                if (opts.Task == ModeEnums.Train)
-                {
-                    // Load train corpus
-                    var trainCorpus = new VisionTextCorpus<VisionTextCorpusBatch>(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, maxTokenSizePerBatch: opts.MaxTokenSizePerBatch,
-                        maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, paddingEnums: opts.PaddingType, tooLongSequence: opts.TooLongSequence, indexedFilePath: opts.IndexedCorpusPath);
+            //    DecodingOptions decodingOptions = opts.CreateDecodingOptions();
+            //    Image2Seq ss = null;
+            //    if (opts.Task == ModeEnums.Train)
+            //    {
+            //        // Load train corpus
+            //        var trainCorpus = new VisionTextCorpus<VisionTextCorpusBatch>(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, maxTokenSizePerBatch: opts.MaxTokenSizePerBatch,
+            //            maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, paddingEnums: opts.PaddingType, tooLongSequence: opts.TooLongSequence, indexedFilePath: opts.IndexedCorpusPath);
 
-                    // Load valid corpus
-                    var validCorpusList = new List<VisionTextCorpus<VisionTextCorpusBatch>>();
-                    if (!opts.ValidCorpusPaths.IsNullOrEmpty())
-                    {
-                        string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
-                        foreach (var validCorpusPath in validCorpusPathList)
-                        {
-                            validCorpusList.Add(new VisionTextCorpus<VisionTextCorpusBatch>(validCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValMaxTokenSizePerBatch, opts.MaxValidSrcSentLength, opts.MaxValidTgtSentLength, paddingEnums: opts.PaddingType, tooLongSequence: opts.TooLongSequence));
-                        }
+            //        // Load valid corpus
+            //        var validCorpusList = new List<VisionTextCorpus<VisionTextCorpusBatch>>();
+            //        if (!opts.ValidCorpusPaths.IsNullOrEmpty())
+            //        {
+            //            string[] validCorpusPathList = opts.ValidCorpusPaths.Split(';');
+            //            foreach (var validCorpusPath in validCorpusPathList)
+            //            {
+            //                validCorpusList.Add(new VisionTextCorpus<VisionTextCorpusBatch>(validCorpusPath, opts.SrcLang, opts.TgtLang, opts.ValMaxTokenSizePerBatch, opts.MaxValidSrcSentLength, opts.MaxValidTgtSentLength, paddingEnums: opts.PaddingType, tooLongSequence: opts.TooLongSequence));
+            //            }
 
-                    }
+            //        }
 
-                    // Create learning rate
-                    //ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount, opts.LearningRateStepDownFactor, opts.UpdateNumToStepDownLearningRate);
-                    ILearningRate learningRate = new CosineDecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.LearningRateDecaySteps, opts.WeightsUpdateCount);
+            //        // Create learning rate
+            //        //ILearningRate learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount, opts.LearningRateStepDownFactor, opts.UpdateNumToStepDownLearningRate);
+            //        ILearningRate learningRate = new CosineDecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.LearningRateDecaySteps, opts.WeightsUpdateCount);
 
 
-                    // Create optimizer
-                    IOptimizer optimizer = Misc.CreateOptimizer(opts);
+            //        // Create optimizer
+            //        IOptimizer optimizer = Misc.CreateOptimizer(opts);
 
-                    // Create metrics
-                    List<IMetric> metrics = CreateMetrics();
+            //        // Create metrics
+            //        List<IMetric> metrics = CreateMetrics();
 
-                    if (!opts.ModelFilePath.IsNullOrEmpty() && File.Exists(opts.ModelFilePath))
-                    {
-                        //Incremental training
-                        Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
-                        ss = new Image2Seq(opts);
-                    }
-                    else
-                    {
-                        // Load or build vocabulary
-                        Vocab srcVocab = null;
-                        Vocab tgtVocab = null;
-                        if (!opts.SrcVocab.IsNullOrEmpty() && !opts.TgtVocab.IsNullOrEmpty())
-                        {
-                            Logger.WriteLine($"Loading source vocabulary from '{opts.SrcVocab}' and target vocabulary from '{opts.TgtVocab}'. Shared vocabulary is '{opts.SharedEmbeddings}'");
-                            if (opts.SharedEmbeddings == true && (opts.SrcVocab != opts.TgtVocab))
-                            {
-                                throw new ArgumentException("The source and target vocabularies must be identical if their embeddings are shared.");
-                            }
+            //        if (!opts.ModelFilePath.IsNullOrEmpty() && File.Exists(opts.ModelFilePath))
+            //        {
+            //            //Incremental training
+            //            Logger.WriteLine($"Loading model from '{opts.ModelFilePath}'...");
+            //            ss = new Image2Seq(opts);
+            //        }
+            //        else
+            //        {
+            //            // Load or build vocabulary
+            //            Vocab srcVocab = null;
+            //            Vocab tgtVocab = null;
+            //            if (!opts.SrcVocab.IsNullOrEmpty() && !opts.TgtVocab.IsNullOrEmpty())
+            //            {
+            //                Logger.WriteLine($"Loading source vocabulary from '{opts.SrcVocab}' and target vocabulary from '{opts.TgtVocab}'. Shared vocabulary is '{opts.SharedEmbeddings}'");
+            //                if (opts.SharedEmbeddings == true && (opts.SrcVocab != opts.TgtVocab))
+            //                {
+            //                    throw new ArgumentException("The source and target vocabularies must be identical if their embeddings are shared.");
+            //                }
 
-                            // Vocabulary files are specified, so we load them
-                            srcVocab = new Vocab(opts.SrcVocab);
-                            tgtVocab = new Vocab(opts.TgtVocab);
-                        }
-                        else
-                        {
-                            Logger.WriteLine($"Building vocabulary from training corpus. Shared vocabulary is '{opts.SharedEmbeddings}'");
-                            // We don't specify vocabulary, so we build it from train corpus
+            //                // Vocabulary files are specified, so we load them
+            //                srcVocab = new Vocab(opts.SrcVocab);
+            //                tgtVocab = new Vocab(opts.TgtVocab);
+            //            }
+            //            else
+            //            {
+            //                Logger.WriteLine($"Building vocabulary from training corpus. Shared vocabulary is '{opts.SharedEmbeddings}'");
+            //                // We don't specify vocabulary, so we build it from train corpus
 
-                            tgtVocab = trainCorpus.BuildVocabs(opts.TgtVocabSize, opts.MinTokenFreqInVocab);
+            //                tgtVocab = trainCorpus.BuildVocabs(opts.TgtVocabSize, opts.MinTokenFreqInVocab);
 
-                            Logger.WriteLine($"Dump target vocabulary to file '{opts.ModelFilePath}.tgt_vocab'");
-                            tgtVocab.DumpVocab(opts.ModelFilePath + ".tgt_vocab");
+            //                Logger.WriteLine($"Dump target vocabulary to file '{opts.ModelFilePath}.tgt_vocab'");
+            //                tgtVocab.DumpVocab(opts.ModelFilePath + ".tgt_vocab");
 
-                        }
+            //            }
 
-                        //New training
-                        ss = new Image2Seq(opts, srcVocab, tgtVocab);
-                    }
+            //            //New training
+            //            ss = new Image2Seq(opts, srcVocab, tgtVocab);
+            //        }
 
-                    // Add event handler for monitoring
-                    ss.StatusUpdateWatcher += Misc.Ss_StatusUpdateWatcher;
-                    ss.EvaluationWatcher += Ss_EvaluationWatcher;
+            //        // Add event handler for monitoring
+            //        ss.StatusUpdateWatcher += Misc.Ss_StatusUpdateWatcher;
+            //        ss.EvaluationWatcher += Ss_EvaluationWatcher;
 
-                    // Kick off training
-                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: metrics.ToArray(), decodingOptions: decodingOptions);
-                }
-                else if (opts.Task == ModeEnums.Valid)
-                {
-                    Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPaths}'");
+            //        // Kick off training
+            //        ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate, optimizer: optimizer, metrics: metrics.ToArray(), decodingOptions: decodingOptions);
+            //    }
+            //    else if (opts.Task == ModeEnums.Valid)
+            //    {
+            //        Logger.WriteLine($"Evaluate model '{opts.ModelFilePath}' by valid corpus '{opts.ValidCorpusPaths}'");
 
-                    // Create metrics
-                    List<IMetric> metrics = CreateMetrics();
+            //        // Create metrics
+            //        List<IMetric> metrics = CreateMetrics();
 
-                    // Load valid corpus
-                    Seq2SeqCorpus validCorpus = new Seq2SeqCorpus(opts.ValidCorpusPaths, opts.SrcLang, opts.TgtLang, opts.ValMaxTokenSizePerBatch, opts.MaxValidSrcSentLength, opts.MaxValidTgtSentLength, paddingEnums: opts.PaddingType, tooLongSequence: opts.TooLongSequence);
+            //        // Load valid corpus
+            //        Seq2SeqCorpus validCorpus = new Seq2SeqCorpus(opts.ValidCorpusPaths, opts.SrcLang, opts.TgtLang, opts.ValMaxTokenSizePerBatch, opts.MaxValidSrcSentLength, opts.MaxValidTgtSentLength, paddingEnums: opts.PaddingType, tooLongSequence: opts.TooLongSequence);
 
-                    ss = new Image2Seq(opts);
-                    ss.EvaluationWatcher += Ss_EvaluationWatcher;
-                    ss.Valid(validCorpus: validCorpus, metrics: metrics, decodingOptions: decodingOptions);
-                }
-                else if (opts.Task == ModeEnums.Test)
-                {
-                    if (File.Exists(opts.OutputFile))
-                    {
-                        Logger.WriteLine(Logger.Level.err, ConsoleColor.Yellow, $"Output file '{opts.OutputFile}' exist. Delete it.");
-                        File.Delete(opts.OutputFile);
-                    }
+            //        ss = new Image2Seq(opts);
+            //        ss.EvaluationWatcher += Ss_EvaluationWatcher;
+            //        ss.Valid(validCorpus: validCorpus, metrics: metrics, decodingOptions: decodingOptions);
+            //    }
+            //    else if (opts.Task == ModeEnums.Test)
+            //    {
+            //        if (File.Exists(opts.OutputFile))
+            //        {
+            //            Logger.WriteLine(Logger.Level.err, ConsoleColor.Yellow, $"Output file '{opts.OutputFile}' exist. Delete it.");
+            //            File.Delete(opts.OutputFile);
+            //        }
 
-                    //Test trained model
-                    ss = new Image2Seq(opts);
-                    Stopwatch stopwatch = Stopwatch.StartNew();
+            //        //Test trained model
+            //        ss = new Image2Seq(opts);
+            //        Stopwatch stopwatch = Stopwatch.StartNew();
 
-                    if (String.IsNullOrEmpty(opts.OutputPromptFile))
-                    {
-                        ss.Test(opts.InputTestFile, opts.OutputFile, opts.BatchSize, decodingOptions, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath, opts.OutputAlignmentsFile);
-                    }
-                    else
-                    {
-                        Logger.WriteLine($"Test with prompt file '{opts.OutputPromptFile}'");
-                        ss.Test(opts.InputTestFile, opts.OutputPromptFile, opts.OutputFile, opts.BatchSize, decodingOptions, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath, opts.OutputAlignmentsFile);
-                    }
+            //        if (String.IsNullOrEmpty(opts.OutputPromptFile))
+            //        {
+            //            ss.Test(opts.InputTestFile, opts.OutputFile, opts.BatchSize, decodingOptions, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath, opts.OutputAlignmentsFile);
+            //        }
+            //        else
+            //        {
+            //            Logger.WriteLine($"Test with prompt file '{opts.OutputPromptFile}'");
+            //            ss.Test(opts.InputTestFile, opts.OutputPromptFile, opts.OutputFile, opts.BatchSize, decodingOptions, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath, opts.OutputAlignmentsFile);
+            //        }
 
-                    stopwatch.Stop();
+            //        stopwatch.Stop();
 
-                    Logger.WriteLine($"Test mode execution time elapsed: '{stopwatch.Elapsed}'");
-                }
-                else if (opts.Task == ModeEnums.Alignment)
-                {
-                    if (File.Exists(opts.OutputAlignmentsFile))
-                    {
-                        Logger.WriteLine(Logger.Level.err, ConsoleColor.Yellow, $"Output file '{opts.OutputAlignmentsFile}' exist. Delete it.");
-                        File.Delete(opts.OutputAlignmentsFile);
-                    }
+            //        Logger.WriteLine($"Test mode execution time elapsed: '{stopwatch.Elapsed}'");
+            //    }
+            //    else if (opts.Task == ModeEnums.Alignment)
+            //    {
+            //        if (File.Exists(opts.OutputAlignmentsFile))
+            //        {
+            //            Logger.WriteLine(Logger.Level.err, ConsoleColor.Yellow, $"Output file '{opts.OutputAlignmentsFile}' exist. Delete it.");
+            //            File.Delete(opts.OutputAlignmentsFile);
+            //        }
 
-                    //Test trained model
-                    ss = new Image2Seq(opts);
-                    Stopwatch stopwatch = Stopwatch.StartNew();
+            //        //Test trained model
+            //        ss = new Image2Seq(opts);
+            //        Stopwatch stopwatch = Stopwatch.StartNew();
 
-                    if (String.IsNullOrEmpty(opts.OutputPromptFile))
-                    {
-                        Logger.WriteLine(Logger.Level.err, $"The prompt file for output is required for alignment task.");
-                        return;
-                    }
+            //        if (String.IsNullOrEmpty(opts.OutputPromptFile))
+            //        {
+            //            Logger.WriteLine(Logger.Level.err, $"The prompt file for output is required for alignment task.");
+            //            return;
+            //        }
 
-                    Logger.WriteLine($"Test with prompt file '{opts.OutputPromptFile}'");
-                    ss.Test<Seq2SeqCorpusBatch>(opts.InputTestFile, opts.OutputPromptFile, null, opts.BatchSize, decodingOptions, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath, opts.OutputAlignmentsFile);
+            //        Logger.WriteLine($"Test with prompt file '{opts.OutputPromptFile}'");
+            //        ss.Test<Seq2SeqCorpusBatch>(opts.InputTestFile, opts.OutputPromptFile, null, opts.BatchSize, decodingOptions, opts.SrcSentencePieceModelPath, opts.TgtSentencePieceModelPath, opts.OutputAlignmentsFile);
 
-                    stopwatch.Stop();
+            //        stopwatch.Stop();
 
-                    Logger.WriteLine($"Alignment mode execution time elapsed: '{stopwatch.Elapsed}'");
-                }
-                else if (opts.Task == ModeEnums.DumpVocab)
-                {
-                    ss = new Image2Seq(opts);
-                    ss.DumpVocabToFiles(opts.SrcVocab, opts.TgtVocab);
-                }
-                else if (opts.Task == ModeEnums.UpdateVocab)
-                {
-                    ss = new Image2Seq(opts);
-                    Vocab srcVocab = null;
-                    Vocab tgtVocab = null;
+            //        Logger.WriteLine($"Alignment mode execution time elapsed: '{stopwatch.Elapsed}'");
+            //    }
+            //    else if (opts.Task == ModeEnums.DumpVocab)
+            //    {
+            //        ss = new Image2Seq(opts);
+            //        ss.DumpVocabToFiles(opts.SrcVocab, opts.TgtVocab);
+            //    }
+            //    else if (opts.Task == ModeEnums.UpdateVocab)
+            //    {
+            //        ss = new Image2Seq(opts);
+            //        Vocab srcVocab = null;
+            //        Vocab tgtVocab = null;
 
-                    if (String.IsNullOrEmpty(opts.SrcVocab) == false)
-                    {
-                        Logger.WriteLine($"Replacing source vocabulary in model '{opts.ModelFilePath}' by external vocabulary '{opts.SrcVocab}'");
-                        srcVocab = new Vocab(opts.SrcVocab);
-                    }
-                    if (String.IsNullOrEmpty(opts.TgtVocab) == false)
-                    {
-                        Logger.WriteLine($"Replacing target vocabulary in model '{opts.ModelFilePath}' by external vocabulary '{opts.TgtVocab}'");
-                        tgtVocab = new Vocab(opts.TgtVocab);
-                    }
+            //        if (String.IsNullOrEmpty(opts.SrcVocab) == false)
+            //        {
+            //            Logger.WriteLine($"Replacing source vocabulary in model '{opts.ModelFilePath}' by external vocabulary '{opts.SrcVocab}'");
+            //            srcVocab = new Vocab(opts.SrcVocab);
+            //        }
+            //        if (String.IsNullOrEmpty(opts.TgtVocab) == false)
+            //        {
+            //            Logger.WriteLine($"Replacing target vocabulary in model '{opts.ModelFilePath}' by external vocabulary '{opts.TgtVocab}'");
+            //            tgtVocab = new Vocab(opts.TgtVocab);
+            //        }
 
-                    ss.UpdateVocabs(srcVocab, tgtVocab);
-                }
-                else if (opts.Task == ModeEnums.VQModel)
-                {
-                    Logger.WriteLine($"Model vector quantization for '{opts.ModelFilePath}'. Type = '{opts.VQType}'");
-                    ss = new Image2Seq(opts);
-                    ss.VQModel();
-                }
-                else
-                {
-                    Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Task '{opts.Task}' is not supported.");
-                    argParser.Usage();
-                }
-            }
-            catch (Exception err)
-            {
-                Logger.WriteLine($"Exception: '{err.Message}'");
-                Logger.WriteLine($"Call stack: '{err.StackTrace}'");
-            }
+            //        ss.UpdateVocabs(srcVocab, tgtVocab);
+            //    }
+            //    else if (opts.Task == ModeEnums.VQModel)
+            //    {
+            //        Logger.WriteLine($"Model vector quantization for '{opts.ModelFilePath}'. Type = '{opts.VQType}'");
+            //        ss = new Image2Seq(opts);
+            //        ss.VQModel();
+            //    }
+            //    else
+            //    {
+            //        Logger.WriteLine(Logger.Level.err, ConsoleColor.Red, $"Task '{opts.Task}' is not supported.");
+            //        argParser.Usage();
+            //    }
+            //}
+            //catch (Exception err)
+            //{
+            //    Logger.WriteLine($"Exception: '{err.Message}'");
+            //    Logger.WriteLine($"Call stack: '{err.StackTrace}'");
+            //}
         }
 
         private static List<IMetric> CreateMetrics()

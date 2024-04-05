@@ -13,8 +13,6 @@ using System.Collections.Generic;
 using System.Linq;
 using TensorSharp;
 using Seq2SeqSharp.Utils;
-using ManagedCuda.BasicTypes;
-using ManagedCuda.VectorTypes;
 using TensorSharp.Cpu;
 
 /// <summary>
@@ -1596,6 +1594,12 @@ namespace Seq2SeqSharp.Tools
                 {
                     float weight = weights[offset + j];
                     int idx = j;
+
+                    if (weight <= 0.0f)
+                    {
+                        // This item has been masked, so we ingore it.
+                        continue;
+                    }
 
                     // Decay weights if tokens has already been generated before
                     if (tokenId2Distance.ContainsKey(idx))
