@@ -2929,7 +2929,7 @@ namespace Seq2SeqSharp.Tools
 
 
 
-        private (float, IWeightTensor) CalculateEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float smooth, float gamma, float lossScaling)
+        private (float, IWeightTensor) CalculateEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float smooth, float gamma)
         {
             var scatterIdxTensor = View(truthTgtSeqs, new long[] { -1, 1 });
             var scatterTrue = Scatter(scatterIdxTensor, 1.0f, 1, needGradient: false, shape: probs.Sizes);
@@ -2949,15 +2949,8 @@ namespace Seq2SeqSharp.Tools
             }
 
             loss = Log(loss);
+            loss = Mul(loss, -1.0f, inPlace: true);
 
-            if (lossScaling > 0.0f)
-            {
-                loss = Mul(loss, -1.0f * lossScaling, inPlace: true);
-            }
-            else
-            {
-                loss = Mul(loss, -1.0f, inPlace: true);
-            }
 
             if (focalFactor != null)
             {
@@ -2965,25 +2958,21 @@ namespace Seq2SeqSharp.Tools
             }
             var lossTrue = Gather(loss, scatterIdxTensor, 1, runGradients: false);
             var lossValue = lossTrue.ToWeightArray().Sum() / loss.ElementCount;
-            if (lossScaling > 0.0f)
-            {
-                lossValue = lossValue / lossScaling;
-            }
 
             return (lossValue, loss);
         }
 
-        public float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f, float gamma = 0.0f, float lossScaling = 0.0f)
+        public float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f, float gamma = 0.0f)
         {
-            (float lossValue, IWeightTensor loss) = CalculateEntropyLoss(probs, truthTgtSeqs, smooth, gamma, lossScaling);
+            (float lossValue, IWeightTensor loss) = CalculateEntropyLoss(probs, truthTgtSeqs, smooth, gamma);
             loss.FillGradient(graident);
 
             return lossValue;
         }
 
-        public float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, IWeightTensor graident, float smooth = 0.0f, float gamma = 0.0f, float lossScaling = 0.0f)
+        public float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, IWeightTensor graident, float smooth = 0.0f, float gamma = 0.0f)
         {
-            (float lossValue, IWeightTensor loss) = CalculateEntropyLoss(probs, truthTgtSeqs, smooth, gamma, lossScaling);
+            (float lossValue, IWeightTensor loss) = CalculateEntropyLoss(probs, truthTgtSeqs, smooth, gamma);
             loss.CopyWeightsToGradients(graident);
 
             return lossValue;

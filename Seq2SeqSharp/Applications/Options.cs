@@ -303,9 +303,9 @@ namespace Seq2SeqSharp.Applications
         [Range(-1, 9999999)]
         public int RandomSeed = -1;
 
-        [Arg("Initial loss Scaling when AMP is enabled. Default is 0 which is disabled.", nameof(InitLossScaling))]
-        [Range(0, 65000)]
-        public float InitLossScaling = 0.0f;
+        [Arg("Initial loss Scaling when AMP is enabled. Default is 1 which is disabled.", nameof(InitLossScaling))]
+        [Range(1, 65000)]
+        public float InitLossScaling = 1.0f;
 
         [Arg("The Positional Embeddings Type. It supports APE, NoPE and RoPE", nameof(PEType))]
         [RegularExpression("APE|NoPE|RoPE")]

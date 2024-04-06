@@ -152,7 +152,7 @@ namespace Seq2SeqSharp.Applications
                 var tgtSnts = sntPairBatch.GetTgtTokens();
                 var tgtTokensLists = m_modelMetaData.TgtVocab.GetWordIndex(tgtSnts);
                 var tgtTokensTensor = computeGraph.CreateTokensTensor(tgtTokensLists);
-                nr.Cost = computeGraph.CrossEntropyLoss(probs, tgtTokensTensor, lossScaling: LossScaling);
+                nr.Cost = computeGraph.CrossEntropyLoss(probs, tgtTokensTensor, graident: LossScaling);
             }
             else
             {

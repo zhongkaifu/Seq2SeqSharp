@@ -178,13 +178,13 @@ namespace Seq2SeqSharp
 
                 if (m_tagWeightsList == null)
                 {
-                    cost = g.CrossEntropyLoss(probs, tgtTokensTensor, smooth: m_options.LossSmooth, gamma: m_options.FocalLossGamma, lossScaling: LossScaling);
+                    cost = g.CrossEntropyLoss(probs, tgtTokensTensor, smooth: m_options.LossSmooth, gamma: m_options.FocalLossGamma, graident: LossScaling);
                 }
                 else
                 {
                     var tagWeightsTensor = g.CreateTensorWeights(sizes: new long[] { 1, m_tagWeightsList.Length }, m_tagWeightsList);
                     tagWeightsTensor = g.Expand(tagWeightsTensor, dims: probs.Sizes);
-                    cost = g.CrossEntropyLoss(probs, tgtTokensTensor, tagWeightsTensor, smooth: m_options.LossSmooth, gamma: m_options.FocalLossGamma, lossScaling: LossScaling);
+                    cost = g.CrossEntropyLoss(probs, tgtTokensTensor, tagWeightsTensor, smooth: m_options.LossSmooth, gamma: m_options.FocalLossGamma);
                 }
             }
             else

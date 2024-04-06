@@ -139,14 +139,14 @@ namespace Seq2SeqSharp.Tools
         bool m_saveGPUMemoryMode = false;
         CudaMemoryDeviceAllocatorType m_cudaMemoryAllocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool;
         DType m_elementType = DType.Float32;
-        float m_initLossScaling = 0.0f;
+        float m_initLossScaling = 1.0f;
         
-        public float LossScaling = 0.0f;
+        public float LossScaling = 1.0f;
 
         public BaseSeq2SeqFramework(string deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, 
             string compilerOptions = null, int runValidEveryUpdates = 10000, int primaryTaskId = 0, int updateFreq = 1, int startToRunValidAfterUpdates = 0,
             int maxDegressOfParallelism = 1, string mklInstructions = "AVX2", int weightsUpdateCount = 0, bool enableTensorCore = true, CudaMemoryDeviceAllocatorType cudaMemoryAllocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool, 
-            DType elementType = DType.Float32, int randomSeed = -1, int saveModelEveryUpdats = 10000, bool saveGPUMemoryMode = false, float initLossScaling = 0.0f)
+            DType elementType = DType.Float32, int randomSeed = -1, int saveModelEveryUpdats = 10000, bool saveGPUMemoryMode = false, float initLossScaling = 1.0f)
         {
             m_deviceIds = deviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
             m_compilerOptions = compilerOptions;
