@@ -117,7 +117,7 @@ namespace Seq2SeqSharp.Utils
             IOptimizer optimizer = null;
             if (string.Equals(opts.Optimizer, "Adam", StringComparison.InvariantCultureIgnoreCase))
             {
-                optimizer = new AdamOptimizer(opts.GradClip, opts.Beta1, opts.Beta2, opts.SaveGPUMemoryMode, opts.CheckTensorCorrupted);
+                optimizer = new AdamOptimizer(opts.GradClip, opts.Beta1, opts.Beta2, opts.SaveGPUMemoryMode);
             }
             else
             {

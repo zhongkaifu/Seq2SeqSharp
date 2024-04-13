@@ -322,8 +322,8 @@ namespace Seq2SeqSharp.Applications
         public Logger.Level LogLevel = (Logger.Level.err | Logger.Level.warn | Logger.Level.info | Logger.Level.debug);
 
 
-        [Arg("It indicates if checking tensor corrupted is enabled. Default is enabled", nameof(CheckTensorCorrupted))]
-        public bool CheckTensorCorrupted = true;
+        [Arg("It indicates if checking tensor corrupted is enabled. Default is disabled.", nameof(CheckTensorCorrupted))]
+        public bool CheckTensorCorrupted = false;
         public void ValidateOptions()
         {
             if (AMP == true && ProcessorType != ProcessorTypeEnums.GPU)

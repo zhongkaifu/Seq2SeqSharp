@@ -32,11 +32,10 @@ namespace Seq2SeqSharp.Optimizer
         private readonly ConcurrentDictionary<string, Tensor> m_cacheName2M;
         private readonly float m_clipval;
         private readonly bool m_saveGPUMemoryMode = false;
-        private readonly bool m_checkTensorCorrupted = true;
 
-        public AdamOptimizer(float clipval, float beta1 = 0.9f, float beta2 = 0.98f, bool saveGPUMemoryMode = false, bool checkTensorCorrupted = true)
+        public AdamOptimizer(float clipval, float beta1 = 0.9f, float beta2 = 0.98f, bool saveGPUMemoryMode = false)
         {
-            Logger.WriteLine(Logger.Level.debug, $"Creating Adam optimizer. GradClip = '{clipval}', Beta1 = '{beta1}', Beta2 = '{beta2}', SaveGPUMemoryMode = '{saveGPUMemoryMode}', CheckTensorCorrupted = '{checkTensorCorrupted}'");
+            Logger.WriteLine(Logger.Level.debug, $"Creating Adam optimizer. GradClip = '{clipval}', Beta1 = '{beta1}', Beta2 = '{beta2}', SaveGPUMemoryMode = '{saveGPUMemoryMode}'");
 
             m_cacheName2V = new ConcurrentDictionary<string, Tensor>();
             m_cacheName2M = new ConcurrentDictionary<string, Tensor>();
@@ -45,7 +44,6 @@ namespace Seq2SeqSharp.Optimizer
             m_beta1 = beta1;
             m_beta2 = beta2;
             m_saveGPUMemoryMode = saveGPUMemoryMode;
-            m_checkTensorCorrupted = checkTensorCorrupted;
         }
 
         public void UpdateWeights(List<IWeightTensor> model, float gradNormFactor, float step_size, float regc, int iter)
@@ -58,11 +56,6 @@ namespace Seq2SeqSharp.Optimizer
                 if (!item.IsTrainable)
                 {
                     continue;
-                }
-
-                if (m_checkTensorCorrupted == true && item.IsGradientCorrupted())
-                {
-                    throw new GradientsCorruptedException($"The gradients of '{item.Name}' is corrupted.");
                 }
                
                 if (name2tensor.ContainsKey(item.Name))

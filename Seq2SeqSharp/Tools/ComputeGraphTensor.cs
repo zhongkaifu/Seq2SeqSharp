@@ -79,9 +79,10 @@ namespace Seq2SeqSharp.Tools
 
         public bool m_saveGPUMemoryMode = false;
 
+        public bool m_autoCheckCorruption = false;
 
 
-        public ComputeGraphTensor(IWeightFactory weightFactory, int deviceId, bool needBack = true, ConcurrentList<Action> backprop = null, bool isSubGraph = false, bool saveGPUMemoryMode = false)
+        public ComputeGraphTensor(IWeightFactory weightFactory, int deviceId, bool needBack = true, ConcurrentList<Action> backprop = null, bool isSubGraph = false, bool saveGPUMemoryMode = false, bool autoCheckCorruption = false)
         {
             m_backprop = backprop ?? new ConcurrentList<Action>();
             m_weightTensorFactory = weightFactory as WeightTensorFactory;
@@ -89,6 +90,7 @@ namespace Seq2SeqSharp.Tools
             m_deviceId = deviceId;
             m_isSubGraph = isSubGraph;
             m_saveGPUMemoryMode = false; // We disable it for now, because it's really timing-cost. If you really want to use it, please enable this feature for those specific operators you want to use, such as activate functions.
+            m_autoCheckCorruption = autoCheckCorruption;
 
             m_tensorsBindToCurrentGraph = new List<IWeightTensor>();
         }
@@ -100,7 +102,7 @@ namespace Seq2SeqSharp.Tools
 
         public IComputeGraph CreateSubGraph(string name)
         {
-            ComputeGraphTensor subGraph = new ComputeGraphTensor(m_weightTensorFactory, m_deviceId, m_needsBackprop, m_backprop, isSubGraph: true, saveGPUMemoryMode:m_saveGPUMemoryMode);
+            ComputeGraphTensor subGraph = new ComputeGraphTensor(m_weightTensorFactory, m_deviceId, m_needsBackprop, m_backprop, isSubGraph: true, saveGPUMemoryMode:m_saveGPUMemoryMode, autoCheckCorruption: m_autoCheckCorruption);
             return subGraph;
         }
 
@@ -121,6 +123,13 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             Ops.Sigmoid(res.TWeight, m.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -163,6 +172,14 @@ namespace Seq2SeqSharp.Tools
 
             VisualizeNodes(w, res);
             Ops.SiLU(res.TWeight, m.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 Tensor mTWeight = null;
@@ -210,7 +227,14 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             Ops.Rsqrt(res.TWeight, m.TWeight);
-          
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 void backward()
@@ -243,6 +267,14 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(new IWeightTensor[] { w1, w2 }, res);
 
             Ops.AddTanh(res.TWeight, m1.TWeight, m2.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 Tensor resTWeight = null;
@@ -286,6 +318,14 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(new IWeightTensor[] { w1, w2, w3 }, res);
 
             Ops.AddTanh3(res.TWeight, m1.TWeight, m2.TWeight, m3.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 Tensor resTWeight = null;
@@ -342,6 +382,13 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             Ops.Mul(res.TWeight, m.TWeight, v);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -379,6 +426,14 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             Ops.RoPE(res.TWeight, m.TWeight, seqLen);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 void backward()
@@ -408,6 +463,13 @@ namespace Seq2SeqSharp.Tools
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.Div", graphToBind: this, needGradient: m1.NeedGradient || m2.NeedGradient);
 
             Ops.Div(res.TWeight, m1.TWeight, m2.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -457,6 +519,13 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             Ops.Div(res.TWeight, m.TWeight, v);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -515,6 +584,14 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(new IWeightTensor[] { w1, w2, w3, w4 }, res);
 
             Ops.MulMulAdd(res.TWeight, m1.TWeight, m2.TWeight, m3.TWeight, m4.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 Tensor m1TWeight = null;
@@ -588,6 +665,14 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(new IWeightTensor[] { w1, w2 }, res);
 
             Ops.Mul(res.TWeight, m1.TWeight, m2.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 Tensor m1TWeight = null;
@@ -646,6 +731,13 @@ namespace Seq2SeqSharp.Tools
 
 
             Ops.Add(res.TWeight, m1.TWeight, m2.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -693,6 +785,13 @@ namespace Seq2SeqSharp.Tools
 
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(newSizes, m_deviceId, name: $"{m.Name}.Sum", graphToBind: this, needGradient: m.NeedGradient);
             Ops.Sum(res.TWeight, m.TWeight, dim);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -722,6 +821,13 @@ namespace Seq2SeqSharp.Tools
 
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(newSizes, m_deviceId, name: $"{m.Name}.Mean", graphToBind: this, needGradient: m.NeedGradient);
             Ops.Mean(res.TWeight, m.TWeight, dim);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -755,6 +861,14 @@ namespace Seq2SeqSharp.Tools
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Log", graphToBind: this, needGradient: m.NeedGradient);
 
             Ops.Log(res.TWeight, m.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 Tensor mTWeight = null;
@@ -797,6 +911,14 @@ namespace Seq2SeqSharp.Tools
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Exp", graphToBind: this, needGradient: m.NeedGradient);
 
             Ops.Exp(res.TWeight, m.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 Tensor resTWeight = res.TWeight.CopyRef();
@@ -820,6 +942,14 @@ namespace Seq2SeqSharp.Tools
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}_{n}.Pow", graphToBind: this, needGradient: m.NeedGradient);
 
             Ops.Pow(res.TWeight, m.TWeight, n);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 Tensor mTWeight = m.TWeight.CopyRef();
@@ -858,6 +988,13 @@ namespace Seq2SeqSharp.Tools
 
 
             Ops.Add(res.TWeight, m1.TWeight, v);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -893,7 +1030,14 @@ namespace Seq2SeqSharp.Tools
 
             VisualizeNodes(new IWeightTensor[] { w1 }, res);
 
-            Ops.Sub(res.TWeight, v, m1.TWeight);         
+            Ops.Sub(res.TWeight, v, m1.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -922,6 +1066,13 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(new IWeightTensor[] { w1 }, res);
 
             Ops.Sub(res.TWeight, m0.TWeight, m1.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -953,6 +1104,14 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             Ops.Tanh(res.TWeight, m.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 Tensor resTWeight = null;
@@ -990,6 +1149,13 @@ namespace Seq2SeqSharp.Tools
             else
             {
                 Ops.Float2Half(res.TWeight, m.TWeight);
+            }
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
             }
 
             if (m_needsBackprop)
@@ -1033,6 +1199,13 @@ namespace Seq2SeqSharp.Tools
             {
                 Ops.Half2Float(res.TWeight, m.TWeight);
             }
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -1075,8 +1248,15 @@ namespace Seq2SeqSharp.Tools
             }
             VisualizeNodes(w, res);
 
-
             Ops.LeakyReLU(res.TWeight, m.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 Tensor mTWeight = m.TWeight.CopyRef();
@@ -1121,6 +1301,14 @@ namespace Seq2SeqSharp.Tools
 
 
             Ops.Relu(res.TWeight, m.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 Tensor mTWeight = m.TWeight.CopyRef();
@@ -1157,6 +1345,14 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(new IWeightTensor[] { m1, m2 }, res);
 
             Ops.AddmmBatch(res.TWeight, 0.0f, res.TWeight, alpha, t1.TWeight, t2.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 Tensor t1TWeight = null;
@@ -1230,6 +1426,14 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(new IWeightTensor[] { m1, m2 }, res);
 
             Ops.Addmm(res.TWeight, 0.0f, res.TWeight, alpha, t1.TWeight, t2.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 Tensor t1TWeight = null;
@@ -1323,6 +1527,13 @@ namespace Seq2SeqSharp.Tools
             {
                 Ops.Addmm(res.TWeight, 1.0f, t3WExp, alpha, t1.TWeight, t2.TWeight);
             }
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -1396,6 +1607,14 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.Transpose(dim1, dim2);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 void backward()
@@ -1430,6 +1649,14 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.Transpose();
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 void backward()
@@ -1463,7 +1690,15 @@ namespace Seq2SeqSharp.Tools
             WeightTensor mt = mask as WeightTensor;
             WeightTensor res = m.CopyWeightsRef($"{GetHashString(w.Name)}.TruncateGradient", needGradient: m.NeedGradient, graphToBind: this);
             int colSize = (int)m.Sizes[1];
-           
+
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 void backward()
@@ -1494,6 +1729,13 @@ namespace Seq2SeqSharp.Tools
 
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(argMaxT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Argmax", graphToBind: this, needGradient: m.NeedGradient);
             res.TWeight = argMaxT;
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -1510,6 +1752,13 @@ namespace Seq2SeqSharp.Tools
 
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(equalT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.EqualTo", graphToBind: this, needGradient: false);
             res.TWeight = equalT;
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -1529,6 +1778,13 @@ namespace Seq2SeqSharp.Tools
 
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(equalT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.LessOrEqual", graphToBind: this, needGradient: false);
             res.TWeight = equalT;
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -1548,6 +1804,13 @@ namespace Seq2SeqSharp.Tools
 
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(equalT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.GreaterThan", graphToBind: this, needGradient: false);
             res.TWeight = equalT;
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -1675,6 +1938,13 @@ namespace Seq2SeqSharp.Tools
 
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(argMaxT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Max", graphToBind: this, needGradient: m.NeedGradient);
             res.TWeight = argMaxT;
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             //if (m_needsBackprop)
             //{
@@ -1716,6 +1986,14 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             Ops.Softmax(res.TWeight, t.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 Tensor resTWeight = null;
@@ -1773,6 +2051,13 @@ namespace Seq2SeqSharp.Tools
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Peek", graphToBind: this, needGradient: m.NeedGradient, dtype:m.ElementType);
             res.TWeight = m.TWeight.Narrow(dim, ix, num);
             res.TGradient = (m_needsBackprop && res.NeedGradient) ? m.TGradient.Narrow(dim, ix, num) : null;
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             VisualizeNodes(w, res);
 
@@ -1894,6 +2179,13 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"Tensor_CopyFrom_Array", needGradient: false);
             res.TWeight.CopyFrom(values);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             return res;
         }
@@ -1902,6 +2194,13 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"Tensor_CopyFrom_Array", needGradient: false);
             Ops.Fill(res.TWeight, value);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             return res;
         }
@@ -1911,6 +2210,13 @@ namespace Seq2SeqSharp.Tools
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"New_UniformRandom_Tensor", needGradient: false);
             float[] w = TensorSharp.RandomGenerator.BuildRandomUniformWeight(sizes, minVal, maxVal);
             res.TWeight.CopyFrom(w);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             return res;
         }
@@ -1919,6 +2225,13 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor Zero(long[] sizes)
         {
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, cleanWeights: true, name: $"Zero_Tensor");
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             return res;
         }
@@ -1931,6 +2244,13 @@ namespace Seq2SeqSharp.Tools
 
 
             Ops.IndexSelectGrad(res.TWeight, src.TWeight, idx.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -1963,6 +2283,13 @@ namespace Seq2SeqSharp.Tools
 
 
             Ops.IndexSelect(res.TWeight, src.TWeight, idx.TWeight, isAdd);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -2023,6 +2350,13 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(wl, res);
 
             Ops.Concat(res.TWeight, dim, twl.ToArray());
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -2071,6 +2405,13 @@ namespace Seq2SeqSharp.Tools
                 using Tensor tWViewPermute = tWView.Permute(1, 0, 2);
                 using Tensor tW2 = Ops.AsContiguous(tWViewPermute);
                 res.TWeight = tW2.View(m.Rows, m.Columns);
+            }
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
             }
 
             if (m_needsBackprop)
@@ -2156,6 +2497,13 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             res.TWeight = Ops.AsContiguous(m.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (shareTensor)
             {
@@ -2231,6 +2579,14 @@ namespace Seq2SeqSharp.Tools
             //  VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.View(dims);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 void backward()
@@ -2268,6 +2624,13 @@ namespace Seq2SeqSharp.Tools
 
             Ops.Fill(res.TWeight, 0.0f);
             Ops.Scatter(res.TWeight, s.TWeight, dim, i.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -2297,6 +2660,13 @@ namespace Seq2SeqSharp.Tools
 
             Ops.Fill(res.TWeight, 0.0f);
             Ops.ScatterAdd(res.TWeight, s.TWeight, dim, i.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -2327,6 +2697,13 @@ namespace Seq2SeqSharp.Tools
 
             Ops.Fill(res.TWeight, 0.0f);
             Ops.ScatterFill(res.TWeight, val, dim, i.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -2352,6 +2729,13 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.Expand(dims);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -2406,6 +2790,14 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(new IWeightTensor[] { src, alpha, beta }, res);
 
             Ops.LayerNorm(res.TWeight, srcT.TWeight, alphaT.TWeight, betaT.TWeight, eps);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 Tensor srcTWeight = null;
@@ -2492,6 +2884,14 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(new IWeightTensor[] { src, alpha, beta }, res);
 
             Ops.RMSNorm(res.TWeight, srcT.TWeight, alphaT.TWeight, betaT.TWeight, eps);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 var srcTWeight = srcT.TWeight.CopyRef();
@@ -2584,6 +2984,13 @@ namespace Seq2SeqSharp.Tools
             VisualizeNodes(V, res);
 
             Ops.Mul(res.TWeight, w.TWeight, noiseExp);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -2621,6 +3028,13 @@ namespace Seq2SeqSharp.Tools
 
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(indices.Sizes, m_deviceId, name: $"Gather_{m_deviceId}", graphToBind: this, needGradient: s.NeedGradient && runGradients);
             Ops.Gather(res.TWeight, s.TWeight, dim, i.TWeight);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -2653,7 +3067,14 @@ namespace Seq2SeqSharp.Tools
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(newSize, m_deviceId, name: $"TopKValue_{m_deviceId}", graphToBind: this, needGradient: s.NeedGradient);
             WeightTensor resIdx = m_weightTensorFactory.CreateWeightTensor(newSize, m_deviceId, name: $"TopKIndex_{m_deviceId}", graphToBind: null, needGradient: false);
             Ops.TopK(res.TWeight, resIdx.TWeight, s.TWeight, k);
-           
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 void backward()
@@ -2686,6 +3107,13 @@ namespace Seq2SeqSharp.Tools
 
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(resTWeight.Sizes, m_deviceId, name: $"Select_{m_deviceId}", graphToBind: this, needGradient: s.NeedGradient, dtype: s.ElementType);
             res.TWeight = resTWeight;
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -2728,6 +3156,13 @@ namespace Seq2SeqSharp.Tools
 
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(input.Count, input[0].Count, m_deviceId, name: $"LeftShiftTokens_{m_deviceId}", graphToBind: this, needGradient: false);
             res.SetWeightArray(buf);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -2755,6 +3190,13 @@ namespace Seq2SeqSharp.Tools
 
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(input.Count, input[0].Count, m_deviceId, name: $"TokensTensor_{m_deviceId}", graphToBind: this, needGradient: false, dtype: elementType);
             res.SetWeightArray(buf);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -2812,6 +3254,13 @@ namespace Seq2SeqSharp.Tools
                 originalLengthsTensor.CopyFrom(originalLengths);
                 Ops.BuildSelfMask(res.TWeight, originalLengthsTensor, paddedLength, 0.0f, -65500.0f);
             }
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -2835,6 +3284,14 @@ namespace Seq2SeqSharp.Tools
                 Ops.BuildSelfTriMask(res.TWeight, originalLengthsTensor, paddedLength, 0.0f, -65500.0f);
             }
 
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
             if (m_needsBackprop)
             {
                 void backward()
@@ -2851,6 +3308,14 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { paddedLength, paddedLength }, m_deviceId, name: $"SelfTriMask2_{m_deviceId}", graphToBind: this, needGradient: false, dtype: elementType);
             Ops.BuildTriMask(res.TWeight, 0.0f, -65500.0f);
+
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {
@@ -2875,6 +3340,14 @@ namespace Seq2SeqSharp.Tools
                     srcOriginalLengthsTensor.CopyFrom(srcOriginalLengths);
                     tgtOriginalLengthsTensor.CopyFrom(tgtOriginalLengths);
                     Ops.BuildSrcTgtMask(res.TWeight, srcOriginalLengthsTensor, tgtOriginalLengthsTensor, srcPaddedLength, tgtPaddedLength, 0.0f, -65500.0f);
+                }
+            }
+
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
                 }
             }
 
@@ -2913,6 +3386,14 @@ namespace Seq2SeqSharp.Tools
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { batchSize, seqLength }, m_deviceId, name: $"MaskUntil_{m_deviceId}", graphToBind: this, needGradient: false, dtype: elementType);
 
             res.SetWeightArray(buf);
+
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
 
             if (m_needsBackprop)
             {

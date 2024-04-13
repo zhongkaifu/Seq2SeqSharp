@@ -41,7 +41,7 @@ namespace Seq2SeqSharp.Applications
                   compilerOptions: options.CompilerOptions, runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq,
                   startToRunValidAfterUpdates: options.StartValidAfterUpdates, maxDegressOfParallelism: options.TaskParallelism, mklInstructions: options.MKLInstructions, weightsUpdateCount: options.WeightsUpdateCount, 
                   enableTensorCore: options.EnableTensorCore, cudaMemoryAllocatorType: options.CudaMemoryAllocatorType, elementType: options.AMP ? DType.Float16 : DType.Float32, randomSeed: options.RandomSeed, 
-                  saveModelEveryUpdats: options.SaveModelEveryUpdates, saveGPUMemoryMode: options.SaveGPUMemoryMode, initLossScaling: options.InitLossScaling)
+                  saveModelEveryUpdats: options.SaveModelEveryUpdates, saveGPUMemoryMode: options.SaveGPUMemoryMode, initLossScaling: options.InitLossScaling, autoCheckTensorCorruption: options.CheckTensorCorrupted)
         {
             m_paddingType = options.PaddingType;
             m_options = options;
