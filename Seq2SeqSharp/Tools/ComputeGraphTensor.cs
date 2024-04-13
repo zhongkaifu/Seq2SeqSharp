@@ -3061,13 +3061,6 @@ namespace Seq2SeqSharp.Tools
 
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(resTWeight.Sizes, m_deviceId, name: $"Select_{m_deviceId}", graphToBind: this, needGradient: s.NeedGradient, dtype: s.ElementType);
             res.TWeight = resTWeight;
-            if (m_autoCheckCorruption)
-            {
-                if (res.IsWeightsCorrupted())
-                {
-                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
-                }
-            }
 
             if (m_needsBackprop)
             {
