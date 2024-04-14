@@ -161,6 +161,14 @@ namespace Seq2SeqSharp
 
             // Scaled softmax
             float scale = 1.0f / (float)(Math.Sqrt(m_d));
+
+            // Convert tensors to Float32 type if they are not that type.
+            bool useF16 = (Qs.ElementType == DType.Float16);
+            if (useF16)
+            {
+                Qs = g.Half2Float(Qs);
+                Ks = g.Half2Float(Ks);
+            }
             var attn = g.MulBatch(Qs, Ks, scale); // Shape: [batchSize * m_multiHeadNum, relPosSize, seqLenQ]
 
             // Add mask
@@ -171,8 +179,17 @@ namespace Seq2SeqSharp
                 {
                     keyMask = g.Peek(keyMask, 2, seqLenQ - newTokensIdx, newTokensIdx);
                 }
-
+                if (useF16)
+                {
+                    keyMask = g.Half2Float(keyMask);
+                }
                 attn = g.Add(attn, keyMask, inPlace: true);
+            }
+
+            // Convert it back to Float16 for the following parts
+            if (useF16)
+            {
+                attn = g.Float2Half(attn);
             }
 
             var attnProbs = g.Softmax(attn, inPlace: true);
