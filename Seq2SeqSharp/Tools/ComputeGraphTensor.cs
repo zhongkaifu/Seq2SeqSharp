@@ -3199,7 +3199,7 @@ namespace Seq2SeqSharp.Tools
             using (Tensor originalLengthsTensor = new Tensor(res.Allocator, DType.Float32, originalLengths.Length))
             {
                 originalLengthsTensor.CopyFrom(originalLengths);
-                Ops.BuildSelfMask(res.TWeight, originalLengthsTensor, paddedLength, 0.0f, -30000.0f);
+                Ops.BuildSelfMask(res.TWeight, originalLengthsTensor, paddedLength, 0.0f, -50000.0f);
             }
             if (m_autoCheckCorruption)
             {
@@ -3228,7 +3228,7 @@ namespace Seq2SeqSharp.Tools
             using (Tensor originalLengthsTensor = new Tensor(res.Allocator, DType.Float32, originalLengths.Length))
             {
                 originalLengthsTensor.CopyFrom(originalLengths);
-                Ops.BuildSelfTriMask(res.TWeight, originalLengthsTensor, paddedLength, 0.0f, -30000.0f);
+                Ops.BuildSelfTriMask(res.TWeight, originalLengthsTensor, paddedLength, 0.0f, -50000.0f);
             }
 
             if (m_autoCheckCorruption)
@@ -3254,7 +3254,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor BuildTriMask(int paddedLength, int batchSize, DType elementType = DType.Float32)
         {
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { paddedLength, paddedLength }, m_deviceId, name: $"SelfTriMask2_{m_deviceId}", graphToBind: this, needGradient: false, dtype: elementType);
-            Ops.BuildTriMask(res.TWeight, 0.0f, -30000.0f);
+            Ops.BuildTriMask(res.TWeight, 0.0f, -50000.0f);
 
             if (m_autoCheckCorruption)
             {
@@ -3286,7 +3286,7 @@ namespace Seq2SeqSharp.Tools
                 {
                     srcOriginalLengthsTensor.CopyFrom(srcOriginalLengths);
                     tgtOriginalLengthsTensor.CopyFrom(tgtOriginalLengths);
-                    Ops.BuildSrcTgtMask(res.TWeight, srcOriginalLengthsTensor, tgtOriginalLengthsTensor, srcPaddedLength, tgtPaddedLength, 0.0f, -30000.0f);
+                    Ops.BuildSrcTgtMask(res.TWeight, srcOriginalLengthsTensor, tgtOriginalLengthsTensor, srcPaddedLength, tgtPaddedLength, 0.0f, -50000.0f);
                 }
             }
 
