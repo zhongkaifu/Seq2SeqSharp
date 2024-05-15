@@ -485,7 +485,7 @@ namespace Seq2SeqSharp.Tools
                                     throw new WeightsCorruptedException($"The weights has been corrupted. Abort training and please check checkpoint files.");
                                 }
 
-                                contiSuccUpdate = 0;
+                                //contiSuccUpdate = 0;
                                 break;
                             }
 
