@@ -171,12 +171,6 @@ namespace Seq2SeqSharp
             }
             var attn = g.MulBatch(Qs, Ks, scale); // Shape: [batchSize * m_multiHeadNum, relPosSize, seqLenQ]
 
-            // Convert it back to Float16 for the following parts
-            if (useF16)
-            {
-                attn = g.Float2Half(attn);
-            }
-
             // Add mask
             attn = g.View(attn, dims: new long[] { batchSize, m_multiHeadNum, newTokensIdx, seqLenQ });
             if (keyMask != null)
@@ -185,14 +179,20 @@ namespace Seq2SeqSharp
                 {
                     keyMask = g.Peek(keyMask, 2, seqLenQ - newTokensIdx, newTokensIdx);
                 }
-                //if (useF16)
-                //{
-                //    keyMask = g.Half2Float(keyMask);
-                //}
+                if (useF16)
+                {
+                    keyMask = g.Half2Float(keyMask);
+                }
                 attn = g.Add(attn, keyMask, inPlace: true);
             }
-
             attn = g.Softmax(attn, inPlace: true);
+            
+            // Convert it back to Float16 for the following parts
+            if (useF16)
+            {
+                attn = g.Float2Half(attn);
+            }
+
             attn = g.View(attn, dims: new long[] { batchSize * m_multiHeadNum, newTokensIdx, seqLenQ });
             IWeightTensor o = g.View(g.MulBatch(attn, Vs), dims: new long[] { batchSize, m_multiHeadNum, newTokensIdx, m_d });
             IWeightTensor W = g.View(g.AsContiguous(g.Transpose(o, 1, 2)), dims: new long[] { batchSize * newTokensIdx, m_multiHeadNum * m_d });
