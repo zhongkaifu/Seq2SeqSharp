@@ -18,7 +18,7 @@
     <RepositoryUrl>https://github.com/zhongkaifu/Seq2SeqSharp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackAsTool>True</PackAsTool>
-    <TargetFrameworks>net7.0</TargetFrameworks>
+    <TargetFrameworks>net8.0</TargetFrameworks>
     <PackageReleaseNotes>The single page web server for text generation by Seq2Seq or GPT models trained by Seq2SeqSharp. It can be used as portal for text generation task, such as translation, text generation, summarization and so on.</PackageReleaseNotes>
     <PackageTags>NLG;text generation;deep learning;machine learning;C#;GPU;CUDA;transformer;GPT;text generation;machine translation</PackageTags>
   </PropertyGroup>

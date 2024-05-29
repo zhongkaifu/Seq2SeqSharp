@@ -13,7 +13,6 @@ using ManagedCuda;
 using ManagedCuda.BasicTypes;
 using ManagedCuda.VectorTypes;
 using System;
-using System.Runtime.InteropServices.Marshalling;
 using TensorSharp.Core;
 
 namespace TensorSharp.CUDA.DeviceCode

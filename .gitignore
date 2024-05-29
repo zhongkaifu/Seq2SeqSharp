@@ -112,3 +112,11 @@ Temporary Items
 /Tools/GPTConsole/bin/Debug/net7.0
 /Tools/ImgSeqConsole/bin
 /Tools/ImgSeqConsole/obj
+/ExternalProjects/managedCuda/CudaBlas/bin
+/ExternalProjects/managedCuda/CudaRand/bin
+/ExternalProjects/managedCuda/ManagedCUDA/bin
+/ExternalProjects/managedCuda/NVRTC/bin
+/ExternalProjects/SentencePiece
+/Tools/GPTConsole/bin
+/Tests/Seq2SeqSharp.Tests/obj/Release/net8.0
+/Tools/SeqDictMatchConsole/bin/Release/net8.0
