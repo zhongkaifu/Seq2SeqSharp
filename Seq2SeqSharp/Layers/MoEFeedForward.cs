@@ -80,7 +80,7 @@ namespace Seq2SeqSharp.Layers
             var inputNorm = layerNorm.Norm(input, g);
             var inputRouterDense = g.Affine(inputNorm, m_Router, m_RouterBias); // [batchSize * seqLen, expertNum]
 
-            var maskTensor = g.CreateTensorWeights(new long[] { 1, m_expertNum }, -65000.0f);
+            var maskTensor = g.CreateTensorWeights(new long[] { 1, m_expertNum }, -65000.0f, dtype: inputRouterDense.ElementType);
             maskTensor = g.Dropout(maskTensor, 0.1f);
             maskTensor = g.Expand(maskTensor, inputRouterDense.Sizes); // [batchSize * seqLen, expertNum]
             inputRouterDense = g.Add(inputRouterDense, maskTensor);
@@ -149,7 +149,7 @@ namespace Seq2SeqSharp.Layers
                 {
                     using var gExp = g.CreateSubGraph($"{m_name}_MoEFeedForward_{i}");
                     var scores_eI = gExp.AsContiguous(gExp.Peek(inputRouter, 1, i)); // [batchSize * seqLen, 1]
-                    var tokenIdx_eI = g.CreateTensorWeights(new long[] { indexs[i].Count, 1 }, indexs[i].ToArray());
+                    var tokenIdx_eI = g.CreateTensorWeights(new long[] { indexs[i].Count, 1 }, indexs[i].ToArray(), dtype: DType.Float32);
 
                     var topValue_eI = gExp.IndexSelect(scores_eI, tokenIdx_eI); // [indexs[i].Count, 1]
                     topValue_eI = gExp.Expand(topValue_eI, dims: new long[] { indexs[i].Count, inputNorm.Sizes[^1] });

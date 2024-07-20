@@ -175,17 +175,17 @@ namespace Seq2SeqSharp
             {
                 BuildInTokens.PadSentences(tgtSnts);
                 var tgtTokensList = m_modelMetaData.TgtVocab.GetWordIndex(tgtSnts);
-                var tgtTokensTensor = g.CreateTokensTensor(tgtTokensList);
+                var tgtTokensIdxTensor = g.CreateTensorForIndex(tgtTokensList);
 
                 if (m_tagWeightsList == null)
                 {
-                    cost = g.CrossEntropyLoss(probs, tgtTokensTensor, smooth: m_options.LossSmooth, gamma: m_options.FocalLossGamma, graident: LossScaling);
+                    cost = g.CrossEntropyLoss(probs, tgtTokensIdxTensor, smooth: m_options.LossSmooth, gamma: m_options.FocalLossGamma, graident: LossScaling);
                 }
                 else
                 {
-                    var tagWeightsTensor = g.CreateTensorWeights(sizes: new long[] { 1, m_tagWeightsList.Length }, m_tagWeightsList);
+                    var tagWeightsTensor = g.CreateTensorWeights(sizes: new long[] { 1, m_tagWeightsList.Length }, m_tagWeightsList, dtype: probs.ElementType);
                     tagWeightsTensor = g.Expand(tagWeightsTensor, dims: probs.Sizes);
-                    cost = g.CrossEntropyLoss(probs, tgtTokensTensor, tagWeightsTensor, smooth: m_options.LossSmooth, gamma: m_options.FocalLossGamma);
+                    cost = g.CrossEntropyLoss(probs, tgtTokensIdxTensor, tagWeightsTensor, smooth: m_options.LossSmooth, gamma: m_options.FocalLossGamma);
                 }
             }
             else

@@ -120,3 +120,5 @@ Temporary Items
 /Tools/GPTConsole/bin
 /Tests/Seq2SeqSharp.Tests/obj/Release/net8.0
 /Tools/SeqDictMatchConsole/bin/Release/net8.0
+/Tests/Seq2SeqSharp.Tests/obj/Debug/net8.0
+/Tools/SeqDictMatchConsole/bin/Debug/net8.0

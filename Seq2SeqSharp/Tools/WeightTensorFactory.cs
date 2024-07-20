@@ -17,7 +17,7 @@ namespace Seq2SeqSharp.Tools
     {
         private readonly List<WeightTensor> weights = new List<WeightTensor>();
 
-        public WeightTensor CreateWeightTensor(int row, int column, int deviceId, bool cleanWeights = false, string name = "", bool isTrainable = false, IComputeGraph graphToBind = null, RandomInitType normType = RandomInitType.None, bool needGradient = true, DType dtype = DType.Float32)
+        public WeightTensor CreateWeightTensor(int row, int column, int deviceId, DType dtype, bool cleanWeights = false, string name = "", bool isTrainable = false, IComputeGraph graphToBind = null, RandomInitType normType = RandomInitType.None, bool needGradient = true)
         {
             WeightTensor r = new WeightTensor(new long[2] { row, column }, deviceId, name: name, isTrainable: isTrainable, initType: normType, graphToBind: graphToBind, needGradient: needGradient, dtype: dtype);
 
@@ -31,7 +31,7 @@ namespace Seq2SeqSharp.Tools
             return r;
         }
 
-        public WeightTensor CreateWeightTensor(long[] sizes, int deviceId, bool cleanWeights = false, string name = "", IComputeGraph graphToBind = null, RandomInitType normType = RandomInitType.None, bool needGradient = true, DType dtype = DType.Float32)
+        public WeightTensor CreateWeightTensor(long[] sizes, int deviceId, DType dtype, bool cleanWeights = false, string name = "", IComputeGraph graphToBind = null, RandomInitType normType = RandomInitType.None, bool needGradient = true)
         {
             WeightTensor r = new WeightTensor(sizes, deviceId, name, initType: normType, graphToBind: graphToBind, needGradient: needGradient, dtype: dtype);
 

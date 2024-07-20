@@ -68,9 +68,9 @@ namespace Seq2SeqSharp
 
         IWeightTensor TopPSample(IWeightTensor w, float topP = 1.0f, float repeatPenalty = 2.0f, List<List<int>> decodedSequences = null);
 
-        IWeightTensor Zero(long[] sizes);
-        IWeightTensor CreateTensorWeights(long[] sizes, float[] values);
-        IWeightTensor CreateTensorWeights(long[] sizes, float value);
+        IWeightTensor Zero(long[] sizes, DType dtype);
+        IWeightTensor CreateTensorWeights(long[] sizes, float[] values, DType dtype);
+        IWeightTensor CreateTensorWeights(long[] sizes, float value, DType dtype);
         IWeightTensor IndexSelect(IWeightTensor s, IWeightTensor indice, bool clearWeights = false, bool isAdd = false);
         IWeightTensor IndexUpdate(long[] sizes, IWeightTensor s, IWeightTensor indice, bool clearWeights = false);
 
@@ -80,7 +80,7 @@ namespace Seq2SeqSharp
 
         IWeightTensor Gather(IWeightTensor src, IWeightTensor indices, int dim, bool runGradients = true);
         IWeightTensor Scatter(IWeightTensor source, IWeightTensor indices, int dim, params long[] shape);
-        IWeightTensor Scatter(IWeightTensor indices, float val, int dim, bool runGradient = true, params long[] shape);
+        IWeightTensor Scatter(IWeightTensor indices, float val, int dim, DType dtype, bool runGradient = true, params long[] shape);
         IWeightTensor ScatterAdd(IWeightTensor source, IWeightTensor indices, int dim, params long[] shape);
 
         (IWeightTensor, IWeightTensor) TopK(IWeightTensor src, int k);
@@ -97,7 +97,7 @@ namespace Seq2SeqSharp
         #endregion
 
         IWeightTensor LeftShiftTokens(List<List<int>> input, int lastTokenToPad);
-        IWeightTensor CreateTokensTensor(List<List<int>> input, DType elementType = DType.Float32);
+        IWeightTensor CreateTensorForIndex(List<List<int>> input);
 
         //IWeightTensor BuildFeatureMask(int paddedLength, List<int> appliedLengths, int dim);
 
@@ -118,11 +118,13 @@ namespace Seq2SeqSharp
         float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, IWeightTensor graident, float smooth = 0.0f, float gamma = 0.0f);
         float NLLLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f);
 
-        IWeightTensor CreateUniformRandomTensor(long[] sizes, float minVal, float maxVal);
+        IWeightTensor CreateUniformRandomTensor(long[] sizes, float minVal, float maxVal, DType dtype);
 
         IWeightTensor LogSoftmax(IWeightTensor x);
 
         IWeightTensor Float2Half(IWeightTensor w);
         IWeightTensor Half2Float(IWeightTensor w);
+
+        IWeightTensor FlashAttention(IWeightTensor Q, IWeightTensor K, IWeightTensor V, int q_start_offset = 0);
     }
 }

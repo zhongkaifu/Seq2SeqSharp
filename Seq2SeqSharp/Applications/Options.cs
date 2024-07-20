@@ -311,6 +311,10 @@ namespace Seq2SeqSharp.Applications
         [RegularExpression("APE|NoPE|RoPE")]
         public PositionEmbeddingEnums PEType = PositionEmbeddingEnums.APE;
 
+        [Arg("The type of attention layer. It supports Classic and FlashAttentionV2", nameof(AttentionType))]
+        [RegularExpression("Classic|FlashAttentionV2")]
+        public AttentionTypeEnums AttentionType = AttentionTypeEnums.Classic;
+
         [Arg("The type of normalization. It supports LayerNorm and RMSNorm", nameof(NormType))]
         [RegularExpression("LayerNorm|RMSNorm")]
         public NormEnums NormType = NormEnums.LayerNorm;

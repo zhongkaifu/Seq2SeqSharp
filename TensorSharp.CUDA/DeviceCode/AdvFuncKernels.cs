@@ -23,6 +23,275 @@ namespace TensorSharp.CUDA.DeviceCode
         private static readonly string Code = @"
 extern ""C""
 {
+__global__
+void flash_attention_2_forward_kernel(
+    const float* Q,
+    const float* K,
+    const float* V,
+    const int N,
+    const int d,
+    const int Tc,
+    const int Tr,
+    const int Bc,
+    const int Br,
+    const float softmax_scale,
+    const int q_start_offset,
+    float* L,
+    float* O
+) {
+    const float INFINITY = 9999999999.9f; 
+    int tx = threadIdx.x;
+    int bx = blockIdx.x; int by = blockIdx.y;  // batch and head index
+
+    // Offset into Q,K,V,O - different for each batch and head
+    int qkv_offset = (bx * gridDim.y * N * d) + (by * N * d);  // gridDim.y = nh
+    int lm_offset = (bx * gridDim.y * N) + (by * N);  // offset for L
+
+    // Define SRAM for Q,K,V,S
+    extern __shared__ float sram[];
+    int tile_size = Bc * d;  // size of Qi, Kj, Vj
+    float* Qi = sram;
+    float* Kj = &sram[tile_size];
+    float* Vj = &sram[tile_size * 2];
+    float* S = &sram[tile_size * 3];
+
+    for (int i = q_start_offset; i < Tr; ++i) {
+        if (i * Br + tx >= N)
+            break;  // break if we are done with the sequence
+
+        // Load Qi from HBM to SRAM, l and m to registers
+        for (int x = 0; x < d; x++) {
+            Qi[(tx * d) + x] = Q[qkv_offset + (tile_size * i) + (tx * d) + x];
+        }
+        float row_m_prev = -INFINITY;
+        float row_l_prev = 0;
+
+        // Causal mask: j <= i
+        for (int j = 0; j <= i; ++j) {
+            __syncthreads();
+            // Load Kj, Vj from HBM to SRAM
+            for (int x = 0; x < d; x++) {
+                Kj[(tx * d) + x] = K[qkv_offset + (tile_size * j) + (tx * d) + x];
+                Vj[(tx * d) + x] = V[qkv_offset + (tile_size * j) + (tx * d) + x];
+            }
+            __syncthreads();
+            // S_i^j = softmax_scale * QiKj^T
+            // S_i^j[tx][y] = softmax_scale * Sum_{x = 0}^{d-1} Qi[tx][x] * Kj[y][x]
+            float row_m = -INFINITY;
+            for (int y = 0; y < Bc; y++) {
+                if (j * Bc + y >= N)
+                    break;  // break if we are done with the sequence
+                if (i * Br + tx < j * Bc + y)
+                    break;
+                float sum = 0;
+                for (int x = 0; x < d; x++)
+                    sum += Qi[(tx * d) + x] * Kj[(y * d) + x];
+                sum *= softmax_scale;
+                S[(Bc * tx) + y] = sum;
+
+                if (sum > row_m)
+                    row_m = sum;
+            }
+
+            // m_i^j = max(m_i^j-1, row_max(S_i^j))
+            float new_row_m = max(row_m_prev, row_m);
+
+            // P_i^j = exp(S_i^j - m_i^j)
+            // P_i^j[tx][y] = exp(S_i^j[tx][y] - m_i^j)
+            float row_l = 0;
+            for (int y = 0; y < Bc; y++) {
+                if (j * Bc + y >= N)
+                    break;  // break if we are done with the sequence
+                if (i * Br + tx < j * Bc + y)
+                    break;
+                S[(Bc * tx) + y] = __expf(S[(Bc * tx) + y] - new_row_m);
+                row_l += S[(Bc * tx) + y];
+            }
+
+            // l_i^j = (exp(m_i^j-1 - m_i^j) * l_i^j-1) + row_sum(P_i^j)
+            float row_m_exp = __expf(row_m_prev - new_row_m);
+            float new_row_l = (row_m_exp * row_l_prev) + row_l;
+
+            // O_i^j = diag(exp(m_i^j-1 - m_i^j))^-1 * O_i^j-1 + P_i^jVj
+            for (int x = 0; x < d; x++) {
+                float pv = 0;  // Pij * Vj
+                for (int y = 0; y < Bc; y++) {
+                    if (j * Bc + y >= N)
+                        break;  // break if we are done with the sequence
+                    if (i * Br + tx < j * Bc + y)
+                        break;
+                    pv += S[(Bc * tx) + y] * Vj[(y * d) + x];
+                }
+                O[qkv_offset + (tile_size * i) + (tx * d) + x] = \
+                    row_m_exp * O[qkv_offset + (tile_size * i) + (tx * d) + x] + pv;
+            }
+
+            // Update m and l
+            row_m_prev = new_row_m;
+            row_l_prev = new_row_l;
+        }
+
+        // O_i = diag(l_i^{Tc})^-1 * O_i^{Tc}
+        for (int x = 0; x < d; x++)
+            O[qkv_offset + (tile_size * i) + (tx * d) + x] /= row_l_prev;
+        // L_i = m_i^{Tc} + log(l_i^{Tc})
+        L[lm_offset + (Br * i) + tx] = row_m_prev + __logf(row_l_prev);
+    }
+}
+
+__global__
+void flash_attention_2_backward_kernel(
+    const float* Q,
+    const float* K,
+    const float* V,
+    const float* O,
+    const float* dO,
+    const float* L,
+    const int N,
+    const int d,
+    const int Tc,
+    const int Tr,
+    const int Bc,
+    const int Br,
+    const float softmax_scale,
+    float* dQ,
+    float* dK,
+    float* dV
+) {
+    const float INFINITY = 9999999999.9f; 
+    int tx = threadIdx.x;
+    int bx = blockIdx.x; int by = blockIdx.y;  // batch and head index
+
+    // Offset into Q,K,V,O - different for each batch and head
+    int qkv_offset = (bx * gridDim.y * N * d) + (by * N * d);  // gridDim.y = nh
+    int lm_offset = (bx * gridDim.y * N) + (by * N);  // offset for L
+
+    // Define SRAM for Q,K,V,S
+    extern __shared__ float sram[];
+    int col_tile_size = Bc * d;  // size of Kj, Vj
+    int row_tile_size = Br * d;  // size of Qi
+    float* Kj = sram;
+    float* Vj = &sram[col_tile_size];
+
+    float* dKj = &sram[col_tile_size * 2];
+    float* dVj = &sram[col_tile_size * 3];
+
+    float* Qi = &sram[col_tile_size * 4];
+    float* Oi = &sram[col_tile_size * 4 + row_tile_size];
+    float* dOi = &sram[col_tile_size * 4 + row_tile_size * 2];
+
+    // We also use S for P. Likewise, we use dS for dP.
+    // We can reuse the same memory because we don't need S and P at the same time.
+    // We also don't need dS and dP at the same time.
+    float* S = &sram[col_tile_size * 4 + row_tile_size * 3];
+    float* dS = &sram[col_tile_size * 4 + row_tile_size * 3 + Bc * Br];
+
+    for (int j = 0; j < Tc; j++) {
+
+        // Load Kj, Vj to SRAM
+        for (int x = 0; x < d; x++) {
+            Kj[(tx * d) + x] = K[qkv_offset + (col_tile_size * j) + (tx * d) + x];
+            Vj[(tx * d) + x] = V[qkv_offset + (col_tile_size * j) + (tx * d) + x];
+        }
+
+        // Initialize dKj, dVj to 0
+        for (int x = 0; x < d; x++) {
+            dKj[(tx * d) + x] = 0;
+            dVj[(tx * d) + x] = 0;
+        }
+
+        for (int i = j; i < Tr; i++)  {
+            __syncthreads();
+            // Load Qi, Oi, dOi, dQi, li, mi to SRAM
+            // Also load l, m to registers
+            float Di = 0;
+            for (int x = 0; x < d; x++) {
+                Qi[(tx * d) + x] = Q[qkv_offset + (row_tile_size * i) + (tx * d) + x];
+                Oi[(tx * d) + x] = O[qkv_offset + (row_tile_size * i) + (tx * d) + x];
+                dOi[(tx * d) + x] = dO[qkv_offset + (row_tile_size * i) + (tx * d) + x];
+                Di += dOi[(tx * d) + x] * Oi[(tx * d) + x];
+            }
+            float l_curr = L[lm_offset + (Br * i) + tx];
+
+            // Sij = softmax_scale * QiKj^T
+            // Sij[tx][y] = softmax_scale * Sum_{y = 0}^{Bc-1} Qi[tx][x] * Kj[y][x]
+            for (int y = 0; y < Bc; y++) {
+                float sum = 0;
+                for (int x = 0; x < d; x++) {
+                    sum += Qi[(tx * d) + x] * Kj[(y * d) + x];
+                }
+                sum *= softmax_scale;
+                if (i * Br + tx < j * Bc + y)
+                    sum = -INFINITY;
+                S[(Bc * tx) + y] = sum;
+            }
+
+            // Pij = diag(li)^-1 * exp(Sij - mi)
+            // Pij[tx][y] = (1 / li[tx]) * exp(Sij[tx][y] - mi[tx])
+            for (int y = 0; y < Bc; y++) {
+                if (i * Br + tx < j * Bc + y)
+                    S[(Bc * tx) + y] = 0;
+                else
+                    S[(Bc * tx) + y] = __expf(S[(Bc * tx) + y] - l_curr);
+            }
+            __syncthreads();
+            // dVj <- dVj + Pij^T * dOi
+            // dVj[tx][x] = dVj[tx][x] + Sum_{y = 0}^{Br-1} Pij[y][tx] * dOi[tx][x]
+            for (int x = 0; x < d; x++) {
+                float sum = 0;
+                for (int y = 0; y < Br; y++) {
+                    sum += S[(Bc * y) + tx] * dOi[(tx * d) + x];
+                }
+                atomicAdd(&dVj[(tx * d) + x], sum);
+            }
+
+            // dPij <- dOi * Vj^T
+            // dPij[tx][y] = Sum_{x = 0}^{d-1} dOi[tx][x] * Vj[y][x]
+            for (int y = 0; y < Bc; y++) {
+                float sum = 0;
+                for (int x = 0; x < d; x++) {
+                    sum += dOi[(tx * d) + x] * Vj[(y * d) + x];
+                }
+                dS[(Bc * tx) + y] = sum;
+            }
+
+            // dSij <- Pij * (dPij - Di)
+            // dSij[tx][y] = Pij[tx][y] * (dPij[tx][y] - Di[tx])
+            for (int y = 0; y < Bc; ++y) {
+                dS[(Bc * tx) + y] = S[(Bc * tx) + y] * (dS[(Bc * tx) + y] - Di);
+            }
+
+            // dQi <- dQi + softmax_scale * dSijKj
+            // dQ[tx][x] = dQ[tx][x] + softmax_scale * Sum_{y = 0}^{Bc-1} dSij[tx][y] * Kj[y][x]
+            for (int x = 0; x < d; x++) {
+                float sum = 0;
+                for (int y = 0; y < Bc; y++) {
+                    sum += dS[(Bc * tx) + y] * Kj[(y * d) + x];
+                }
+                sum *= softmax_scale;
+                atomicAdd(&dQ[qkv_offset + (row_tile_size * i) + (tx * d) + x], sum);
+            }
+            __syncthreads();
+            // dKj <- dKj + softmax_scale * dSij^TQi
+            // dKj[tx][x] = dKj[tx][x] + softmax_scale * Sum_{y = 0}^{Br-1} dSij[y][tx] * Qi[y][x]
+            for (int x = 0; x < d; x++) {
+                float sum = 0;
+                for (int y = 0; y < Br; y++) {
+                    sum += dS[(Bc * y) + tx] * Qi[(y * d) + x];
+                }
+                sum *= softmax_scale;
+                atomicAdd(&dKj[(tx * d) + x], sum);
+            }
+        }
+
+        // Upload Kj, Vj to HRAM
+        for (int x = 0; x < d; x++) {
+            dK[qkv_offset + (row_tile_size * j) + (tx * d) + x] = dKj[(tx * d) + x];
+            dV[qkv_offset + (row_tile_size * j) + (tx * d) + x] = dVj[(tx * d) + x];
+        }
+    }
+}
+
 
 __global__ void gLNormalization(float* out,
                                 const float* in,
@@ -1102,6 +1371,278 @@ __global__ void TopK(float* input, float* output, float *outputIdx, int k, unsig
 extern ""C""
 {
 
+__global__
+void flash_attention_2_forward_kernelHalf(
+    const __half* Q,
+    const __half* K,
+    const __half* V,
+    const int N,
+    const int d,
+    const int Tc,
+    const int Tr,
+    const int Bc,
+    const int Br,
+    const float softmax_scale,
+    const int q_start_offset,
+    float* L,
+    __half* O
+) {
+    const float INFINITY = 65500.0f; 
+    int tx = threadIdx.x;
+    int bx = blockIdx.x; int by = blockIdx.y;  // batch and head index
+
+    // Offset into Q,K,V,O - different for each batch and head
+    int qkv_offset = (bx * gridDim.y * N * d) + (by * N * d);  // gridDim.y = nh
+    int lm_offset = (bx * gridDim.y * N) + (by * N);  // offset for L
+
+    // Define SRAM for Q,K,V,S
+    extern __shared__ float sram[];
+    int tile_size = Bc * d;  // size of Qi, Kj, Vj
+    float* Qi = sram;
+    float* Kj = &sram[tile_size];
+    float* Vj = &sram[tile_size * 2];
+    float* S = &sram[tile_size * 3];
+
+    for (int i = q_start_offset; i < Tr; ++i) {
+        if (i * Br + tx >= N)
+            break;  // break if we are done with the sequence
+
+        // Load Qi from HBM to SRAM, l and m to registers
+        for (int x = 0; x < d; x++) {
+            Qi[(tx * d) + x] = __half2float(Q[qkv_offset + (tile_size * i) + (tx * d) + x]);
+        }
+        float row_m_prev = -INFINITY;
+        float row_l_prev = 0;
+
+        // Causal mask: j <= i
+        for (int j = 0; j <= i; ++j) {
+            __syncthreads();
+            // Load Kj, Vj from HBM to SRAM
+            for (int x = 0; x < d; x++) {
+                Kj[(tx * d) + x] = __half2float(K[qkv_offset + (tile_size * j) + (tx * d) + x]);
+                Vj[(tx * d) + x] = __half2float(V[qkv_offset + (tile_size * j) + (tx * d) + x]);
+            }
+            __syncthreads();
+            // S_i^j = softmax_scale * QiKj^T
+            // S_i^j[tx][y] = softmax_scale * Sum_{x = 0}^{d-1} Qi[tx][x] * Kj[y][x]
+            float row_m = -INFINITY;
+            for (int y = 0; y < Bc; y++) {
+                if (j * Bc + y >= N)
+                    break;  // break if we are done with the sequence
+                if (i * Br + tx < j * Bc + y)
+                    break;
+                float sum = 0;
+                for (int x = 0; x < d; x++)
+                    sum += Qi[(tx * d) + x] * Kj[(y * d) + x];
+                sum *= softmax_scale;
+                S[(Bc * tx) + y] = sum;
+
+                if (sum > row_m)
+                    row_m = sum;
+            }
+
+            // m_i^j = max(m_i^j-1, row_max(S_i^j))
+            float new_row_m = max(row_m_prev, row_m);
+
+            // P_i^j = exp(S_i^j - m_i^j)
+            // P_i^j[tx][y] = exp(S_i^j[tx][y] - m_i^j)
+            float row_l = 0;
+            for (int y = 0; y < Bc; y++) {
+                if (j * Bc + y >= N)
+                    break;  // break if we are done with the sequence
+                if (i * Br + tx < j * Bc + y)
+                    break;
+                S[(Bc * tx) + y] = __expf(S[(Bc * tx) + y] - new_row_m);
+                row_l += S[(Bc * tx) + y];
+            }
+
+            // l_i^j = (exp(m_i^j-1 - m_i^j) * l_i^j-1) + row_sum(P_i^j)
+            float row_m_exp = __expf(row_m_prev - new_row_m);
+            float new_row_l = (row_m_exp * row_l_prev) + row_l;
+
+            // O_i^j = diag(exp(m_i^j-1 - m_i^j))^-1 * O_i^j-1 + P_i^jVj
+            for (int x = 0; x < d; x++) {
+                float pv = 0;  // Pij * Vj
+                for (int y = 0; y < Bc; y++) {
+                    if (j * Bc + y >= N)
+                        break;  // break if we are done with the sequence
+                    if (i * Br + tx < j * Bc + y)
+                        break;
+                    pv += S[(Bc * tx) + y] * Vj[(y * d) + x];
+                }
+                O[qkv_offset + (tile_size * i) + (tx * d) + x] = \
+                    __float2half(row_m_exp * __half2float(O[qkv_offset + (tile_size * i) + (tx * d) + x]) + pv);
+            }
+
+            // Update m and l
+            row_m_prev = new_row_m;
+            row_l_prev = new_row_l;
+        }
+
+        // O_i = diag(l_i^{Tc})^-1 * O_i^{Tc}
+        for (int x = 0; x < d; x++)
+            //O[qkv_offset + (tile_size * i) + (tx * d) + x] /= row_l_prev;
+            O[qkv_offset + (tile_size * i) + (tx * d) + x] = __float2half(__half2float(O[qkv_offset + (tile_size * i) + (tx * d) + x]) / row_l_prev);
+
+
+        // L_i = m_i^{Tc} + log(l_i^{Tc})
+        L[lm_offset + (Br * i) + tx] = row_m_prev + __logf(row_l_prev);
+    }
+}
+
+__global__
+void flash_attention_2_backward_kernelHalf(
+    const __half* Q,
+    const __half* K,
+    const __half* V,
+    const __half* O,
+    const __half* dO,
+    const float* L,
+    const int N,
+    const int d,
+    const int Tc,
+    const int Tr,
+    const int Bc,
+    const int Br,
+    const float softmax_scale,
+    __half* dQ,
+    __half* dK,
+    __half* dV
+) {
+    const float INFINITY = 65500.0f; 
+    int tx = threadIdx.x;
+    int bx = blockIdx.x; int by = blockIdx.y;  // batch and head index
+
+    // Offset into Q,K,V,O - different for each batch and head
+    int qkv_offset = (bx * gridDim.y * N * d) + (by * N * d);  // gridDim.y = nh
+    int lm_offset = (bx * gridDim.y * N) + (by * N);  // offset for L
+
+    // Define SRAM for Q,K,V,S
+    extern __shared__ float sram[];
+    int col_tile_size = Bc * d;  // size of Kj, Vj
+    int row_tile_size = Br * d;  // size of Qi
+    float* Kj = sram;
+    float* Vj = &sram[col_tile_size];
+
+    float* dKj = &sram[col_tile_size * 2];
+    float* dVj = &sram[col_tile_size * 3];
+
+    float* Qi = &sram[col_tile_size * 4];
+    float* Oi = &sram[col_tile_size * 4 + row_tile_size];
+    float* dOi = &sram[col_tile_size * 4 + row_tile_size * 2];
+
+    // We also use S for P. Likewise, we use dS for dP.
+    // We can reuse the same memory because we don't need S and P at the same time.
+    // We also don't need dS and dP at the same time.
+    float* S = &sram[col_tile_size * 4 + row_tile_size * 3];
+    float* dS = &sram[col_tile_size * 4 + row_tile_size * 3 + Bc * Br];
+
+    for (int j = 0; j < Tc; j++) {
+
+        // Load Kj, Vj to SRAM
+        for (int x = 0; x < d; x++) {
+            Kj[(tx * d) + x] = __half2float(K[qkv_offset + (col_tile_size * j) + (tx * d) + x]);
+            Vj[(tx * d) + x] = __half2float(V[qkv_offset + (col_tile_size * j) + (tx * d) + x]);
+        }
+
+        // Initialize dKj, dVj to 0
+        for (int x = 0; x < d; x++) {
+            dKj[(tx * d) + x] = 0;
+            dVj[(tx * d) + x] = 0;
+        }
+
+        for (int i = j; i < Tr; i++)  {
+            __syncthreads();
+            // Load Qi, Oi, dOi, dQi, li, mi to SRAM
+            // Also load l, m to registers
+            float Di = 0;
+            for (int x = 0; x < d; x++) {
+                Qi[(tx * d) + x] = __half2float(Q[qkv_offset + (row_tile_size * i) + (tx * d) + x]);
+                Oi[(tx * d) + x] = __half2float(O[qkv_offset + (row_tile_size * i) + (tx * d) + x]);
+                dOi[(tx * d) + x] = dO[qkv_offset + (row_tile_size * i) + (tx * d) + x];
+                Di += dOi[(tx * d) + x] * Oi[(tx * d) + x];
+            }
+            float l_curr = L[lm_offset + (Br * i) + tx];
+
+            // Sij = softmax_scale * QiKj^T
+            // Sij[tx][y] = softmax_scale * Sum_{y = 0}^{Bc-1} Qi[tx][x] * Kj[y][x]
+            for (int y = 0; y < Bc; y++) {
+                float sum = 0;
+                for (int x = 0; x < d; x++) {
+                    sum += Qi[(tx * d) + x] * Kj[(y * d) + x];
+                }
+                sum *= softmax_scale;
+                if (i * Br + tx < j * Bc + y)
+                    sum = -INFINITY;
+                S[(Bc * tx) + y] = sum;
+            }
+
+            // Pij = diag(li)^-1 * exp(Sij - mi)
+            // Pij[tx][y] = (1 / li[tx]) * exp(Sij[tx][y] - mi[tx])
+            for (int y = 0; y < Bc; y++) {
+                if (i * Br + tx < j * Bc + y)
+                    S[(Bc * tx) + y] = 0;
+                else
+                    S[(Bc * tx) + y] = __expf(S[(Bc * tx) + y] - l_curr);
+            }
+            __syncthreads();
+            // dVj <- dVj + Pij^T * dOi
+            // dVj[tx][x] = dVj[tx][x] + Sum_{y = 0}^{Br-1} Pij[y][tx] * dOi[tx][x]
+            for (int x = 0; x < d; x++) {
+                float sum = 0;
+                for (int y = 0; y < Br; y++) {
+                    sum += S[(Bc * y) + tx] * dOi[(tx * d) + x];
+                }
+                atomicAdd(&dVj[(tx * d) + x], sum);
+            }
+
+            // dPij <- dOi * Vj^T
+            // dPij[tx][y] = Sum_{x = 0}^{d-1} dOi[tx][x] * Vj[y][x]
+            for (int y = 0; y < Bc; y++) {
+                float sum = 0;
+                for (int x = 0; x < d; x++) {
+                    sum += dOi[(tx * d) + x] * Vj[(y * d) + x];
+                }
+                dS[(Bc * tx) + y] = sum;
+            }
+
+            // dSij <- Pij * (dPij - Di)
+            // dSij[tx][y] = Pij[tx][y] * (dPij[tx][y] - Di[tx])
+            for (int y = 0; y < Bc; ++y) {
+                dS[(Bc * tx) + y] = S[(Bc * tx) + y] * (dS[(Bc * tx) + y] - Di);
+            }
+
+            // dQi <- dQi + softmax_scale * dSijKj
+            // dQ[tx][x] = dQ[tx][x] + softmax_scale * Sum_{y = 0}^{Bc-1} dSij[tx][y] * Kj[y][x]
+            for (int x = 0; x < d; x++) {
+                float sum = 0;
+                for (int y = 0; y < Bc; y++) {
+                    sum += dS[(Bc * tx) + y] * Kj[(y * d) + x];
+                }
+                sum *= softmax_scale;
+                atomicAdd(&dQ[qkv_offset + (row_tile_size * i) + (tx * d) + x], __float2half(sum));
+            }
+            __syncthreads();
+            // dKj <- dKj + softmax_scale * dSij^TQi
+            // dKj[tx][x] = dKj[tx][x] + softmax_scale * Sum_{y = 0}^{Br-1} dSij[y][tx] * Qi[y][x]
+            for (int x = 0; x < d; x++) {
+                float sum = 0;
+                for (int y = 0; y < Br; y++) {
+                    sum += dS[(Bc * y) + tx] * Qi[(y * d) + x];
+                }
+                sum *= softmax_scale;
+                atomicAdd(&dKj[(tx * d) + x], sum);
+            }
+        }
+
+        // Upload Kj, Vj to HRAM
+        for (int x = 0; x < d; x++) {
+            dK[qkv_offset + (row_tile_size * j) + (tx * d) + x] = __float2half(dKj[(tx * d) + x]);
+            dV[qkv_offset + (row_tile_size * j) + (tx * d) + x] = __float2half(dVj[(tx * d) + x]);
+        }
+    }
+}
+
 __global__ void gLNormalizationHalf(__half* out,
                                 const __half* in,
                                 const __half* alpha,
@@ -1986,6 +2527,156 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
         }
 
 
+
+        public Tensor FlashAttention(Tensor O, Tensor L, Tensor Q, Tensor K, Tensor V, int q_start_offset = 0)
+        {
+            TSCudaContext context = CudaHelpers.TSContextForTensor(Q);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(O, Q, true, Q.Sizes);
+            FlashAttention(context, Q, K, V, writeTarget, L, q_start_offset);
+
+            return writeTarget;
+        }
+
+        private void FlashAttention(TSCudaContext context, Tensor Q, Tensor K, Tensor V, Tensor O, Tensor L, int q_start_offset = 0)
+        {
+            try
+            {
+                CudaContext cudaContext = context.CudaContextForTensor(O);
+                cudaContext.SetCurrent();
+
+                int B = (int)Q.Sizes[0];
+                int nh = (int)Q.Sizes[1];
+                int N = (int)Q.Sizes[2];
+                int d = (int)Q.Sizes[3];
+
+                int Br = 16;
+                while (Br > 1)
+                {
+                    if (N % Br == 0)
+                    {
+                        break;
+                    }
+                    Br--;
+                }
+                int Bc = Br;
+
+                int Tc = (int)Math.Ceiling((float)N / Bc);
+                int Tr = (int)Math.Ceiling((float)N / Br);
+                float softmax_scale = (float)(1.0 / Math.Sqrt(d));
+                int startTr = q_start_offset / Br;
+
+                // Calculate SRAM size needed per block
+                int col_tile_size = Bc * d;  // size of Kj, Vj
+                int row_tile_size = Br * d;  // size of Qi
+                int sram_size =
+                    (2 * col_tile_size * sizeof(float))  // SRAM size for Kj, Vj
+                    + (row_tile_size * sizeof(float))  // SRAM size for Qi
+                    + (Bc * Br * sizeof(float));  // SRAM size for S
+
+                dim3 grid = new dim3(B, nh);
+                dim3 block = new dim3(Br);
+
+
+                string kernelName = "flash_attention_2_forward_kernel";
+                CUdeviceptr QPtr = CudaHelpers.GetBufferStart(Q);
+                CUdeviceptr KPtr = CudaHelpers.GetBufferStart(K);
+                CUdeviceptr VPtr = CudaHelpers.GetBufferStart(V);
+                CUdeviceptr OPtr = CudaHelpers.GetBufferStart(O);
+                CUdeviceptr LPtr = CudaHelpers.GetBufferStart(L);
+
+                if (O.ElementType == DType.Float16)
+                {
+                    kernelName += "Half";
+                }
+                Invoke(context, cudaContext, kernelName, grid, block, (uint)sram_size,
+                CUstream.NullStream, QPtr, KPtr, VPtr, N, d, Tc, Tr, Bc, Br, softmax_scale, startTr, LPtr, OPtr);
+            }
+            catch (Exception ex)
+            {
+                Logger.WriteLine($"Exception: {ex.Message}");
+                Logger.WriteLine($"Call Stack: {ex.StackTrace}");
+            }
+        }
+
+        public void FlashAttentionGrad(Tensor Q, Tensor K, Tensor V, Tensor O, Tensor dO, Tensor L, Tensor dQ, Tensor dK, Tensor dV)
+        {
+            TSCudaContext context = CudaHelpers.TSContextForTensor(Q);
+            FlashAttentionGrad(context, Q, K, V, O, dO, L, dQ, dK, dV);
+        }
+
+
+        private void FlashAttentionGrad(TSCudaContext context, Tensor Q, Tensor K, Tensor V, Tensor O, Tensor dO, Tensor L,
+            Tensor dQ, Tensor dK, Tensor dV)
+        {
+            try
+            {
+                CudaContext cudaContext = context.CudaContextForTensor(O);
+                cudaContext.SetCurrent();
+
+                //int Br = 1;
+                //int Bc = 1;
+
+                int B = (int)Q.Sizes[0];
+                int nh = (int)Q.Sizes[1];
+                int N = (int)Q.Sizes[2];
+                int d = (int)Q.Sizes[3];
+
+                int Br = 16;
+                while (Br > 1)
+                {
+                    if (N % Br == 0)
+                    {
+                        break;
+                    }
+                    Br--;
+                }
+                int Bc = Br;
+                //Logger.WriteLine($"Grad: N = '{N}', Br = '{Br}'");
+
+                int Tc = (int)Math.Ceiling((float)N / Bc);
+                int Tr = (int)Math.Ceiling((float)N / Br);
+                float softmax_scale = (float)(1.0 / Math.Sqrt(d));
+
+                // Calculate SRAM size needed per block
+                int col_tile_size = Bc * d;  // size of Kj, Vj
+                int row_tile_size = Br * d;  // size of Qi, Oi, dOi
+                int sram_size =
+                    (4 * col_tile_size * sizeof(float))  // SRAM size for Kj, Vj, dKj, dVj
+                    + (3 * row_tile_size * sizeof(float))  // SRAM size for Qi, Oi, dOi
+                    + (2 * Br * Bc * sizeof(float));  // SRAM size for S, dS
+
+                dim3 grid = new dim3(B, nh);
+                dim3 block = new dim3(Br);
+
+
+                string kernelName = "flash_attention_2_backward_kernel";
+                CUdeviceptr QPtr = CudaHelpers.GetBufferStart(Q);
+                CUdeviceptr KPtr = CudaHelpers.GetBufferStart(K);
+                CUdeviceptr VPtr = CudaHelpers.GetBufferStart(V);
+                CUdeviceptr OPtr = CudaHelpers.GetBufferStart(O);
+                CUdeviceptr dOPtr = CudaHelpers.GetBufferStart(dO);
+                CUdeviceptr LPtr = CudaHelpers.GetBufferStart(L);
+                CUdeviceptr dKPtr = CudaHelpers.GetBufferStart(dK);
+                CUdeviceptr dQPtr = CudaHelpers.GetBufferStart(dQ);
+                CUdeviceptr dVPtr = CudaHelpers.GetBufferStart(dV);
+
+                if (O.ElementType == DType.Float16)
+                {
+                    kernelName += "Half";
+                }
+
+                Invoke(context, cudaContext, kernelName, grid, block, (uint)sram_size,
+                    CUstream.NullStream, QPtr, KPtr, VPtr, OPtr, dOPtr, LPtr, N, d, Tc, Tr, Bc, Br, softmax_scale, 
+                    dQPtr, dKPtr, dVPtr);                                     
+            }
+            catch (Exception ex)
+            {
+                Logger.WriteLine($"Exception: {ex.Message}");
+                Logger.WriteLine($"Call Stack: {ex.StackTrace}");
+            }
+        }
+
+
         public Tensor RMSNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps = 1e-9f)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(inGrad);
@@ -2782,8 +3473,18 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
 
         public bool IsCorrupted(Tensor src)
         {
-            TSCudaContext context = CudaHelpers.TSContextForTensor(src);
-            return IsCorrupted(context, src);
+            try
+            {
+                TSCudaContext context = CudaHelpers.TSContextForTensor(src);
+                return IsCorrupted(context, src);
+            }
+            catch (Exception e)
+            {
+                Logger.WriteLine(e.Message);
+                Logger.WriteLine(e.StackTrace);
+
+                return true;
+            }
         }
 
         public Tensor Softmax(Tensor result, Tensor src)

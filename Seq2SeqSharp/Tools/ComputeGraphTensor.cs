@@ -14,6 +14,7 @@ using System.Linq;
 using TensorSharp;
 using Seq2SeqSharp.Utils;
 using TensorSharp.Cpu;
+using AdvUtils;
 
 /// <summary>
 /// Tensor based computing graph written by Zhongkai Fu.
@@ -119,7 +120,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor Sigmoid(IWeightTensor w)
         {
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Sigmoid", graphToBind: this, needGradient: m.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Sigmoid", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
             VisualizeNodes(w, res);
 
             Ops.Sigmoid(res.TWeight, m.TWeight);
@@ -144,6 +145,15 @@ namespace Seq2SeqSharp.Tools
                     if (m.NeedGradient)
                     {
                         m.AddSigmoidGradient(resTWeight, res.TGradient);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
+                        }
+
                         resTWeight.Dispose();
                     }
                     res.Dispose();
@@ -209,6 +219,14 @@ namespace Seq2SeqSharp.Tools
                         }
 
                         Ops.AddSiLUD(m.TGradient, m.TGradient, mTWeight, res.TGradient);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     mTWeight.Dispose();
@@ -223,7 +241,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor Rsqrt(IWeightTensor w)
         {
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Rsqrt", graphToBind: this, needGradient: m.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Rsqrt", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
             VisualizeNodes(w, res);
 
             Ops.Rsqrt(res.TWeight, m.TWeight);
@@ -247,6 +265,13 @@ namespace Seq2SeqSharp.Tools
                             using var tmp3 = Ops.Mul(null, tmp2, -0.5f);
                             m.CopyOrAddGradient(tmp3);
 
+                            if (m_autoCheckCorruption)
+                            {
+                                if (m.IsGradientCorrupted())
+                                {
+                                    throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                                }
+                            }
                         }
                     }
                     res.Dispose();
@@ -263,7 +288,7 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor m1 = w1 as WeightTensor;
             WeightTensor m2 = w2 as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.AddTanh", graphToBind: this, needGradient: (m1.NeedGradient || m2.NeedGradient));
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.AddTanh", graphToBind: this, needGradient: (m1.NeedGradient || m2.NeedGradient), dtype: m1.ElementType);
             VisualizeNodes(new IWeightTensor[] { w1, w2 }, res);
 
             Ops.AddTanh(res.TWeight, m1.TWeight, m2.TWeight);
@@ -288,11 +313,25 @@ namespace Seq2SeqSharp.Tools
                     if (m1.NeedGradient)
                     {
                         m1.AddTanhGradient(resTWeight, res.TGradient);
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m1.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m1.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     if (m2.NeedGradient)
                     {
                         m2.AddTanhGradient(resTWeight, res.TGradient);
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m2.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m2.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     if (m1.NeedGradient || m2.NeedGradient)
@@ -314,7 +353,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor m1 = w1 as WeightTensor;
             WeightTensor m2 = w2 as WeightTensor;
             WeightTensor m3 = w3 as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name, w3.Name)}.AddTanh", graphToBind: this, needGradient: (m1.NeedGradient || m2.NeedGradient || m3.NeedGradient));
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name, w3.Name)}.AddTanh", graphToBind: this, needGradient: (m1.NeedGradient || m2.NeedGradient || m3.NeedGradient), dtype: m1.ElementType);
             VisualizeNodes(new IWeightTensor[] { w1, w2, w3 }, res);
 
             Ops.AddTanh3(res.TWeight, m1.TWeight, m2.TWeight, m3.TWeight);
@@ -339,16 +378,37 @@ namespace Seq2SeqSharp.Tools
                     if (m1.NeedGradient)
                     {
                         m1.AddTanhGradient(resTWeight, res.TGradient);
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m1.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m1.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     if (m2.NeedGradient)
                     {
                         m2.AddTanhGradient(resTWeight, res.TGradient);
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m2.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m2.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     if (m3.NeedGradient)
                     {
                         m3.AddTanhGradient(resTWeight, res.TGradient);
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m3.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m3.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     if (m1.NeedGradient || m2.NeedGradient || m3.NeedGradient)
@@ -407,6 +467,14 @@ namespace Seq2SeqSharp.Tools
                         {
                             Ops.AddMulV(m.TGradient, m.TGradient, res.TGradient, v);
                         }
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     res.Dispose();
@@ -444,6 +512,13 @@ namespace Seq2SeqSharp.Tools
                         Tensor resT = Ops.AsContiguous(res.TGradient);
 
                         Ops.RoPEGrad(m.TGradient, resT, seqLen);
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
+                        }
 
                         resT.Dispose();
                     }
@@ -460,7 +535,7 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor m1 = w1 as WeightTensor;
             WeightTensor m2 = w2 as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.Div", graphToBind: this, needGradient: m1.NeedGradient || m2.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.Div", graphToBind: this, needGradient: m1.NeedGradient || m2.NeedGradient, dtype: m1.ElementType);
 
             Ops.Div(res.TWeight, m1.TWeight, m2.TWeight);
             if (m_autoCheckCorruption)
@@ -481,6 +556,13 @@ namespace Seq2SeqSharp.Tools
                     {
                         using Tensor tmpT = Ops.Div(null, res.TGradient, m2TWeights);
                         m1.CopyOrAddGradient(tmpT);
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m1.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m1.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     if (m2.NeedGradient)
@@ -489,6 +571,14 @@ namespace Seq2SeqSharp.Tools
                         using Tensor tmpT2 = Ops.Mul(null, res.TGradient, tmpT1);
                         using Tensor tmpT3 = Ops.Mul(null, tmpT2, -1.0f);
                         m2.CopyOrAddGradient(tmpT3);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m2.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m2.Name}' is corrupted.");
+                            }
+                        }
 
                     }
                     m2TWeights.Dispose();
@@ -544,6 +634,14 @@ namespace Seq2SeqSharp.Tools
                         {
                             Ops.AddMulV(m.TGradient, m.TGradient, res.TGradient, 1.0f / v);
                         }
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     res.Dispose();
@@ -580,7 +678,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor m3 = w3 as WeightTensor;
             WeightTensor m4 = w4 as WeightTensor;
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name, w3.Name, w4.Name)}.EltMulMulAdd", graphToBind: this, needGradient: (m1.NeedGradient || m2.NeedGradient || m3.NeedGradient || m4.NeedGradient));
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name, w3.Name, w4.Name)}.EltMulMulAdd", graphToBind: this, needGradient: (m1.NeedGradient || m2.NeedGradient || m3.NeedGradient || m4.NeedGradient), dtype: m1.ElementType);
             VisualizeNodes(new IWeightTensor[] { w1, w2, w3, w4 }, res);
 
             Ops.MulMulAdd(res.TWeight, m1.TWeight, m2.TWeight, m3.TWeight, m4.TWeight);
@@ -628,24 +726,52 @@ namespace Seq2SeqSharp.Tools
                     {
                         m1.AddMulGradient(m2TWeight, res.TGradient);
                         m2TWeight.Dispose();
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m1.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m1.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     if (m2.NeedGradient)
                     {
                         m2.AddMulGradient(m1TWeight, res.TGradient);
                         m1TWeight.Dispose();
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m2.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m2.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     if (m3.NeedGradient)
                     {
                         m3.AddMulGradient(m4TWeight, res.TGradient);
                         m4TWeight.Dispose();
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m3.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m3.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     if (m4.NeedGradient)
                     {
                         m4.AddMulGradient(m3TWeight, res.TGradient);
                         m3TWeight.Dispose();
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m4.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m4.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     res.Dispose();
@@ -661,7 +787,7 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor m1 = w1 as WeightTensor;
             WeightTensor m2 = w2 as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.EltMul", graphToBind: this, needGradient: (m1.NeedGradient || m2.NeedGradient));
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name, w2.Name)}.EltMul", graphToBind: this, needGradient: (m1.NeedGradient || m2.NeedGradient), dtype: m1.ElementType);
             VisualizeNodes(new IWeightTensor[] { w1, w2 }, res);
 
             Ops.Mul(res.TWeight, m1.TWeight, m2.TWeight);
@@ -696,12 +822,26 @@ namespace Seq2SeqSharp.Tools
                     {
                         m1.AddMulGradient(m2TWeight, res.TGradient);
                         m2TWeight.Dispose();
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m1.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m1.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     if (m2.NeedGradient)
                     {
                         m2.AddMulGradient(m1TWeight, res.TGradient);
                         m1TWeight.Dispose();
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m2.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m2.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     res.Dispose();
@@ -743,8 +883,7 @@ namespace Seq2SeqSharp.Tools
             {
                 void backward()
                 {
-                    res.ReleaseWeight();
-
+                    res.ReleaseWeight();                   
                     if (m1.NeedGradient)
                     {
                         if (res.TGradient.IsOwnerExclusive() && m1.IsGradientNull())
@@ -754,6 +893,14 @@ namespace Seq2SeqSharp.Tools
                         else
                         {
                             m1.CopyOrAddGradient(res);
+                        }
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m1.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m1.Name}' is corrupted.");
+                            }
                         }
                     }
 
@@ -766,6 +913,14 @@ namespace Seq2SeqSharp.Tools
                         else
                         {
                             m2.CopyOrAddGradient(res);
+                        }
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m2.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m2.Name}' is corrupted.");
+                            }
                         }
                     }
 
@@ -783,7 +938,7 @@ namespace Seq2SeqSharp.Tools
             var newSizes = (long[])m.Sizes.Clone();
             newSizes[dim] = 1;
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(newSizes, m_deviceId, name: $"{m.Name}.Sum", graphToBind: this, needGradient: m.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(newSizes, m_deviceId, name: $"{m.Name}.Sum", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
             Ops.Sum(res.TWeight, m.TWeight, dim);
             if (m_autoCheckCorruption)
             {
@@ -802,6 +957,14 @@ namespace Seq2SeqSharp.Tools
                         res.ReleaseWeight();
                         using var tmp = res.TGradient.Expand(m.Sizes);
                         m.CopyOrAddGradient(tmp);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
+                        }
                     }
                     res.Dispose();
                 }
@@ -819,7 +982,7 @@ namespace Seq2SeqSharp.Tools
             var newSizes = (long[])m.Sizes.Clone();
             newSizes[dim] = 1;
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(newSizes, m_deviceId, name: $"{m.Name}.Mean", graphToBind: this, needGradient: m.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(newSizes, m_deviceId, name: $"{m.Name}.Mean", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
             Ops.Mean(res.TWeight, m.TWeight, dim);
             if (m_autoCheckCorruption)
             {
@@ -844,6 +1007,14 @@ namespace Seq2SeqSharp.Tools
                                 m.CopyOrAddGradient(tmp2);
                             }
                         }
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
+                        }
                     }
                     res.Dispose();
                 }
@@ -858,7 +1029,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor Log(IWeightTensor w)
         {
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Log", graphToBind: this, needGradient: m.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Log", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
 
             Ops.Log(res.TWeight, m.TWeight);
             if (m_autoCheckCorruption)
@@ -895,6 +1066,14 @@ namespace Seq2SeqSharp.Tools
                         //}
 
                         Ops.AddDiv(m.TGradient, m.TGradient, res.TGradient, mTWeight);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
+                        }
                     }
                     mTWeight.Dispose();
                     res.Dispose();
@@ -908,7 +1087,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor Exp(IWeightTensor w)
         {
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Exp", graphToBind: this, needGradient: m.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Exp", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
 
             Ops.Exp(res.TWeight, m.TWeight);
             if (m_autoCheckCorruption)
@@ -927,6 +1106,15 @@ namespace Seq2SeqSharp.Tools
                     if (m.NeedGradient)
                     {
                         Ops.AddMul(m.TGradient, m.TGradient, res.TGradient, resTWeight);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
+                        }
+
                     }
                     res.Dispose();
                 }
@@ -939,7 +1127,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor Pow(IWeightTensor w, float n)
         {
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}_{n}.Pow", graphToBind: this, needGradient: m.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}_{n}.Pow", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
 
             Ops.Pow(res.TWeight, m.TWeight, n);
             if (m_autoCheckCorruption)
@@ -966,6 +1154,13 @@ namespace Seq2SeqSharp.Tools
                         tTmp2.Dispose();
                         tTmp1.Dispose();
 
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
+                        }
                     }
                     mTWeight.Dispose();
                     res.Dispose();
@@ -982,7 +1177,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor Add(IWeightTensor w1, float v)
         {
             WeightTensor m1 = w1 as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name)}.AddTV", graphToBind: this, needGradient: m1.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name)}.AddTV", graphToBind: this, needGradient: m1.NeedGradient, dtype: m1.ElementType);
 
             VisualizeNodes(new IWeightTensor[] { w1}, res);
 
@@ -1011,6 +1206,14 @@ namespace Seq2SeqSharp.Tools
                         {
                             m1.CopyOrAddGradient(res);
                         }
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m1.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m1.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     res.Dispose();
@@ -1026,7 +1229,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor Sub(float v, IWeightTensor w1)
         {
             WeightTensor m1 = w1 as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name)}.SubVT", graphToBind: this, needGradient: m1.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name)}.SubVT", graphToBind: this, needGradient: m1.NeedGradient, dtype: m1.ElementType);
 
             VisualizeNodes(new IWeightTensor[] { w1 }, res);
 
@@ -1047,6 +1250,14 @@ namespace Seq2SeqSharp.Tools
                     if (m1.NeedGradient)
                     {
                         Ops.Sub(m1.TGradient, m1.TGradient, res.TGradient);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m1.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m1.Name}' is corrupted.");
+                            }
+                        }
                     }
                     res.Dispose();
                 }
@@ -1061,7 +1272,7 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor m0 = w0 as WeightTensor;
             WeightTensor m1 = w1 as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w0.Name)}_{GetHashString(w1.Name)}.SubTT", graphToBind: this, needGradient: m0.NeedGradient || m1.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w0.Name)}_{GetHashString(w1.Name)}.SubTT", graphToBind: this, needGradient: m0.NeedGradient || m1.NeedGradient, dtype: m0.ElementType);
 
             VisualizeNodes(new IWeightTensor[] { w1 }, res);
 
@@ -1082,11 +1293,26 @@ namespace Seq2SeqSharp.Tools
                     if (m0.NeedGradient)
                     {
                         m0.CopyOrAddGradient(res);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m0.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m0.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     if (m1.NeedGradient)
                     {
                         Ops.Sub(m1.TGradient, m1.TGradient, res.TGradient);
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m1.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m1.Name}' is corrupted.");
+                            }
+                        }
                     }
                     res.Dispose();
                 }
@@ -1100,7 +1326,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor Tanh(IWeightTensor w)
         {
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Tanh", graphToBind: this, needGradient: m.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Tanh", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
             VisualizeNodes(w, res);
 
             Ops.Tanh(res.TWeight, m.TWeight);
@@ -1126,6 +1352,13 @@ namespace Seq2SeqSharp.Tools
                     {
                         m.AddTanhGradient(resTWeight, res.TGradient);
                         resTWeight.Dispose();
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     res.Dispose();
@@ -1174,6 +1407,14 @@ namespace Seq2SeqSharp.Tools
                         {
                             Ops.Half2Float(tmp, res.TGradient);
                             Ops.Add(m.TGradient, m.TGradient, tmp);
+                        }
+                    }
+
+                    if (m_autoCheckCorruption)
+                    {
+                        if (m.IsGradientCorrupted())
+                        {
+                            throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
                         }
                     }
 
@@ -1226,6 +1467,14 @@ namespace Seq2SeqSharp.Tools
                         }
                     }
 
+                    if (m_autoCheckCorruption)
+                    {
+                        if (m.IsGradientCorrupted())
+                        {
+                            throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                        }
+                    }
+
                     res.Dispose();
                 }
                 m_backprop.Add(backward);
@@ -1274,6 +1523,14 @@ namespace Seq2SeqSharp.Tools
                         else
                         {
                             Ops.AddLeakyReLUD(m.TGradient, m.TGradient, mTWeight, res.TGradient);
+                        }
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
                         }
                     }
                     mTWeight.Dispose();
@@ -1326,6 +1583,14 @@ namespace Seq2SeqSharp.Tools
                         else
                         {
                             Ops.AddReluD(m.TGradient, m.TGradient, mTWeight, res.TGradient);
+                        }
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
                         }
                     }
                     mTWeight.Dispose();
@@ -1387,6 +1652,14 @@ namespace Seq2SeqSharp.Tools
 
                         using Tensor tW2 = t2TWeight.Transpose(1, 2);
                         Ops.AddmmBatch(t1.TGradient, 1.0f, t1.TGradient, alpha, res.TGradient, tW2);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (t1.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{t1.Name}' is corrupted.");
+                            }
+                        }
                     }
                     t2TWeight.Dispose();
 
@@ -1402,6 +1675,14 @@ namespace Seq2SeqSharp.Tools
 
                         using Tensor tW1 = t1TWeight.Transpose(1, 2);
                         Ops.AddmmBatch(t2.TGradient, 1.0f, t2.TGradient, alpha, tW1, res.TGradient);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (t2.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{t2.Name}' is corrupted.");
+                            }
+                        }
                     }
                     t1TWeight.Dispose();
 
@@ -1422,7 +1703,7 @@ namespace Seq2SeqSharp.Tools
             int d = t2.Columns;
             WeightTensor res;
 
-            res = m_weightTensorFactory.CreateWeightTensor(n, d, m_deviceId, name: $"{GetHashString(m1.Name, m2.Name)}.Mul", graphToBind: this, needGradient: (t1.NeedGradient || t2.NeedGradient));
+            res = m_weightTensorFactory.CreateWeightTensor(n, d, m_deviceId, name: $"{GetHashString(m1.Name, m2.Name)}.Mul", graphToBind: this, needGradient: (t1.NeedGradient || t2.NeedGradient), dtype: t1.ElementType);
             VisualizeNodes(new IWeightTensor[] { m1, m2 }, res);
 
             Ops.Addmm(res.TWeight, 0.0f, res.TWeight, alpha, t1.TWeight, t2.TWeight);
@@ -1467,6 +1748,14 @@ namespace Seq2SeqSharp.Tools
 
                         using Tensor tW2 = t2TWeight.Transpose();
                         Ops.Addmm(t1.TGradient, 1.0f, t1.TGradient, alpha, res.TGradient, tW2);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (t1.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{t1.Name}' is corrupted.");
+                            }
+                        }
                     }
                     t2TWeight.Dispose();
 
@@ -1482,6 +1771,14 @@ namespace Seq2SeqSharp.Tools
 
                         using Tensor tW1 = t1TWeight.Transpose();
                         Ops.Addmm(t2.TGradient, 1.0f, t2.TGradient, alpha, tW1, res.TGradient);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (t2.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{t2.Name}' is corrupted.");
+                            }
+                        }
                     }
                     t1TWeight.Dispose();
 
@@ -1555,11 +1852,18 @@ namespace Seq2SeqSharp.Tools
                 void backward()
                 {
                     res.ReleaseWeight();
-
                     if (t3.NeedGradient)
                     {
                         using Tensor t3G = t3.TGradient.Expand(n, d);
                         Ops.Add(t3G, t3G, res.TGradient);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (t3.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{t3.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     if (t1.NeedGradient)
@@ -1573,6 +1877,14 @@ namespace Seq2SeqSharp.Tools
                         //}
                         using Tensor tW2 = t2TWeight.Transpose();
                         Ops.Addmm(t1.TGradient, 1.0f, t1.TGradient, alpha, res.TGradient, tW2);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (t1.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{t1.Name}' is corrupted.");
+                            }
+                        }
                     }
                     t2TWeight.Dispose();
 
@@ -1588,6 +1900,14 @@ namespace Seq2SeqSharp.Tools
 
                         using Tensor tW1 = t1TWeight.Transpose();
                         Ops.Addmm(t2.TGradient, 1.0f, t2.TGradient, alpha, tW1, res.TGradient);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (t2.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{t2.Name}' is corrupted.");
+                            }
+                        }
                     }
                     t1TWeight.Dispose();
 
@@ -1624,6 +1944,14 @@ namespace Seq2SeqSharp.Tools
                         {
                             m.CopyOrAddGradient(gT, res.Name);
                         }
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     res.Dispose();
@@ -1637,7 +1965,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor Transpose(IWeightTensor w)
         {
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Columns, m.Rows, m_deviceId, name: $"{GetHashString(w.Name)}.Transpose", graphToBind: this, needGradient: m.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Columns, m.Rows, m_deviceId, name: $"{GetHashString(w.Name)}.Transpose", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
             VisualizeNodes(w, res);
 
             res.TWeight = m.TWeight.Transpose();
@@ -1658,6 +1986,14 @@ namespace Seq2SeqSharp.Tools
                         else
                         {
                             m.CopyOrAddGradient(gT, res.Name);
+                        }
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
                         }
                     }
                     res.Dispose();
@@ -1691,6 +2027,14 @@ namespace Seq2SeqSharp.Tools
                     {
                         res.ReleaseWeight();
                         m.AddMulGradient(res.TGradient, mt.TWeight);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
+                        }
                     }
                     res.Dispose();
 
@@ -1699,6 +2043,96 @@ namespace Seq2SeqSharp.Tools
             }
 
             return res;
+        }
+
+        public IWeightTensor FlashAttention(IWeightTensor Q, IWeightTensor K, IWeightTensor V, int q_start_offset = 0)
+        {
+            WeightTensor q = Q as WeightTensor;
+            WeightTensor k = K as WeightTensor;
+            WeightTensor v = V as WeightTensor;
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes: q.Sizes, m_deviceId, name: $"{GetHashString(q.Name)}.FlashAttention", cleanWeights: true, graphToBind: this, needGradient: q.NeedGradient, dtype: q.ElementType);
+
+            Tensor L = new Tensor(res.Allocator, elementType: DType.Float32, new long[] { q.Sizes[0] * q.Sizes[1] * q.Sizes[2] });
+            Ops.Fill(L, 0.0f);
+
+            Ops.FlashAttention(res.TWeight, L, q.TWeight, k.TWeight, v.TWeight, q_start_offset);
+
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
+            if (m_needsBackprop)
+            {
+                Tensor resW = res.TWeight.CopyRef();
+                Tensor qT = q.TWeight.CopyRef();
+                Tensor kT = k.TWeight.CopyRef();
+                Tensor vT = v.TWeight.CopyRef();
+
+                void backward()
+                {
+                    if (q.NeedGradient)
+                    {
+                        Tensor resG = Ops.AsContiguous(res.TGradient);
+                        Tensor rW = Ops.AsContiguous(resW);
+                        //Tensor qT1 = Ops.AsContiguous(qT);
+                        //Tensor kT1 = Ops.AsContiguous(kT);
+                        //Tensor vT1 = Ops.AsContiguous(vT);
+
+                        Ops.FlashAttentionGrad(qT, kT, vT, rW, resG, L, q.TGradient, k.TGradient, v.TGradient);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (q.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient Q '{q.Name}' is corrupted.");
+                            }
+                        }
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (k.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient K '{k.Name}' is corrupted.");
+                            }
+                        }
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (v.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient V '{v.Name}' is corrupted.");
+                            }
+                        }
+
+                        resG.Dispose();
+                        rW.Dispose();
+                        //qT1.Dispose();
+                        //kT1.Dispose();
+                        //vT1.Dispose();
+                    }
+                    res.Dispose();
+                    L.Dispose();
+
+                    resW.Dispose();
+                    qT.Dispose();
+                    kT.Dispose();
+                    vT.Dispose();
+                }
+                m_backprop.Add(backward);
+
+            }
+            else
+            {
+                L.Dispose();
+            }
+
+            return res;
+
         }
 
 
@@ -1711,7 +2145,7 @@ namespace Seq2SeqSharp.Tools
             }
             Tensor argMaxT = Ops.Argmax(null, m.TWeight, dim);
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(argMaxT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Argmax", graphToBind: this, needGradient: m.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(argMaxT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Argmax", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
             res.TWeight = argMaxT;
             if (m_autoCheckCorruption)
             {
@@ -1734,7 +2168,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor m = w as WeightTensor;
             Tensor equalT = Ops.EqualTo(null, m.TWeight, val);
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(equalT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.EqualTo", graphToBind: this, needGradient: false);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(equalT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.EqualTo", graphToBind: this, needGradient: false, dtype: m.ElementType);
             res.TWeight = equalT;
             if (m_autoCheckCorruption)
             {
@@ -1760,7 +2194,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor m = w as WeightTensor;
             Tensor equalT = Ops.LessOrEqual(null, m.TWeight, val);
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(equalT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.LessOrEqual", graphToBind: this, needGradient: false);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(equalT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.LessOrEqual", graphToBind: this, needGradient: false, dtype: m.ElementType);
             res.TWeight = equalT;
             if (m_autoCheckCorruption)
             {
@@ -1786,7 +2220,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor m = w as WeightTensor;
             Tensor equalT = Ops.GreaterThan(null, m.TWeight, val);
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(equalT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.GreaterThan", graphToBind: this, needGradient: false);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(equalT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.GreaterThan", graphToBind: this, needGradient: false, dtype: m.ElementType);
             res.TWeight = equalT;
             if (m_autoCheckCorruption)
             {
@@ -1819,7 +2253,7 @@ namespace Seq2SeqSharp.Tools
             int K = w.Columns;
             WeightTensor m = w as WeightTensor;
             float[] weights = m.ToWeightArray();
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { m.Rows, 1 }, m_deviceId, name: $"{GetHashString(m.Name)}.Sample", graphToBind: this, needGradient: m.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { m.Rows, 1 }, m_deviceId, name: $"{GetHashString(m.Name)}.Sample", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
             float[] indices = new float[m.Rows];
 
             for (int i = 0; i < m.Rows; i++)
@@ -1920,7 +2354,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor m = w as WeightTensor;
             Tensor argMaxT = Ops.Max(null, m.TWeight, dim);
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(argMaxT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Max", graphToBind: this, needGradient: m.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(argMaxT.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Max", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
             res.TWeight = argMaxT;
             if (m_autoCheckCorruption)
             {
@@ -2015,6 +2449,14 @@ namespace Seq2SeqSharp.Tools
 
                         t.AddSoftmaxGradient(resTWeight, res.TGradient, inPlace);
                         resTWeight.Dispose();
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (t.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{t.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     res.Dispose();
@@ -2042,6 +2484,13 @@ namespace Seq2SeqSharp.Tools
             {
                 void backward()
                 {
+                    if (m_autoCheckCorruption)
+                    {
+                        if (m.IsGradientCorrupted())
+                        {
+                            throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                        }
+                    }
                     res.Dispose();
                 }
                 m_backprop.Add(backward);
@@ -2063,7 +2512,7 @@ namespace Seq2SeqSharp.Tools
 
             //    return sb.ToString();
             //}
-            return string.Empty;
+            return "";
         }
 
         private void VisualizeNodes(IWeightTensor sourceNode, IWeightTensor targetNode)
@@ -2152,10 +2601,27 @@ namespace Seq2SeqSharp.Tools
             //bitmap.Dispose();
         }
 
-        public IWeightTensor CreateTensorWeights(long[] sizes, float[] values)
+        public IWeightTensor CreateTensorWeights(long[] sizes, float[] values, DType dtype)
         {
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"Tensor_CopyFrom_Array", needGradient: false);
-            res.TWeight.CopyFrom(values);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"Tensor_CopyFrom_Array", needGradient: false, dtype: dtype);
+
+            Tensor t = new Tensor(res.Allocator, DType.Float32, sizes);
+            t.CopyFrom(values);
+
+            if (t.ElementType == res.ElementType)
+            {
+                res.TWeight = t.CopyRef();
+            }
+            else if (res.ElementType == DType.Float16)
+            {
+                Ops.Float2Half(res.TWeight, t);
+            }
+            else
+            {
+                throw new Exception($"Invalid element type: '{dtype}'");
+            }
+            t.Dispose();
+
             if (m_autoCheckCorruption)
             {
                 if (res.IsWeightsCorrupted())
@@ -2167,19 +2633,36 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightTensor CreateTensorWeights(long[] sizes, float value)
+        public IWeightTensor CreateTensorWeights(long[] sizes, float value, DType dtype)
         {
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"Tensor_CopyFrom_Array", needGradient: false);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"Tensor_CopyFrom_Array", needGradient: false, dtype: dtype);
             Ops.Fill(res.TWeight, value);
 
             return res;
         }
 
-        public IWeightTensor CreateUniformRandomTensor(long[] sizes, float minVal, float maxVal)
+        public IWeightTensor CreateUniformRandomTensor(long[] sizes, float minVal, float maxVal, DType dtype)
         {
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"New_UniformRandom_Tensor", needGradient: false);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"New_UniformRandom_Tensor", needGradient: false, dtype: dtype);
+
             float[] w = TensorSharp.RandomGenerator.BuildRandomUniformWeight(sizes, minVal, maxVal);
-            res.TWeight.CopyFrom(w);
+            Tensor t = new Tensor(res.Allocator, DType.Float32, sizes);
+            t.CopyFrom(w);
+
+            if (t.ElementType == res.ElementType)
+            {
+                res.TWeight = t.CopyRef();
+            }
+            else if (res.ElementType == DType.Float16)
+            {
+                Ops.Float2Half(res.TWeight, t);
+            }
+            else
+            {
+                throw new Exception($"Invalid element type: '{dtype}'");
+            }
+            t.Dispose();
+
             if (m_autoCheckCorruption)
             {
                 if (res.IsWeightsCorrupted())
@@ -2192,9 +2675,9 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightTensor Zero(long[] sizes)
+        public IWeightTensor Zero(long[] sizes, DType dtype)
         {
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, cleanWeights: true, name: $"Zero_Tensor");
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, cleanWeights: true, name: $"Zero_Tensor", dtype: dtype);
             if (m_autoCheckCorruption)
             {
                 if (res.IsWeightsCorrupted())
@@ -2210,7 +2693,7 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor src = s as WeightTensor;
             WeightTensor idx = indice as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"{GetHashString(src.Name)}.IndexUpdate", graphToBind: this, needGradient: src.NeedGradient, cleanWeights: clearWeights);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(sizes, m_deviceId, name: $"{GetHashString(src.Name)}.IndexUpdate", graphToBind: this, needGradient: src.NeedGradient, cleanWeights: clearWeights, dtype: src.ElementType);
 
 
             Ops.IndexSelectGrad(res.TWeight, src.TWeight, idx.TWeight);
@@ -2231,6 +2714,14 @@ namespace Seq2SeqSharp.Tools
                     {
                         res.ReleaseWeight();
                         Ops.IndexSelect(src.TGradient, res.TGradient, tIdxWeights, true);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (src.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{src.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     tIdxWeights.Dispose();
@@ -2269,6 +2760,14 @@ namespace Seq2SeqSharp.Tools
                     {
                         res.ReleaseWeight();
                         Ops.IndexSelectGrad(src.TGradient, res.TGradient, idx.TWeight);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (src.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{src.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     res.Dispose();
@@ -2350,6 +2849,14 @@ namespace Seq2SeqSharp.Tools
                             {
                                 m.CopyOrAddGradient(tTmp, res.Name);
                             }
+
+                            if (m_autoCheckCorruption)
+                            {
+                                if (m.IsGradientCorrupted())
+                                {
+                                    throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                                }
+                            }
                         }
 
                         sx += m.Sizes[dim];
@@ -2366,7 +2873,7 @@ namespace Seq2SeqSharp.Tools
         public IWeightTensor TransposeBatch(IWeightTensor m, int batchSize)
         {
             WeightTensor t = m as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(t.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.TransposeBatch", graphToBind: this, needGradient: t.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(t.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.TransposeBatch", graphToBind: this, needGradient: t.NeedGradient, dtype: t.ElementType);
             VisualizeNodes(m, res);
 
             int sizeEveryBatch = m.Rows / batchSize;
@@ -2395,6 +2902,14 @@ namespace Seq2SeqSharp.Tools
                         using Tensor t2 = res.TGradient.View(batchSize, sizeEveryBatch, m.Columns);
                         using Tensor t2Permute = t2.Permute(1, 0, 2);
                         Ops.Add(g, g, t2Permute);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (t.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{t.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     res.Dispose();
@@ -2413,7 +2928,7 @@ namespace Seq2SeqSharp.Tools
             int x = 0;
             foreach (int size in sizes)
             {
-                WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Rows, size, m_deviceId, name: $"{GetHashString(w.Name)}.SplitColumn", graphToBind: this, needGradient: m.NeedGradient);
+                WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Rows, size, m_deviceId, name: $"{GetHashString(w.Name)}.SplitColumn", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
                 VisualizeNodes(w, res);
 
                 res.TWeight = m.TWeight.Narrow(1, x, size);
@@ -2443,6 +2958,14 @@ namespace Seq2SeqSharp.Tools
 
                             x += sizes[i];
                             i++;
+                        }
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
                         }
                     }
                     else
@@ -2495,6 +3018,14 @@ namespace Seq2SeqSharp.Tools
                         else
                         {
                             m.CopyOrAddGradient(res);
+                        }
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
                         }
                     }
 
@@ -2568,6 +3099,14 @@ namespace Seq2SeqSharp.Tools
                         {
                             m.CopyOrAddGradient(resG, res.Name);
                         }
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
+                        }
                     }
                     res.Dispose();
                 }
@@ -2582,7 +3121,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor s = source as WeightTensor;
             WeightTensor i = indices as WeightTensor;
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(shape, m_deviceId, name: $"{GetHashString(s.Name + i.Name)}.Scatter", graphToBind: this, needGradient: s.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(shape, m_deviceId, name: $"{GetHashString(s.Name + i.Name)}.Scatter", graphToBind: this, needGradient: s.NeedGradient, dtype: s.ElementType);
 
             Ops.Fill(res.TWeight, 0.0f);
             Ops.Scatter(res.TWeight, s.TWeight, dim, i.TWeight);
@@ -2603,6 +3142,14 @@ namespace Seq2SeqSharp.Tools
                         res.ReleaseWeight();
                         using var tmp = Ops.Gather(null, res.TGradient, dim, i.TWeight);
                         s.CopyOrAddGradient(tmp);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (s.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{s.Name}' is corrupted.");
+                            }
+                        }
                     }
                     res.Dispose();
                 }
@@ -2618,7 +3165,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor s = source as WeightTensor;
             WeightTensor i = indices as WeightTensor;
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(shape, m_deviceId, name: $"{GetHashString(s.Name + i.Name)}.Scatter", graphToBind: this, needGradient: s.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(shape, m_deviceId, name: $"{GetHashString(s.Name + i.Name)}.Scatter", graphToBind: this, needGradient: s.NeedGradient, dtype: s.ElementType);
 
             Ops.Fill(res.TWeight, 0.0f);
             Ops.ScatterAdd(res.TWeight, s.TWeight, dim, i.TWeight);
@@ -2640,6 +3187,14 @@ namespace Seq2SeqSharp.Tools
                         res.ReleaseWeight();
                         using var tmp = Ops.Gather(null, res.TGradient, dim, iTWeight);
                         s.CopyOrAddGradient(tmp);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (s.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{s.Name}' is corrupted.");
+                            }
+                        }
                     }
                     iTWeight.Dispose();
                     res.Dispose();
@@ -2651,11 +3206,11 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightTensor Scatter(IWeightTensor indices, float val, int dim, bool needGradient = true, params long[] shape)
+        public IWeightTensor Scatter(IWeightTensor indices, float val, int dim, DType dtype, bool needGradient = true, params long[] shape)
         {
             WeightTensor i = indices as WeightTensor;
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(shape, m_deviceId, name: $"{GetHashString(i.Name)}.Scatter", graphToBind: this, needGradient: needGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(shape, m_deviceId, name: $"{GetHashString(i.Name)}.Scatter", graphToBind: this, needGradient: needGradient, dtype: dtype);
 
             Ops.Fill(res.TWeight, 0.0f);
             Ops.ScatterFill(res.TWeight, val, dim, i.TWeight);
@@ -2701,6 +3256,14 @@ namespace Seq2SeqSharp.Tools
 
                         using var tmpMGrad = m.TGradient.Expand(dims); // expand input tensor at first
                         Ops.AtomicAdd(tmpMGrad, res.TGradient);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
+                        }
                     }
                     res.Dispose();
                 }
@@ -2813,6 +3376,31 @@ namespace Seq2SeqSharp.Tools
 
 
                         Ops.LayerNormGrad(srcT.TGradient, alphaT.TGradient, betaT.TGradient, res.TGradient, resTWeight, srcTWeight, alphaTWeight, betaTWeight, eps);
+
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (src.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{src.Name}' is corrupted.");
+                            }
+                        }
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (alphaT.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{alphaT.Name}' is corrupted.");
+                            }
+                        }
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (betaT.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{betaT.Name}' is corrupted.");
+                            }
+                        }
                     }
                     srcTWeight.Dispose();
                     resTWeight.Dispose();
@@ -2933,7 +3521,7 @@ namespace Seq2SeqSharp.Tools
             }
             else
             {
-                res = m_weightTensorFactory.CreateWeightTensor(w.Sizes, m_deviceId, name: $"{GetHashString(V.Name)}.Dropout", graphToBind: this, needGradient: w.NeedGradient);
+                res = m_weightTensorFactory.CreateWeightTensor(w.Sizes, m_deviceId, name: $"{GetHashString(V.Name)}.Dropout", graphToBind: this, needGradient: w.NeedGradient, dtype: w.ElementType);
             }
             VisualizeNodes(V, res);
 
@@ -2960,6 +3548,14 @@ namespace Seq2SeqSharp.Tools
                             w.TGradient = res.TGradient.CopyRef();
                         }
                         w.AddMulGradient(tn, res.TGradient, inPlace);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (w.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{w.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     res.Dispose();
@@ -2980,7 +3576,7 @@ namespace Seq2SeqSharp.Tools
             WeightTensor i = indices as WeightTensor;
             WeightTensor s = src as WeightTensor;
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(indices.Sizes, m_deviceId, name: $"Gather_{m_deviceId}", graphToBind: this, needGradient: s.NeedGradient && runGradients);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(indices.Sizes, m_deviceId, name: $"Gather_{m_deviceId}", graphToBind: this, needGradient: s.NeedGradient && runGradients, dtype: s.ElementType);
             Ops.Gather(res.TWeight, s.TWeight, dim, i.TWeight);
             if (m_autoCheckCorruption)
             {
@@ -2998,6 +3594,14 @@ namespace Seq2SeqSharp.Tools
                     {
                         res.ReleaseWeight();
                         Ops.ScatterAdd(s.TGradient, res.TGradient, dim, i.TWeight);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (s.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{s.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     res.Dispose();
@@ -3018,8 +3622,8 @@ namespace Seq2SeqSharp.Tools
             newSize[^1] = k;
 
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(newSize, m_deviceId, name: $"TopKValue_{m_deviceId}", graphToBind: this, needGradient: s.NeedGradient);
-            WeightTensor resIdx = m_weightTensorFactory.CreateWeightTensor(newSize, m_deviceId, name: $"TopKIndex_{m_deviceId}", graphToBind: null, needGradient: false);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(newSize, m_deviceId, name: $"TopKValue_{m_deviceId}", graphToBind: this, needGradient: s.NeedGradient, dtype: s.ElementType);
+            WeightTensor resIdx = m_weightTensorFactory.CreateWeightTensor(newSize, m_deviceId, name: $"TopKIndex_{m_deviceId}", graphToBind: null, needGradient: false, dtype: DType.Float32);
             Ops.TopK(res.TWeight, resIdx.TWeight, s.TWeight, k);
             if (m_autoCheckCorruption)
             {
@@ -3037,6 +3641,14 @@ namespace Seq2SeqSharp.Tools
                     {
                         res.ReleaseWeight();
                         Ops.ScatterAdd(s.TGradient, res.TGradient, s.TGradient.DimensionCount - 1, resIdx.TWeight);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (s.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{s.Name}' is corrupted.");
+                            }
+                        }
                     }
 
                     res.Dispose();
@@ -3071,6 +3683,14 @@ namespace Seq2SeqSharp.Tools
                         res.ReleaseWeight();
                         using var tmpG = s.TGradient.Select(dim, index);
                         Ops.Add(tmpG, tmpG, res.TGradient);
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (s.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{s.Name}' is corrupted.");
+                            }
+                        }
                     }
                     res.Dispose();
                 }
@@ -3101,7 +3721,7 @@ namespace Seq2SeqSharp.Tools
                 buf[(i + 1) * input[i].Count - 1] = lastTokenToPad;
             }
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(input.Count, input[0].Count, m_deviceId, name: $"LeftShiftTokens_{m_deviceId}", graphToBind: this, needGradient: false);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(input.Count, input[0].Count, m_deviceId, name: $"LeftShiftTokens_{m_deviceId}", graphToBind: this, needGradient: false, dtype: DType.Float32);
             res.SetWeightArray(buf);
             if (m_autoCheckCorruption)
             {
@@ -3123,7 +3743,7 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightTensor CreateTokensTensor(List<List<int>> input, DType elementType = DType.Float32)
+        public IWeightTensor CreateTensorForIndex(List<List<int>> input)
         {
             float[] buf = new float[input.Count * input[0].Count];
 
@@ -3135,7 +3755,7 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(input.Count, input[0].Count, m_deviceId, name: $"TokensTensor_{m_deviceId}", graphToBind: this, needGradient: false, dtype: elementType);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(input.Count, input[0].Count, m_deviceId, name: $"TokensTensor_{m_deviceId}", graphToBind: this, needGradient: false, dtype: DType.Float32);
             res.SetWeightArray(buf);
             if (m_autoCheckCorruption)
             {
@@ -3222,7 +3842,7 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightTensor BuildSelfTriMask(int paddedLength, float[] originalLengths, DType elementType = DType.Float32)
+        public IWeightTensor BuildSelfTriMask(int paddedLength, float[] originalLengths, DType elementType)
         {
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(new long[] { originalLengths.Length, paddedLength, paddedLength }, m_deviceId, name: $"SelfTriMask_{m_deviceId}", graphToBind: this, needGradient: false, dtype: elementType);
             using (Tensor originalLengthsTensor = new Tensor(res.Allocator, DType.Float32, originalLengths.Length))
@@ -3360,7 +3980,7 @@ namespace Seq2SeqSharp.Tools
         private (float, IWeightTensor) CalculateEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float smooth, float gamma)
         {
             var scatterIdxTensor = View(truthTgtSeqs, new long[] { -1, 1 });
-            var scatterTrue = Scatter(scatterIdxTensor, 1.0f, 1, needGradient: false, shape: probs.Sizes);
+            var scatterTrue = Scatter(scatterIdxTensor, 1.0f, 1, probs.ElementType, needGradient: false, shape: probs.Sizes);
             var scatterFalse = Sub(1.0f, scatterTrue);
             var probsFalse = Sub(1.0f, probs);
             var loss = EltMulMulAdd(scatterTrue, probs, scatterFalse, probsFalse);
@@ -3410,7 +4030,7 @@ namespace Seq2SeqSharp.Tools
         {
             var scatterIdxTensor = View(truthTgtSeqs, new long[] { -1, 1 });
 
-            var scatterTrue = Scatter(scatterIdxTensor, 1.0f, 1, needGradient: false, shape: probs.Sizes);
+            var scatterTrue = Scatter(scatterIdxTensor, 1.0f, 1, needGradient: false, shape: probs.Sizes, dtype: probs.ElementType);
             var scatterFalse = Sub(1.0f, scatterTrue);
             var probsFalse = Sub(1.0f, probs);
             var loss = EltMulMulAdd(scatterTrue, probs, scatterFalse, probsFalse);

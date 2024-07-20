@@ -2,8 +2,8 @@
   "profiles": {
     "GPTConsole": {
       "commandName": "Project",
-      "commandLineArgs": "-Task VQModel -ModelFilePath ybook_2b.model -VQType FLOAT16 -ProcessorType CPU",
-      "workingDirectory": "C:\\Works\\ReleasePackage\\models\\writing"
+      "commandLineArgs": "-ConfigFilePath train_opts.json",
+      "workingDirectory": "C:\\Works\\Workspace\\YBook"
     }
   }
 }

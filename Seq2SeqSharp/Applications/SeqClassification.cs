@@ -137,7 +137,7 @@ namespace Seq2SeqSharp.Applications
                 }
             }
 
-            var indice = computeGraph.CreateTensorWeights(new long[] { batchSize, 1 }, clsIdxs);
+            var indice = computeGraph.CreateTensorWeights(new long[] { batchSize, 1 }, clsIdxs, dtype: DType.Float32);
             IWeightTensor clsWeightTensor = computeGraph.IndexSelect(encOutput, indice);
 
             NetworkResult nr = new NetworkResult
@@ -152,8 +152,8 @@ namespace Seq2SeqSharp.Applications
             {
                 var tgtSnts = sntPairBatch.GetTgtTokens();
                 var tgtTokensLists = m_modelMetaData.TgtVocab.GetWordIndex(tgtSnts);
-                var tgtTokensTensor = computeGraph.CreateTokensTensor(tgtTokensLists);
-                nr.Cost = computeGraph.CrossEntropyLoss(probs, tgtTokensTensor, graident: LossScaling);
+                var tgtTokensIdxTensor = computeGraph.CreateTensorForIndex(tgtTokensLists);
+                nr.Cost = computeGraph.CrossEntropyLoss(probs, tgtTokensIdxTensor, graident: LossScaling);
             }
             else
             {

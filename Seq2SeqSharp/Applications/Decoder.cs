@@ -38,14 +38,14 @@ namespace Seq2SeqSharp.Applications
                 decoder = new MultiProcessorNetworkWrapper<IDecoder>(
                     new GPTDecoder("GPTDecoder", model.MultiHeadNum, model.HiddenDim, model.IntermediateDim, model.DecoderEmbeddingDim, model.DecoderLayerDepth, options.DropoutRatio, raDeviceIds.GetNextItem(),
                     isTrainable: options.IsDecoderTrainable && (options.Task == ModeEnums.Train), learningRateFactor: options.DecoderStartLearningRateFactor, activateFunc: model.ActivateFunc, expertNum: model.ExpertNum, 
-                    expertsPerTokenFactor: model.ExpertsPerTokenFactor, elementType: elementType, peType:model.PEType, normType: model.NormType), raDeviceIds.ToArray());
+                    expertsPerTokenFactor: model.ExpertsPerTokenFactor, elementType: elementType, peType:model.PEType, normType: model.NormType, attentionType: options.AttentionType), raDeviceIds.ToArray());
             }
             else
             {
                 decoder = new MultiProcessorNetworkWrapper<IDecoder>(
                     new TransformerDecoder("TransformerDecoder", model.MultiHeadNum, model.HiddenDim, model.IntermediateDim, model.DecoderEmbeddingDim, model.DecoderLayerDepth, options.DropoutRatio, raDeviceIds.GetNextItem(),
                     isTrainable: options.IsDecoderTrainable && (options.Task == ModeEnums.Train), learningRateFactor: options.DecoderStartLearningRateFactor, activateFunc: model.ActivateFunc, expertNum: model.ExpertNum, 
-                    expertsPerTokenFactor: model.ExpertsPerTokenFactor, elementType: elementType, peType:model.PEType, normType: model.NormType), raDeviceIds.ToArray());
+                    expertsPerTokenFactor: model.ExpertsPerTokenFactor, elementType: elementType, peType:model.PEType, normType: model.NormType, attentionType: options.AttentionType), raDeviceIds.ToArray());
             }
 
             return decoder;
@@ -314,7 +314,7 @@ namespace Seq2SeqSharp.Applications
                 }
 
 
-                var indice = g.CreateTensorWeights(new long[] { decOutputIdx.Length, 1 }, decOutputIdx);
+                var indice = g.CreateTensorWeights(new long[] { decOutputIdx.Length, 1 }, decOutputIdx, dtype: DType.Float32);
                 decOutput = g.IndexSelect(decOutput, indice);
                 if (pointerGenerator != null)
                 {
@@ -349,7 +349,7 @@ namespace Seq2SeqSharp.Applications
                 }
 
                 //Build onehot tensor for source tokens
-                var seqSeqsIndex = g.CreateTokensTensor(srcSeqs);
+                var seqSeqsIndex = g.CreateTensorForIndex(srcSeqs);
                 seqSeqsIndex = g.View(seqSeqsIndex, dims: new long[] { batchSize, 1, srcSeqLen });
                 seqSeqsIndex = g.AsContiguous(g.Expand(seqSeqsIndex, dims: new long[] { batchSize, tgtSeqLen, srcSeqLen }));
                 seqSeqsIndex = g.View(seqSeqsIndex, dims: new long[] { batchSize * tgtSeqLen, srcSeqLen });
@@ -401,8 +401,8 @@ namespace Seq2SeqSharp.Applications
                 {
                     var btList = new List<List<int>>();
                     btList.Add(decodingOptions.BlockedTokens);
-                    var blockTokensTensor = g.CreateTokensTensor(btList, elementType: DType.Float32); // [1, BlockedTokens.Count]
-                    blockTokensTensor = g.Scatter(blockTokensTensor, -1.0f, 1, false, shape: new long[] { 1, probs.Sizes[1] });
+                    var blockTokensIdxTensor = g.CreateTensorForIndex(btList); // [1, BlockedTokens.Count]
+                    var blockTokensTensor = g.Scatter(blockTokensIdxTensor, -1.0f, 1, probs.ElementType, false, shape: new long[] { 1, probs.Sizes[1] });
                     blockTokensTensor = g.Expand(blockTokensTensor, dims: probs.Sizes);
                     probs = g.Add(blockTokensTensor, probs);
                 }
@@ -527,7 +527,7 @@ namespace Seq2SeqSharp.Applications
                     decOutputIdx[i] = tgtSeqLen * (i + 1) - 1;
                 }
 
-                var indice = g.CreateTensorWeights(new long[] { decOutputIdx.Length, 1 }, decOutputIdx);
+                var indice = g.CreateTensorWeights(new long[] { decOutputIdx.Length, 1 }, decOutputIdx, dtype: DType.Float32);
                 decOutput = g.IndexSelect(decOutput, indice);
             }
 
@@ -561,8 +561,8 @@ namespace Seq2SeqSharp.Applications
                 {
                     var btList = new List<List<int>>();
                     btList.Add(decodingOptions.BlockedTokens);
-                    var blockTokensTensor = g.CreateTokensTensor(btList, elementType: DType.Float32); // [1, BlockedTokens.Count]
-                    blockTokensTensor = g.Scatter(blockTokensTensor, -1.0f, 1, false, shape: new long[] { 1, probs.Sizes[1] });
+                    var blockTokensIdxTensor = g.CreateTensorForIndex(btList); // [1, BlockedTokens.Count]
+                    var blockTokensTensor = g.Scatter(blockTokensIdxTensor, -1.0f, 1, probs.ElementType, false, shape: new long[] { 1, probs.Sizes[1] });
                     blockTokensTensor = g.Expand(blockTokensTensor, dims: probs.Sizes);
                     probs = g.Add(blockTokensTensor, probs);
                 }

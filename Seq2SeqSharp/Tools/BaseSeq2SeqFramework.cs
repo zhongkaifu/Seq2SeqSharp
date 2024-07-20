@@ -499,7 +499,10 @@ namespace Seq2SeqSharp.Tools
                             if (IsGradientsCorrupted())
                             {
                                 Logger.WriteLine(Logger.Level.warn, $"Gradients is corrupted, so we reduce loss scaling from {LossScaling} to {LossScaling / 2.0f} and skip current batch.");
-                                LossScaling = LossScaling * 0.5f;
+                                if (LossScaling > 1.0f && m_initLossScaling != 1.0f)
+                                {
+                                    LossScaling = LossScaling * 0.5f;
+                                }
                                 contiSuccUpdate = 0;
                                 break;
                             }
@@ -526,7 +529,7 @@ namespace Seq2SeqSharp.Tools
                             contiSuccUpdate++;
                             if (contiSuccUpdate >= 2000)
                             {
-                                if (LossScaling * 2.0f < 32000.0f)
+                                if (LossScaling * 2.0f < 32000.0f && m_initLossScaling != 1.0f)
                                 {
                                     LossScaling = LossScaling * 2.0f;
                                 }

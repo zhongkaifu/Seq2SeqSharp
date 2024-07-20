@@ -100,8 +100,8 @@ namespace Seq2SeqSharp
                 m_cell = null;
             }
 
-            m_hidden = weightFactory.CreateWeightTensor(batchSize, m_hdim, m_deviceId, true, name: $"{m_name}.{nameof(m_hidden)}", isTrainable: true);
-            m_cell = weightFactory.CreateWeightTensor(batchSize, m_hdim, m_deviceId, true, name: $"{m_name}.{nameof(m_cell)}", isTrainable: true);
+            m_hidden = weightFactory.CreateWeightTensor(batchSize, m_hdim, m_deviceId, m_Wxh.ElementType, true, name: $"{m_name}.{nameof(m_hidden)}", isTrainable: true);
+            m_cell = weightFactory.CreateWeightTensor(batchSize, m_hdim, m_deviceId, m_Wxh.ElementType, true, name: $"{m_name}.{nameof(m_cell)}", isTrainable: true);
         }
 
         public void Save(IModel stream)

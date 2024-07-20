@@ -42,12 +42,13 @@ namespace Seq2SeqSharp
         private readonly DType m_elementType;
         private readonly PositionEmbeddingEnums m_peType;
         private readonly NormEnums m_normType;
+        private readonly AttentionTypeEnums m_attentionType;
 
         public TransformerDecoder(string name, int multiHeadNum, int hiddenDim, int intermediateDim, int inputDim, int depth, float dropoutRatio, 
             int deviceId, bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.ReLU, 
-            int expertNum = 1, int expertsPerTokenFactor = 1, DType elementType = DType.Float32, PositionEmbeddingEnums peType = PositionEmbeddingEnums.APE, NormEnums normType = NormEnums.LayerNorm)
+            int expertNum = 1, int expertsPerTokenFactor = 1, DType elementType = DType.Float32, PositionEmbeddingEnums peType = PositionEmbeddingEnums.APE, NormEnums normType = NormEnums.LayerNorm, AttentionTypeEnums attentionType = AttentionTypeEnums.Classic)
         {
-            Logger.WriteLine(Logger.Level.debug, $"Creating transformer decoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', IntermediateDim = '{intermediateDim}', InputDim = '{inputDim}', Depth = '{depth}', MultiHeadNum = '{multiHeadNum}', ElementType = '{elementType}', Positional Embedding = '{peType}' normType = '{normType}'");
+            Logger.WriteLine(Logger.Level.debug, $"Creating transformer decoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', IntermediateDim = '{intermediateDim}', InputDim = '{inputDim}', Depth = '{depth}', MultiHeadNum = '{multiHeadNum}', ElementType = '{elementType}', Positional Embedding = '{peType}' normType = '{normType}' AttentionType = '{attentionType}'");
 
             m_name = name;
             m_multiHeadNum = multiHeadNum;
@@ -65,6 +66,7 @@ namespace Seq2SeqSharp
             m_elementType = elementType;
             m_peType = peType;
             m_normType = normType;
+            m_attentionType = attentionType;
 
             if (hiddenDim != inputDim)
             {
@@ -72,11 +74,11 @@ namespace Seq2SeqSharp
             }
 
             m_selfAttns.Add(new MultiHeadAttention($"{name}.SelfAttn_0", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId, 
-                isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor, elementType: elementType, peType: peType, normType: normType));
+                isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor, elementType: elementType, peType: peType, normType: normType, attentionType: m_attentionType));
             for (int i = 1; i < depth; i++)
             {
                 m_selfAttns.Add(new MultiHeadAttention($"{name}.SelfAttn_{i}", multiHeadNum, hiddenDim, hiddenDim, m_dropoutRatio, deviceId, 
-                    isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor, elementType: elementType, peType: peType, normType: normType));
+                    isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor, elementType: elementType, peType: peType, normType: normType, attentionType: m_attentionType));
             }
 
             m_encAttns.Add(new MultiHeadAttention($"{name}.EncAttn_0", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId, 
@@ -186,7 +188,7 @@ namespace Seq2SeqSharp
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
             return new TransformerDecoder(m_name, m_multiHeadNum, m_hiddenDim, m_intermediateDim, m_inputDim, m_depth, m_dropoutRatio, deviceId, m_isTrainable, learningRateFactor: m_learningRateFactor, activateFunc: m_activateFunc, 
-                expertNum: m_expertNum, expertsPerTokenFactor: m_expertsPerTokenFactor, elementType: m_elementType, peType: m_peType, normType: m_normType);
+                expertNum: m_expertNum, expertsPerTokenFactor: m_expertsPerTokenFactor, elementType: m_elementType, peType: m_peType, normType: m_normType, attentionType: m_attentionType);
         }
 
         public List<IWeightTensor> GetParams()
