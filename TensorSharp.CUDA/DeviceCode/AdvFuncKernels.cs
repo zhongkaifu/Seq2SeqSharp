@@ -173,18 +173,15 @@ void flash_attention_2_backward_kernel(
     float* Kj = sram;
     float* Vj = &sram[col_tile_size];
 
-    float* dKj = &sram[col_tile_size * 2];
-    float* dVj = &sram[col_tile_size * 3];
-
-    float* Qi = &sram[col_tile_size * 4];
-    float* Oi = &sram[col_tile_size * 4 + row_tile_size];
-    float* dOi = &sram[col_tile_size * 4 + row_tile_size * 2];
+    float* Qi = &sram[col_tile_size * 2];
+    float* Oi = &sram[col_tile_size * 2 + row_tile_size];
+    float* dOi = &sram[col_tile_size * 2 + row_tile_size * 2];
 
     // We also use S for P. Likewise, we use dS for dP.
     // We can reuse the same memory because we don't need S and P at the same time.
     // We also don't need dS and dP at the same time.
-    float* S = &sram[col_tile_size * 4 + row_tile_size * 3];
-    float* dS = &sram[col_tile_size * 4 + row_tile_size * 3 + Bc * Br];
+    float* S = &sram[col_tile_size * 2 + row_tile_size * 3];
+    float* dS = &sram[col_tile_size * 2 + row_tile_size * 3 + Bc * Br];
 
     for (int j = 0; j < Tc; j++) {
 
@@ -192,12 +189,6 @@ void flash_attention_2_backward_kernel(
         for (int x = 0; x < d; x++) {
             Kj[(tx * d) + x] = K[qkv_offset + (col_tile_size * j) + (tx * d) + x];
             Vj[(tx * d) + x] = V[qkv_offset + (col_tile_size * j) + (tx * d) + x];
-        }
-
-        // Initialize dKj, dVj to 0
-        for (int x = 0; x < d; x++) {
-            dKj[(tx * d) + x] = 0;
-            dVj[(tx * d) + x] = 0;
         }
 
         for (int i = j; i < Tr; i++)  {
@@ -242,7 +233,7 @@ void flash_attention_2_backward_kernel(
                 for (int y = 0; y < Br; y++) {
                     sum += S[(Bc * y) + tx] * dOi[(tx * d) + x];
                 }
-                atomicAdd(&dVj[(tx * d) + x], sum);
+                atomicAdd(&dV[qkv_offset + (row_tile_size * j) + (tx * d) + x], sum);
             }
 
             // dPij <- dOi * Vj^T
@@ -280,14 +271,8 @@ void flash_attention_2_backward_kernel(
                     sum += dS[(Bc * y) + tx] * Qi[(y * d) + x];
                 }
                 sum *= softmax_scale;
-                atomicAdd(&dKj[(tx * d) + x], sum);
+                atomicAdd(&dK[qkv_offset + (row_tile_size * j) + (tx * d) + x], sum);
             }
-        }
-
-        // Upload Kj, Vj to HRAM
-        for (int x = 0; x < d; x++) {
-            dK[qkv_offset + (row_tile_size * j) + (tx * d) + x] = dKj[(tx * d) + x];
-            dV[qkv_offset + (row_tile_size * j) + (tx * d) + x] = dVj[(tx * d) + x];
         }
     }
 }
@@ -1524,18 +1509,15 @@ void flash_attention_2_backward_kernelHalf(
     float* Kj = sram;
     float* Vj = &sram[col_tile_size];
 
-    float* dKj = &sram[col_tile_size * 2];
-    float* dVj = &sram[col_tile_size * 3];
-
-    float* Qi = &sram[col_tile_size * 4];
-    float* Oi = &sram[col_tile_size * 4 + row_tile_size];
-    float* dOi = &sram[col_tile_size * 4 + row_tile_size * 2];
+    float* Qi = &sram[col_tile_size * 2];
+    float* Oi = &sram[col_tile_size * 2 + row_tile_size];
+    float* dOi = &sram[col_tile_size * 2 + row_tile_size * 2];
 
     // We also use S for P. Likewise, we use dS for dP.
     // We can reuse the same memory because we don't need S and P at the same time.
     // We also don't need dS and dP at the same time.
-    float* S = &sram[col_tile_size * 4 + row_tile_size * 3];
-    float* dS = &sram[col_tile_size * 4 + row_tile_size * 3 + Bc * Br];
+    float* S = &sram[col_tile_size * 2 + row_tile_size * 3];
+    float* dS = &sram[col_tile_size * 2 + row_tile_size * 3 + Bc * Br];
 
     for (int j = 0; j < Tc; j++) {
 
@@ -1543,12 +1525,6 @@ void flash_attention_2_backward_kernelHalf(
         for (int x = 0; x < d; x++) {
             Kj[(tx * d) + x] = __half2float(K[qkv_offset + (col_tile_size * j) + (tx * d) + x]);
             Vj[(tx * d) + x] = __half2float(V[qkv_offset + (col_tile_size * j) + (tx * d) + x]);
-        }
-
-        // Initialize dKj, dVj to 0
-        for (int x = 0; x < d; x++) {
-            dKj[(tx * d) + x] = 0;
-            dVj[(tx * d) + x] = 0;
         }
 
         for (int i = j; i < Tr; i++)  {
@@ -1593,7 +1569,7 @@ void flash_attention_2_backward_kernelHalf(
                 for (int y = 0; y < Br; y++) {
                     sum += S[(Bc * y) + tx] * dOi[(tx * d) + x];
                 }
-                atomicAdd(&dVj[(tx * d) + x], sum);
+                atomicAdd(&dV[qkv_offset + (row_tile_size * j) + (tx * d) + x], __float2half(sum));
             }
 
             // dPij <- dOi * Vj^T
@@ -1631,14 +1607,8 @@ void flash_attention_2_backward_kernelHalf(
                     sum += dS[(Bc * y) + tx] * Qi[(y * d) + x];
                 }
                 sum *= softmax_scale;
-                atomicAdd(&dKj[(tx * d) + x], sum);
+                atomicAdd(&dK[qkv_offset + (row_tile_size * j) + (tx * d) + x], __float2half(sum));
             }
-        }
-
-        // Upload Kj, Vj to HRAM
-        for (int x = 0; x < d; x++) {
-            dK[qkv_offset + (row_tile_size * j) + (tx * d) + x] = __float2half(dKj[(tx * d) + x]);
-            dV[qkv_offset + (row_tile_size * j) + (tx * d) + x] = __float2half(dVj[(tx * d) + x]);
         }
     }
 }
@@ -2549,7 +2519,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
                 int N = (int)Q.Sizes[2];
                 int d = (int)Q.Sizes[3];
 
-                int Br = 16;
+                int Br = 32;
                 while (Br > 1)
                 {
                     if (N % Br == 0)
@@ -2621,7 +2591,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
                 int N = (int)Q.Sizes[2];
                 int d = (int)Q.Sizes[3];
 
-                int Br = 16;
+                int Br = 32;
                 while (Br > 1)
                 {
                     if (N % Br == 0)
@@ -2638,10 +2608,10 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
                 float softmax_scale = (float)(1.0 / Math.Sqrt(d));
 
                 // Calculate SRAM size needed per block
-                int col_tile_size = Bc * d;  // size of Kj, Vj
+                int col_tile_size = Bc * d;  // size of dKj, dVj
                 int row_tile_size = Br * d;  // size of Qi, Oi, dOi
                 int sram_size =
-                    (4 * col_tile_size * sizeof(float))  // SRAM size for Kj, Vj, dKj, dVj
+                    (2 * col_tile_size * sizeof(float))  // SRAM size for dKj, dVj
                     + (3 * row_tile_size * sizeof(float))  // SRAM size for Qi, Oi, dOi
                     + (2 * Br * Bc * sizeof(float));  // SRAM size for S, dS
 
