@@ -87,7 +87,7 @@ void flash_attention_2_forward_kernel(
                 for (int x = 0; x < d; x++)
                     sum += Qi[(tx * d) + x] * Kj[(y * d) + x];
                 sum *= softmax_scale;
-                S[(Bc * tx) + y] = sum;
+                S[y] = sum;
 
                 if (sum > row_m)
                     row_m = sum;
@@ -104,8 +104,8 @@ void flash_attention_2_forward_kernel(
                     break;  // break if we are done with the sequence
                 if (i * Br + tx < j * Bc + y)
                     break;
-                S[(Bc * tx) + y] = __expf(S[(Bc * tx) + y] - new_row_m);
-                row_l += S[(Bc * tx) + y];
+                S[y] = __expf(S[y] - new_row_m);
+                row_l += S[y];
             }
 
             // l_i^j = (exp(m_i^j-1 - m_i^j) * l_i^j-1) + row_sum(P_i^j)
@@ -120,7 +120,7 @@ void flash_attention_2_forward_kernel(
                         break;  // break if we are done with the sequence
                     if (i * Br + tx < j * Bc + y)
                         break;
-                    pv += S[(Bc * tx) + y] * Vj[(y * d) + x];
+                    pv += S[y] * Vj[(y * d) + x];
                 }
                 O[qkv_offset + (tile_size * i) + (tx * d) + x] = \
                     row_m_exp * O[qkv_offset + (tile_size * i) + (tx * d) + x] + pv;
@@ -174,14 +174,14 @@ void flash_attention_2_backward_kernel(
     float* Vj = &sram[col_tile_size];
 
     float* Qi = &sram[col_tile_size * 2];
-    float* Oi = &sram[col_tile_size * 2 + row_tile_size];
-    float* dOi = &sram[col_tile_size * 2 + row_tile_size * 2];
+    //float* Oi = &sram[col_tile_size * 2 + row_tile_size];
+    float* dOi = &sram[col_tile_size * 2 + row_tile_size];
 
     // We also use S for P. Likewise, we use dS for dP.
     // We can reuse the same memory because we don't need S and P at the same time.
     // We also don't need dS and dP at the same time.
-    float* S = &sram[col_tile_size * 2 + row_tile_size * 3];
-    float* dS = &sram[col_tile_size * 2 + row_tile_size * 3 + Bc * Br];
+    float* S = &sram[col_tile_size * 2 + row_tile_size * 2];
+    //float* dS = &sram[col_tile_size * 2 + row_tile_size * 2 + Bc * Br];
 
     for (int j = 0; j < Tc; j++) {
 
@@ -198,9 +198,8 @@ void flash_attention_2_backward_kernel(
             float Di = 0;
             for (int x = 0; x < d; x++) {
                 Qi[(tx * d) + x] = Q[qkv_offset + (row_tile_size * i) + (tx * d) + x];
-                Oi[(tx * d) + x] = O[qkv_offset + (row_tile_size * i) + (tx * d) + x];
                 dOi[(tx * d) + x] = dO[qkv_offset + (row_tile_size * i) + (tx * d) + x];
-                Di += dOi[(tx * d) + x] * Oi[(tx * d) + x];
+                Di += dOi[(tx * d) + x] * O[qkv_offset + (row_tile_size * i) + (tx * d) + x];
             }
             float l_curr = L[lm_offset + (Br * i) + tx];
 
@@ -238,18 +237,16 @@ void flash_attention_2_backward_kernel(
 
             // dPij <- dOi * Vj^T
             // dPij[tx][y] = Sum_{x = 0}^{d-1} dOi[tx][x] * Vj[y][x]
+
+            // dSij <- Pij * (dPij - Di)
+            // dSij[tx][y] = Pij[tx][y] * (dPij[tx][y] - Di[tx])
+
             for (int y = 0; y < Bc; y++) {
                 float sum = 0;
                 for (int x = 0; x < d; x++) {
                     sum += dOi[(tx * d) + x] * Vj[(y * d) + x];
                 }
-                dS[(Bc * tx) + y] = sum;
-            }
-
-            // dSij <- Pij * (dPij - Di)
-            // dSij[tx][y] = Pij[tx][y] * (dPij[tx][y] - Di[tx])
-            for (int y = 0; y < Bc; ++y) {
-                dS[(Bc * tx) + y] = S[(Bc * tx) + y] * (dS[(Bc * tx) + y] - Di);
+                S[(Bc * tx) + y] = S[(Bc * tx) + y] * (sum - Di);
             }
 
             // dQi <- dQi + softmax_scale * dSijKj
@@ -257,7 +254,7 @@ void flash_attention_2_backward_kernel(
             for (int x = 0; x < d; x++) {
                 float sum = 0;
                 for (int y = 0; y < Bc; y++) {
-                    sum += dS[(Bc * tx) + y] * Kj[(y * d) + x];
+                    sum += S[(Bc * tx) + y] * Kj[(y * d) + x];
                 }
                 sum *= softmax_scale;
                 atomicAdd(&dQ[qkv_offset + (row_tile_size * i) + (tx * d) + x], sum);
@@ -268,7 +265,7 @@ void flash_attention_2_backward_kernel(
             for (int x = 0; x < d; x++) {
                 float sum = 0;
                 for (int y = 0; y < Br; y++) {
-                    sum += dS[(Bc * y) + tx] * Qi[(y * d) + x];
+                    sum += S[(Bc * y) + tx] * Qi[(y * d) + x];
                 }
                 sum *= softmax_scale;
                 atomicAdd(&dK[qkv_offset + (row_tile_size * j) + (tx * d) + x], sum);
@@ -1420,7 +1417,7 @@ void flash_attention_2_forward_kernelHalf(
                 for (int x = 0; x < d; x++)
                     sum += Qi[(tx * d) + x] * Kj[(y * d) + x];
                 sum *= softmax_scale;
-                S[(Bc * tx) + y] = sum;
+                S[y] = sum;
 
                 if (sum > row_m)
                     row_m = sum;
@@ -1437,8 +1434,8 @@ void flash_attention_2_forward_kernelHalf(
                     break;  // break if we are done with the sequence
                 if (i * Br + tx < j * Bc + y)
                     break;
-                S[(Bc * tx) + y] = __expf(S[(Bc * tx) + y] - new_row_m);
-                row_l += S[(Bc * tx) + y];
+                S[y] = __expf(S[y] - new_row_m);
+                row_l += S[y];
             }
 
             // l_i^j = (exp(m_i^j-1 - m_i^j) * l_i^j-1) + row_sum(P_i^j)
@@ -1453,7 +1450,7 @@ void flash_attention_2_forward_kernelHalf(
                         break;  // break if we are done with the sequence
                     if (i * Br + tx < j * Bc + y)
                         break;
-                    pv += S[(Bc * tx) + y] * Vj[(y * d) + x];
+                    pv += S[y] * Vj[(y * d) + x];
                 }
                 O[qkv_offset + (tile_size * i) + (tx * d) + x] = \
                     __float2half(row_m_exp * __half2float(O[qkv_offset + (tile_size * i) + (tx * d) + x]) + pv);
@@ -1510,14 +1507,14 @@ void flash_attention_2_backward_kernelHalf(
     float* Vj = &sram[col_tile_size];
 
     float* Qi = &sram[col_tile_size * 2];
-    float* Oi = &sram[col_tile_size * 2 + row_tile_size];
-    float* dOi = &sram[col_tile_size * 2 + row_tile_size * 2];
+    //float* Oi = &sram[col_tile_size * 2 + row_tile_size];
+    float* dOi = &sram[col_tile_size * 2 + row_tile_size];
 
     // We also use S for P. Likewise, we use dS for dP.
     // We can reuse the same memory because we don't need S and P at the same time.
     // We also don't need dS and dP at the same time.
-    float* S = &sram[col_tile_size * 2 + row_tile_size * 3];
-    float* dS = &sram[col_tile_size * 2 + row_tile_size * 3 + Bc * Br];
+    float* S = &sram[col_tile_size * 2 + row_tile_size * 2];
+    //float* dS = &sram[col_tile_size * 2 + row_tile_size * 2 + Bc * Br];
 
     for (int j = 0; j < Tc; j++) {
 
@@ -1534,9 +1531,8 @@ void flash_attention_2_backward_kernelHalf(
             float Di = 0;
             for (int x = 0; x < d; x++) {
                 Qi[(tx * d) + x] = __half2float(Q[qkv_offset + (row_tile_size * i) + (tx * d) + x]);
-                Oi[(tx * d) + x] = __half2float(O[qkv_offset + (row_tile_size * i) + (tx * d) + x]);
-                dOi[(tx * d) + x] = dO[qkv_offset + (row_tile_size * i) + (tx * d) + x];
-                Di += dOi[(tx * d) + x] * Oi[(tx * d) + x];
+                dOi[(tx * d) + x] = __half2float(dO[qkv_offset + (row_tile_size * i) + (tx * d) + x]);
+                Di += dOi[(tx * d) + x] * __half2float(O[qkv_offset + (row_tile_size * i) + (tx * d) + x]);
             }
             float l_curr = L[lm_offset + (Br * i) + tx];
 
@@ -1574,18 +1570,15 @@ void flash_attention_2_backward_kernelHalf(
 
             // dPij <- dOi * Vj^T
             // dPij[tx][y] = Sum_{x = 0}^{d-1} dOi[tx][x] * Vj[y][x]
+
+            // dSij <- Pij * (dPij - Di)
+            // dSij[tx][y] = Pij[tx][y] * (dPij[tx][y] - Di[tx])
             for (int y = 0; y < Bc; y++) {
                 float sum = 0;
                 for (int x = 0; x < d; x++) {
                     sum += dOi[(tx * d) + x] * Vj[(y * d) + x];
                 }
-                dS[(Bc * tx) + y] = sum;
-            }
-
-            // dSij <- Pij * (dPij - Di)
-            // dSij[tx][y] = Pij[tx][y] * (dPij[tx][y] - Di[tx])
-            for (int y = 0; y < Bc; ++y) {
-                dS[(Bc * tx) + y] = S[(Bc * tx) + y] * (dS[(Bc * tx) + y] - Di);
+                S[(Bc * tx) + y] = S[(Bc * tx) + y] * (sum - Di);
             }
 
             // dQi <- dQi + softmax_scale * dSijKj
@@ -1593,7 +1586,7 @@ void flash_attention_2_backward_kernelHalf(
             for (int x = 0; x < d; x++) {
                 float sum = 0;
                 for (int y = 0; y < Bc; y++) {
-                    sum += dS[(Bc * tx) + y] * Kj[(y * d) + x];
+                    sum += S[(Bc * tx) + y] * Kj[(y * d) + x];
                 }
                 sum *= softmax_scale;
                 atomicAdd(&dQ[qkv_offset + (row_tile_size * i) + (tx * d) + x], __float2half(sum));
@@ -1604,7 +1597,7 @@ void flash_attention_2_backward_kernelHalf(
             for (int x = 0; x < d; x++) {
                 float sum = 0;
                 for (int y = 0; y < Br; y++) {
-                    sum += dS[(Bc * y) + tx] * Qi[(y * d) + x];
+                    sum += S[(Bc * y) + tx] * Qi[(y * d) + x];
                 }
                 sum *= softmax_scale;
                 atomicAdd(&dK[qkv_offset + (row_tile_size * j) + (tx * d) + x], __float2half(sum));
@@ -2519,7 +2512,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
                 int N = (int)Q.Sizes[2];
                 int d = (int)Q.Sizes[3];
 
-                int Br = 32;
+                int Br = Math.Min(N, 512);
                 while (Br > 1)
                 {
                     if (N % Br == 0)
@@ -2541,7 +2534,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
                 int sram_size =
                     (2 * col_tile_size * sizeof(float))  // SRAM size for Kj, Vj
                     + (row_tile_size * sizeof(float))  // SRAM size for Qi
-                    + (Bc * Br * sizeof(float));  // SRAM size for S
+                    + (Bc * sizeof(float));  // SRAM size for S
 
                 dim3 grid = new dim3(B, nh);
                 dim3 block = new dim3(Br);
@@ -2591,7 +2584,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
                 int N = (int)Q.Sizes[2];
                 int d = (int)Q.Sizes[3];
 
-                int Br = 32;
+                int Br = Math.Min(N, 128);
                 while (Br > 1)
                 {
                     if (N % Br == 0)
@@ -2609,11 +2602,11 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
 
                 // Calculate SRAM size needed per block
                 int col_tile_size = Bc * d;  // size of dKj, dVj
-                int row_tile_size = Br * d;  // size of Qi, Oi, dOi
+                int row_tile_size = Br * d;  // size of Qi, dOi
                 int sram_size =
                     (2 * col_tile_size * sizeof(float))  // SRAM size for dKj, dVj
-                    + (3 * row_tile_size * sizeof(float))  // SRAM size for Qi, Oi, dOi
-                    + (2 * Br * Bc * sizeof(float));  // SRAM size for S, dS
+                    + (2 * row_tile_size * sizeof(float))  // SRAM size for Qi, dOi
+                    + (Br * Bc * sizeof(float));  // SRAM size for S
 
                 dim3 grid = new dim3(B, nh);
                 dim3 block = new dim3(Br);
