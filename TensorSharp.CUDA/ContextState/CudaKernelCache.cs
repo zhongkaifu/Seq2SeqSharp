@@ -32,7 +32,7 @@ namespace TensorSharp.CUDA.ContextState
 
 
 
-        public CudaKernel Get(CudaContext context, byte[] ptx, string kernelName)
+        public CudaKernel Get(CudaContext context, byte[] ptx, string kernelName, int maxDynamicSharedSizeBytes = 0)
         {
             lock (locker)
             {
@@ -44,7 +44,7 @@ namespace TensorSharp.CUDA.ContextState
                     }
                     else
                     {
-                        value = context.LoadKernelPTX(ptx, kernelName);
+                        value = context.LoadKernelPTX(ptx, kernelName, maxDynamicSharedSizeBytes: maxDynamicSharedSizeBytes);
                         activeKernels.Add(Tuple.Create(context, ptx, kernelName), value);
                         return value;
                     }

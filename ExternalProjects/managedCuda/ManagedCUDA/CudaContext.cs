@@ -1093,12 +1093,12 @@ namespace ManagedCuda
         /// <param name="moduleImage">Module image (cubin or PTX) as byte[]</param>
         /// <param name="kernelName">The kernel name as defined in the *.cu file</param>
         /// <returns></returns>
-        public CudaKernel LoadKernelPTX(byte[] moduleImage, string kernelName)
+        public CudaKernel LoadKernelPTX(byte[] moduleImage, string kernelName, int maxDynamicSharedSizeBytes = 0)
         {
             if (disposed) throw new ObjectDisposedException(this.ToString());
             CUmodule hcuModule = LoadModulePTX(moduleImage, null, null);
 
-            CudaKernel kernel = new CudaKernel(kernelName, hcuModule, this);
+            CudaKernel kernel = new CudaKernel(kernelName, hcuModule, this, maxDynamicSharedSizeBytes: maxDynamicSharedSizeBytes);
 
             return kernel;
         }

@@ -3357,49 +3357,57 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
 
         private void Softmax(TSCudaContext context, Tensor result, Tensor src)
         {
-            if (result.ElementType != src.ElementType)
+            try
             {
-                throw new ArgumentException($"The element type between source and result must be same.");
+                if (result.ElementType != src.ElementType)
+                {
+                    throw new ArgumentException($"The element type between source and result must be same.");
+                }
+
+                CudaContext cudaContext = context.CudaContextForTensor(src);
+
+                cudaContext.SetCurrent();
+
+                if (result.IsContiguous() == false)
+                {
+                    throw new Exception($"Tensor {nameof(result)} is not contiguous.");
+                }
+                if (src.IsContiguous() == false)
+                {
+                    throw new Exception($"Tensor {nameof(src)} is not contiguous.");
+                }
+
+                int ndim = src.DimensionCount;
+                long storageSize = TensorDimensionHelpers.GetStorageSize(src.Sizes, src.Strides);
+                long cols = src.Sizes[ndim - 1];
+
+                if (storageSize % cols != 0)
+                {
+                    throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
+                }
+
+                long rows = storageSize / cols;
+
+
+                dim3 block = new dim3((uint)Math.Min(512, cols));
+                dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
+
+                CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
+                CUdeviceptr srcPtr = CudaHelpers.GetBufferStart(src);
+
+                string kernelName = "gSoftmax";
+                if (src.ElementType == DType.Float16)
+                {
+                    kernelName = "gSoftmaxHalf";
+                }
+
+                Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, rows, cols);
             }
-
-            CudaContext cudaContext = context.CudaContextForTensor(src);
-
-            cudaContext.SetCurrent();
-
-            if (result.IsContiguous() == false)
+            catch (Exception e)
             {
-                throw new Exception($"Tensor {nameof(result)} is not contiguous.");
+                Logger.WriteLine($"Error Message in Softmax: {e.Message}");
+                Logger.WriteLine($"Stack: {e.TargetSite}");
             }
-            if (src.IsContiguous() == false)
-            {
-                throw new Exception($"Tensor {nameof(src)} is not contiguous.");
-            }
-
-            int ndim = src.DimensionCount;
-            long storageSize = TensorDimensionHelpers.GetStorageSize(src.Sizes, src.Strides);
-            long cols = src.Sizes[ndim - 1];
-
-            if (storageSize % cols != 0)
-            {
-                throw new Exception($"Invalid tensor storage size = '{storageSize}', and cols = '{cols}'");
-            }
-
-            long rows = storageSize / cols;
-
-
-            dim3 block = new dim3((uint)Math.Min(512, cols));
-            dim3 grid = new dim3((uint)Math.Min(1024, ApplyUtils.CeilDiv(rows, block.y)));
-
-            CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
-            CUdeviceptr srcPtr = CudaHelpers.GetBufferStart(src);
-
-            string kernelName = "gSoftmax";
-            if (src.ElementType == DType.Float16)
-            {
-                kernelName = "gSoftmaxHalf";
-            }
-
-            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, rows, cols);
         }
 
         private void Adam(TSCudaContext context, Tensor weight, Tensor gradient, Tensor v, Tensor m, float gradNormFactor, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
@@ -3532,7 +3540,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
             }
 
 
-            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float), CUstream.NullStream, gradPtr, adjPtr, valPtr, rows, cols, iAddGrad);
+            Invoke(context, cudaContext, kernelName, grid, block, (block.x + 1) * sizeof(float), CUstream.NullStream, gradPtr, adjPtr, valPtr, rows, cols, iAddGrad);
         }
 
         public bool IsCorrupted(Tensor src)
@@ -3652,7 +3660,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
         private void Invoke(TSCudaContext context, CudaContext cudaContext, string kernelName, dim3 grid, dim3 block, uint smemSize, CUstream stream, params object[] args)
         {
             byte[] ptx = GetPtx(context.Compiler);
-            CudaKernel kernel = context.KernelCache.Get(cudaContext, ptx, kernelName);
+            CudaKernel kernel = context.KernelCache.Get(cudaContext, ptx, kernelName, maxDynamicSharedSizeBytes: (smemSize > (48 * 1024)) ? (int)smemSize : 0); // The default static sharted memory size is 48K, if we want to have more, we need to set its attribute to a larger value.
             kernel.GridDimensions = grid;
             kernel.BlockDimensions = block;
             kernel.DynamicSharedMemory = smemSize;

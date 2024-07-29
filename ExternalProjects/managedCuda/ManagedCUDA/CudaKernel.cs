@@ -93,7 +93,7 @@ namespace ManagedCuda
         /// <param name="kernelName">The kernel name as defined in the *.cu file</param>
         /// <param name="module">The CUmodule which contains the kernel</param>
         /// <param name="cuda">CUDA abstraction layer object (= CUDA context) for this Kernel</param>
-        public CudaKernel(string kernelName, CUmodule module, CudaContext cuda)
+        public CudaKernel(string kernelName, CUmodule module, CudaContext cuda, int maxDynamicSharedSizeBytes = 0)
         {
             if (cuda == null) throw new ArgumentNullException("cuda");
             _module = module;
@@ -159,6 +159,13 @@ namespace ManagedCuda
             Debug.WriteLine(String.Format("{0:G}, {1}: {2}, Kernel: {3}", DateTime.Now, "cuFuncGetAttribute", res, _kernelName));
             if (res != CUResult.Success) throw new CudaException(res);
             _cacheModeCA = temp != 0;
+
+            if (maxDynamicSharedSizeBytes > 0)
+            {
+                res = DriverAPINativeMethods.FunctionManagement.cuFuncSetAttribute(_function, CUFunctionAttribute.MaxDynamicSharedSizeBytes, maxDynamicSharedSizeBytes);
+                Debug.WriteLine(String.Format("{0:G}, {1}: {2}, Kernel: {3}", DateTime.Now, "cuFuncSetAttribute", res, _kernelName));
+                if (res != CUResult.Success) throw new CudaException(res);
+            }
         }
 
         /// <summary>
