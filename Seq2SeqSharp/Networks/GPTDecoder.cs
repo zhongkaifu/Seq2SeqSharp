@@ -43,6 +43,8 @@ namespace Seq2SeqSharp
         private readonly NormEnums m_normType;
         private readonly AttentionTypeEnums m_attentionType;
 
+        public AttentionTypeEnums AttentionType => m_attentionType;
+
         public GPTDecoder(string name, int multiHeadNum, int hiddenDim, int intermediateDim, int inputDim, int depth, float dropoutRatio, int deviceId, 
             bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.ReLU, int expertNum = 1, 
             int expertsPerTokenFactor = 1, DType elementType = DType.Float32, PositionEmbeddingEnums peType = PositionEmbeddingEnums.APE, NormEnums normType = NormEnums.LayerNorm, AttentionTypeEnums attentionType = AttentionTypeEnums.Classic)

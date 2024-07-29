@@ -2616,7 +2616,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
                 int N = (int)Q.Sizes[2];
                 int d = (int)Q.Sizes[3];
 
-                int Br = 32;
+                int Br = 112;
                 while (Br > 1)
                 {
                     if (N % Br == 0)
@@ -2685,7 +2685,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
                 int N = (int)Q.Sizes[2];
                 int d = (int)Q.Sizes[3];
 
-                int Br = 32;
+                int Br = 64;
                 while (Br > 1)
                 {
                     if (N % Br == 0)
@@ -2695,7 +2695,6 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
                     Br--;
                 }
                 int Bc = Br;
-                //Logger.WriteLine($"Grad: N = '{N}', Br = '{Br}'");
 
                 int Tc = (int)Math.Ceiling((float)N / Bc);
                 int Tr = (int)Math.Ceiling((float)N / Br);

@@ -345,6 +345,11 @@ namespace Seq2SeqSharp.Applications
             {
                 throw new FileNotFoundException($"Model '{ModelFilePath}' doesn't exist for task '{Task}'");
             }
+
+            if (AttentionType == AttentionTypeEnums.FlashAttentionV2 && ProcessorType != ProcessorTypeEnums.GPU)
+            {
+                throw new ArgumentException("FlashAttentionV2 runs on GPU only, please use the classic attention layer instead.");
+            }
         }
     }
 }
