@@ -62,6 +62,13 @@ void flash_attention_2_forward_kernel(
     int i = bz;
     if (i >= q_start_offset && i < Tr)
     {       
+
+        if (i == Tr - 1 && (N % Bc) != 0 && tx >= (N % Bc))
+        {
+            return;
+        }
+
+
         if (i * Br + tx >= N)
             return;  // break if we are done with the sequence
 
@@ -221,6 +228,11 @@ void flash_attention_2_backward_kernel(
      int j = bz;
      if (j < Tc) {
 
+
+        if (j == Tc - 1 && (N % Bc) != 0 && tx >= (N % Bc))
+        {
+            return;
+        }
 
         // Load Kj, Vj to SRAM
         for (int x = 0; x < d; x++) {
@@ -1473,6 +1485,11 @@ void flash_attention_2_forward_kernelHalf(
     int i = bz;
     if (i >= q_start_offset && i < Tr)
     {     
+        if (i == Tr - 1 && (N % Bc) != 0 && tx >= (N % Bc))
+        {
+            return;
+        }
+
         if (i * Br + tx >= N)
             return;  // break if we are done with the sequence
 
@@ -1615,6 +1632,11 @@ void flash_attention_2_backward_kernelHalf(
     //for (int j = 0; j < Tc; j++) {
      int j = bz;
      if (j < Tc) {
+
+        if (j == Tr - 1 && (N % Bc) != 0 && tx >= (N % Bc))
+        {
+            return;
+        }
 
         // Load Kj, Vj to SRAM
         for (int x = 0; x < d; x++) {
@@ -2616,15 +2638,15 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
                 int N = (int)Q.Sizes[2];
                 int d = (int)Q.Sizes[3];
 
-                int Br = 112;
-                while (Br > 1)
-                {
-                    if (N % Br == 0)
-                    {
-                        break;
-                    }
-                    Br--;
-                }
+                int Br = Math.Min(32, N);
+                //while (Br > 1)
+                //{
+                //    if (N % Br == 0)
+                //    {
+                //        break;
+                //    }
+                //    Br--;
+                //}
                 int Bc = Br;
 
                 int Tc = (int)Math.Ceiling((float)N / Bc);
@@ -2685,15 +2707,15 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
                 int N = (int)Q.Sizes[2];
                 int d = (int)Q.Sizes[3];
 
-                int Br = 64;
-                while (Br > 1)
-                {
-                    if (N % Br == 0)
-                    {
-                        break;
-                    }
-                    Br--;
-                }
+                int Br = Math.Min(32, N);
+                //while (Br > 1)
+                //{
+                //    if (N % Br == 0)
+                //    {
+                //        break;
+                //    }
+                //    Br--;
+                //}
                 int Bc = Br;
 
                 int Tc = (int)Math.Ceiling((float)N / Bc);
