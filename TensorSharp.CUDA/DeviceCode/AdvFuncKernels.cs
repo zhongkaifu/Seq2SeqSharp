@@ -229,17 +229,9 @@ void flash_attention_2_backward_kernel(
     // We also don't need dS and dP at the same time.
     float* S = &sram[col_tile_size * 2 + row_tile_size * 2];
     //float* dS = &sram[col_tile_size * 2 + row_tile_size * 2 + Bc * Br];
-
-   // for (int j = 0; j < Tc; j++) {
     
      int j = bz;
      if (j < Tc) {
-
-
-        //if (j == Tc - 1 && (N % Bc) != 0 && tx >= (N % Bc))
-        //{
-        //    return;
-        //}
 
         // Load Kj, Vj to SRAM
         for (int x = 0; x < d; x++) {
@@ -252,11 +244,34 @@ void flash_attention_2_backward_kernel(
             // Load Qi, Oi, dOi, dQi, li, mi to SRAM
             // Also load l, m to registers
             float Di = 0;
-            for (int x = 0; x < d; x++) {
-                Qi[txd + x] = Q[qkv_offset + (row_tile_size * i) + txd + x];
-                dOi[txd + x] = dO[qkv_offset + (row_tile_size * i) + txd + x];
-                Di += dOi[txd + x] * O[qkv_offset + (row_tile_size * i) + txd + x];
+
+            if (d == 128)
+            {
+#pragma unroll 128
+                for (int x = 0; x < 128; x++) {
+                    Qi[txd + x] = Q[qkv_offset + (row_tile_size * i) + txd + x];
+                    dOi[txd + x] = dO[qkv_offset + (row_tile_size * i) + txd + x];
+                    Di += dOi[txd + x] * O[qkv_offset + (row_tile_size * i) + txd + x];
+                }
             }
+            else if (d == 64)
+            {
+#pragma unroll 64
+                for (int x = 0; x < 64; x++) {
+                    Qi[txd + x] = Q[qkv_offset + (row_tile_size * i) + txd + x];
+                    dOi[txd + x] = dO[qkv_offset + (row_tile_size * i) + txd + x];
+                    Di += dOi[txd + x] * O[qkv_offset + (row_tile_size * i) + txd + x];
+                }
+            }
+            else
+            {
+                for (int x = 0; x < d; x++) {
+                    Qi[txd + x] = Q[qkv_offset + (row_tile_size * i) + txd + x];
+                    dOi[txd + x] = dO[qkv_offset + (row_tile_size * i) + txd + x];
+                    Di += dOi[txd + x] * O[qkv_offset + (row_tile_size * i) + txd + x];
+                }
+            }
+
             float l_curr = L[lm_offset + (Br * i) + tx];
 
             // Sij = softmax_scale * QiKj^T
@@ -271,15 +286,15 @@ void flash_attention_2_backward_kernel(
                 if (d == 128)
                 {
 #pragma unroll 128
-                    for (int x = 0; x < 128; x++) {
-                        sum += Qi[txd + x] * Kj[(y * 128) + x];
+                    for (int x = 0; x < 128; x+=4) {
+                        sum += (Qi[txd + x] * Kj[(y * 128) + x]) + (Qi[txd + x + 1] * Kj[(y * 128) + x + 1]) + (Qi[txd + x + 2] * Kj[(y * 128) + x + 2]) + (Qi[txd + x + 3] * Kj[(y * 128) + x + 3]);
                     }
                 }
                 else if (d == 64)
                 {
 #pragma unroll 64
-                    for (int x = 0; x < 64; x++) {
-                        sum += Qi[txd + x] * Kj[(y * 64) + x];
+                    for (int x = 0; x < 64; x+=4) {
+                        sum += (Qi[txd + x] * Kj[(y * 64) + x]) + (Qi[txd + x + 1] * Kj[(y * 64) + x + 1]) + (Qi[txd + x + 2] * Kj[(y * 64) + x + 2]) + (Qi[txd + x + 3] * Kj[(y * 64) + x + 3]);
                     }
                 }
                 else
@@ -309,7 +324,7 @@ void flash_attention_2_backward_kernel(
             // dVj[tx][x] = dVj[tx][x] + Sum_{y = 0}^{Br-1} Pij[y][tx] * dOi[tx][x]
             for (int x = 0; x < d; x++) {
                 float sum = 0;
-                float dOi_x = dOi[txd + x];
+                float dOi_x = dOi[txd + x];              
                 for (int y = 0; y < Br; y++) {
                     sum += S[(Bc * y) + tx] * dOi_x;
                 }
@@ -327,15 +342,15 @@ void flash_attention_2_backward_kernel(
                 if (d == 128)
                 {
 #pragma unroll 128
-                    for (int x = 0; x < 128; x++) {
-                        sum += dOi[txd + x] * Vj[(y * 128) + x];
+                    for (int x = 0; x < 128; x+=4) {
+                        sum += (dOi[txd + x] * Vj[(y * 128) + x]) + (dOi[txd + x + 1] * Vj[(y * 128) + x + 1]) + (dOi[txd + x + 2] * Vj[(y * 128) + x + 2]) + (dOi[txd + x + 3] * Vj[(y * 128) + x + 3]);
                     }
                 }
                 else if (d == 64)
                 {
 #pragma unroll 64
-                    for (int x = 0; x < 64; x++) {
-                        sum += dOi[txd + x] * Vj[(y * 64) + x];
+                    for (int x = 0; x < 64; x+=4) {
+                        sum += (dOi[txd + x] * Vj[(y * 64) + x]) + (dOi[txd + x + 1] * Vj[(y * 64) + x + 1]) + (dOi[txd + x + 2] * Vj[(y * 64) + x + 2]) + (dOi[txd + x + 3] * Vj[(y * 64) + x + 3]);
                     }
                 }
                 else
