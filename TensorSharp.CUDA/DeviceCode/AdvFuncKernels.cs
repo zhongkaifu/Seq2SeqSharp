@@ -218,30 +218,26 @@ void flash_attention_2_backward_kernel(
     extern __shared__ float sram[];
     int col_tile_size = Bc * d;  // size of Kj, Vj
     int row_tile_size = Br * d;  // size of Qi
-    const float* Kj; // = sram;
-    const float* Vj; // = &sram[col_tile_size];
+    float* Kj = sram;
+    float* Vj = &sram[col_tile_size];
 
-    const float* Qi; // = &sram[col_tile_size * 2];
-    const float* dOi; // = &sram[col_tile_size * 2 + row_tile_size];
+    float* Qi = &sram[col_tile_size * 2];
+    float* dOi = &sram[col_tile_size * 2 + row_tile_size];
 
     // We also use S for P. Likewise, we use dS for dP.
     // We can reuse the same memory because we don't need S and P at the same time.
     // We also don't need dS and dP at the same time.
-    float* S = sram; //&sram[col_tile_size * 2 + row_tile_size * 2];
+    float* S = &sram[col_tile_size * 2 + row_tile_size * 2];
     //float* dS = &sram[col_tile_size * 2 + row_tile_size * 2 + Bc * Br];
     
      int j = bz;
      if (j < Tc) {
 
         // Load Kj, Vj to SRAM
-        //for (int x = 0; x < d; x++) {
-        //    Kj[txd + x] = K[qkv_offset + (col_tile_size * j) + txd + x];
-        //    Vj[txd + x] = V[qkv_offset + (col_tile_size * j) + txd + x];
-        //}
-
-        Kj = &K[qkv_offset + (col_tile_size * j)];
-        Vj = &V[qkv_offset + (col_tile_size * j)];
-
+        for (int x = 0; x < d; x++) {
+            Kj[txd + x] = K[qkv_offset + (col_tile_size * j) + txd + x];
+            Vj[txd + x] = V[qkv_offset + (col_tile_size * j) + txd + x];
+        }
 
         for (int i = j; i < Tr; i++)  {
             __syncthreads();
@@ -249,34 +245,30 @@ void flash_attention_2_backward_kernel(
             // Also load l, m to registers
             float Di = 0;
 
-            Qi = &Q[qkv_offset + (row_tile_size * i)];
-            dOi = &dO[qkv_offset + (row_tile_size * i)];
-            const float *Oi = &O[qkv_offset + (row_tile_size * i)];
-
             if (d == 128)
             {
 #pragma unroll 128
-                for (int x = 0; x < 128; x+=4) {
-            //       Qi[txd + x] = Q[qkv_offset + (row_tile_size * i) + txd + x];
-            //        dOi[txd + x] = dO[qkv_offset + (row_tile_size * i) + txd + x];
-                    Di += (dOi[txd + x] * Oi[txd + x]) + (dOi[txd + x + 1] * Oi[txd + x + 1]) + (dOi[txd + x + 2] * Oi[txd + x + 2]) + (dOi[txd + x + 3] * Oi[txd + x + 3]);
+                for (int x = 0; x < 128; x++) {
+                    Qi[txd + x] = Q[qkv_offset + (row_tile_size * i) + txd + x];
+                    dOi[txd + x] = dO[qkv_offset + (row_tile_size * i) + txd + x];
+                    Di += dOi[txd + x] * O[qkv_offset + (row_tile_size * i) + txd + x];
                 }
             }
             else if (d == 64)
             {
 #pragma unroll 64
-                for (int x = 0; x < 64; x+=4) {
-             //       Qi[txd + x] = Q[qkv_offset + (row_tile_size * i) + txd + x];
-             //       dOi[txd + x] = dO[qkv_offset + (row_tile_size * i) + txd + x];
-                    Di += (dOi[txd + x] * Oi[txd + x]) + (dOi[txd + x + 1] * Oi[txd + x + 1]) + (dOi[txd + x + 2] * Oi[txd + x + 2]) + (dOi[txd + x + 3] * Oi[txd + x + 3]);
+                for (int x = 0; x < 64; x++) {
+                    Qi[txd + x] = Q[qkv_offset + (row_tile_size * i) + txd + x];
+                    dOi[txd + x] = dO[qkv_offset + (row_tile_size * i) + txd + x];
+                    Di += dOi[txd + x] * O[qkv_offset + (row_tile_size * i) + txd + x];
                 }
             }
             else
             {
                 for (int x = 0; x < d; x++) {
-            //        Qi[txd + x] = Q[qkv_offset + (row_tile_size * i) + txd + x];
-           //         dOi[txd + x] = dO[qkv_offset + (row_tile_size * i) + txd + x];
-                    Di += dOi[txd + x] * Oi[txd + x];
+                    Qi[txd + x] = Q[qkv_offset + (row_tile_size * i) + txd + x];
+                    dOi[txd + x] = dO[qkv_offset + (row_tile_size * i) + txd + x];
+                    Di += dOi[txd + x] * O[qkv_offset + (row_tile_size * i) + txd + x];
                 }
             }
 
@@ -289,38 +281,34 @@ void flash_attention_2_backward_kernel(
             // Pij[tx][y] = (1 / li[tx]) * exp(Sij[tx][y] - mi[tx])
 
             for (int y = 0; y < Bc; y++) {
+                float sum = 0;
 
-                if (i * Br + tx < j * Bc + y)
+                if (d == 128)
                 {
-                    S[(Bc * tx) + y] = 0;
+#pragma unroll 128
+                    for (int x = 0; x < 128; x+=4) {
+                        sum += (Qi[txd + x] * Kj[(y * 128) + x]) + (Qi[txd + x + 1] * Kj[(y * 128) + x + 1]) + (Qi[txd + x + 2] * Kj[(y * 128) + x + 2]) + (Qi[txd + x + 3] * Kj[(y * 128) + x + 3]);
+                    }
+                }
+                else if (d == 64)
+                {
+#pragma unroll 64
+                    for (int x = 0; x < 64; x+=4) {
+                        sum += (Qi[txd + x] * Kj[(y * 64) + x]) + (Qi[txd + x + 1] * Kj[(y * 64) + x + 1]) + (Qi[txd + x + 2] * Kj[(y * 64) + x + 2]) + (Qi[txd + x + 3] * Kj[(y * 64) + x + 3]);
+                    }
                 }
                 else
                 {
-                    float sum = 0;
-                    if (d == 128)
-                    {
-    #pragma unroll 128
-                        for (int x = 0; x < 128; x+=4) {
-                            sum += (Qi[txd + x] * Kj[(y * 128) + x]) + (Qi[txd + x + 1] * Kj[(y * 128) + x + 1]) + (Qi[txd + x + 2] * Kj[(y * 128) + x + 2]) + (Qi[txd + x + 3] * Kj[(y * 128) + x + 3]);
-                        }
+                    for (int x = 0; x < d; x++) {
+                        sum += Qi[txd + x] * Kj[(y * d) + x];
                     }
-                    else if (d == 64)
-                    {
-    #pragma unroll 64
-                        for (int x = 0; x < 64; x+=4) {
-                            sum += (Qi[txd + x] * Kj[(y * 64) + x]) + (Qi[txd + x + 1] * Kj[(y * 64) + x + 1]) + (Qi[txd + x + 2] * Kj[(y * 64) + x + 2]) + (Qi[txd + x + 3] * Kj[(y * 64) + x + 3]);
-                        }
-                    }
-                    else
-                    {
-                        for (int x = 0; x < d; x++) {
-                            sum += Qi[txd + x] * Kj[(y * d) + x];
-                        }
-                    }
-
-                    sum *= softmax_scale;
-                    S[(Bc * tx) + y] = __expf(sum - l_curr);
                 }
+
+                sum *= softmax_scale;
+                if (i * Br + tx < j * Bc + y)
+                    S[(Bc * tx) + y] = 0;
+                else
+                    S[(Bc * tx) + y] = __expf(sum - l_curr);
             }
 
             //// Pij = diag(li)^-1 * exp(Sij - mi)
@@ -340,7 +328,7 @@ void flash_attention_2_backward_kernel(
                 for (int y = 0; y < Br; y++) {
                     sum += S[(Bc * y) + tx] * dOi_x;
                 }
-                dV[qkv_offset + (row_tile_size * j) + txd + x] = sum;
+                atomicAdd(&dV[qkv_offset + (row_tile_size * j) + txd + x], sum);
             }
 
             // dPij <- dOi * Vj^T
@@ -383,7 +371,7 @@ void flash_attention_2_backward_kernel(
                     sum += S[(Bc * tx) + y] * Kj[(y * d) + x];
                 }
                 sum *= softmax_scale;
-                dQ[qkv_offset + (row_tile_size * i) + txd + x] = sum;
+                atomicAdd(&dQ[qkv_offset + (row_tile_size * i) + txd + x], sum);
             }
             __syncthreads();
             // dKj <- dKj + softmax_scale * dSij^TQi
@@ -394,7 +382,7 @@ void flash_attention_2_backward_kernel(
                     sum += S[(Bc * y) + tx] * Qi[(y * d) + x];
                 }
                 sum *= softmax_scale;
-                dK[qkv_offset + (row_tile_size * j) + txd + x] = sum;
+                atomicAdd(&dK[qkv_offset + (row_tile_size * j) + txd + x], sum);
             }
         }
     }
@@ -2764,7 +2752,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
                     (2 * col_tile_size * sizeof(float))  // SRAM size for Kj, Vj
                     + (row_tile_size * sizeof(float))  // SRAM size for Qi
                     + (Bc * Br * sizeof(float));  // SRAM size for S
-              
+
                 dim3 grid = new dim3(B, nh, Tr);
                 dim3 block = new dim3(Br);
 
@@ -2810,15 +2798,15 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
                 int N = (int)Q.Sizes[2];
                 int d = (int)Q.Sizes[3];
 
-                int Br = Math.Min(352, N);
-                //while (Br > 1)
-                //{
-                //    if (N % Br == 0)
-                //    {
-                //        break;
-                //    }
-                //    Br--;
-                //}
+                int Br = Math.Min(32, N);
+                while (Br > 1)
+                {
+                    if (N % Br == 0)
+                    {
+                        break;
+                    }
+                    Br--;
+                }
                 int Bc = Br;
 
                 int Tc = (int)Math.Ceiling((float)N / Bc);
@@ -2829,9 +2817,9 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
                 int col_tile_size = Bc * d;  // size of dKj, dVj
                 int row_tile_size = Br * d;  // size of Qi, dOi
                 int sram_size =
-                   // (2 * col_tile_size * sizeof(float))  // SRAM size for dKj, dVj
-                   // + (2 * row_tile_size * sizeof(float))  // SRAM size for Qi, dOi
-                     (Br * Bc * sizeof(float));  // SRAM size for S
+                    (2 * col_tile_size * sizeof(float))  // SRAM size for dKj, dVj
+                    + (2 * row_tile_size * sizeof(float))  // SRAM size for Qi, dOi
+                    + (Br * Bc * sizeof(float));  // SRAM size for S
 
                 dim3 grid = new dim3(B, nh, Tc);
                 dim3 block = new dim3(Br);
