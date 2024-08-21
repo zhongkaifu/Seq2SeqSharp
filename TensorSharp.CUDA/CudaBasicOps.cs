@@ -671,9 +671,9 @@ namespace TensorSharp.CUDA
 
 
         [RegisterOpStorageType("rmsnorm", typeof(CudaStorage))]
-        public Tensor RMSNorm(Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-09f) { return advFuncKernels.RMSNorm(result, src, alpha, beta, eps); }
+        public Tensor RMSNorm(Tensor result, Tensor src, Tensor alpha, float eps = 1e-09f) { return advFuncKernels.RMSNorm(result, src, alpha, eps); }
         [RegisterOpStorageType("rmsnormgrad", typeof(CudaStorage))]
-        public Tensor RMSNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps = 1e-09f) { return advFuncKernels.RMSNormGrad(outGrad, alphaGrad, betaGrad, inGrad, y, x, alpha, beta, eps); }
+        public Tensor RMSNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, float eps = 1e-09f) { return advFuncKernels.RMSNormGrad(outGrad, alphaGrad, inGrad, y, x, alpha, eps); }
 
         [RegisterOpStorageType("flashattention", typeof(CudaStorage))]
         public Tensor FlashAttention(Tensor O, Tensor L, Tensor Q, Tensor K, Tensor V, int q_start_offset = 0) { return advFuncKernels.FlashAttention(O, L, Q, K, V, q_start_offset); }

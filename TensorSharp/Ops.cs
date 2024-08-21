@@ -236,10 +236,10 @@ namespace TensorSharp
             OpRegistry.Invoke("flashattentiongrad", Q, K, V, O, dO, L, dQ, dK, dV);
         }
 
-        public static Tensor RMSNorm(Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-09f) { return (Tensor)OpRegistry.Invoke("rmsnorm", result, src, alpha, beta, eps); }
-        public static Tensor RMSNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps = 1e-09f)
+        public static Tensor RMSNorm(Tensor result, Tensor src, Tensor alpha, float eps = 1e-09f) { return (Tensor)OpRegistry.Invoke("rmsnorm", result, src, alpha, eps); }
+        public static Tensor RMSNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, float eps = 1e-09f)
         {
-            return (Tensor)OpRegistry.Invoke("rmsnormgrad", outGrad, alphaGrad, betaGrad, inGrad, y, x, alpha, beta, eps);
+            return (Tensor)OpRegistry.Invoke("rmsnormgrad", outGrad, alphaGrad, inGrad, y, x, alpha, eps);
         }
 
         public static Tensor AddLayerNorm(Tensor result, Tensor src1, Tensor src2, Tensor alpha, Tensor beta, float eps = 1e-09f) { return (Tensor)OpRegistry.Invoke("addlayernorm", result, src1, src2, alpha, beta, eps); }

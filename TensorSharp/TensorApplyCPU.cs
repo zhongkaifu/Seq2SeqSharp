@@ -12,6 +12,7 @@ using ManagedCuda.BasicTypes;
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Xml;
 using TensorSharp.Cpu;
 
 namespace TensorSharp
@@ -1420,74 +1421,48 @@ namespace TensorSharp
 
 
 
-        unsafe static public void RMSNorm(Tensor out_,
-            Tensor in_,
-            Tensor gamma_,
-            Tensor beta_,
-            float eps,
-            int rows,
-            int cols)
-        {
-            float* outPtr = (float*)CpuNativeHelpers.GetBufferStart(out_);
-            float* inPtr = (float*)CpuNativeHelpers.GetBufferStart(in_);
-            float* alpha = (float*)CpuNativeHelpers.GetBufferStart(gamma_);
-            float* beta = (beta_ != null) ? (float*)CpuNativeHelpers.GetBufferStart(beta_) : null;
+		unsafe static public void RMSNorm(Tensor out_,
+			Tensor in_,
+			Tensor gamma_,
+			float eps,
+			int rows,
+			int cols)
+		{
+			float* outPtr = (float*)CpuNativeHelpers.GetBufferStart(out_);
+			float* inPtr = (float*)CpuNativeHelpers.GetBufferStart(in_);
+			float* gamma = (float*)CpuNativeHelpers.GetBufferStart(gamma_);
+			
+			float N = cols;
+			for (int j = 0; j < rows; j++)
+			{
+				float* yRow = outPtr + j * cols;
+				float* xRow = inPtr + j * cols;
 
-            for (int j = 0; j < rows; ++j)
-            {
-                float* so = outPtr + j * cols;
-                float* sp = inPtr + j * cols;
+				float _sqSum = 0;
 
-                Span<float> spanSP = new Span<float>(sp, cols);
-                int vectorSize = Vector<float>.Count;
-                int i = 0;
-                float sqSum = 0.0f;
+				for (int id = 0; id < cols; id++)
+				{
+					float xv = (float)xRow[id];
 
-                for (i = 0; i < cols - vectorSize; i += vectorSize)
-                {
-                    Vector<float> vecSp = new Vector<float>(spanSP.Slice(i));
-                    sqSum += Vector.Dot(vecSp, vecSp);
-                }
-                for (; i < cols; ++i)
-                {
-                    float ex = sp[i];
-                    sqSum += ex * ex;
-                }
+					_sqSum += xv * xv;
 
-                float sigma = (float)Math.Sqrt(eps + sqSum / cols);
+				}
 
-                Span<float> spanSO = new Span<float>(so, cols);
-                Span<float> spanAlpha = new Span<float>(alpha, cols);
-                Span<float> spanBeta = (beta != null) ? new Span<float>(beta, cols) : null;
-                Vector<float> vecSigma = new Vector<float>(sigma);
+				float rms = (float)Math.Sqrt(_sqSum / N + eps); 
+				for (int id = 0; id < cols; id++)
+				{
 
-                for (i = 0; i < cols - vectorSize; i += vectorSize)
-                {
-                    Vector<float> vecSp = new Vector<float>(spanSP.Slice(i));
-                    Vector<float> vecAlpha = new Vector<float>(spanAlpha.Slice(i));
+					float gammav = gamma[id];
+					float xv = xRow[id];
+					float rmsNorm = xv / rms;
+					float y = gammav * rmsNorm;
+					yRow[id] = y;
 
-                    Vector<float> vecT = vecAlpha * (vecSp / vecSigma);
+				}
+			}
 
-                    if (spanBeta != null)
-                    {
-                        Vector<float> vecBeta = new Vector<float>(spanBeta.Slice(i));
-                        vecT += vecBeta;
-                    }
 
-                    vecT.CopyTo(spanSO.Slice(i));
-                }
-                for (; i < cols; ++i)
-                {
-                    float t = alpha[i] * (sp[i] / sigma);
-                    if (beta != null)
-                    {
-                        t += beta[i];
-                    }
-
-                    so[i] = t;
-                }
-            }
-        }
+		}
 
         unsafe static public void LayerNormGrad(Tensor gradX_,
 			Tensor gradGamma_,
@@ -1602,110 +1577,86 @@ namespace TensorSharp
 		}
 
 
-        unsafe static public void RMSNormGrad(Tensor gradX_,
-            Tensor gradGamma_,
-            Tensor gradBeta_,
-            Tensor adj_,
-            Tensor y_,
-            Tensor x_,
-            Tensor gamma_,
-            Tensor beta_,
-            int rows,
-            int cols,
-            float eps)
-        {
-            float* gradX = (float*)CpuNativeHelpers.GetBufferStart(gradX_);
-            float* gradGamma = (float*)CpuNativeHelpers.GetBufferStart(gradGamma_);
-            float* gradBeta = gradBeta_ != null ? (float*)CpuNativeHelpers.GetBufferStart(gradBeta_) : null;
-            float* adj = (float*)CpuNativeHelpers.GetBufferStart(adj_);
-            float* y = (float*)CpuNativeHelpers.GetBufferStart(y_);
-            float* x = (float*)CpuNativeHelpers.GetBufferStart(x_);
-            float* gamma = (float*)CpuNativeHelpers.GetBufferStart(gamma_);
-            float* beta = beta_ != null ? (float*)CpuNativeHelpers.GetBufferStart(beta_) : null;
+		unsafe static public void RMSNormGrad(Tensor gradX_,
+			Tensor gradGamma_,
+			Tensor adj_,
+			Tensor y_,
+			Tensor x_,
+			Tensor gamma_,
+			int rows,
+			int cols,
+			float eps)
+		{
+			float* gradX = (float*)CpuNativeHelpers.GetBufferStart(gradX_);
+			float* gradGamma = (float*)CpuNativeHelpers.GetBufferStart(gradGamma_);
+			float* adj = (float*)CpuNativeHelpers.GetBufferStart(adj_);
+			float* y = (float*)CpuNativeHelpers.GetBufferStart(y_);
+			float* x = (float*)CpuNativeHelpers.GetBufferStart(x_);
+			float* gamma = (float*)CpuNativeHelpers.GetBufferStart(gamma_);
 
-            if (beta != null)
-            {
-                for (int j = 0; j < rows; ++j)
-                {
-                    float* xRow = x + j * cols;
-                    float* yRow = y + j * cols;
-                    float* adjRow = adj + j * cols;
-                    float* gradXRow = gradX + j * cols;
+			float N = cols;
+			for (int j = 0; j < rows; j++)
+			{
+				float* xRow = x + j * cols;
+				float* yRow = y + j * cols;
+				float* adjRow = adj + j * cols;
 
-                    float sum_adj = 0.0f;
-                    float sum_adj_x = 0.0f;
-                    float sum_sqr = 0.0f;
+				float sum_adj_r = (float)0.0f;
+				float sum_sqr = (float)0.0f;
 
-                    for (int i = 0; i < cols; ++i)
-                    {
-                        sum_adj_x += adjRow[i] * (yRow[i] - (beta != null ? beta[i] : 0.0f)) / gamma[i];
-                        sum_adj += adjRow[i];
-                    }
+				for (int id = 0; id < cols; id++)
+				{
 
-                    for (int i = 0; i < cols; ++i)
-                    {
-                        float ex = xRow[i];
-                        sum_sqr += ex * ex;
-                    }
+					float xv = xRow[id];
+					float yv = yRow[id];
+					float gammav = (float)gamma[id];
+					float adjv = adjRow[id];
+					float rv = yv / gammav; // go back to RMSNorm(x) from scaled and shifted version for accumulation
 
-                    float sigma = (float)Math.Sqrt(eps + sum_sqr / cols);
-                    for (int i = 0; i < cols; ++i)
-                    {
-                        float grad_x = 0.0f;
-                        float x_hat = (yRow[i] - beta[i]) / gamma[i];
-                        grad_x += cols * adjRow[i];
-                        grad_x -= sum_adj;
-                        grad_x -= sum_adj_x * x_hat;
-                        grad_x /= cols * sigma;
+					sum_adj_r += adjv * rv;
+					sum_sqr += xv * xv;
 
-                        gradXRow[i] += gamma[i] * grad_x;
-                        gradGamma[i] += adjRow[i] * x_hat;
-                        gradBeta[i] += adjRow[i];
-                    }
-                }
-            }
-            else
-            {
-                for (int j = 0; j < rows; ++j)
-                {
-                    float* xRow = x + j * cols;
-                    float* yRow = y + j * cols;
-                    float* adjRow = adj + j * cols;
-                    float* gradXRow = gradX + j * cols;
+				}
 
-                    float sum_adj = 0.0f;
-                    float sum_adj_x = 0.0f;
-                    float sum_sqr = 0.0f;
+				float rms = (float)Math.Sqrt(sum_sqr / N + eps);
 
-                    for (int i = 0; i < cols; ++i)
-                    {
-                        sum_adj_x += adjRow[i] * (yRow[i] - (beta != null ? beta[i] : 0.0f)) / gamma[i];
-                        sum_adj += adjRow[i];
-                    }
+				// Jacobian of RMS norm
+				// J = [ \frac{1}{N * rms} (N\delta_{ij} - RN_i RN_j) ]_{ij}
+				// J * a = dC/dx_i = ( N a_i - RN_i \sum_j RN_j a_j ) / (N * rms)
 
-                    for (int i = 0; i < cols; ++i)
-                    {
-                        float ex = xRow[i];
-                        sum_sqr += ex * ex;
-                    }
+				for (int id = 0; id < cols; id++)
+				{
 
-                    float sigma = (float)Math.Sqrt(eps + sum_sqr / cols);
+					float xv = xRow[id];
+					float gammav = (float)gamma[id];
+					float adjv = adjRow[id];
+					float rmsNorm = xv / rms;
 
-                    for (int i = 0; i < cols; ++i)
-                    {
-                        float grad_x = 0.0f;
-                        float x_hat = yRow[i] / gamma[i];
-                        grad_x += cols * adjRow[i];
-                        grad_x -= sum_adj;
-                        grad_x -= sum_adj_x * x_hat;
-                        grad_x /= cols * sigma;
+					float gradNorm = N * adjv - rmsNorm * sum_adj_r;
+					gradNorm /= N * rms;
 
-                        gradXRow[i] += gamma[i] * grad_x;
-                        gradGamma[i] += adjRow[i] * x_hat;
-                    }
-                }
-            }
-        }
+					float gradXv = gammav * gradNorm;
+
+					// Keep RMSN gradient between [-1000, 1000] for TensorOps, this currently used for making values fit into fp16. This wil also clip inf. 
+					// @TODO: to be fixed and removed.
+					float sign = Math.Sign(gradXv); //functional::Ops<AccType>::sgn(gradXv);
+					float cutoff = (float)1000.0f; // @TODO: expose this somehow as an option? or better: make obsolete.
+					gradXv = Math.Abs(gradXv) > cutoff ? sign * cutoff : gradXv; // if gradXv is NaN the value return is NaN too because NaN > value is false.
+
+					// @TODO: frankly, this is embarrasing and should rather be removed or optional? It does help for low precision computation though. Maybe turn into option?
+					gradXv = float.IsNaN(gradXv) ? 0.0f : gradXv; // turn NaN into 0.
+
+					float* gradXRow = gradX + j * cols;
+					gradXRow[id] += (float)(gradXv);
+
+					float* gradGammaRow = gradGamma + j * cols;
+					// assignment is correct here as this gets summed up
+					// in the next kernel via matrix product
+					gradGammaRow[id] = (float)(adjv * rmsNorm);
+
+				}
+			}
+		}
 
 
         unsafe static public void Adam(Tensor tw, Tensor tg, Tensor tv, Tensor tm, int rows, int cols, float gradNormFactor, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)

@@ -569,26 +569,27 @@ __global__ void gLayerNormalizationGrad(float* gradX,
 
 __global__ void RMSNorm(float* out,
                                 const float* in,
-                                const float* alpha,
-                                const float* beta,
+                                const float* gamma,
                                 int rows,
                                 int cols,
                                 float eps = 1e-9) {
-  extern __shared__ float _share[];
+  extern __shared__ float _shareAccType[];
 
+  float N = cols;
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
-      float* so = out + j * cols;
-      const float* sp = in + j * cols;
+      float* yRow       = out + j * cols;
+      const float* xRow =  in + j * cols;
 
-      float* _sqSum = _share;
-      _sqSum[threadIdx.x] = 0.0;
+      float* _sqSum = _shareAccType;
+
+      _sqSum[threadIdx.x] = (float)0.0f;
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          float ex = sp[id];
-          _sqSum[threadIdx.x] += ex * ex;
+          float xv = (float)xRow[id];
+          _sqSum[threadIdx.x] += xv * xv;
         }
       }
       __syncthreads();
@@ -601,16 +602,17 @@ __global__ void RMSNorm(float* out,
         len = (len + 1) >> 1;
       }
       __syncthreads();
-      float sigma = sqrtf(eps + (_sqSum[0] / cols));
+      float rms = sqrtf(_sqSum[0] / N + eps); // all AccType
       __syncthreads();
 
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          float t = alpha[id] * sp[id] / sigma;
-          if(beta)
-            t += beta[id];
-          so[id] = t;
+          float gammav  = gamma[id];
+          float xv      = xRow[id];
+          float rmsNorm = xv / rms;
+          float y       = gammav * rmsNorm;
+          yRow[id]        = y;
         }
       }
     }
@@ -621,39 +623,41 @@ __global__ void RMSNorm(float* out,
 
 __global__ void RMSNormGrad(float* gradX,
                                         float* gradGamma,
-                                        float* gradBeta,
                                         float* adj,
                                         float* y,
                                         float* x,
                                         float* gamma,
-                                        float* beta,
                                         int rows,
                                         int cols,
                                         float eps = 1e-9) {
   extern __shared__ float shared[];
 
+  float N = cols;
+
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
-      float* sum_adj = shared;
-      float* sum_adj_x = shared + blockDim.x;
-      float* sum_sqr = shared + 2 * blockDim.x;
+      float* sum_adj_r = shared;  // sum of gradient coming in times layerNorm from value
+      float* sum_sqr   = shared + blockDim.x;  // sum of x^2
 
-      const float* xRow = x + j * cols;
-      const float* yRow = y + j * cols;
+      const float* xRow   =   x + j * cols;
+      const float* yRow   =   y + j * cols;
       const float* adjRow = adj + j * cols;
-      float* gradXRow = gradX + j * cols;
 
-      sum_adj[threadIdx.x] = 0.0f;
-      sum_adj_x[threadIdx.x] = 0.0f;
-      sum_sqr[threadIdx.x] = 0.0f;
+      sum_adj_r[threadIdx.x] = (float)0.0f;
+      sum_sqr[threadIdx.x]   = (float)0.0f;
 
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          sum_adj_x[threadIdx.x]
-              += adjRow[id] * (yRow[id] - ((beta) ? beta[id] : 0)) / gamma[id];
-          sum_adj[threadIdx.x] += adjRow[id];
+          float xv     = xRow[id];
+          float yv     = yRow[id];
+          float gammav = (float)gamma[id];
+          float adjv   = adjRow[id];
+          float rv     = yv / gammav; // go back to RMSNorm(x) from scaled and shifted version for accumulation
+
+          sum_adj_r[threadIdx.x] += adjv * rv;
+          sum_sqr[threadIdx.x]   += xv * xv;
         }
       }
       __syncthreads();
@@ -662,53 +666,50 @@ __global__ void RMSNormGrad(float* gradX,
         __syncthreads();
         int skip = (len + 1) >> 1;
         if(threadIdx.x < (len >> 1)) {
-          sum_adj[threadIdx.x] += sum_adj[threadIdx.x + skip];
-          sum_adj_x[threadIdx.x] += sum_adj_x[threadIdx.x + skip];
+          sum_adj_r[threadIdx.x] += sum_adj_r[threadIdx.x + skip]; // Accumulates in AccType
+          sum_sqr[threadIdx.x]   += sum_sqr[threadIdx.x   + skip]; // Accumulates in AccType
         }
         len = (len + 1) >> 1;
       }
+
       __syncthreads();
+      float rms = sqrtf(sum_sqr[0] / N + eps);
+      __syncthreads();
+
+      // Jacobian of RMS norm
+      // J = [ \frac{1}{N * rms} (N\delta_{ij} - RN_i RN_j) ]_{ij}
+      // J * a = dC/dx_i = ( N a_i - RN_i \sum_j RN_j a_j ) / (N * rms)
 
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          float ex = xRow[id];
-          sum_sqr[threadIdx.x] += ex * ex;
-        }
-      }
 
-      __syncthreads();
-      len = blockDim.x;
-      while(len != 1) {
-        __syncthreads();
-        int skip = (len + 1) >> 1;
-        if(threadIdx.x < (len >> 1))
-          sum_sqr[threadIdx.x] += sum_sqr[threadIdx.x + skip];
-        len = (len + 1) >> 1;
-      }
-      __syncthreads();
-      float sigma = sqrtf(eps + (sum_sqr[0] / cols));
-      __syncthreads();
+          float xv      = xRow[id];
+          float gammav  = (float)gamma[id];
+          float adjv    = adjRow[id];
+          float rmsNorm = xv / rms;
 
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-          float grad_x = 0.0f;
-          float x_hat = (yRow[id] - ((beta) ? beta[id] : 0)) / gamma[id];
-          grad_x += cols * adjRow[id];
-          grad_x -= sum_adj[0];
-          grad_x -= sum_adj_x[0] * x_hat;
-          grad_x /= (cols * sigma);
+          float gradNorm = N * adjv - rmsNorm * sum_adj_r[0];
+          gradNorm        /= N * rms; 
 
-          float valX = gamma[id] * grad_x;
-          float sign = (0.f < valX) - (valX < 0.f);
-          valX = fabs(valX) > 1000.0f ? sign * 1000.0f : valX;
+          float gradXv = gammav * gradNorm;
 
-          gradXRow[id] += valX;
-          atomicAdd(gradGamma + id, adjRow[id] * x_hat);
-          if(beta) {
-            atomicAdd(gradBeta + id, adjRow[id]);
-          }
+          // Keep RMSN gradient between [-1000, 1000] for TensorOps, this currently used for making values fit into fp16. This wil also clip inf. 
+          // @TODO: to be fixed and removed.
+          float sign = (0.f < gradXv) - (gradXv < 0.f);  //functional::Ops<AccType>::sgn(gradXv);
+          float cutoff = (float)1000.f; // @TODO: expose this somehow as an option? or better: make obsolete.
+          gradXv = fabs(gradXv) > cutoff ? sign * cutoff : gradXv; // if gradXv is NaN the value return is NaN too because NaN > value is false.
+
+          // @TODO: frankly, this is embarrasing and should rather be removed or optional? It does help for low precision computation though. Maybe turn into option?
+          gradXv = isnan(gradXv) ? 0.f : gradXv; // turn NaN into 0.
+
+          float* gradXRow      = gradX     + j * cols;
+          gradXRow[id]    += (float)(gradXv);
+
+          float* gradGammaRow  = gradGamma + j * cols;
+          // assignment is correct here as this gets summed up
+          // in the next kernel via matrix product
+          gradGammaRow[id] = (float)(adjv * rmsNorm);
         }
       }
     }
@@ -2004,26 +2005,27 @@ __global__ void gLayerNormalizationGradHalf(__half* gradX,
 
 __global__ void RMSNormHalf(__half* out,
                                 const __half* in,
-                                const __half* alpha,
-                                const __half* beta,
+                                const __half* gamma,
                                 int rows,
                                 int cols,
                                 float eps = 1e-9) {
-  extern __shared__ float _share[];
+  extern __shared__ float _shareAccType[];
 
+  float N = cols;
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
-      __half* so = out + j * cols;
-      const __half* sp = in + j * cols;
+      __half* yRow       = out + j * cols;
+      const __half* xRow =  in + j * cols;
 
-      float* _sqSum = _share;
-      _sqSum[threadIdx.x] = 0.0;
+      float* _sqSum = _shareAccType;
+
+      _sqSum[threadIdx.x] = (float)0.0f;
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          float ex = __half2float(sp[id]);
-          _sqSum[threadIdx.x] += ex * ex;
+          float xv = __half2float(xRow[id]);
+          _sqSum[threadIdx.x] += xv * xv;
         }
       }
       __syncthreads();
@@ -2036,16 +2038,17 @@ __global__ void RMSNormHalf(__half* out,
         len = (len + 1) >> 1;
       }
       __syncthreads();
-      float sigma = sqrtf(eps + (_sqSum[0] / cols));
+      float rms = sqrtf(_sqSum[0] / N + eps); // all AccType
       __syncthreads();
 
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          float t = __half2float(alpha[id]) * __half2float(sp[id]) / sigma;
-          if(beta)
-            t += __half2float(beta[id]);
-          so[id] = __float2half(t);
+          float gammav  = __half2float(gamma[id]);
+          float xv      = xRow[id];
+          float rmsNorm = xv / rms;
+          float y       = gammav * rmsNorm;
+          yRow[id]        = __float2half(y);
         }
       }
     }
@@ -2057,39 +2060,41 @@ __global__ void RMSNormHalf(__half* out,
 
 __global__ void RMSNormGradHalf(__half* gradX,
                                         __half* gradGamma,
-                                        __half* gradBeta,
                                         __half* adj,
                                         __half* y,
                                         __half* x,
                                         __half* gamma,
-                                        __half* beta,
                                         int rows,
                                         int cols,
                                         float eps = 1e-9) {
-  extern __shared__ float shared[];
+extern __shared__ float shared[];
+
+  float N = cols;
 
   for(int bid = 0; bid < rows; bid += gridDim.x) {
     int j = bid + blockIdx.x;
     if(j < rows) {
-      float* sum_adj = shared;
-      float* sum_adj_x = shared + blockDim.x;
-      float* sum_sqr = shared + 2 * blockDim.x;
+      float* sum_adj_r = shared;  // sum of gradient coming in times layerNorm from value
+      float* sum_sqr   = shared + blockDim.x;  // sum of x^2
 
-      const __half* xRow = x + j * cols;
-      const __half* yRow = y + j * cols;
+      const __half* xRow   =   x + j * cols;
+      const __half* yRow   =   y + j * cols;
       const __half* adjRow = adj + j * cols;
-      __half* gradXRow = gradX + j * cols;
 
-      sum_adj[threadIdx.x] = 0.0f;
-      sum_adj_x[threadIdx.x] = 0.0f;
-      sum_sqr[threadIdx.x] = 0.0f;
+      sum_adj_r[threadIdx.x] = (float)0.0f;
+      sum_sqr[threadIdx.x]   = (float)0.0f;
 
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          sum_adj_x[threadIdx.x]
-              += __half2float(adjRow[id]) * (__half2float(yRow[id]) - ((beta) ? __half2float(beta[id]) : 0)) / __half2float(gamma[id]);
-          sum_adj[threadIdx.x] += __half2float(adjRow[id]);
+          float xv     = __half2float(xRow[id]);
+          float yv     = __half2float(yRow[id]);
+          float gammav = (float)__half2float(gamma[id]);
+          float adjv   = __half2float(adjRow[id]);
+          float rv     = yv / gammav; // go back to RMSNorm(x) from scaled and shifted version for accumulation
+
+          sum_adj_r[threadIdx.x] += adjv * rv;
+          sum_sqr[threadIdx.x]   += xv * xv;
         }
       }
       __syncthreads();
@@ -2098,53 +2103,50 @@ __global__ void RMSNormGradHalf(__half* gradX,
         __syncthreads();
         int skip = (len + 1) >> 1;
         if(threadIdx.x < (len >> 1)) {
-          sum_adj[threadIdx.x] += sum_adj[threadIdx.x + skip];
-          sum_adj_x[threadIdx.x] += sum_adj_x[threadIdx.x + skip];
+          sum_adj_r[threadIdx.x] += sum_adj_r[threadIdx.x + skip]; // Accumulates in AccType
+          sum_sqr[threadIdx.x]   += sum_sqr[threadIdx.x   + skip]; // Accumulates in AccType
         }
         len = (len + 1) >> 1;
       }
+
       __syncthreads();
+      float rms = sqrtf(sum_sqr[0] / N + eps);
+      __syncthreads();
+
+      // Jacobian of RMS norm
+      // J = [ \frac{1}{N * rms} (N\delta_{ij} - RN_i RN_j) ]_{ij}
+      // J * a = dC/dx_i = ( N a_i - RN_i \sum_j RN_j a_j ) / (N * rms)
 
       for(int tid = 0; tid < cols; tid += blockDim.x) {
         int id = tid + threadIdx.x;
         if(id < cols) {
-          float ex = __half2float(xRow[id]);
-          sum_sqr[threadIdx.x] += ex * ex;
-        }
-      }
 
-      __syncthreads();
-      len = blockDim.x;
-      while(len != 1) {
-        __syncthreads();
-        int skip = (len + 1) >> 1;
-        if(threadIdx.x < (len >> 1))
-          sum_sqr[threadIdx.x] += sum_sqr[threadIdx.x + skip];
-        len = (len + 1) >> 1;
-      }
-      __syncthreads();
-      float sigma = sqrtf(eps + (sum_sqr[0] / cols));
-      __syncthreads();
+          float xv      = __half2float(xRow[id]);
+          float gammav  = (float)__half2float(gamma[id]);
+          float adjv    = __half2float(adjRow[id]);
+          float rmsNorm = xv / rms;
 
-      for(int tid = 0; tid < cols; tid += blockDim.x) {
-        int id = tid + threadIdx.x;
-        if(id < cols) {
-          float grad_x = 0.0f;
-          float x_hat = (__half2float(yRow[id]) - ((beta) ? __half2float(beta[id]) : 0)) / __half2float(gamma[id]);
-          grad_x += cols * __half2float(adjRow[id]);
-          grad_x -= sum_adj[0];
-          grad_x -= sum_adj_x[0] * x_hat;
-          grad_x /= (cols * sigma);
+          float gradNorm = N * adjv - rmsNorm * sum_adj_r[0];
+          gradNorm        /= N * rms; 
 
-          float valX = __half2float(gamma[id]) * grad_x;
-          float sign = (0.f < valX) - (valX < 0.f);
-          valX = fabs(valX) > 1000.0f ? sign * 1000.0f : valX;
+          float gradXv = gammav * gradNorm;
 
-          gradXRow[id] = __hadd(gradXRow[id], __float2half(valX));
-          atomicAdd(gradGamma + id, __float2half(__half2float(adjRow[id]) * x_hat));
-          if(beta) {
-            atomicAdd(gradBeta + id, adjRow[id]);
-          }
+          // Keep RMSN gradient between [-1000, 1000] for TensorOps, this currently used for making values fit into fp16. This wil also clip inf. 
+          // @TODO: to be fixed and removed.
+          float sign = (0.f < gradXv) - (gradXv < 0.f);  //functional::Ops<AccType>::sgn(gradXv);
+          float cutoff = (float)1000.f; // @TODO: expose this somehow as an option? or better: make obsolete.
+          gradXv = fabs(gradXv) > cutoff ? sign * cutoff : gradXv; // if gradXv is NaN the value return is NaN too because NaN > value is false.
+
+          // @TODO: frankly, this is embarrasing and should rather be removed or optional? It does help for low precision computation though. Maybe turn into option?
+          gradXv = isnan(gradXv) ? 0.f : gradXv; // turn NaN into 0.
+
+          __half* gradXRow      = gradX     + j * cols;
+          gradXRow[id]    = __hadd(gradXRow[id], __float2half(gradXv));
+
+          __half* gradGammaRow  = gradGamma + j * cols;
+          // assignment is correct here as this gets summed up
+          // in the next kernel via matrix product
+          gradGammaRow[id] = __float2half(adjv * rmsNorm);
         }
       }
     }
@@ -2729,7 +2731,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
                 int N = (int)Q.Sizes[2];
                 int d = (int)Q.Sizes[3];
 
-                int Br = Math.Min(32, N);
+                int Br = Math.Min(16, N);
                 while (Br > 1)
                 {
                     if (N % Br == 0)
@@ -2853,17 +2855,17 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
         }
 
 
-        public Tensor RMSNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps = 1e-9f)
+        public Tensor RMSNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, float eps = 1e-9f)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(inGrad);
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(outGrad, inGrad, false, inGrad.Sizes);
-            RMSNormGrad(context, writeTarget, alphaGrad, betaGrad, inGrad, y, x, alpha, beta, eps);
+            RMSNormGrad(context, writeTarget, alphaGrad, inGrad, y, x, alpha, eps);
 
             return writeTarget;
         }
 
 
-        private void RMSNormGrad(TSCudaContext context, Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps = 1e-9f)
+        private void RMSNormGrad(TSCudaContext context, Tensor outGrad, Tensor alphaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, float eps = 1e-9f)
         {
             CudaContext cudaContext = context.CudaContextForTensor(inGrad);
 
@@ -2885,19 +2887,17 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
 
             CUdeviceptr outGradPtr = CudaHelpers.GetBufferStart(outGrad);
             CUdeviceptr alphaGradPtr = CudaHelpers.GetBufferStart(alphaGrad);
-            CUdeviceptr betaGradPtr = CudaHelpers.GetBufferStart(betaGrad);
             CUdeviceptr inGradPtr = CudaHelpers.GetBufferStart(inGrad);
             CUdeviceptr yPtr = CudaHelpers.GetBufferStart(y);
             CUdeviceptr xPtr = CudaHelpers.GetBufferStart(x);
             CUdeviceptr alphaPtr = CudaHelpers.GetBufferStart(alpha);
-            CUdeviceptr betaPtr = CudaHelpers.GetBufferStart(beta);
 
             string kernelName = "RMSNormGrad";
             if (outGrad.ElementType == DType.Float16)
             {
                 kernelName = "RMSNormGradHalf";
             }
-            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float) * 4, CUstream.NullStream, outGradPtr, alphaGradPtr, betaGradPtr, inGradPtr, yPtr, xPtr, alphaPtr, betaPtr, rows, cols, eps);
+            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float) * 4, CUstream.NullStream, outGradPtr, alphaGradPtr, inGradPtr, yPtr, xPtr, alphaPtr, rows, cols, eps);
         }
 
         public void AddLayerNormGrad(Tensor out1Grad, Tensor out2Grad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x1, Tensor x2, Tensor alpha, Tensor beta, float eps = 1e-9f)
@@ -2991,17 +2991,17 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
         }
 
 
-        public Tensor RMSNorm(Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-9f)
+        public Tensor RMSNorm(Tensor result, Tensor src, Tensor alpha, float eps = 1e-9f)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(src);
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
-            RMSNorm(context, writeTarget, src, alpha, beta, eps);
+            RMSNorm(context, writeTarget, src, alpha, eps);
 
             return writeTarget;
         }
 
 
-        private void RMSNorm(TSCudaContext context, Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-9f)
+        private void RMSNorm(TSCudaContext context, Tensor result, Tensor src, Tensor alpha, float eps = 1e-9f)
         {
             CudaContext cudaContext = context.CudaContextForTensor(src);
 
@@ -3025,7 +3025,6 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
             CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
             CUdeviceptr srcPtr = CudaHelpers.GetBufferStart(src);
             CUdeviceptr alphaPtr = CudaHelpers.GetBufferStart(alpha);
-            CUdeviceptr betaPtr = CudaHelpers.GetBufferStart(beta);
 
             string kernelName = "RMSNorm";
             if (src.ElementType == DType.Float16)
@@ -3033,7 +3032,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
                 kernelName = "RMSNormHalf";
             }
 
-            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, alphaPtr, betaPtr, rows, cols, eps);
+            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, alphaPtr, rows, cols, eps);
 
         }
 

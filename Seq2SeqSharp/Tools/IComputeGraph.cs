@@ -53,7 +53,7 @@ namespace Seq2SeqSharp
         IWeightTensor Transpose(IWeightTensor w);
         IWeightTensor Mul(IWeightTensor w, float v, bool inPlace = false);
         IWeightTensor LayerNorm(IWeightTensor src, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-9f);
-        IWeightTensor RMSNorm(IWeightTensor src, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-9f);
+        IWeightTensor RMSNorm(IWeightTensor src, IWeightTensor alpha, float eps = 1e-9f);
 
         IWeightTensor Select(IWeightTensor src, int dim, int index);
         void Backward();
