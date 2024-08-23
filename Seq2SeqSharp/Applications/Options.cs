@@ -202,6 +202,10 @@ namespace Seq2SeqSharp.Applications
         [RegularExpression("NoPaddingInSrc|NoPaddingInTgt|NoPadding|AllowPadding")]
         public PaddingEnums PaddingType = PaddingEnums.NoPadding;
 
+        [Arg("The alignment factor when padding sequences. The default value 0 (No alignment)", nameof(PaddingAlignmentFactor))]
+        [Range(0, 128)]
+        public int PaddingAlignmentFactor = 0;
+
         [Arg("Task to execute. It supports Train, Valid, Test, DumpVocab, UpdateVocab and Help", nameof(Task))]
         [RegularExpression("Train|Valid|Test|Alignment|DumpVocab|UpdateVocab|VQModel|Help")]
         public ModeEnums Task = ModeEnums.Help;
@@ -325,9 +329,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("The level of logs to be printed out. Supported Values: none = 0, err = 1, warn = 2, info = 4 and debug = 8. These values can be combined. For example: Value 15 means err, warn, info and debug will be outputted.", nameof(LogLevel))]
         public Logger.Level LogLevel = (Logger.Level.err | Logger.Level.warn | Logger.Level.info | Logger.Level.debug);
 
-
         [Arg("It indicates if checking tensor corrupted is enabled. Default is disabled.", nameof(CheckTensorCorrupted))]
-        public bool CheckTensorCorrupted = false;
+        public bool CheckTensorCorrupted = false;        
+
         public void ValidateOptions()
         {
             if (AMP == true && ProcessorType != ProcessorTypeEnums.GPU)

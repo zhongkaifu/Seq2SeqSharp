@@ -311,23 +311,34 @@ void flash_attention_2_backward_kernel(
                     S[(Bc * tx) + y] = __expf(sum - l_curr);
             }
 
-            //// Pij = diag(li)^-1 * exp(Sij - mi)
-            //// Pij[tx][y] = (1 / li[tx]) * exp(Sij[tx][y] - mi[tx])
-            //for (int y = 0; y < Bc; y++) {
-            //    if (i * Br + tx < j * Bc + y)
-            //        S[(Bc * tx) + y] = 0;
-            //    else
-            //        S[(Bc * tx) + y] = __expf(S[(Bc * tx) + y] - l_curr);
-            //}
             __syncthreads();
             // dVj <- dVj + Pij^T * dOi
             // dVj[tx][x] = dVj[tx][x] + Sum_{y = 0}^{Br-1} Pij[y][tx] * dOi[tx][x]
             for (int x = 0; x < d; x++) {
                 float sum = 0;
                 float dOi_x = dOi[txd + x];              
-                for (int y = 0; y < Br; y++) {
-                    sum += S[(Bc * y) + tx] * dOi_x;
+
+
+                if (Br % 16 == 0)
+                {
+                    int nBlock = Br / 16;
+                    for (int n = 0;n < nBlock;n++)
+                    {
+                        int n16 = n * 16;
+#pragma unroll 16
+                        for (int y = 0; y < 16;y++)
+                        {
+                            sum += S[(16 * (n16 + y)) + tx] * dOi_x;
+                        }
+                    }
                 }
+                else
+                {
+                    for (int y = 0; y < Br; y++) {
+                        sum += S[(Bc * y) + tx] * dOi_x;
+                    }
+                }
+
                 atomicAdd(&dV[qkv_offset + (row_tile_size * j) + txd + x], sum);
             }
 
@@ -367,9 +378,35 @@ void flash_attention_2_backward_kernel(
             // dQ[tx][x] = dQ[tx][x] + softmax_scale * Sum_{y = 0}^{Bc-1} dSij[tx][y] * Kj[y][x]
             for (int x = 0; x < d; x++) {
                 float sum = 0;
-                for (int y = 0; y < Bc; y++) {
-                    sum += S[(Bc * tx) + y] * Kj[(y * d) + x];
+
+
+
+
+                if (Bc % 16 == 0)
+                {
+                    int nBlock = Bc / 16;
+                    for (int n = 0;n < nBlock;n++)
+                    {
+                        int n16 = n * 16;
+#pragma unroll 16
+                        for (int y = 0; y < 16;y++)
+                        {
+                            sum += S[(16 * tx) + (n16 + y)] * Kj[((n16 + y) * d) + x];
+                        }
+                    }
                 }
+                else
+                {
+                    for (int y = 0; y < Bc; y++) {
+                        sum += S[(Bc * tx) + y] * Kj[(y * d) + x];
+                    }
+                }
+
+
+
+                //for (int y = 0; y < Bc; y++) {
+                //    sum += S[(Bc * tx) + y] * Kj[(y * d) + x];
+                //}
                 sum *= softmax_scale;
                 atomicAdd(&dQ[qkv_offset + (row_tile_size * i) + txd + x], sum);
             }
@@ -378,9 +415,35 @@ void flash_attention_2_backward_kernel(
             // dKj[tx][x] = dKj[tx][x] + softmax_scale * Sum_{y = 0}^{Br-1} dSij[y][tx] * Qi[y][x]
             for (int x = 0; x < d; x++) {
                 float sum = 0;
-                for (int y = 0; y < Br; y++) {
-                    sum += S[(Bc * y) + tx] * Qi[(y * d) + x];
+
+                if (Br % 16 == 0)
+                {
+                    int nBlock = Br / 16;
+                    for (int n = 0;n < nBlock;n++)
+                    {
+                        int n16 = n * 16;
+#pragma unroll 16
+                        for (int y = 0; y < 16;y++)
+                        {
+                            sum += S[(16 * (n16 + y)) + tx] * Qi[((n16 + y) * d) + x];
+                        }
+                    }
                 }
+                else
+                {
+                    for (int y = 0; y < Bc; y++) {
+                        sum += S[(Bc * y) + tx] * Qi[(y * d) + x];
+                    }
+                }
+
+
+
+                //for (int y = 0; y < Br; y++) {
+                //    sum += S[(Bc * y) + tx] * Qi[(y * d) + x];
+                //}
+
+
+
                 sum *= softmax_scale;
                 atomicAdd(&dK[qkv_offset + (row_tile_size * j) + txd + x], sum);
             }
@@ -2800,7 +2863,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
                 int N = (int)Q.Sizes[2];
                 int d = (int)Q.Sizes[3];
 
-                int Br = Math.Min(32, N);
+                int Br = Math.Min(16, N);
                 while (Br > 1)
                 {
                     if (N % Br == 0)

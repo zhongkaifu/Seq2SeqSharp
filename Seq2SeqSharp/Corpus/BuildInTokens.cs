@@ -65,7 +65,7 @@ namespace Seq2SeqSharp.Corpus
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>
-        public static float[] PadSentences(List<List<int>> s, int tokenToPad, int maxLen = -1)
+        public static float[] PadSentences(List<List<int>> s, int tokenToPad, int maxLen = -1, int alignmentFactor = 0)
         {
             float[] originalLengths = new float[s.Count];
 
@@ -78,6 +78,12 @@ namespace Seq2SeqSharp.Corpus
                         maxLen = item.Count;
                     }
                 }
+            }
+
+            if (alignmentFactor > 0 && maxLen % alignmentFactor != 0)
+            {
+                int additionalPaddingSize = alignmentFactor - (maxLen % alignmentFactor);
+                maxLen += additionalPaddingSize;
             }
 
             for (int i = 0; i < s.Count; i++)
