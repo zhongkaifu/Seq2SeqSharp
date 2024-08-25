@@ -26,7 +26,8 @@ namespace Seq2SeqSharp.Utils
         private static int[] m_deviceIds;
         private static ProcessorTypeEnums m_archType;
 
-        public static void InitDevices(ProcessorTypeEnums archType, int[] ids, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, string mklInstructions = "AVX2", bool enableTensorCore = true, CudaMemoryDeviceAllocatorType allocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool, DType elementType = DType.Float32)
+        public static void InitDevices(ProcessorTypeEnums archType, int[] ids, float memoryUsageRatio = 0.9f, string[] compilerOptions = null, string mklInstructions = "AVX2", bool enableTensorCore = true, CudaMemoryDeviceAllocatorType allocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool, 
+            DType elementType = DType.Float32, AttentionTypeEnums attentionTypeEnums = AttentionTypeEnums.Classic)
         {
             if (m_allocator != null)
             {
@@ -41,7 +42,7 @@ namespace Seq2SeqSharp.Utils
 
             if (m_archType == ProcessorTypeEnums.GPU)
             {
-                m_cudaContext = new TSCudaContext(m_deviceIds, memoryUsageRatio, compilerOptions, allocatorType, elementType);
+                m_cudaContext = new TSCudaContext(m_deviceIds, memoryUsageRatio, compilerOptions, allocatorType, elementType, useFlashAttention: attentionTypeEnums == AttentionTypeEnums.FlashAttentionV2);
                 m_cudaContext.Precompile();
                 m_cudaContext.CleanUnusedPTX();
 
