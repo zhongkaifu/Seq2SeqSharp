@@ -462,38 +462,40 @@ void flash_attention_2_backward_kernelHalf(
     __half* dK,
     __half* dV
 ) {
-    const float INFINITY = 65500.0f; 
+    const float INFINITY = 9999999999.9f; 
     int tx = threadIdx.x;
     int txd = tx * d;
     int bx = blockIdx.x; int by = blockIdx.y;  // batch and head index
-    int bz = blockIdx.z; // Tc index
+    int bz = blockIdx.z; // Tc index;
 
     // Offset into Q,K,V,O - different for each batch and head
     int qkv_offset = (bx * gridDim.y * N * d) + (by * N * d);  // gridDim.y = nh
     int lm_offset = (bx * gridDim.y * N) + (by * N);  // offset for L
 
     // Define SRAM for Q,K,V,S
-    extern __shared__ float sram[];
+    extern __shared__ float sramb[];
+    __half* sram = (__half*)sramb;
+
     int col_tile_size = Bc * d;  // size of Kj, Vj
     int row_tile_size = Br * d;  // size of Qi
-    float* Kj = sram;
-    float* Vj = &sram[col_tile_size];
+    __half* Kj = sram;
+    __half* Vj = &sram[col_tile_size];
 
-    float* Qi = &sram[col_tile_size * 2];
-    float* dOi = &sram[col_tile_size * 2 + row_tile_size];
+    __half* Qi = &sram[col_tile_size * 2];
+    __half* dOi = &sram[col_tile_size * 2 + row_tile_size];
 
     // We also use S for P. Likewise, we use dS for dP.
     // We can reuse the same memory because we don't need S and P at the same time.
     // We also don't need dS and dP at the same time.
-    float* S = &sram[col_tile_size * 2 + row_tile_size * 2];
-
+    __half* S = &sram[col_tile_size * 2 + row_tile_size * 2];
+    
      int j = bz;
      if (j < Tc) {
 
         // Load Kj, Vj to SRAM
         for (int x = 0; x < d; x++) {
-            Kj[txd + x] = __half2float(K[qkv_offset + (col_tile_size * j) + txd + x]);
-            Vj[txd + x] = __half2float(V[qkv_offset + (col_tile_size * j) + txd + x]);
+            Kj[txd + x] = K[qkv_offset + (col_tile_size * j) + txd + x];
+            Vj[txd + x] = V[qkv_offset + (col_tile_size * j) + txd + x];
         }
 
         for (int i = j; i < Tr; i++)  {
@@ -501,32 +503,15 @@ void flash_attention_2_backward_kernelHalf(
             // Load Qi, Oi, dOi, dQi, li, mi to SRAM
             // Also load l, m to registers
             float Di = 0;
-            if (d == 128)
-            {
-#pragma unroll 128
-                for (int x = 0; x < 128; x++) {
-                    Qi[txd + x] = __half2float(Q[qkv_offset + (row_tile_size * i) + txd + x]);
-                    dOi[txd + x] = __half2float(dO[qkv_offset + (row_tile_size * i) + txd + x]);
-                    Di += dOi[txd + x] * __half2float(O[qkv_offset + (row_tile_size * i) + txd + x]);
-                }
-            }
-            else if (d == 64)
-            {
-#pragma unroll 64
-                for (int x = 0; x < 64; x++) {
-                    Qi[txd + x] = __half2float(Q[qkv_offset + (row_tile_size * i) + txd + x]);
-                    dOi[txd + x] = __half2float(dO[qkv_offset + (row_tile_size * i) + txd + x]);
-                    Di += dOi[txd + x] * __half2float(O[qkv_offset + (row_tile_size * i) + txd + x]);
-                }
-            }
-            else
-            {
+
                 for (int x = 0; x < d; x++) {
-                    Qi[txd + x] = __half2float(Q[qkv_offset + (row_tile_size * i) + txd + x]);
-                    dOi[txd + x] = __half2float(dO[qkv_offset + (row_tile_size * i) + txd + x]);
-                    Di += dOi[txd + x] * __half2float(O[qkv_offset + (row_tile_size * i) + txd + x]);
+                    Qi[txd + x] = Q[qkv_offset + (row_tile_size * i) + txd + x];
+                    __half dO_v = dO[qkv_offset + (row_tile_size * i) + txd + x];
+                    dOi[txd + x] = dO_v;
+                    Di += __half2float(__hmul(dO_v, O[qkv_offset + (row_tile_size * i) + txd + x]));
                 }
-            }
+            
+
             float l_curr = L[lm_offset + (Br * i) + tx];
 
             // Sij = softmax_scale * QiKj^T
@@ -534,53 +519,31 @@ void flash_attention_2_backward_kernelHalf(
 
             // Pij = diag(li)^-1 * exp(Sij - mi)
             // Pij[tx][y] = (1 / li[tx]) * exp(Sij[tx][y] - mi[tx])
-
             for (int y = 0; y < Bc; y++) {
                 float sum = 0;
-                if (d == 128)
-                {
-#pragma unroll 128
-                    for (int x = 0; x < 128; x+=4) {
-                        sum += (Qi[txd + x] * Kj[(y * 128) + x]) + (Qi[txd + x + 1] * Kj[(y * 128) + x + 1]) + (Qi[txd + x + 2] * Kj[(y * 128) + x + 2]) + (Qi[txd + x + 3] * Kj[(y * 128) + x + 3]);
-                    }
-                }
-                else if (d == 64)
-                {
-#pragma unroll 64
-                    for (int x = 0; x < 64; x+=4) {
-                        sum += (Qi[txd + x] * Kj[(y * 64) + x]) + (Qi[txd + x + 1] * Kj[(y * 64) + x + 1]) + (Qi[txd + x + 2] * Kj[(y * 64) + x + 2]) + (Qi[txd + x + 3] * Kj[(y * 64) + x + 3]);
-                    }
-                }
-                else
-                {
+
                     for (int x = 0; x < d; x++) {
-                        sum += Qi[txd + x] * Kj[(y * d) + x];
+                        sum += __half2float(__hmul(Qi[txd + x], Kj[(y * d) + x]));
                     }
-                }
+                
                 sum *= softmax_scale;
                 if (i * Br + tx < j * Bc + y)
                     S[(Bc * tx) + y] = 0;
                 else
-                    S[(Bc * tx) + y] = __expf(sum - l_curr);
+                    S[(Bc * tx) + y] = __float2half(__expf(sum - l_curr));
             }
 
-            //// Pij = diag(li)^-1 * exp(Sij - mi)
-            //// Pij[tx][y] = (1 / li[tx]) * exp(Sij[tx][y] - mi[tx])
-            //for (int y = 0; y < Bc; y++) {
-            //    if (i * Br + tx < j * Bc + y)
-            //        S[(Bc * tx) + y] = 0;
-            //    else
-            //        S[(Bc * tx) + y] = __expf(S[(Bc * tx) + y] - l_curr);
-            //}
             __syncthreads();
             // dVj <- dVj + Pij^T * dOi
             // dVj[tx][x] = dVj[tx][x] + Sum_{y = 0}^{Br-1} Pij[y][tx] * dOi[tx][x]
             for (int x = 0; x < d; x++) {
                 float sum = 0;
-                float dOi_x = dOi[txd + x];
-                for (int y = 0; y < Br; y++) {
-                    sum += S[(Bc * y) + tx] * dOi_x;
-                }
+                __half dOi_x = dOi[txd + x];              
+
+                    for (int y = 0; y < Br; y++) {
+                        sum += __half2float(__hmul(S[(Bc * y) + tx], dOi_x));
+                    }
+                
                 atomicAdd(&dV[qkv_offset + (row_tile_size * j) + txd + x], __float2half(sum));
             }
 
@@ -591,35 +554,21 @@ void flash_attention_2_backward_kernelHalf(
             // dSij[tx][y] = Pij[tx][y] * (dPij[tx][y] - Di[tx])
             for (int y = 0; y < Bc; y++) {
                 float sum = 0;
-                if (d == 128)
-                {
-#pragma unroll 128
-                    for (int x = 0; x < 128; x+=4) {
-                        sum += (dOi[txd + x] * Vj[(y * 128) + x]) + (dOi[txd + x + 1] * Vj[(y * 128) + x + 1]) + (dOi[txd + x + 2] * Vj[(y * 128) + x + 2]) + (dOi[txd + x + 3] * Vj[(y * 128) + x + 3]);
-                    }
+
+                for (int x = 0; x < d; x++) {
+                    sum += __half2float(__hmul(dOi[txd + x], Vj[(y * d) + x]));
                 }
-                else if (d == 64)
-                {
-#pragma unroll 64
-                    for (int x = 0; x < 64; x+=4) {
-                        sum += (dOi[txd + x] * Vj[(y * 64) + x]) + (dOi[txd + x + 1] * Vj[(y * 64) + x + 1]) + (dOi[txd + x + 2] * Vj[(y * 64) + x + 2]) + (dOi[txd + x + 3] * Vj[(y * 64) + x + 3]);
-                    }
-                }
-                else
-                {
-                    for (int x = 0; x < d; x++) {
-                        sum += dOi[txd + x] * Vj[(y * d) + x];
-                    }
-                }
-                S[(Bc * tx) + y] = S[(Bc * tx) + y] * (sum - Di);
+                
+                S[(Bc * tx) + y] = __hmul(S[(Bc * tx) + y], __float2half(sum - Di));
             }
 
             // dQi <- dQi + softmax_scale * dSijKj
             // dQ[tx][x] = dQ[tx][x] + softmax_scale * Sum_{y = 0}^{Bc-1} dSij[tx][y] * Kj[y][x]
             for (int x = 0; x < d; x++) {
                 float sum = 0;
+
                 for (int y = 0; y < Bc; y++) {
-                    sum += S[(Bc * tx) + y] * Kj[(y * d) + x];
+                    sum += __half2float(__hmul(S[(Bc * tx) + y], Kj[(y * d) + x]));
                 }
                 sum *= softmax_scale;
                 atomicAdd(&dQ[qkv_offset + (row_tile_size * i) + txd + x], __float2half(sum));
@@ -630,16 +579,15 @@ void flash_attention_2_backward_kernelHalf(
             for (int x = 0; x < d; x++) {
                 float sum = 0;
                 for (int y = 0; y < Br; y++) {
-                    sum += S[(Bc * y) + tx] * Qi[(y * d) + x];
+                    sum += __half2float(__hmul(S[(Bc * y) + tx], Qi[(y * d) + x]));
                 }
+
                 sum *= softmax_scale;
                 atomicAdd(&dK[qkv_offset + (row_tile_size * j) + txd + x], __float2half(sum));
             }
         }
     }
 }
-
-
 
 }
 
