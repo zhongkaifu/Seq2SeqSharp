@@ -58,8 +58,6 @@ void flash_attention_2_forward_kernel(
     int tile_size = Bc * d;  // size of Qi, Kj, Vj
     __half* Qi = sram;
     __half* KVj = &sram[tile_size];
-    //__half* Vj = &sram[tile_size * 2];
-    //__half* S = &sram[tile_size * 2];
 
     int i = bz;
     if (i >= q_start_offset && i < Tr)
@@ -87,15 +85,17 @@ void flash_attention_2_forward_kernel(
             
             __syncthreads();
 
+            int yMax = min(min(Bc, N - j * Bc), i * Br - j * Bc + tx + 1);         
+
             // S_i^j = softmax_scale * QiKj^T
             // S_i^j[tx][y] = softmax_scale * Sum_{x = 0}^{d-1} Qi[tx][x] * Kj[y][x]
             float row_m = -INFINITY;
 
-            for (int y = 0; y < Bc; y++) {
-                if (j * Bc + y >= N)
-                    break;  // break if we are done with the sequence
-                if (i * Br + tx < j * Bc + y)
-                    break;
+            for (int y = 0; y < yMax; y++) {
+                //if (j * Bc + y >= N)
+                //    break;  // break if we are done with the sequence
+                //if (i * Br + tx < j * Bc + y)
+                //    break;
                 float sum = 0;
 
                     for (int x = 0; x < d; x++)
@@ -114,11 +114,11 @@ void flash_attention_2_forward_kernel(
             // P_i^j = exp(S_i^j - m_i^j)
             // P_i^j[tx][y] = exp(S_i^j[tx][y] - m_i^j)
             float row_l = 0;
-            for (int y = 0; y < Bc; y++) {
-                if (j * Bc + y >= N)
-                    break;  // break if we are done with the sequence
-                if (i * Br + tx < j * Bc + y)
-                    break;
+            for (int y = 0; y < yMax; y++) {
+                //if (j * Bc + y >= N)
+                //    break;  // break if we are done with the sequence
+                //if (i * Br + tx < j * Bc + y)
+                //    break;
 
                 float r = __expf(lS[y] - new_row_m);
                 lS[y] = r;
@@ -138,11 +138,11 @@ void flash_attention_2_forward_kernel(
             // O_i^j = diag(exp(m_i^j-1 - m_i^j))^-1 * O_i^j-1 + P_i^jVj
             for (int x = 0; x < d; x++) {
                 float pv = 0;  // Pij * Vj
-                for (int y = 0; y < Bc; y++) {
-                    if (j * Bc + y >= N)
-                        break;  // break if we are done with the sequence
-                    if (i * Br + tx < j * Bc + y)
-                        break;
+                for (int y = 0; y < yMax; y++) {
+                    //if (j * Bc + y >= N)
+                    //    break;  // break if we are done with the sequence
+                    //if (i * Br + tx < j * Bc + y)
+                    //    break;
                     pv += lS[y] * __half2float(KVj[(y * d) + x]);
                 }
                 O[qkv_offset + (tile_size * i) + txd + x] = \
@@ -2616,6 +2616,19 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
 
                 int Tc = (int)Math.Ceiling((float)N / Bc);
                 int Tr = (int)Math.Ceiling((float)N / Br);
+
+                
+                if (Tr > Br && Tr < 64)
+                {
+                    //Switch Tr and Br so that we could have more thread in a block
+                    int tmp = Br;
+                    Br = Tr;
+                    Tr = tmp;
+
+                    Bc = Br;
+                    Tc = Tr;
+                }
+
                 float softmax_scale = (float)(1.0 / Math.Sqrt(d));
                 int startTr = q_start_offset / Br;
 

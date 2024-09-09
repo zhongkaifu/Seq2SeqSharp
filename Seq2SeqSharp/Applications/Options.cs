@@ -321,7 +321,7 @@ namespace Seq2SeqSharp.Applications
 
         [Arg("The type of normalization. It supports LayerNorm and RMSNorm", nameof(NormType))]
         [RegularExpression("LayerNorm|RMSNorm")]
-        public NormEnums NormType = NormEnums.LayerNorm;
+        public NormEnums NormType = NormEnums.RMSNorm;
 
         [Arg("Log destination. Supported Values: None = 0, Console = 1, LogFile = 2, Callback = 4, and These values can be combined. For example: Value 3 means the log will be outputted to both Console and LogFile", nameof(LogDestination))]
         public Logger.Destination LogDestination = (Logger.Destination.Console | Logger.Destination.Logfile);
