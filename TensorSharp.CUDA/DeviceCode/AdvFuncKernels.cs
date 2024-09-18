@@ -2129,7 +2129,11 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
            sm[i] = sm[i] * decay_rate_m + (1.0 - decay_rate_m) * g;
            sv[i] = sv[i] * decay_rate_v + (1.0 - decay_rate_v) * g * g;
 
-           sw[i] = __float2half(__half2float(sw[i]) - (adapted_learning_rate * sm[i] / (sqrtf(sv[i]) + eps)));
+           __half sw_i = __float2half(__half2float(sw[i]) - (adapted_learning_rate * sm[i] / (sqrtf(sv[i]) + eps)));
+           if (isfinite(sw_i))
+           {
+               sw[i] = sw_i;
+           }
         }
       }
     }
