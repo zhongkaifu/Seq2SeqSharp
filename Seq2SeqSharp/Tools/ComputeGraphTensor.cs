@@ -3044,6 +3044,56 @@ namespace Seq2SeqSharp.Tools
             }
 
             return res;
+        }
+
+
+
+        public IWeightTensor Clip(IWeightTensor w, float min, float max)
+        {
+            WeightTensor m = w as WeightTensor;
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.Clip", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
+            VisualizeNodes(w, res);
+
+            Ops.Clamp(res.TWeight, m.TWeight, min, max);
+            if (m_autoCheckCorruption)
+            {
+                if (res.IsWeightsCorrupted())
+                {
+                    throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+                }
+            }
+
+            if (m_needsBackprop)
+            {
+                void backward()
+                {
+                    if (m.NeedGradient)
+                    {
+                        res.ReleaseWeight();
+                        if (res.TGradient.IsOwnerExclusive() && m.IsGradientNull())
+                        {
+                            m.TGradient = res.TGradient.CopyRef();
+                        }
+                        else
+                        {
+                            m.CopyOrAddGradient(res);
+                        }
+
+                        if (m_autoCheckCorruption)
+                        {
+                            if (m.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                            }
+                        }
+                    }
+
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+            }
+
+            return res;
 
 
         }
@@ -3985,7 +4035,9 @@ namespace Seq2SeqSharp.Tools
 
         private (float, IWeightTensor) CalculateEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float label_smoothing = 0.1f)
         {
+//            float N = (float)probs.Sizes[0];
             float num_classes = (float)probs.Sizes[1];
+            float eps = 1e-9f;
 
             var scatterIdxTensor = View(truthTgtSeqs, new long[] { -1, 1 });
             var one_hot_targets = Scatter(scatterIdxTensor, 1.0f, 1, probs.ElementType, needGradient: false, shape: probs.Sizes); // one hot labels
@@ -3995,12 +4047,14 @@ namespace Seq2SeqSharp.Tools
                 smooth_targets = Add(Mul(one_hot_targets, 1.0f - label_smoothing, inPlace: true), label_smoothing / num_classes, inPlace: true);
             }
 
+            probs = Clip(probs, eps, 1.0f - eps);
             var logProbs = Log(probs);
-            var smooth_LogProbs = EltMul(smooth_targets, logProbs);
+            var smooth_LogProbs = EltMul(smooth_targets, logProbs);          
+            smooth_LogProbs = Sum(smooth_LogProbs, 1); // [seq_size * batch_size, 1]
+            smooth_LogProbs = Mean(smooth_LogProbs, 0); //[1,1]
             smooth_LogProbs = Mul(smooth_LogProbs, -1.0f, inPlace: true);
 
-            var lossTrue = Gather(smooth_LogProbs, scatterIdxTensor, 1, runGradients: false);
-            var lossValue = lossTrue.ToWeightArray().Sum() / smooth_LogProbs.ElementCount;
+            var lossValue = smooth_LogProbs.ToWeightArray().Sum() / smooth_LogProbs.ElementCount;
 
             return (lossValue, smooth_LogProbs);
         }

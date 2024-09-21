@@ -20,6 +20,7 @@ namespace Seq2SeqSharp
         int DeviceId { get; }
         bool NeedsBackprop { get; }
         IComputeGraph CreateSubGraph(string name);
+        IWeightTensor Clip(IWeightTensor w, float min, float max);
         IWeightTensor Transpose(IWeightTensor w, int dim1, int dim2);
         IWeightTensor MulBatch(IWeightTensor m1, IWeightTensor m2, float alpha = 1.0f);
         IWeightTensor Mul(IWeightTensor w1, IWeightTensor w2, float alpha = 1.0f);
