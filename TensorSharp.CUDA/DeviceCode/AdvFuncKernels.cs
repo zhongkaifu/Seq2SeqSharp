@@ -1146,7 +1146,7 @@ __global__ void Adam(float* __restrict__ w, float* __restrict__ g, float* __rest
         int i = tid + threadIdx.x;
         if(i < cols)
         {
-           float g = sg[i] / gradNormFactor;
+           float g = sg[i] * gradNormFactor;
 
            if (g > clipval)
            {
@@ -2115,7 +2115,7 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
         int i = tid + threadIdx.x;
         if(i < cols)
         {
-           float g = __half2float(sg[i]) / gradNormFactor;
+           float g = __half2float(sg[i]) * gradNormFactor;
 
            if (g > clipval)
            {

@@ -521,7 +521,7 @@ namespace Seq2SeqSharp.Tools
 
                             m_weightsUpdateCount++;
 
-                            float gradNormFactor = Math.Max(sWordCnt, tWordCnt);
+                            float gradNormFactor = 1.0f / (float)Math.Max(sWordCnt, tWordCnt);
                             if (LossScaling > 0.0f)
                             {
                                 gradNormFactor = gradNormFactor / LossScaling;
