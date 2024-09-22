@@ -4054,7 +4054,7 @@ namespace Seq2SeqSharp.Tools
 
 
             var lossTrue = Gather(loss, scatterIdxTensor, 1, runGradients: false);
-            var lossValue = lossTrue.ToWeightArray().Sum();
+            var lossValue = lossTrue.ToWeightArray().Sum() / loss.ElementCount;
 
             return (lossValue, loss);
         }
