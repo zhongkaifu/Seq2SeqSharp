@@ -3976,6 +3976,8 @@ namespace Seq2SeqSharp.Tools
 
         private (float, IWeightTensor) CalculateEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float smooth, float gamma)
         {
+            float N = probs.Sizes[0];
+
             var scatterIdxTensor = View(truthTgtSeqs, new long[] { -1, 1 });
             var scatterTrue = Scatter(scatterIdxTensor, 1.0f, 1, probs.ElementType, needGradient: false, shape: probs.Sizes);
             var scatterFalse = Sub(1.0f, scatterTrue);
@@ -3994,7 +3996,7 @@ namespace Seq2SeqSharp.Tools
             }
 
             loss = Log(loss);
-            loss = Mul(loss, -1.0f, inPlace: true);
+            loss = Mul(loss, -1.0f / N, inPlace: true);
 
 
             if (focalFactor != null)
@@ -4002,7 +4004,7 @@ namespace Seq2SeqSharp.Tools
                 loss = EltMul(loss, focalFactor);
             }
             var lossTrue = Gather(loss, scatterIdxTensor, 1, runGradients: false);
-            var lossValue = lossTrue.ToWeightArray().Sum() / loss.ElementCount;
+            var lossValue = lossTrue.ToWeightArray().Sum();
 
             return (lossValue, loss);
         }
