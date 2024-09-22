@@ -1146,7 +1146,7 @@ __global__ void Adam(float* __restrict__ w, float* __restrict__ g, float* __rest
         int i = tid + threadIdx.x;
         if(i < cols)
         {
-           float g = sg[i] * gradNormFactor;
+           float g = sg[i] / gradNormFactor;
 
            if (g > clipval)
            {
@@ -1183,7 +1183,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
         int i = tid + threadIdx.x;
         if(i < cols && sg[i] != 0.0) 
         {
-           float g = sg[i] * gradNormFactor;
+           float g = sg[i] / gradNormFactor;
            
            if (g > clipval)
            {
@@ -2094,7 +2094,7 @@ __global__ void RoPEGradHalf(__half* __restrict__ grad, __half* __restrict__ adj
   }
 }
 
-__global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* __restrict__ v, float* __restrict__ m, unsigned rows, unsigned cols, float gradNormFactor, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
+__global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* __restrict__ v, float* __restrict__ m, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
 {
       float bias_correction1 = 1.0 / (1.0 - powf(decay_rate_m, iter));
       float bias_correction2 = 1.0 / (1.0 - powf(decay_rate_v, iter));
@@ -2115,7 +2115,7 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
         int i = tid + threadIdx.x;
         if(i < cols)
         {
-           float g = __half2float(sg[i]) * gradNormFactor;
+           float g = __half2float(sg[i]) / batchSize;
 
            if (g > clipval)
            {
@@ -2128,7 +2128,7 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
 
            sm[i] = sm[i] * decay_rate_m + (1.0 - decay_rate_m) * g;
            sv[i] = sv[i] * decay_rate_v + (1.0 - decay_rate_v) * g * g;
-           sw[i] = __float2half(__half2float(sw[i]) - (adapted_learning_rate * sm[i] / (sqrtf(sv[i]) + eps)));
+           sw[i] = __float2half(__half2float(sw[i]) - (adapted_learning_rate * sm[i] / (sqrtf(sv[i]) + eps)));           
         }
       }
     }
