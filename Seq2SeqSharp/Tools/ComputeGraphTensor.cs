@@ -4035,27 +4035,29 @@ namespace Seq2SeqSharp.Tools
 
         private (float, IWeightTensor) CalculateEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float label_smoothing = 0.1f)
         {
-            float N = (float)probs.Sizes[0];
-            float num_classes = (float)probs.Sizes[1];
-            float eps = 1e-9f;
+            float N = probs.Sizes[0];
+            float num_classes = probs.Sizes[1];
 
             var scatterIdxTensor = View(truthTgtSeqs, new long[] { -1, 1 });
-            var one_hot_targets = Scatter(scatterIdxTensor, 1.0f, 1, probs.ElementType, needGradient: false, shape: probs.Sizes); // one hot labels
-            IWeightTensor smooth_targets = one_hot_targets;
+            var one_hot_targets = Scatter(scatterIdxTensor, 1.0f, 1, probs.ElementType, needGradient: false, shape: probs.Sizes);
             if (label_smoothing > 0.0f)
             {
-                smooth_targets = Add(Mul(one_hot_targets, 1.0f - label_smoothing, inPlace: true), label_smoothing / num_classes, inPlace: true);
+                one_hot_targets = Add(Mul(one_hot_targets, 1.0f - label_smoothing, inPlace: true), label_smoothing / num_classes, inPlace: true);
             }
 
-            probs = Clip(probs, eps, 1.0f);
-            var logProbs = Log(probs);
-            var smooth_LogProbs = EltMul(smooth_targets, logProbs);          
-            smooth_LogProbs = Mul(smooth_LogProbs, -1.0f / N, inPlace: true);
+            var one_hot_targets_false = Sub(1.0f, one_hot_targets);
+            var probsFalse = Sub(1.0f, probs);
+            var loss = EltMulMulAdd(one_hot_targets, probs, one_hot_targets_false, probsFalse);
+            
+            loss = Clip(loss, 1e-9f, 1.0f);
+            loss = Log(loss);
+            loss = Mul(loss, -1.0f / N, inPlace: true);
 
-            var lossTrue = Gather(smooth_LogProbs, scatterIdxTensor, 1, runGradients: false);
-            var lossValue = lossTrue.ToWeightArray().Sum() / smooth_LogProbs.ElementCount;
 
-            return (lossValue, smooth_LogProbs);
+            var lossTrue = Gather(loss, scatterIdxTensor, 1, runGradients: false);
+            var lossValue = lossTrue.ToWeightArray().Sum() / loss.ElementCount;
+
+            return (lossValue, loss);
         }
 
         public float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float label_smoothing = 0.1f)
