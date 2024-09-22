@@ -531,11 +531,10 @@ namespace Seq2SeqSharp.Tools
                             contiSuccUpdate++;
                             if (contiSuccUpdate >= 2000)
                             {
-                                if (LossScaling * 2.0f < 32000.0f && m_initLossScaling != 1.0f)
+                                if (m_initLossScaling != 1.0f)
                                 {
                                     LossScaling = LossScaling * 2.0f;
                                 }
-
                                 contiSuccUpdate = 0;
                             }
 

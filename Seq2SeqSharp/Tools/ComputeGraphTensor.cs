@@ -3996,7 +3996,7 @@ namespace Seq2SeqSharp.Tools
             }
 
             loss = Log(loss);
-            loss = Mul(loss, -1.0f / N, inPlace: true);
+            loss = Mul(loss, -1.0f, inPlace: true);
 
 
             if (focalFactor != null)
@@ -4004,7 +4004,7 @@ namespace Seq2SeqSharp.Tools
                 loss = EltMul(loss, focalFactor);
             }
             var lossTrue = Gather(loss, scatterIdxTensor, 1, runGradients: false);
-            var lossValue = lossTrue.ToWeightArray().Sum();
+            var lossValue = lossTrue.ToWeightArray().Sum() / lossTrue.ElementCount;
 
             return (lossValue, loss);
         }
