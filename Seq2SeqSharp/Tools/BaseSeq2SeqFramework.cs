@@ -524,7 +524,7 @@ namespace Seq2SeqSharp.Tools
                             float gradNormFactor = 1.0f / (float)sntPairBatchs.Count;
                             if (LossScaling > 0.0f)
                             {
-                                gradNormFactor = gradNormFactor / LossScaling;
+                                gradNormFactor = LossScaling * gradNormFactor;
                             }
                             solver.UpdateWeights(models, gradNormFactor, lr, m_regc, m_weightsUpdateCount);
 
