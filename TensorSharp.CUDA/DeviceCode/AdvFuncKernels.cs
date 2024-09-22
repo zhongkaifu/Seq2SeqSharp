@@ -2094,7 +2094,7 @@ __global__ void RoPEGradHalf(__half* __restrict__ grad, __half* __restrict__ adj
   }
 }
 
-__global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* __restrict__ v, float* __restrict__ m, unsigned rows, unsigned cols, int batchSize, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
+__global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* __restrict__ v, float* __restrict__ m, unsigned rows, unsigned cols, float gradNormFactor, float step_size, float clipval, float regc, float decay_rate_v, float decay_rate_m, int iter, float eps)
 {
       float bias_correction1 = 1.0 / (1.0 - powf(decay_rate_m, iter));
       float bias_correction2 = 1.0 / (1.0 - powf(decay_rate_v, iter));
@@ -2115,7 +2115,7 @@ __global__ void AdamHalf(__half* __restrict__ w, __half* __restrict__ g, float* 
         int i = tid + threadIdx.x;
         if(i < cols)
         {
-           float g = __half2float(sg[i]) / batchSize;
+           float g = __half2float(sg[i]) / gradNormFactor;
 
            if (g > clipval)
            {
