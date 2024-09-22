@@ -107,16 +107,13 @@ namespace Seq2SeqSharp.Applications
         [Arg("Encoder type: None, LSTM, BiLSTM, Transformer", nameof(EncoderType))]
         public EncoderTypeEnums EncoderType = EncoderTypeEnums.Transformer;
 
-        //[Arg("The gamma value of focal loss. Default is 0.0f", nameof(FocalLossGamma))]
-        //[Range(0.0f, 5.0f)]
-        //public float FocalLossGamma = 0.0f;
+        [Arg("The gamma value of focal loss. Default is 0.0f", nameof(FocalLossGamma))]
+        [Range(0.0f, 5.0f)]
+        public float FocalLossGamma = 0.0f;
 
-        //[Arg("The smooth value of loss. Default is 1e-9f", nameof(LossSmooth))]
-        //[Range(1e-12f, 1.0f)]
-        //public float LossSmooth = 1e-9f;
-
-        [Arg("Label smoothing. Default is 0.1", nameof(LabelSmoothing))]
-        public float LabelSmoothing = 0.1f;
+        [Arg("The smooth value of loss. Default is 1e-9f", nameof(LossSmooth))]
+        [Range(1e-12f, 1.0f)]
+        public float LossSmooth = 1e-9f;
 
         [Arg("Clip gradients", nameof(GradClip))]
         [Range(0.0000001f, 999.0f)]

@@ -201,6 +201,15 @@ namespace Seq2SeqSharp.Tools
                 indexDatas[i].len2offsets= len2offsets;
                 indexDatas[i].filePath = binaryDataSetFilePath;
             });
+
+
+
+
+
+
+
+            
+
             Logger.WriteLine(Logger.Level.debug, $"Shuffled '{corpusSize}' sentence pairs.");
 
             if (tooLongTgtSntCnt > 0)

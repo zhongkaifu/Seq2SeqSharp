@@ -25,7 +25,7 @@ namespace Seq2SeqSharp
         IWeightTensor Mul(IWeightTensor w1, IWeightTensor w2, float alpha = 1.0f);
         IWeightTensor EltMul(IWeightTensor w1, IWeightTensor w2);
         IWeightTensor Add(IWeightTensor w1, IWeightTensor w2, bool inPlace = false);
-        IWeightTensor Add(IWeightTensor w1, float v, bool inPlace = false);
+        IWeightTensor Add(IWeightTensor w1, float v);
         IWeightTensor Tanh(IWeightTensor w);
         IWeightTensor Sigmoid(IWeightTensor w);
         IWeightTensor ReLU(IWeightTensor w, bool inPlace = false);
@@ -114,8 +114,8 @@ namespace Seq2SeqSharp
         IWeightTensor Exp(IWeightTensor w);
         IWeightTensor Pow(IWeightTensor w, float n);
 
-        float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float label_smoothing = 0.1f);
-        float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, IWeightTensor graident, float label_smoothing = 0.1f);
+        float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f, float gamma = 0.0f);
+        float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, IWeightTensor graident, float smooth = 0.0f, float gamma = 0.0f);
         float NLLLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f);
 
         IWeightTensor CreateUniformRandomTensor(long[] sizes, float minVal, float maxVal, DType dtype);
