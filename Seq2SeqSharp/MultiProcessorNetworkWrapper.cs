@@ -22,6 +22,7 @@ namespace Seq2SeqSharp
     {
         private readonly T[] m_networks;
         private readonly int m_defaultDeviceId;
+    //    private readonly T m_networkOnDefaultDevice;
         private readonly bool m_isStaticWeights;
         private bool m_weightsSynced;
 
@@ -32,10 +33,12 @@ namespace Seq2SeqSharp
         {
             m_networks = new T[deviceIds.Length];
             m_defaultDeviceId = networkOnDefaultDevice.GetDeviceId();
+            //  m_networkOnDefaultDevice = networkOnDefaultDevice;
             m_isStaticWeights = isStaticWeights;
             m_weightsSynced = false;
 
-            for (int i = 0; i < deviceIds.Length; i++)
+            object locker = new object();
+            Parallel.For(0, deviceIds.Length, i =>
             {
                 if (deviceIds[i] == m_defaultDeviceId)
                 {
@@ -46,8 +49,25 @@ namespace Seq2SeqSharp
                     m_networks[i] = (T)networkOnDefaultDevice.CloneToDeviceAt(deviceIds[i]);
                 }
 
-                m_deviceId2Network.Add(deviceIds[i], m_networks[i]);
-            }
+                lock (locker)
+                {
+                    m_deviceId2Network.Add(deviceIds[i], m_networks[i]);
+                }
+            });
+
+            //for (int i = 0; i < deviceIds.Length; i++)
+            //{
+            //    if (deviceIds[i] == m_defaultDeviceId)
+            //    {
+            //        m_networks[i] = networkOnDefaultDevice;
+            //    }
+            //    else
+            //    {
+            //        m_networks[i] = (T)networkOnDefaultDevice.CloneToDeviceAt(deviceIds[i]);
+            //    }
+
+            //    m_deviceId2Network.Add(deviceIds[i], m_networks[i]);
+            //}
 
             var raDeviceIds = new RoundArray<int>(deviceIds);
             var weights = networkOnDefaultDevice.GetParams();

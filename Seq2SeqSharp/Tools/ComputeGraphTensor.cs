@@ -4035,7 +4035,7 @@ namespace Seq2SeqSharp.Tools
 
         private (float, IWeightTensor) CalculateEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float label_smoothing = 0.1f)
         {
-            float N = (float)probs.Sizes[0];
+//            float N = (float)probs.Sizes[0];
             float num_classes = (float)probs.Sizes[1];
             float eps = 1e-9f;
 
@@ -4050,10 +4050,11 @@ namespace Seq2SeqSharp.Tools
             probs = Clip(probs, eps, 1.0f);
             var logProbs = Log(probs);
             var smooth_LogProbs = EltMul(smooth_targets, logProbs);          
-            smooth_LogProbs = Mul(smooth_LogProbs, -1.0f / N, inPlace: true);
+            smooth_LogProbs = Sum(smooth_LogProbs, 1); // [seq_size * batch_size, 1]
+            smooth_LogProbs = Mean(smooth_LogProbs, 0); //[1,1]
+            smooth_LogProbs = Mul(smooth_LogProbs, -1.0f, inPlace: true);
 
-            var lossTrue = Gather(smooth_LogProbs, scatterIdxTensor, 1, runGradients: false);
-            var lossValue = lossTrue.ToWeightArray().Sum() / smooth_LogProbs.ElementCount;
+            var lossValue = smooth_LogProbs.ToWeightArray().Sum() / smooth_LogProbs.ElementCount;
 
             return (lossValue, smooth_LogProbs);
         }
