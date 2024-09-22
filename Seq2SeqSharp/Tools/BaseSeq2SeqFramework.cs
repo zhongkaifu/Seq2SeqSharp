@@ -509,7 +509,6 @@ namespace Seq2SeqSharp.Tools
                                 break;
                             }
 
-
                             //Optmize parameters
                             lr = learningRate.GetCurrentLearningRate(ep);
                             if (lr == 0.0f)
@@ -521,10 +520,11 @@ namespace Seq2SeqSharp.Tools
 
                             m_weightsUpdateCount++;
 
-                            float gradNormFactor = 1.0f / (float)(sntPairBatchs.Count);
+                            float gradNormFactor = 1.0f / (float)Math.Max(sWordCnt, tWordCnt);
                             if (LossScaling > 0.0f)
                             {
-                                gradNormFactor = LossScaling * gradNormFactor;
+                                // Scaling loss back to the normal range for optimization
+                                gradNormFactor = gradNormFactor / LossScaling;
                             }
                             solver.UpdateWeights(models, gradNormFactor, lr, m_regc, m_weightsUpdateCount);
 

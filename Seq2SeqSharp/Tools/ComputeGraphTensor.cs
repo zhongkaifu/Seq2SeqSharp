@@ -4049,9 +4049,8 @@ namespace Seq2SeqSharp.Tools
             var probsFalse = Sub(1.0f, probs);
             var loss = EltMulMulAdd(one_hot_targets, probs, one_hot_targets_false, probsFalse);
             
-            loss = Clip(loss, 1e-9f, 1.0f);
             loss = Log(loss);
-            loss = Mul(loss, -1.0f / N, inPlace: true);
+            loss = Mul(loss, -1.0f, inPlace: true);
 
 
             var lossTrue = Gather(loss, scatterIdxTensor, 1, runGradients: false);

@@ -115,8 +115,8 @@ namespace Seq2SeqSharp.Applications
         //[Range(1e-12f, 1.0f)]
         //public float LossSmooth = 1e-9f;
 
-        [Arg("Label smoothing. Default is 0.1", nameof(LabelSmoothing))]
-        public float LabelSmoothing = 0.1f;
+        [Arg("Label smoothing. Default is 0.0", nameof(LabelSmoothing))]
+        public float LabelSmoothing = 0.0f;
 
         [Arg("Clip gradients", nameof(GradClip))]
         [Range(0.0000001f, 999.0f)]
