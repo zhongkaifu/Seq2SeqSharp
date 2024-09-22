@@ -4047,7 +4047,7 @@ namespace Seq2SeqSharp.Tools
                 smooth_targets = Add(Mul(one_hot_targets, 1.0f - label_smoothing, inPlace: true), label_smoothing / num_classes, inPlace: true);
             }
 
-            probs = Clip(probs, eps, 1.0f);
+            probs = Clip(probs, eps, 1.0f - eps);
             var logProbs = Log(probs);
             var smooth_LogProbs = EltMul(smooth_targets, logProbs);          
             smooth_LogProbs = Sum(smooth_LogProbs, 1); // [seq_size * batch_size, 1]
