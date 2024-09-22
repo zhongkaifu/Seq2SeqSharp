@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='Seq2SeqSharp',
-    version='2.8.10',
+    version='2.8.17',
     author='Zhongkai Fu',
     author_email='fuzhongkai@gmail.com',
     description='Seq2SeqSharp is a tensor based fast & flexible encoder-decoder deep neural network framework written by .NET (C#). It has many highlighted features, such as automatic differentiation, many different types of encoders/decoders(Transformer, LSTM, BiLSTM and so on), multi-GPUs supported, cross-platforms (Windows, Linux, x86, x64, ARM) and so on.',
