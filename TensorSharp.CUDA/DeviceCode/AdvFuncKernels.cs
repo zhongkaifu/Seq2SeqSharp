@@ -794,7 +794,8 @@ __global__ void RMSNorm(float* out,
                                 const float* beta,
                                 int rows,
                                 int cols,
-                                float eps = 1e-9) {
+                                float eps = 1e-9,
+                                bool bias = false) {
   extern __shared__ float _shareAccType[];
 
   float N = cols;
@@ -832,7 +833,7 @@ __global__ void RMSNorm(float* out,
         if(id < cols) {
           float gammav  = gamma[id];
           float xv      = xRow[id];
-          float betav   = beta[id];
+          float betav   = bias ? beta[id] : 0.0f;
           float rmsNorm = xv / rms;
           float y       = gammav * rmsNorm + betav;
           yRow[id]        = y;
@@ -854,7 +855,8 @@ __global__ void RMSNormGrad(float* gradX,
                                         float* beta,
                                         int rows,
                                         int cols,
-                                        float eps = 1e-9) {
+                                        float eps = 1e-9,
+                                        bool bias = false) {
   extern __shared__ float shared[];
 
   float N = cols;
@@ -877,7 +879,7 @@ __global__ void RMSNormGrad(float* gradX,
         if(id < cols) {
           float xv     = xRow[id];
           float yv     = yRow[id];
-          float betav  = beta[id];
+          float betav  = bias ? beta[id] : 0.0f;
           float gammav = (float)gamma[id];
           float adjv   = adjRow[id];
           float rv     = (yv - betav) / gammav; // go back to RMSNorm(x) from scaled and shifted version for accumulation
@@ -933,7 +935,8 @@ __global__ void RMSNormGrad(float* gradX,
           gradXRow[id]    += (float)(gradXv);
 
           atomicAdd(gradGamma + id, (float)(adjv * rmsNorm));
-          atomicAdd(gradBeta + id, adjRow[id]);
+          if (bias)
+              atomicAdd(gradBeta + id, adjRow[id]);
         }
       }
     }
@@ -1876,7 +1879,8 @@ __global__ void RMSNormHalf(__half* out,
                                 const __half* beta,
                                 int rows,
                                 int cols,
-                                float eps = 1e-9) {
+                                float eps = 1e-9,
+                                bool bias = false) {
   extern __shared__ float _shareAccType[];
 
   float N = cols;
@@ -1914,7 +1918,7 @@ __global__ void RMSNormHalf(__half* out,
         if(id < cols) {
           float gammav  = __half2float(gamma[id]);
           float xv      = xRow[id];
-          float betav   = __half2float(beta[id]);
+          float betav   = bias ? __half2float(beta[id]) : 0.0f;
           float rmsNorm = xv / rms;
           float y       = gammav * rmsNorm + betav;
           yRow[id]        = __float2half(y);
@@ -1937,7 +1941,8 @@ __global__ void RMSNormGradHalf(__half* gradX,
                                         __half* beta,
                                         int rows,
                                         int cols,
-                                        float eps = 1e-9) {
+                                        float eps = 1e-9,
+                                        bool bias = false) {
 extern __shared__ float shared[];
 
   float N = cols;
@@ -1960,7 +1965,7 @@ extern __shared__ float shared[];
         if(id < cols) {
           float xv     = __half2float(xRow[id]);
           float yv     = __half2float(yRow[id]);
-          float betav  = __half2float(beta[id]);
+          float betav  = bias ? __half2float(beta[id]) : 0.0f;
           float gammav = (float)__half2float(gamma[id]);
           float adjv   = __half2float(adjRow[id]);
           float rv     = (yv - betav) / gammav; // go back to RMSNorm(x) from scaled and shifted version for accumulation
@@ -2016,7 +2021,8 @@ extern __shared__ float shared[];
           gradXRow[id]    = __hadd(gradXRow[id], __float2half(gradXv));
 
           atomicAdd(gradGamma + id, __float2half(adjv * rmsNorm));
-          atomicAdd(gradBeta + id, adjRow[id]);
+          if (bias)
+              atomicAdd(gradBeta + id, adjRow[id]);
         }
       }
     }
@@ -2783,19 +2789,20 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
 
             CUdeviceptr outGradPtr = CudaHelpers.GetBufferStart(outGrad);
             CUdeviceptr alphaGradPtr = CudaHelpers.GetBufferStart(alphaGrad);
-            CUdeviceptr betaGradPtr = CudaHelpers.GetBufferStart(betaGrad);
+            CUdeviceptr betaGradPtr = (betaGrad != null) ? CudaHelpers.GetBufferStart(betaGrad) : new CUdeviceptr();
             CUdeviceptr inGradPtr = CudaHelpers.GetBufferStart(inGrad);
             CUdeviceptr yPtr = CudaHelpers.GetBufferStart(y);
             CUdeviceptr xPtr = CudaHelpers.GetBufferStart(x);
             CUdeviceptr alphaPtr = CudaHelpers.GetBufferStart(alpha);
-            CUdeviceptr betaPtr = CudaHelpers.GetBufferStart(beta);
+            CUdeviceptr betaPtr = (beta != null) ? CudaHelpers.GetBufferStart(beta) : new CUdeviceptr();
+            bool bias = (beta != null);
 
             string kernelName = "RMSNormGrad";
             if (outGrad.ElementType == DType.Float16)
             {
                 kernelName = "RMSNormGradHalf";
             }
-            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float) * 4, CUstream.NullStream, outGradPtr, alphaGradPtr, betaGradPtr, inGradPtr, yPtr, xPtr, alphaPtr, betaPtr, rows, cols, eps);
+            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float) * 4, CUstream.NullStream, outGradPtr, alphaGradPtr, betaGradPtr, inGradPtr, yPtr, xPtr, alphaPtr, betaPtr, rows, cols, eps, bias);
         }
 
         public void AddLayerNormGrad(Tensor out1Grad, Tensor out2Grad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x1, Tensor x2, Tensor alpha, Tensor beta, float eps = 1e-9f)
@@ -2923,7 +2930,8 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
             CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
             CUdeviceptr srcPtr = CudaHelpers.GetBufferStart(src);
             CUdeviceptr alphaPtr = CudaHelpers.GetBufferStart(alpha);
-            CUdeviceptr betaPtr = CudaHelpers.GetBufferStart(beta);
+            CUdeviceptr betaPtr = (beta != null) ? CudaHelpers.GetBufferStart(beta) : new CUdeviceptr();
+            bool bias = (beta != null);
 
             string kernelName = "RMSNorm";
             if (src.ElementType == DType.Float16)
@@ -2931,7 +2939,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
                 kernelName = "RMSNormHalf";
             }
 
-            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, alphaPtr, betaPtr, rows, cols, eps);
+            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, alphaPtr, betaPtr, rows, cols, eps, bias);
 
         }
 

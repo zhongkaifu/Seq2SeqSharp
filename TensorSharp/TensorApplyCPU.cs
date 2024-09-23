@@ -1432,7 +1432,8 @@ namespace TensorSharp
 			float* outPtr = (float*)CpuNativeHelpers.GetBufferStart(out_);
 			float* inPtr = (float*)CpuNativeHelpers.GetBufferStart(in_);
 			float* gamma = (float*)CpuNativeHelpers.GetBufferStart(gamma_);
-            float* beta = (float*)CpuNativeHelpers.GetBufferStart(beta_);
+			float* beta = (beta_ != null) ? (float*)CpuNativeHelpers.GetBufferStart(beta_) : null;
+			bool bias = (beta_ != null);
 
             float N = cols;
 			for (int j = 0; j < rows; j++)
@@ -1456,7 +1457,7 @@ namespace TensorSharp
 
 					float gammav = gamma[id];
 					float xv = xRow[id];
-					float betav = beta[id];
+					float betav = bias ? beta[id] : 0.0f;
 					float rmsNorm = xv / rms;
 					float y = gammav * rmsNorm + betav;
 					yRow[id] = y;
@@ -1594,12 +1595,13 @@ namespace TensorSharp
 		{
 			float* gradX = (float*)CpuNativeHelpers.GetBufferStart(gradX_);
 			float* gradGamma = (float*)CpuNativeHelpers.GetBufferStart(gradGamma_);
-            float* gradBeta = (float*)CpuNativeHelpers.GetBufferStart(gradBeta_);
+			float* gradBeta = (gradBeta_ != null) ? (float*)CpuNativeHelpers.GetBufferStart(gradBeta_) : null;
             float* adj = (float*)CpuNativeHelpers.GetBufferStart(adj_);
 			float* y = (float*)CpuNativeHelpers.GetBufferStart(y_);
 			float* x = (float*)CpuNativeHelpers.GetBufferStart(x_);
 			float* gamma = (float*)CpuNativeHelpers.GetBufferStart(gamma_);
-            float* beta = (float*)CpuNativeHelpers.GetBufferStart(beta_);
+            float* beta = (beta_ != null) ? (float*)CpuNativeHelpers.GetBufferStart(beta_) : null;
+			bool bias = (beta_ != null);
 
             float N = cols;
 			for (int j = 0; j < rows; j++)
@@ -1616,7 +1618,7 @@ namespace TensorSharp
 
 					float xv = xRow[id];
 					float yv = yRow[id];
-					float betav = beta[id];
+					float betav = bias ? beta[id] : 0.0f;
 					float gammav = (float)gamma[id];
 					float adjv = adjRow[id];
 					float rv = (yv - betav) / gammav; // go back to RMSNorm(x) from scaled and shifted version for accumulation
@@ -1658,8 +1660,10 @@ namespace TensorSharp
 					gradXRow[id] += (float)(gradXv);
 
 					gradGamma[id] += (float)(adjv * rmsNorm);
-                    gradBeta[id] += adjRow[id];
-
+					if (bias)
+					{
+						gradBeta[id] += adjRow[id];
+					}
                 }
 			}
 		}

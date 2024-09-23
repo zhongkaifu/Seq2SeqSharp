@@ -3428,12 +3428,15 @@ namespace Seq2SeqSharp.Tools
         {
             WeightTensor srcT = src as WeightTensor;
             WeightTensor alphaT = alpha as WeightTensor;
-            WeightTensor betaT = beta as WeightTensor;
+            WeightTensor betaT = (beta != null) ? (beta as WeightTensor) : null;
+            string betaName = (beta != null) ? beta.Name : "";
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(srcT.Sizes, m_deviceId, name: $"{GetHashString(src.Name, alpha.Name, beta.Name )}.RMSNorm", graphToBind: this, needGradient: srcT.NeedGradient, dtype: src.ElementType);
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(srcT.Sizes, m_deviceId, name: $"{GetHashString(src.Name, alpha.Name, betaName )}.RMSNorm", graphToBind: this, needGradient: srcT.NeedGradient, dtype: src.ElementType);
             VisualizeNodes(new IWeightTensor[] { src, alpha }, res);
 
-            Ops.RMSNorm(res.TWeight, srcT.TWeight, alphaT.TWeight, betaT.TWeight, eps);
+            Tensor bw = (betaT != null) ? betaT.TWeight : null;
+            Ops.RMSNorm(res.TWeight, srcT.TWeight, alphaT.TWeight, bw, eps);
             if (m_autoCheckCorruption)
             {
                 if (res.IsWeightsCorrupted())
@@ -3447,18 +3450,21 @@ namespace Seq2SeqSharp.Tools
                 var srcTWeight = srcT.TWeight.CopyRef();
                 var resTWeight = res.TWeight.CopyRef();
                 var alphaTWeight = alphaT.TWeight.CopyRef();
-                var betaTWeight = betaT.TWeight.CopyRef();
+                var betaTWeight = (betaT != null) ? betaT.TWeight.CopyRef() : null;
                 void backward()
                 {
                     if (srcT.NeedGradient)
                     {
-                        Ops.RMSNormGrad(srcT.TGradient, alphaT.TGradient, betaT.TGradient, res.TGradient, resTWeight, srcTWeight, alphaTWeight, betaTWeight, eps);
+                        var betaTGrad = (betaTWeight != null) ? betaT.TGradient : null;
+                        Ops.RMSNormGrad(srcT.TGradient, alphaT.TGradient, betaTGrad, res.TGradient, resTWeight, srcTWeight, alphaTWeight, betaTWeight, eps);
                     }
                     srcTWeight.Dispose();
                     resTWeight.Dispose();
                     alphaTWeight.Dispose();
-                    betaTWeight.Dispose();
-
+                    if (betaTWeight != null)
+                    {
+                        betaTWeight.Dispose();
+                    }
                     res.Dispose();
                 }
                 m_backprop.Add(backward);
