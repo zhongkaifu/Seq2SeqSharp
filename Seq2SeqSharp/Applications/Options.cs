@@ -183,8 +183,8 @@ namespace Seq2SeqSharp.Applications
         [Arg("The vocabulary file path for source side.", nameof(SrcVocab))]
         public string SrcVocab = null;
 
-        [Arg("Mode to save GPU memory. Default is false", nameof(SaveGPUMemoryMode))]
-        public bool SaveGPUMemoryMode = false;
+        [Arg("The level for GPU memory saving mode. 0 is disable, > 0 is enabled. Higher level more GPU memory saved, but training will be slow.", nameof(SaveGPUMemoryLevel))]
+        public int SaveGPUMemoryLevel = 0;
 
         [Arg("Starting Learning rate", nameof(StartLearningRate))]
         [Range(0.000000001f, 1.0f)]

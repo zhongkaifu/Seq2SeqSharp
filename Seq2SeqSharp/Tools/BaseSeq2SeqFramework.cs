@@ -136,7 +136,7 @@ namespace Seq2SeqSharp.Tools
         string m_compilerOptions = null;
         string m_mklInstructions = "AVX2";
         bool m_enableTensorCore = true;
-        bool m_saveGPUMemoryMode = false;
+        int m_saveGPUMemoryLevel = 0;
         CudaMemoryDeviceAllocatorType m_cudaMemoryAllocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool;
         DType m_elementType = DType.Float32;
         float m_initLossScaling = 1.0f;
@@ -148,7 +148,7 @@ namespace Seq2SeqSharp.Tools
         public BaseSeq2SeqFramework(string deviceIds, ProcessorTypeEnums processorType, string modelFilePath, float memoryUsageRatio = 0.9f, 
             string compilerOptions = null, int runValidEveryUpdates = 10000, int primaryTaskId = 0, int updateFreq = 1, int startToRunValidAfterUpdates = 0,
             int maxDegressOfParallelism = 1, string mklInstructions = "AVX2", int weightsUpdateCount = 0, bool enableTensorCore = true, CudaMemoryDeviceAllocatorType cudaMemoryAllocatorType = CudaMemoryDeviceAllocatorType.CudaMemoryPool, 
-            DType elementType = DType.Float32, int randomSeed = -1, int saveModelEveryUpdats = 10000, bool saveGPUMemoryMode = false, float initLossScaling = 1.0f, bool autoCheckTensorCorruption = false, AttentionTypeEnums attentionType = AttentionTypeEnums.Classic)
+            DType elementType = DType.Float32, int randomSeed = -1, int saveModelEveryUpdats = 10000, int saveGPUMemoryLevel = 0, float initLossScaling = 1.0f, bool autoCheckTensorCorruption = false, AttentionTypeEnums attentionType = AttentionTypeEnums.Classic)
         {
             m_deviceIds = deviceIds.Split(',').Select(x => int.Parse(x)).ToArray();
             m_compilerOptions = compilerOptions;
@@ -166,7 +166,7 @@ namespace Seq2SeqSharp.Tools
             m_maxDegressOfParallelism = maxDegressOfParallelism;
             m_weightsUpdateCount = weightsUpdateCount;
             m_saveModelEveryUpdates = saveModelEveryUpdats;
-            m_saveGPUMemoryMode = saveGPUMemoryMode;
+            m_saveGPUMemoryLevel = saveGPUMemoryLevel;
             m_initLossScaling = initLossScaling;
             m_autoCheckTensorCorruption = autoCheckTensorCorruption;
             m_attentionType = attentionType;
@@ -197,7 +197,7 @@ namespace Seq2SeqSharp.Tools
             }
 
             // Create computing graph instance and return it
-            return new ComputeGraphTensor(new WeightTensorFactory(), DeviceIds[deviceIdIdx], needBack, saveGPUMemoryMode: m_saveGPUMemoryMode, autoCheckCorruption: m_autoCheckTensorCorruption);
+            return new ComputeGraphTensor(new WeightTensorFactory(), DeviceIds[deviceIdIdx], needBack, saveGPUMemoryLevel: m_saveGPUMemoryLevel, autoCheckCorruption: m_autoCheckTensorCorruption);
         }
       
         public bool SaveModel(bool createBackupPrevious = false, string suffix = "") => SaveModelImpl(m_modelMetaData, createBackupPrevious, suffix);

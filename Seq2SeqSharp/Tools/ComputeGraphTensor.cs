@@ -78,19 +78,19 @@ namespace Seq2SeqSharp.Tools
         public int DeviceId => m_deviceId;
         public bool NeedsBackprop => m_needsBackprop;
 
-        public bool m_saveGPUMemoryMode = false;
+        public int m_saveGPUMemoryLevel = 0;
 
         public bool m_autoCheckCorruption = false;
 
 
-        public ComputeGraphTensor(IWeightFactory weightFactory, int deviceId, bool needBack = true, ConcurrentList<Action> backprop = null, bool isSubGraph = false, bool saveGPUMemoryMode = false, bool autoCheckCorruption = false)
+        public ComputeGraphTensor(IWeightFactory weightFactory, int deviceId, bool needBack = true, ConcurrentList<Action> backprop = null, bool isSubGraph = false, int saveGPUMemoryLevel = 0, bool autoCheckCorruption = false)
         {
             m_backprop = backprop ?? new ConcurrentList<Action>();
             m_weightTensorFactory = weightFactory as WeightTensorFactory;
             m_needsBackprop = needBack;
             m_deviceId = deviceId;
             m_isSubGraph = isSubGraph;
-            m_saveGPUMemoryMode = false; // We disable it for now, because it's really timing-cost. If you really want to use it, please enable this feature for those specific operators you want to use, such as activate functions.
+            m_saveGPUMemoryLevel = saveGPUMemoryLevel;
             m_autoCheckCorruption = autoCheckCorruption;
 
             m_tensorsBindToCurrentGraph = new List<IWeightTensor>();
@@ -103,7 +103,7 @@ namespace Seq2SeqSharp.Tools
 
         public IComputeGraph CreateSubGraph(string name)
         {
-            ComputeGraphTensor subGraph = new ComputeGraphTensor(m_weightTensorFactory, m_deviceId, m_needsBackprop, m_backprop, isSubGraph: true, saveGPUMemoryMode:m_saveGPUMemoryMode, autoCheckCorruption: m_autoCheckCorruption);
+            ComputeGraphTensor subGraph = new ComputeGraphTensor(m_weightTensorFactory, m_deviceId, m_needsBackprop, m_backprop, isSubGraph: true, saveGPUMemoryLevel:m_saveGPUMemoryLevel, autoCheckCorruption: m_autoCheckCorruption);
             return subGraph;
         }
 
@@ -193,7 +193,7 @@ namespace Seq2SeqSharp.Tools
             if (m_needsBackprop)
             {
                 Tensor mTWeight = null;
-                if (m_saveGPUMemoryMode)
+                if (m_saveGPUMemoryLevel > 2)
                 {
                     mTWeight = new Tensor(new CpuAllocator(BlasEnum.DotNet), m.TWeight.ElementType, m.TWeight.Sizes);
                     Ops.Copy(mTWeight, m.TWeight);
@@ -210,7 +210,7 @@ namespace Seq2SeqSharp.Tools
                     {
                         res.ReleaseWeight();
                         
-                        if (m_saveGPUMemoryMode)
+                        if (m_saveGPUMemoryLevel > 2)
                         {
                             Tensor tmp = mTWeight;
                             mTWeight = new Tensor(m.TGradient.Allocator, tmp.ElementType, tmp.Sizes);

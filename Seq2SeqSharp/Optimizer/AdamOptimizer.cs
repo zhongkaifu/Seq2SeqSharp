@@ -31,11 +31,11 @@ namespace Seq2SeqSharp.Optimizer
         private readonly ConcurrentDictionary<string, Tensor> m_cacheName2V;
         private readonly ConcurrentDictionary<string, Tensor> m_cacheName2M;
         private readonly float m_clipval;
-        private readonly bool m_saveGPUMemoryMode = false;
+        private readonly int m_saveGPUMemoryLevel = 0; // 0 - Not save, 1 - Save for m_cacheName2V only, 2 - Save for both m_cacheName2V and m_cacheName2M
 
-        public AdamOptimizer(float clipval, float beta1 = 0.9f, float beta2 = 0.98f, bool saveGPUMemoryMode = false)
+        public AdamOptimizer(float clipval, float beta1 = 0.9f, float beta2 = 0.98f, int saveGPUMemoryLevel = 0)
         {
-            Logger.WriteLine(Logger.Level.debug, $"Creating Adam optimizer. GradClip = '{clipval}', Beta1 = '{beta1}', Beta2 = '{beta2}', SaveGPUMemoryMode = '{saveGPUMemoryMode}'");
+            Logger.WriteLine(Logger.Level.debug, $"Creating Adam optimizer. GradClip = '{clipval}', Beta1 = '{beta1}', Beta2 = '{beta2}', SaveGPUMemoryLevel = '{saveGPUMemoryLevel}'");
 
             m_cacheName2V = new ConcurrentDictionary<string, Tensor>();
             m_cacheName2M = new ConcurrentDictionary<string, Tensor>();
@@ -43,7 +43,7 @@ namespace Seq2SeqSharp.Optimizer
             m_clipval = clipval;
             m_beta1 = beta1;
             m_beta2 = beta2;
-            m_saveGPUMemoryMode = saveGPUMemoryMode;
+            m_saveGPUMemoryLevel = saveGPUMemoryLevel;
         }
 
         public void UpdateWeights(List<IWeightTensor> model, float gradNormFactor, float step_size, float regc, int iter)
@@ -72,10 +72,10 @@ namespace Seq2SeqSharp.Optimizer
 
                 if (m_cacheName2V.ContainsKey(item.Name) == false)
                 {
-                    m_cacheName2V[item.Name] = new Tensor(m_saveGPUMemoryMode ? new CpuAllocator(BlasEnum.DotNet) : item.Allocator, DType.Float32, item.Sizes);
+                    m_cacheName2V[item.Name] = new Tensor((m_saveGPUMemoryLevel > 0) ? new CpuAllocator(BlasEnum.DotNet) : item.Allocator, DType.Float32, item.Sizes);
                     Ops.Fill(m_cacheName2V[item.Name], 0.0f);
 
-                    m_cacheName2M[item.Name] = new Tensor(m_saveGPUMemoryMode ? new CpuAllocator(BlasEnum.DotNet) : item.Allocator, DType.Float32, item.Sizes);
+                    m_cacheName2M[item.Name] = new Tensor((m_saveGPUMemoryLevel > 1) ? new CpuAllocator(BlasEnum.DotNet) : item.Allocator, DType.Float32, item.Sizes);
                     Ops.Fill(m_cacheName2M[item.Name], 0.0f);
 
                     Logger.WriteLine(Logger.Level.debug, $"Added weight '{item.Name}' to optimizer. Learning rate factor = '{item.LearningRateFactor}'");
@@ -97,22 +97,36 @@ namespace Seq2SeqSharp.Optimizer
         {
             try
             {
-                if ((m.Allocator is CudaAllocator) && m_saveGPUMemoryMode)
+                if ((m.Allocator is CudaAllocator) && m_saveGPUMemoryLevel > 0)
                 {
-                    Tensor t1 = new Tensor(m.Allocator, m_cacheName2V[m.Name].ElementType, m_cacheName2V[m.Name].Sizes);
-                    Ops.Copy(t1, m_cacheName2V[m.Name]);
+                    Tensor t1 = m_cacheName2V[m.Name];
+                    if (m_saveGPUMemoryLevel > 0)
+                    {
+                        t1 = new Tensor(m.Allocator, m_cacheName2V[m.Name].ElementType, m_cacheName2V[m.Name].Sizes);
+                        Ops.Copy(t1, m_cacheName2V[m.Name]);
+                    }
 
-                    Tensor t2 = new Tensor(m.Allocator, m_cacheName2M[m.Name].ElementType, m_cacheName2M[m.Name].Sizes);
-                    Ops.Copy(t2, m_cacheName2M[m.Name]);
+                    Tensor t2 = m_cacheName2M[m.Name];
 
+                    if (m_saveGPUMemoryLevel > 1)
+                    {
+                        t2 = new Tensor(m.Allocator, m_cacheName2M[m.Name].ElementType, m_cacheName2M[m.Name].Sizes);
+                        Ops.Copy(t2, m_cacheName2M[m.Name]);
+                    }
 
                     Ops.Adam(m.TWeight, m.TGradient, t1, t2, normFactor, step_size, m_clipval, regc, m_beta2, m_beta1, iter, m_smoothEps);
 
-                    Ops.Copy(m_cacheName2V[m.Name], t1);
-                    t1.Dispose();
+                    if (m_saveGPUMemoryLevel > 0)
+                    {
+                        Ops.Copy(m_cacheName2V[m.Name], t1);
+                        t1.Dispose();
+                    }
 
-                    Ops.Copy(m_cacheName2M[m.Name], t2);
-                    t2.Dispose();
+                    if (m_saveGPUMemoryLevel > 1)
+                    {
+                        Ops.Copy(m_cacheName2M[m.Name], t2);
+                        t2.Dispose();
+                    }
                 }
                 else
                 {              
