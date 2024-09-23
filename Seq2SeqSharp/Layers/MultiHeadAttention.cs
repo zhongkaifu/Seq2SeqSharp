@@ -85,8 +85,8 @@ namespace Seq2SeqSharp
             }
             else
             {
-                QKV = new WeightTensor(new long[2] { inputDim, hiddenDim * 3 }, deviceId, name: $"{name}.Q", isTrainable: isTrainable, initType: RandomInitType.Uniform, learningRateFactor: learningRateFactor, dtype: elementType);
-                QKVb = new WeightTensor(new long[2] { 1, hiddenDim * 3 }, 0, deviceId, name: $"{name}.Qb", isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: elementType);
+                QKV = new WeightTensor(new long[2] { inputDim, hiddenDim * 3 }, deviceId, name: $"{name}.{nameof(QKV)}", isTrainable: isTrainable, initType: RandomInitType.Uniform, learningRateFactor: learningRateFactor, dtype: elementType);
+                QKVb = new WeightTensor(new long[2] { 1, hiddenDim * 3 }, 0, deviceId, name: $"{name}.{nameof(QKVb)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: elementType);
             }
 
             if (normType == NormEnums.LayerNorm)

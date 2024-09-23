@@ -20,17 +20,19 @@ namespace Seq2SeqSharp
     internal class RMSNormalization : INormalization
     {
         private readonly IWeightTensor m_alpha;
+        private readonly IWeightTensor m_beta;
         private readonly float m_epsilon;
 
         public RMSNormalization(string name, int dim, int deviceId, bool isTrainable, float learningRateFactor = 1.0f, float epsilon = 1e-06f, DType elementType = DType.Float32)
         {
             m_alpha = new WeightTensor(new long[2] { 1, dim }, 1.0f, deviceId, name: $"{name}.{nameof(m_alpha)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: elementType);
+            m_beta = new WeightTensor(new long[2] { 1, dim }, 0, deviceId, name: $"{name}.{nameof(m_beta)}", isTrainable: isTrainable, learningRateFactor: learningRateFactor, dtype: elementType);
             m_epsilon = epsilon;
         }
 
         public IWeightTensor Norm(IWeightTensor input, IComputeGraph g)
         {
-            var result = g.RMSNorm(input, m_alpha, m_epsilon);
+            var result = g.RMSNorm(input, m_alpha, m_beta, m_epsilon);
             return result;
         }
       
@@ -39,6 +41,7 @@ namespace Seq2SeqSharp
             List<IWeightTensor> response = new List<IWeightTensor>
             {
                 m_alpha,
+                m_beta,
             };
 
             return response;
@@ -47,12 +50,14 @@ namespace Seq2SeqSharp
         public void Save(IModel stream)
         {
             m_alpha.Save(stream);
+            m_beta.Save(stream);
         }
 
 
         public void Load(IModel stream)
         {
             m_alpha.Load(stream);
+            m_beta.Load(stream);
         }
 
         public INeuralUnit CloneToDeviceAt(int deviceId)

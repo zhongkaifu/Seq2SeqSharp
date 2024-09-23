@@ -1424,6 +1424,7 @@ namespace TensorSharp
 		unsafe static public void RMSNorm(Tensor out_,
 			Tensor in_,
 			Tensor gamma_,
+			Tensor beta_,
 			float eps,
 			int rows,
 			int cols)
@@ -1431,8 +1432,9 @@ namespace TensorSharp
 			float* outPtr = (float*)CpuNativeHelpers.GetBufferStart(out_);
 			float* inPtr = (float*)CpuNativeHelpers.GetBufferStart(in_);
 			float* gamma = (float*)CpuNativeHelpers.GetBufferStart(gamma_);
-			
-			float N = cols;
+            float* beta = (float*)CpuNativeHelpers.GetBufferStart(beta_);
+
+            float N = cols;
 			for (int j = 0; j < rows; j++)
 			{
 				float* yRow = outPtr + j * cols;
@@ -1454,8 +1456,9 @@ namespace TensorSharp
 
 					float gammav = gamma[id];
 					float xv = xRow[id];
+					float betav = beta[id];
 					float rmsNorm = xv / rms;
-					float y = gammav * rmsNorm;
+					float y = gammav * rmsNorm + betav;
 					yRow[id] = y;
 
 				}
@@ -1579,22 +1582,26 @@ namespace TensorSharp
 
 		unsafe static public void RMSNormGrad(Tensor gradX_,
 			Tensor gradGamma_,
+			Tensor gradBeta_,
 			Tensor adj_,
 			Tensor y_,
 			Tensor x_,
 			Tensor gamma_,
+			Tensor beta_,
 			int rows,
 			int cols,
 			float eps)
 		{
 			float* gradX = (float*)CpuNativeHelpers.GetBufferStart(gradX_);
 			float* gradGamma = (float*)CpuNativeHelpers.GetBufferStart(gradGamma_);
-			float* adj = (float*)CpuNativeHelpers.GetBufferStart(adj_);
+            float* gradBeta = (float*)CpuNativeHelpers.GetBufferStart(gradBeta_);
+            float* adj = (float*)CpuNativeHelpers.GetBufferStart(adj_);
 			float* y = (float*)CpuNativeHelpers.GetBufferStart(y_);
 			float* x = (float*)CpuNativeHelpers.GetBufferStart(x_);
 			float* gamma = (float*)CpuNativeHelpers.GetBufferStart(gamma_);
+            float* beta = (float*)CpuNativeHelpers.GetBufferStart(beta_);
 
-			float N = cols;
+            float N = cols;
 			for (int j = 0; j < rows; j++)
 			{
 				float* xRow = x + j * cols;
@@ -1609,9 +1616,10 @@ namespace TensorSharp
 
 					float xv = xRow[id];
 					float yv = yRow[id];
+					float betav = beta[id];
 					float gammav = (float)gamma[id];
 					float adjv = adjRow[id];
-					float rv = yv / gammav; // go back to RMSNorm(x) from scaled and shifted version for accumulation
+					float rv = (yv - betav) / gammav; // go back to RMSNorm(x) from scaled and shifted version for accumulation
 
 					sum_adj_r += adjv * rv;
 					sum_sqr += xv * xv;
@@ -1649,12 +1657,10 @@ namespace TensorSharp
 					float* gradXRow = gradX + j * cols;
 					gradXRow[id] += (float)(gradXv);
 
-					float* gradGammaRow = gradGamma + j * cols;
-					// assignment is correct here as this gets summed up
-					// in the next kernel via matrix product
-					gradGammaRow[id] = (float)(adjv * rmsNorm);
+					gradGamma[id] += (float)(adjv * rmsNorm);
+                    gradBeta[id] += adjRow[id];
 
-				}
+                }
 			}
 		}
 

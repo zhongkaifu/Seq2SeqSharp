@@ -791,6 +791,7 @@ __global__ void gLayerNormalizationGrad(float* gradX,
 __global__ void RMSNorm(float* out,
                                 const float* in,
                                 const float* gamma,
+                                const float* beta,
                                 int rows,
                                 int cols,
                                 float eps = 1e-9) {
@@ -831,8 +832,9 @@ __global__ void RMSNorm(float* out,
         if(id < cols) {
           float gammav  = gamma[id];
           float xv      = xRow[id];
+          float betav   = beta[id];
           float rmsNorm = xv / rms;
-          float y       = gammav * rmsNorm;
+          float y       = gammav * rmsNorm + betav;
           yRow[id]        = y;
         }
       }
@@ -844,10 +846,12 @@ __global__ void RMSNorm(float* out,
 
 __global__ void RMSNormGrad(float* gradX,
                                         float* gradGamma,
+                                        float* gradBeta,
                                         float* adj,
                                         float* y,
                                         float* x,
                                         float* gamma,
+                                        float* beta,
                                         int rows,
                                         int cols,
                                         float eps = 1e-9) {
@@ -873,9 +877,10 @@ __global__ void RMSNormGrad(float* gradX,
         if(id < cols) {
           float xv     = xRow[id];
           float yv     = yRow[id];
+          float betav  = beta[id];
           float gammav = (float)gamma[id];
           float adjv   = adjRow[id];
-          float rv     = yv / gammav; // go back to RMSNorm(x) from scaled and shifted version for accumulation
+          float rv     = (yv - betav) / gammav; // go back to RMSNorm(x) from scaled and shifted version for accumulation
 
           sum_adj_r[threadIdx.x] += adjv * rv;
           sum_sqr[threadIdx.x]   += xv * xv;
@@ -927,10 +932,8 @@ __global__ void RMSNormGrad(float* gradX,
           float* gradXRow      = gradX     + j * cols;
           gradXRow[id]    += (float)(gradXv);
 
-          float* gradGammaRow  = gradGamma + j * cols;
-          // assignment is correct here as this gets summed up
-          // in the next kernel via matrix product
-          gradGammaRow[id] = (float)(adjv * rmsNorm);
+          atomicAdd(gradGamma + id, (float)(adjv * rmsNorm));
+          atomicAdd(gradBeta + id, adjRow[id]);
         }
       }
     }
@@ -1870,6 +1873,7 @@ __global__ void gLayerNormalizationGradHalf(__half* gradX,
 __global__ void RMSNormHalf(__half* out,
                                 const __half* in,
                                 const __half* gamma,
+                                const __half* beta,
                                 int rows,
                                 int cols,
                                 float eps = 1e-9) {
@@ -1910,8 +1914,9 @@ __global__ void RMSNormHalf(__half* out,
         if(id < cols) {
           float gammav  = __half2float(gamma[id]);
           float xv      = xRow[id];
+          float betav   = __half2float(beta[id]);
           float rmsNorm = xv / rms;
-          float y       = gammav * rmsNorm;
+          float y       = gammav * rmsNorm + betav;
           yRow[id]        = __float2half(y);
         }
       }
@@ -1924,10 +1929,12 @@ __global__ void RMSNormHalf(__half* out,
 
 __global__ void RMSNormGradHalf(__half* gradX,
                                         __half* gradGamma,
+                                        __half* gradBeta,
                                         __half* adj,
                                         __half* y,
                                         __half* x,
                                         __half* gamma,
+                                        __half* beta,
                                         int rows,
                                         int cols,
                                         float eps = 1e-9) {
@@ -1953,9 +1960,10 @@ extern __shared__ float shared[];
         if(id < cols) {
           float xv     = __half2float(xRow[id]);
           float yv     = __half2float(yRow[id]);
+          float betav  = __half2float(beta[id]);
           float gammav = (float)__half2float(gamma[id]);
           float adjv   = __half2float(adjRow[id]);
-          float rv     = yv / gammav; // go back to RMSNorm(x) from scaled and shifted version for accumulation
+          float rv     = (yv - betav) / gammav; // go back to RMSNorm(x) from scaled and shifted version for accumulation
 
           sum_adj_r[threadIdx.x] += adjv * rv;
           sum_sqr[threadIdx.x]   += xv * xv;
@@ -2007,10 +2015,8 @@ extern __shared__ float shared[];
           __half* gradXRow      = gradX     + j * cols;
           gradXRow[id]    = __hadd(gradXRow[id], __float2half(gradXv));
 
-          __half* gradGammaRow  = gradGamma + j * cols;
-          // assignment is correct here as this gets summed up
-          // in the next kernel via matrix product
-          gradGammaRow[id] = __float2half(adjv * rmsNorm);
+          atomicAdd(gradGamma + id, __float2half(adjv * rmsNorm));
+          atomicAdd(gradBeta + id, adjRow[id]);
         }
       }
     }
@@ -2745,17 +2751,17 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
         }
 
 
-        public Tensor RMSNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, float eps = 1e-9f)
+        public Tensor RMSNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps = 1e-9f)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(inGrad);
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(outGrad, inGrad, false, inGrad.Sizes);
-            RMSNormGrad(context, writeTarget, alphaGrad, inGrad, y, x, alpha, eps);
+            RMSNormGrad(context, writeTarget, alphaGrad, betaGrad, inGrad, y, x, alpha, beta, eps);
 
             return writeTarget;
         }
 
 
-        private void RMSNormGrad(TSCudaContext context, Tensor outGrad, Tensor alphaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, float eps = 1e-9f)
+        private void RMSNormGrad(TSCudaContext context, Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps = 1e-9f)
         {
             CudaContext cudaContext = context.CudaContextForTensor(inGrad);
 
@@ -2777,17 +2783,19 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
 
             CUdeviceptr outGradPtr = CudaHelpers.GetBufferStart(outGrad);
             CUdeviceptr alphaGradPtr = CudaHelpers.GetBufferStart(alphaGrad);
+            CUdeviceptr betaGradPtr = CudaHelpers.GetBufferStart(betaGrad);
             CUdeviceptr inGradPtr = CudaHelpers.GetBufferStart(inGrad);
             CUdeviceptr yPtr = CudaHelpers.GetBufferStart(y);
             CUdeviceptr xPtr = CudaHelpers.GetBufferStart(x);
             CUdeviceptr alphaPtr = CudaHelpers.GetBufferStart(alpha);
+            CUdeviceptr betaPtr = CudaHelpers.GetBufferStart(beta);
 
             string kernelName = "RMSNormGrad";
             if (outGrad.ElementType == DType.Float16)
             {
                 kernelName = "RMSNormGradHalf";
             }
-            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float) * 4, CUstream.NullStream, outGradPtr, alphaGradPtr, inGradPtr, yPtr, xPtr, alphaPtr, rows, cols, eps);
+            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float) * 4, CUstream.NullStream, outGradPtr, alphaGradPtr, betaGradPtr, inGradPtr, yPtr, xPtr, alphaPtr, betaPtr, rows, cols, eps);
         }
 
         public void AddLayerNormGrad(Tensor out1Grad, Tensor out2Grad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x1, Tensor x2, Tensor alpha, Tensor beta, float eps = 1e-9f)
@@ -2881,17 +2889,17 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
         }
 
 
-        public Tensor RMSNorm(Tensor result, Tensor src, Tensor alpha, float eps = 1e-9f)
+        public Tensor RMSNorm(Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-9f)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(src);
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
-            RMSNorm(context, writeTarget, src, alpha, eps);
+            RMSNorm(context, writeTarget, src, alpha, beta, eps);
 
             return writeTarget;
         }
 
 
-        private void RMSNorm(TSCudaContext context, Tensor result, Tensor src, Tensor alpha, float eps = 1e-9f)
+        private void RMSNorm(TSCudaContext context, Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-9f)
         {
             CudaContext cudaContext = context.CudaContextForTensor(src);
 
@@ -2915,6 +2923,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
             CUdeviceptr resultPtr = CudaHelpers.GetBufferStart(result);
             CUdeviceptr srcPtr = CudaHelpers.GetBufferStart(src);
             CUdeviceptr alphaPtr = CudaHelpers.GetBufferStart(alpha);
+            CUdeviceptr betaPtr = CudaHelpers.GetBufferStart(beta);
 
             string kernelName = "RMSNorm";
             if (src.ElementType == DType.Float16)
@@ -2922,7 +2931,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
                 kernelName = "RMSNormHalf";
             }
 
-            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, alphaPtr, rows, cols, eps);
+            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, alphaPtr, betaPtr, rows, cols, eps);
 
         }
 

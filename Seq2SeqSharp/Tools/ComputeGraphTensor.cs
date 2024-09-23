@@ -3424,15 +3424,16 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightTensor RMSNorm(IWeightTensor src, IWeightTensor alpha, float eps = 1e-9f)
+        public IWeightTensor RMSNorm(IWeightTensor src, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-9f)
         {
             WeightTensor srcT = src as WeightTensor;
             WeightTensor alphaT = alpha as WeightTensor;
+            WeightTensor betaT = beta as WeightTensor;
 
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(srcT.Sizes, m_deviceId, name: $"{GetHashString(src.Name, alpha.Name )}.RMSNorm", graphToBind: this, needGradient: srcT.NeedGradient, dtype: src.ElementType);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(srcT.Sizes, m_deviceId, name: $"{GetHashString(src.Name, alpha.Name, beta.Name )}.RMSNorm", graphToBind: this, needGradient: srcT.NeedGradient, dtype: src.ElementType);
             VisualizeNodes(new IWeightTensor[] { src, alpha }, res);
 
-            Ops.RMSNorm(res.TWeight, srcT.TWeight, alphaT.TWeight, eps);
+            Ops.RMSNorm(res.TWeight, srcT.TWeight, alphaT.TWeight, betaT.TWeight, eps);
             if (m_autoCheckCorruption)
             {
                 if (res.IsWeightsCorrupted())
@@ -3446,15 +3447,17 @@ namespace Seq2SeqSharp.Tools
                 var srcTWeight = srcT.TWeight.CopyRef();
                 var resTWeight = res.TWeight.CopyRef();
                 var alphaTWeight = alphaT.TWeight.CopyRef();
+                var betaTWeight = betaT.TWeight.CopyRef();
                 void backward()
                 {
                     if (srcT.NeedGradient)
                     {
-                        Ops.RMSNormGrad(srcT.TGradient, alphaT.TGradient, res.TGradient, resTWeight, srcTWeight, alphaTWeight, eps);
+                        Ops.RMSNormGrad(srcT.TGradient, alphaT.TGradient, betaT.TGradient, res.TGradient, resTWeight, srcTWeight, alphaTWeight, betaTWeight, eps);
                     }
                     srcTWeight.Dispose();
                     resTWeight.Dispose();
                     alphaTWeight.Dispose();
+                    betaTWeight.Dispose();
 
                     res.Dispose();
                 }
