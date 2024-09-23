@@ -208,7 +208,7 @@ namespace Seq2SeqSharp.Applications
             if (isTraining)
             {
                 (var c, _) = Decoder.GPTDecode(tgtTokensList, computeGraph, decoder as GPTDecoder, decoderFFLayer, tgtEmbedding, m_modelMetaData.TgtVocab, m_paddingType,
-                    m_options.DropoutRatio, decodingOptions, isTraining, lossType: m_options.LossType, focalLossGamma: m_options.FocalLossGamma, lossSmooth: m_options.LossSmooth,
+                    m_options.DropoutRatio, decodingOptions, isTraining, lossType: m_options.LossType, labelSmooth: m_options.LabelSmooth, lossSmooth: m_options.LossSmooth,
                     segmentEmbeddings: segmentEmbedding, amp: m_options.AMP, posEmbeddings: posEmbeddings, lossScaling: LossScaling, paddingAligmentFactor: m_options.PaddingAlignmentFactor);
                 nr.Cost = c;
                 nr.Output = null;

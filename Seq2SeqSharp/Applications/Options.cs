@@ -107,9 +107,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("Encoder type: None, LSTM, BiLSTM, Transformer", nameof(EncoderType))]
         public EncoderTypeEnums EncoderType = EncoderTypeEnums.Transformer;
 
-        [Arg("The gamma value of focal loss. Default is 0.0f", nameof(FocalLossGamma))]
-        [Range(0.0f, 5.0f)]
-        public float FocalLossGamma = 0.0f;
+        [Arg("Label Smoothing. Default is 0.1f", nameof(LabelSmooth))]
+        [Range(0.0f, 1.0f)]
+        public float LabelSmooth = 0.1f;
 
         [Arg("The smooth value of loss. Default is 1e-9f", nameof(LossSmooth))]
         [Range(1e-12f, 1.0f)]

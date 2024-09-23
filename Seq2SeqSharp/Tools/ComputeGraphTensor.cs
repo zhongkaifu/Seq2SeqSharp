@@ -1174,12 +1174,20 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightTensor Add(IWeightTensor w1, float v)
+        public IWeightTensor Add(IWeightTensor w1, float v, bool inPlace = false)
         {
             WeightTensor m1 = w1 as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name)}.AddTV", graphToBind: this, needGradient: m1.NeedGradient, dtype: m1.ElementType);
+            WeightTensor res = null;
+            if (inPlace)
+            {
+                res = m1.CopyWeightsRef($"{GetHashString(w1.Name)}.AddTV", needGradient: m1.NeedGradient, graphToBind: this);
+            }
+            else
+            {
+                res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w1.Name)}.AddTV", graphToBind: this, needGradient: m1.NeedGradient, dtype: m1.ElementType);
+            }
 
-            VisualizeNodes(new IWeightTensor[] { w1}, res);
+            VisualizeNodes(new IWeightTensor[] { w1 }, res);
 
 
             Ops.Add(res.TWeight, m1.TWeight, v);
@@ -3974,52 +3982,42 @@ namespace Seq2SeqSharp.Tools
 
 
 
-        private (float, IWeightTensor) CalculateEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float smooth, float gamma)
+        private (float, IWeightTensor) CalculateEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float smooth, float labelSmooth)
         {
             float N = probs.Sizes[0];
-
+            float num_classes = probs.Sizes[1];
             var scatterIdxTensor = View(truthTgtSeqs, new long[] { -1, 1 });
             var scatterTrue = Scatter(scatterIdxTensor, 1.0f, 1, probs.ElementType, needGradient: false, shape: probs.Sizes);
-            var scatterFalse = Sub(1.0f, scatterTrue);
-            var probsFalse = Sub(1.0f, probs);
-            var loss = EltMulMulAdd(scatterTrue, probs, scatterFalse, probsFalse);
+            if (labelSmooth > 0.0f)
+            {
+                scatterTrue = Add(Mul(scatterTrue, 1.0f - labelSmooth, inPlace: true), labelSmooth / (float)num_classes, inPlace: true);
+            }
+
             if (smooth > 0.0f)
             {
-                loss = Add(loss, smooth);
+                probs = Add(probs, smooth);
             }
-
-            IWeightTensor focalFactor = null;
-            if (gamma > 0.0f)
-            {
-                focalFactor = Sub(1.0f, loss);
-                focalFactor = Pow(focalFactor, gamma);
-            }
-
-            loss = Log(loss);
+            probs = Log(probs);
+            var loss = EltMul(scatterTrue, probs);
             loss = Mul(loss, -1.0f, inPlace: true);
 
-
-            if (focalFactor != null)
-            {
-                loss = EltMul(loss, focalFactor);
-            }
             var lossTrue = Gather(loss, scatterIdxTensor, 1, runGradients: false);
             var lossValue = lossTrue.ToWeightArray().Sum() / lossTrue.ElementCount;
 
             return (lossValue, loss);
         }
 
-        public float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f, float gamma = 0.0f)
+        public float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f, float labelSmooth = 0.0f)
         {
-            (float lossValue, IWeightTensor loss) = CalculateEntropyLoss(probs, truthTgtSeqs, smooth, gamma);
+            (float lossValue, IWeightTensor loss) = CalculateEntropyLoss(probs, truthTgtSeqs, smooth, labelSmooth);
             loss.FillGradient(graident);
 
             return lossValue;
         }
 
-        public float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, IWeightTensor graident, float smooth = 0.0f, float gamma = 0.0f)
+        public float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, IWeightTensor graident, float smooth = 0.0f, float labelSmooth = 0.0f)
         {
-            (float lossValue, IWeightTensor loss) = CalculateEntropyLoss(probs, truthTgtSeqs, smooth, gamma);
+            (float lossValue, IWeightTensor loss) = CalculateEntropyLoss(probs, truthTgtSeqs, smooth, labelSmooth);
             loss.CopyWeightsToGradients(graident);
 
             return lossValue;
