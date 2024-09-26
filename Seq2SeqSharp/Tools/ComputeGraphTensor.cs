@@ -2425,17 +2425,15 @@ namespace Seq2SeqSharp.Tools
                 Tensor resTWeight = null;
                 if (runGradients && t.NeedGradient)
                 {
-                //    resTWeight = res.TWeight.CopyRef();
-
-                    //if (m_saveGPUMemoryMode)
-                    //{
-                    //    resTWeight = new Tensor(new CpuAllocator(BlasEnum.DotNet), res.TWeight.ElementType, res.TWeight.Sizes);
-                    //    Ops.Copy(resTWeight, res.TWeight);
-                    //}
-                    //else
-                    //{
+                    if (m_saveGPUMemoryLevel > 2)
+                    {
+                        resTWeight = new Tensor(new CpuAllocator(BlasEnum.DotNet), res.TWeight.ElementType, res.TWeight.Sizes);
+                        Ops.Copy(resTWeight, res.TWeight);
+                    }
+                    else
+                    {
                         resTWeight = res.TWeight.CopyRef();
-                    //}
+                    }
                 }
 
                 void backward()
@@ -2447,13 +2445,13 @@ namespace Seq2SeqSharp.Tools
                             t.TGradient = res.TGradient.CopyRef();
                         }
 
-                        //if (m_saveGPUMemoryMode)
-                        //{
-                        //    Tensor tmp = resTWeight;
-                        //    resTWeight = new Tensor(res.TGradient.Allocator, tmp.ElementType, tmp.Sizes);
-                        //    Ops.Copy(resTWeight, tmp);
-                        //    tmp.Dispose();
-                        //}
+                        if (m_saveGPUMemoryLevel > 2)
+                        {
+                            Tensor tmp = resTWeight;
+                            resTWeight = new Tensor(res.TGradient.Allocator, tmp.ElementType, tmp.Sizes);
+                            Ops.Copy(resTWeight, tmp);
+                            tmp.Dispose();
+                        }
 
                         t.AddSoftmaxGradient(resTWeight, res.TGradient, inPlace);
                         resTWeight.Dispose();
