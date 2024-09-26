@@ -1844,18 +1844,18 @@ namespace Seq2SeqSharp.Tools
             {
                 Tensor t1TWeight = null;
                 Tensor t2TWeight = null;
-                //if (m_saveGPUMemoryMode)
-                //{
-                //    t1TWeight = new Tensor(new CpuAllocator(BlasEnum.DotNet), t1.TWeight.ElementType, t1.TWeight.Sizes);
-                //    t2TWeight = new Tensor(new CpuAllocator(BlasEnum.DotNet), t2.TWeight.ElementType, t2.TWeight.Sizes);
-                //    Ops.Copy(t1TWeight, t1.TWeight);
-                //    Ops.Copy(t2TWeight, t2.TWeight);
-                //}
-                //else
-                //{
+                if (m_saveGPUMemoryLevel > 2)
+                {
+                    t1TWeight = new Tensor(new CpuAllocator(BlasEnum.DotNet), t1.TWeight.ElementType, t1.TWeight.Sizes);
+                    t2TWeight = new Tensor(new CpuAllocator(BlasEnum.DotNet), t2.TWeight.ElementType, t2.TWeight.Sizes);
+                    Ops.Copy(t1TWeight, t1.TWeight);
+                    Ops.Copy(t2TWeight, t2.TWeight);
+                }
+                else
+                {
                     t1TWeight = t1.TWeight.CopyRef();
                     t2TWeight = t2.TWeight.CopyRef();
-               // }
+                }
 
                 void backward()
                 {
@@ -1876,13 +1876,13 @@ namespace Seq2SeqSharp.Tools
 
                     if (t1.NeedGradient)
                     {
-                        //if (m_saveGPUMemoryMode)
-                        //{
-                        //    Tensor tmp = t2TWeight;
-                        //    t2TWeight = new Tensor(t1.TGradient.Allocator, tmp.ElementType, tmp.Sizes);
-                        //    Ops.Copy(t2TWeight, tmp);
-                        //    tmp.Dispose();
-                        //}
+                        if (m_saveGPUMemoryLevel > 2)
+                        {
+                            Tensor tmp = t2TWeight;
+                            t2TWeight = new Tensor(t1.TGradient.Allocator, tmp.ElementType, tmp.Sizes);
+                            Ops.Copy(t2TWeight, tmp);
+                            tmp.Dispose();
+                        }
                         using Tensor tW2 = t2TWeight.Transpose();
                         Ops.Addmm(t1.TGradient, 1.0f, t1.TGradient, alpha, res.TGradient, tW2);
 
@@ -1898,13 +1898,13 @@ namespace Seq2SeqSharp.Tools
 
                     if (t2.NeedGradient)
                     {
-                        //if (m_saveGPUMemoryMode)
-                        //{
-                        //    Tensor tmp = t1TWeight;
-                        //    t1TWeight = new Tensor(t2.TGradient.Allocator, tmp.ElementType, tmp.Sizes);
-                        //    Ops.Copy(t1TWeight, tmp);
-                        //    tmp.Dispose();
-                        //}
+                        if (m_saveGPUMemoryLevel > 2)
+                        {
+                            Tensor tmp = t1TWeight;
+                            t1TWeight = new Tensor(t2.TGradient.Allocator, tmp.ElementType, tmp.Sizes);
+                            Ops.Copy(t1TWeight, tmp);
+                            tmp.Dispose();
+                        }
 
                         using Tensor tW1 = t1TWeight.Transpose();
                         Ops.Addmm(t2.TGradient, 1.0f, t2.TGradient, alpha, tW1, res.TGradient);
