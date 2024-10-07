@@ -319,6 +319,15 @@ namespace Seq2SeqSharp.Applications
         [RegularExpression("Classic|FlashAttentionV2")]
         public AttentionTypeEnums AttentionType = AttentionTypeEnums.Classic;
 
+
+        [Arg("The type of multi-head attention type. It supports MHA and GQA. Default is MHA", nameof(MultiHeadAttentionTypeEnums))]
+        [RegularExpression("MHA|GQA")]
+        public MultiHeadAttentionTypeEnums MultiHeadAttentionType = MultiHeadAttentionTypeEnums.MHA;
+
+        [Arg("The number of KV Group when using GQA", nameof(KVGroupNum))]
+        [Range(0, 1024)]
+        public int KVGroupNum = 0;
+
         [Arg("The type of normalization. It supports LayerNorm and RMSNorm", nameof(NormType))]
         [RegularExpression("LayerNorm|RMSNorm")]
         public NormEnums NormType = NormEnums.RMSNorm;

@@ -11,4 +11,10 @@ namespace Seq2SeqSharp.Utils
         Classic,
         FlashAttentionV2
     }
+
+    public enum MultiHeadAttentionTypeEnums
+    {
+        MHA,
+        GQA
+    }
 }

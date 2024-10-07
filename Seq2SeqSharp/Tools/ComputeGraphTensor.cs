@@ -1953,13 +1953,13 @@ namespace Seq2SeqSharp.Tools
                             m.CopyOrAddGradient(gT, res.Name);
                         }
 
-                        if (m_autoCheckCorruption)
-                        {
-                            if (m.IsGradientCorrupted())
-                            {
-                                throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
-                            }
-                        }
+                        //if (m_autoCheckCorruption)
+                        //{
+                        //    if (m.IsGradientCorrupted())
+                        //    {
+                        //        throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                        //    }
+                        //}
                     }
 
                     res.Dispose();

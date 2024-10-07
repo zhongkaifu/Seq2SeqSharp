@@ -16,6 +16,7 @@ using ManagedCuda.BasicTypes;
 using Seq2SeqSharp.Applications;
 using Seq2SeqSharp.Utils;
 using Seq2SeqSharp.Enums;
+using TensorSharp;
 
 namespace Seq2SeqSharp.Models
 {
@@ -64,6 +65,9 @@ namespace Seq2SeqSharp.Models
         public PositionEmbeddingEnums PEType { get; set; }
         public NormEnums NormType { get; set; }
 
+        public MultiHeadAttentionTypeEnums MultiHeadAttentionType { get; set; }
+        public int KVGroupNum { get; set; }
+
         public Model() { }
         public Model(Options opts,Vocab srcVocab, Vocab tgtVocab)
         {
@@ -84,6 +88,8 @@ namespace Seq2SeqSharp.Models
             VQType = opts.VQType;
             PEType = opts.PEType;
             NormType = opts.NormType;
+            MultiHeadAttentionType = opts.MultiHeadAttentionType;
+            KVGroupNum = opts.KVGroupNum;
 
             Name2Weights = new Dictionary<string, float[]>();
             Name2WeightsHalf= new Dictionary<string, ushort[]>();
@@ -116,6 +122,10 @@ namespace Seq2SeqSharp.Models
             Name2CodeBook = m.Name2CodeBook;
             PEType = m.PEType;
             NormType = m.NormType;
+
+            MultiHeadAttentionType = m.MultiHeadAttentionType;
+            KVGroupNum = m.KVGroupNum;
+
 
             if (Name2Weights == null)
             {

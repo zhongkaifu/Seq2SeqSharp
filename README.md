@@ -2,62 +2,62 @@
 
 [![.NET](https://github.com/zhongkaifu/Seq2SeqSharp/actions/workflows/dotnet.yml/badge.svg)](https://github.com/zhongkaifu/Seq2SeqSharp/actions/workflows/dotnet.yml)
 # Seq2SeqSharp  
-Seq2SeqSharp is a tensor based fast & flexible deep neural network framework written by .NET (C#). It can be used for sequence-to-sequence task, sequence-labeling task, sequence-classification task and others for text and images. Seq2SeqSharp supports both CPUs and GPUs and is able to run cross-platforms, such as Windows and Linux (x86, x64 and ARM) without any modification and recompilation.  
+Seq2SeqSharp is a high-performance, tensor-based deep neural network framework built in .NET (C#). Designed for sequence-to-sequence, sequence-labeling, sequence-classification tasks, and more, it supports both text and image processing. Seq2SeqSharp is compatible with CPUs and GPUs, running cross-platform on Windows and Linux (x86, x64, and ARM) without modification or recompilation.  
 
 # Features  
 Pure C# framework   
 Transformer encoder and decoder with pointer generator  
-Vision Transformer encoder for images  
+ision Transformer encoder for image processing  
 GPTDecoder  
-Attention based LSTM decoder with coverage model  
+Multi-Head Attention and Group Query Attention  
+Different Activation Functions: ReLU, SiLU, SwiGLU and others  
+Attention-based LSTM decoder with coverage model  
 Bi-directional LSTM encoder  
-Support multi-platforms, such as Windows, Linux, MacOS and others  
-Support multi-architecture, such as X86, X64 and ARM  
-Built-in several networks for sequence-to-sequence, sequence-classification, labeling and similarity tasks  
-Mixture of Experts network that could easily train huge model with less computing cost  
-Support Automatic Mixed Precesion (FP16)  
-Built-in SentencePiece supported  
+Cross-platform support: Windows, Linux, MacOS, and others  
+Cross-architecture compatibility: X86, X64, and ARM  
+Pre-built networks for sequence-to-sequence, classification, labeling, and similarity tasks  
+Mixture of Experts: Easily train large models with reduced computational cost  
+Automatic Mixed Precision (FP16) support  
+SentencePiece integration for tokenization  
 Rotary Positional Embeddings  
-Layer Norm and RMS Norm  
+Layer Normalization and RMS Norm  
 Python package supported  
 Tags embeddings mechanism  
 Prompted Decoders  
-Include console tools and web apis for built-in networks  
-Graph based neural network  
+Includes console tools and web application and api services  
+Graph-based neural network  
 Automatic differentiation  
-Tensor based operations  
-Running on both CPUs (Supported by Intel MKL) and multi-GPUs (CUDA)  
-Optimized CUDA memory management for higher performance  
-Different Text Generation Strategy: ArgMax, Beam Search, Top-P Sampling  
-RMSProp and Adam optmization  
-Embedding & Pre-trained model 
-Built-in metrics and extendable, such as BLEU, Length ratio, F1 score and so on  
-Attention alignment generation between source side and target side  
-ProtoBuf serialized model  
-Visualize neural network  
+Tensor-based operations  
+Supports both CPUs (via Intel MKL) and multi-GPUs (CUDA)  
+Optimized CUDA memory management for enhanced performance  
+Multiple text generation strategies: ArgMax, Beam Search, Top-P Sampling  
+RMSProp and Adam optimizers  
+Support for embedding & pre-trained models 
+Built-in and extendable metrics, including BLEU, Length Ratio, F1 Score, etc.  
+Generates attention alignment between source and target  
+ProtoBuf model serialization  
+Neural network visualization tools  
 
 # Architecture  
 Here is the architecture of Seq2SeqSharp  
 ![](https://raw.githubusercontent.com/zhongkaifu/Seq2SeqSharp/master/Images/Overview.jpg)
 
-Seq2SeqSharp provides the unified tensor operations, which means all tensor operations running on CPUs and GPUs are completely same and they can get switched on different device types without any modification.  
-Seq2SeqSharp is also a framework that neural networks can run on multi-GPUs in parallel. It can automatically distribute/sync weights/gradients over devices, manage resources and models and so on, so developers are able to totally focus on how to design and implment networks for their tasks.  
-Seq2SeqSharp is built by (.NET core)[https://docs.microsoft.com/en-us/dotnet/core/], so it can run on both Windows and Linux without any modification and recompilation.  
+Seq2SeqSharp offers unified tensor operations, ensuring that all tensor computations run identically on both CPUs and GPUs. This allows seamless switching between device types without requiring any code modifications. Additionally, Seq2SeqSharp supports parallel execution of neural networks across multiple GPUs. It automatically handles the distribution and synchronization of weights and gradients across devices, manages resources and models, and more—enabling developers to focus entirely on designing and implementing networks for their specific tasks. Built on .NET Core, Seq2SeqSharp is cross-platform, running on both Windows and Linux without the need for modification or recompilation.  
 
 # Usage  
-Seq2SeqSharp provides some command line tools that you can run for different types of tasks.  
-| Name                           |   Comments                                                                                                                                                                                                                                                |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |   
-| Seq2SeqConsole                 | Used for sequence-to-sequence tasks, such as machine translation, automatic summarization and so on                                                                                                                                                       |
-| SeqClassificationConsole       | Used for sequence classification tasks, such as intention detection. It supports multi-tasks, which means a single model can be trained or tested by multi-classification tasks                                                                           |
-| SeqLabelConsole                | Used for sequence labeling tasks, such as named entity recongizer, postag and other                                                                                                                                                                       |                                                                                   |
-| GPTConsole                     | Used to train and test GPT type models. It can be used for any text generation tasks.                                                                                                                                                                     |
+Seq2SeqSharp offers several command-line tools designed for different types of tasks:  
+| Name                           |   Comments                                                                                                                                                                   |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |   
+| Seq2SeqConsole                 | For sequence-to-sequence tasks such as machine translation, automatic summarization, and similar tasks.                                                                      |
+| SeqClassificationConsole       | For sequence classification tasks like intent detection. It supports multi-tasking, allowing a single model to be trained or tested for multiple classification tasks.       |
+| SeqLabelConsole                | For sequence labeling tasks such as named entity recognition, part-of-speech tagging, and other similar tasks.                                                               |
+| GPTConsole                     | For training and testing GPT-type models, applicable to any text generation tasks.                                                                                           |
 
 It also provides web service APIs for above tasks.  
 | Name       |   Comments                                                                                                           |
 | ---------- | -------------------------------------------------------------------------------------------------------------------- |  
-| SeqWebAPIs | Web Service RESTful APIs for many kinds of sequence tasks. It hosts models trained by Seq2SeqSharp and infer online. |
-| SeqWebApps | Web application for sequence-to-sequence or GPT models.                                                              |
+| SeqWebAPIs | RESTful web service APIs for various sequence tasks, hosting models trained with Seq2SeqSharp for online inference.  |
+| SeqWebApps | Web applications designed for sequence-to-sequence and GPT models.                                                   |
 
 
 ## Seq2SeqConsole for sequence-to-sequence task  

@@ -19,7 +19,7 @@ using TensorSharp;
 
 namespace Seq2SeqSharp
 {
-    internal class MultiHeadAttention
+    internal class MultiHeadAttention : IAttentionLayer
     {
         private readonly IWeightTensor W0;
         private readonly IWeightTensor b0;

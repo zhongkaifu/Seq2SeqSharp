@@ -38,7 +38,8 @@ namespace Seq2SeqSharp.Applications
                 decoder = new MultiProcessorNetworkWrapper<IDecoder>(
                     new GPTDecoder("GPTDecoder", model.MultiHeadNum, model.HiddenDim, model.IntermediateDim, model.DecoderEmbeddingDim, model.DecoderLayerDepth, options.DropoutRatio, raDeviceIds.GetNextItem(),
                     isTrainable: options.IsDecoderTrainable && (options.Task == ModeEnums.Train), learningRateFactor: options.DecoderStartLearningRateFactor, activateFunc: model.ActivateFunc, expertNum: model.ExpertNum, 
-                    expertsPerTokenFactor: model.ExpertsPerTokenFactor, elementType: elementType, peType:model.PEType, normType: model.NormType, attentionType: options.AttentionType), raDeviceIds.ToArray());
+                    expertsPerTokenFactor: model.ExpertsPerTokenFactor, elementType: elementType, peType:model.PEType, normType: model.NormType, attentionType: options.AttentionType, multiHeadAttentionType: options.MultiHeadAttentionType, 
+                    KVGroupNum: options.KVGroupNum), raDeviceIds.ToArray());
             }
             else
             {

@@ -21,8 +21,10 @@ namespace Seq2SeqSharp
     internal class PositionwiseFeedForward : IFeedForwardLayer
     {
         private readonly INormalization layerNorm2;
-        private readonly FeedForwardLayer feedForwardLayer1;
-        private readonly FeedForwardLayer feedForwardLayer2;
+        private readonly FeedForwardLayer feedForwardLayer1 = null;
+        private readonly FeedForwardLayer feedForwardLayer2 = null;
+
+        private readonly FeedForwardLayer feedForwardLayer3 = null;
 
         private readonly string m_name;
         private readonly float m_dropoutRatio;
@@ -50,6 +52,12 @@ namespace Seq2SeqSharp
 
             feedForwardLayer1 = new FeedForwardLayer($"{name}.{nameof(feedForwardLayer1)}", hiddenDim, intermediateDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, elementType: elementType);
             feedForwardLayer2 = new FeedForwardLayer($"{name}.{nameof(feedForwardLayer2)}", intermediateDim, hiddenDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, elementType: elementType);
+
+            if (m_activateFunc == ActivateFuncEnums.SwiGLU)
+            {
+                feedForwardLayer3 = new FeedForwardLayer($"{name}.{nameof(feedForwardLayer3)}", hiddenDim, intermediateDim, m_dropoutRatio, deviceId, isTrainable, learningRateFactor: learningRateFactor, elementType: elementType);
+            }
+
         }
 
 
@@ -99,6 +107,13 @@ namespace Seq2SeqSharp
             var ffnResult = feedForwardLayer1.Process(inputNorm, batchSize, g);
             // Activate function
             var actFFNResult = RunActivateFunction(g, ffnResult);
+
+
+            if (m_activateFunc == ActivateFuncEnums.SwiGLU)
+            {
+                var ffnResult2 = feedForwardLayer3.Process(inputNorm, batchSize, g);
+                actFFNResult = g.EltMul(actFFNResult, ffnResult2);
+            }
 
             var ffn2Result = feedForwardLayer2.Process(actFFNResult, batchSize, g); // Shape: [batchSize * newTokenIdx, input_dim]
 
@@ -156,6 +171,11 @@ namespace Seq2SeqSharp
             response.AddRange(feedForwardLayer1.GetParams());
             response.AddRange(feedForwardLayer2.GetParams());
 
+            if (feedForwardLayer3 != null)
+            {
+                response.AddRange(feedForwardLayer3.GetParams());
+            }
+
             return response;
         }
 
@@ -165,6 +185,11 @@ namespace Seq2SeqSharp
             layerNorm2.Save(stream);
             feedForwardLayer1.Save(stream);
             feedForwardLayer2.Save(stream);
+
+            if (feedForwardLayer3 != null)
+            {
+                feedForwardLayer3.Save(stream);
+            }
         }
 
 
@@ -173,6 +198,11 @@ namespace Seq2SeqSharp
             layerNorm2.Load(stream);
             feedForwardLayer1.Load(stream);
             feedForwardLayer2.Load(stream);
+
+            if (feedForwardLayer3 != null)
+            {
+                feedForwardLayer3.Load(stream);
+            }
         }
 
         public INeuralUnit CloneToDeviceAt(int deviceId)

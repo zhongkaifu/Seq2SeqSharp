@@ -317,5 +317,7 @@ namespace Seq2SeqSharp.Models
 
         [ProtoMember(28)] public PositionEmbeddingEnums PEType { get; set; }
         [ProtoMember(29)] public NormEnums NormType { get; set; }
+        [ProtoMember(30)] public MultiHeadAttentionTypeEnums MultiHeadAttentionType { get; set; }
+        [ProtoMember(31)] public int KVGroupNum { get; set; }
     }
 }

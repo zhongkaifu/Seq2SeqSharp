@@ -21,7 +21,7 @@ namespace Seq2SeqSharp
 {
     public class GPTDecoder : IDecoder
     {
-        private readonly List<MultiHeadAttention> m_selfAttns = new List<MultiHeadAttention>();
+        private readonly List<IAttentionLayer> m_selfAttns = new List<IAttentionLayer>();
         private readonly List<IFeedForwardLayer> m_feedForwards = new List<IFeedForwardLayer>();
 
         private readonly int m_inputDim;
@@ -42,14 +42,18 @@ namespace Seq2SeqSharp
         private readonly PositionEmbeddingEnums m_peType;
         private readonly NormEnums m_normType;
         private readonly AttentionTypeEnums m_attentionType;
+        private readonly MultiHeadAttentionTypeEnums m_multiHeadAttentionType;
+        private readonly int m_KVGroupNum;
 
         public AttentionTypeEnums AttentionType => m_attentionType;
+        
 
         public GPTDecoder(string name, int multiHeadNum, int hiddenDim, int intermediateDim, int inputDim, int depth, float dropoutRatio, int deviceId, 
             bool isTrainable, float learningRateFactor = 1.0f, ActivateFuncEnums activateFunc = ActivateFuncEnums.ReLU, int expertNum = 1, 
-            int expertsPerTokenFactor = 1, DType elementType = DType.Float32, PositionEmbeddingEnums peType = PositionEmbeddingEnums.APE, NormEnums normType = NormEnums.LayerNorm, AttentionTypeEnums attentionType = AttentionTypeEnums.Classic)
+            int expertsPerTokenFactor = 1, DType elementType = DType.Float32, PositionEmbeddingEnums peType = PositionEmbeddingEnums.APE, NormEnums normType = NormEnums.LayerNorm, 
+            AttentionTypeEnums attentionType = AttentionTypeEnums.Classic, MultiHeadAttentionTypeEnums multiHeadAttentionType = MultiHeadAttentionTypeEnums.MHA, int KVGroupNum = 0)
         {
-            Logger.WriteLine(Logger.Level.debug, $"Creating transformer decoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', IntermediateDim = '{intermediateDim}', InputDim = '{inputDim}', Depth = '{depth}', MultiHeadNum = '{multiHeadNum}', ElementType = '{elementType}', Positional Embedding = '{peType}'， Norm = '{normType}' AttentionType = '{attentionType}'");
+            Logger.WriteLine(Logger.Level.debug, $"Creating transformer decoder at device '{deviceId}'. HiddenDim = '{hiddenDim}', IntermediateDim = '{intermediateDim}', InputDim = '{inputDim}', Depth = '{depth}', MultiHeadNum = '{multiHeadNum}', ElementType = '{elementType}', Positional Embedding = '{peType}'， Norm = '{normType}' AttentionType = '{attentionType}' Multi-Head Attention Type = '{multiHeadAttentionType}'");
 
             m_name = name;
             m_multiHeadNum = multiHeadNum;
@@ -68,18 +72,43 @@ namespace Seq2SeqSharp
             m_peType = peType;
             m_normType = normType;
             m_attentionType = attentionType;
+            m_multiHeadAttentionType = multiHeadAttentionType;
+            m_KVGroupNum = KVGroupNum;
+
+            if (multiHeadAttentionType == MultiHeadAttentionTypeEnums.GQA)
+            {
+                Logger.WriteLine(Logger.Level.debug, $"The number of KV Group = '{m_KVGroupNum}'");
+            }
 
             if (hiddenDim != inputDim)
             {
                 throw new ArgumentException($"hiddenDim is not equal to inputDim in GPTDecoder.");
             }
 
-            m_selfAttns.Add(new MultiHeadAttention($"{name}.SelfAttn_0", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId, 
-                isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor, elementType: elementType, peType: peType, normType: normType, attentionType: m_attentionType));
+            if (m_multiHeadAttentionType == MultiHeadAttentionTypeEnums.GQA)
+            {
+                m_selfAttns.Add(new GroupQueryAttention(name: $"{name}.GQA_0", num_heads: multiHeadNum, num_kv_groups: m_KVGroupNum, d_out: hiddenDim, d_in: inputDim, dropoutRatio: m_dropoutRatio, deviceId: deviceId,
+    isTrainable: isTrainable, learningRateFactor: learningRateFactor, elementType: elementType, peType: peType, normType: normType));
+            }
+            else
+            {
+                m_selfAttns.Add(new MultiHeadAttention($"{name}.MHA_0", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId,
+                    isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor, elementType: elementType, peType: peType, normType: normType, attentionType: m_attentionType));
+            }
+
+
             for (int i = 1; i < depth; i++)
             {
-                m_selfAttns.Add(new MultiHeadAttention($"{name}.SelfAttn_{i}", multiHeadNum, hiddenDim, hiddenDim, m_dropoutRatio, deviceId, 
-                    isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor, elementType: elementType, peType: peType, normType: normType, attentionType: m_attentionType));
+                if (multiHeadAttentionType == MultiHeadAttentionTypeEnums.GQA)
+                {
+                    m_selfAttns.Add(new GroupQueryAttention(name: $"{name}.GQA_{i}", num_heads: multiHeadNum, num_kv_groups: m_KVGroupNum, d_out: hiddenDim, d_in: hiddenDim, dropoutRatio: m_dropoutRatio, deviceId: deviceId,
+isTrainable: isTrainable, learningRateFactor: learningRateFactor, elementType: elementType, peType: peType, normType: normType));
+                }
+                else
+                {
+                    m_selfAttns.Add(new MultiHeadAttention($"{name}.MHA_{i}", multiHeadNum, hiddenDim, hiddenDim, m_dropoutRatio, deviceId,
+                        isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor, elementType: elementType, peType: peType, normType: normType, attentionType: m_attentionType));
+                }
             }
 
             for (int i = 0; i < depth; i++)
@@ -164,14 +193,14 @@ namespace Seq2SeqSharp
         public INeuralUnit CloneToDeviceAt(int deviceId)
         {
             return new GPTDecoder(m_name, m_multiHeadNum, m_hiddenDim, m_intermediateDim, m_inputDim, m_depth, m_dropoutRatio, deviceId, m_isTrainable, learningRateFactor: m_learningRateFactor, activateFunc: m_activateFunc, expertNum: m_expertNum, 
-                expertsPerTokenFactor: m_expertsPerTokenFactor, elementType: m_elementType, peType: m_peType, normType: m_normType, attentionType: m_attentionType);
+                expertsPerTokenFactor: m_expertsPerTokenFactor, elementType: m_elementType, peType: m_peType, normType: m_normType, attentionType: m_attentionType, multiHeadAttentionType: m_multiHeadAttentionType, KVGroupNum: m_KVGroupNum);
         }
 
         public List<IWeightTensor> GetParams()
         {
             List<IWeightTensor> response = new List<IWeightTensor>();
 
-            foreach (MultiHeadAttention item in m_selfAttns)
+            foreach (IAttentionLayer item in m_selfAttns)
             {
                 response.AddRange(item.GetParams());
             }
@@ -188,7 +217,7 @@ namespace Seq2SeqSharp
 
         public void Save(IModel stream)
         {
-            foreach (MultiHeadAttention item in m_selfAttns)
+            foreach (IAttentionLayer item in m_selfAttns)
             {
                 item.Save(stream);
             }
@@ -204,7 +233,7 @@ namespace Seq2SeqSharp
 
         public void Load(IModel stream)
         {
-            foreach (MultiHeadAttention item in m_selfAttns)
+            foreach (IAttentionLayer item in m_selfAttns)
             {
                 item.Load(stream);
             }

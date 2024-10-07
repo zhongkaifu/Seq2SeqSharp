@@ -14,7 +14,8 @@ namespace Seq2SeqSharp.Utils
     {
         ReLU,
         SiLU,
-        LeakyReLU
+        LeakyReLU,
+        SwiGLU
 
     }
 }
