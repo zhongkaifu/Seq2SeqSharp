@@ -87,12 +87,12 @@ namespace Seq2SeqSharp
 
             if (m_multiHeadAttentionType == MultiHeadAttentionTypeEnums.GQA)
             {
-                m_selfAttns.Add(new GroupQueryAttention(name: $"{name}.GQA_0", num_heads: multiHeadNum, num_kv_groups: m_KVGroupNum, d_out: hiddenDim, d_in: inputDim, dropoutRatio: m_dropoutRatio, deviceId: deviceId,
+                m_selfAttns.Add(new GroupQueryAttention(name: $"{name}.SelfAttn_0", num_heads: multiHeadNum, num_kv_groups: m_KVGroupNum, d_out: hiddenDim, d_in: inputDim, dropoutRatio: m_dropoutRatio, deviceId: deviceId,
     isTrainable: isTrainable, learningRateFactor: learningRateFactor, elementType: elementType, peType: peType, normType: normType));
             }
             else
             {
-                m_selfAttns.Add(new MultiHeadAttention($"{name}.MHA_0", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId,
+                m_selfAttns.Add(new MultiHeadAttention($"{name}.SelfAttn_0", multiHeadNum, hiddenDim, inputDim, m_dropoutRatio, deviceId,
                     isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor, elementType: elementType, peType: peType, normType: normType, attentionType: m_attentionType));
             }
 
@@ -101,12 +101,12 @@ namespace Seq2SeqSharp
             {
                 if (multiHeadAttentionType == MultiHeadAttentionTypeEnums.GQA)
                 {
-                    m_selfAttns.Add(new GroupQueryAttention(name: $"{name}.GQA_{i}", num_heads: multiHeadNum, num_kv_groups: m_KVGroupNum, d_out: hiddenDim, d_in: hiddenDim, dropoutRatio: m_dropoutRatio, deviceId: deviceId,
+                    m_selfAttns.Add(new GroupQueryAttention(name: $"{name}.SelfAttn_{i}", num_heads: multiHeadNum, num_kv_groups: m_KVGroupNum, d_out: hiddenDim, d_in: hiddenDim, dropoutRatio: m_dropoutRatio, deviceId: deviceId,
 isTrainable: isTrainable, learningRateFactor: learningRateFactor, elementType: elementType, peType: peType, normType: normType));
                 }
                 else
                 {
-                    m_selfAttns.Add(new MultiHeadAttention($"{name}.MHA_{i}", multiHeadNum, hiddenDim, hiddenDim, m_dropoutRatio, deviceId,
+                    m_selfAttns.Add(new MultiHeadAttention($"{name}.SelfAttn_{i}", multiHeadNum, hiddenDim, hiddenDim, m_dropoutRatio, deviceId,
                         isTrainable: isTrainable, sharedQKV: true, learningRateFactor: learningRateFactor, elementType: elementType, peType: peType, normType: normType, attentionType: m_attentionType));
                 }
             }
