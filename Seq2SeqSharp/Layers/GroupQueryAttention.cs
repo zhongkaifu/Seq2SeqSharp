@@ -108,7 +108,7 @@ namespace Seq2SeqSharp
         /// <returns>Transformered output tensor</returns>
         public (IWeightTensor, IWeightTensor) Perform(IWeightTensor inputQ, IWeightTensor inputK, IWeightTensor inputV, IWeightTensor keyMask, int batchSize, IComputeGraph graph, bool outputAttenWeights = false, Dictionary<string, IWeightTensor> cachedTensors = null)
         {
-            string keyName = $"{m_name}_MultiHeadAttention_3";
+            string keyName = $"{m_name}_GroupQueryAttention_3";
             using IComputeGraph g = graph.CreateSubGraph(keyName);
             int seqLenQ = inputQ.Rows / batchSize;
 
@@ -340,7 +340,7 @@ namespace Seq2SeqSharp
 
         public IWeightTensor Perform(IWeightTensor inputQ, IWeightTensor keyMask, int batchSize, IComputeGraph graph, Dictionary<string, IWeightTensor> cachedTensors = null)
         {
-            string keyName = $"{m_name}_MultiHeadAttention_3";
+            string keyName = $"{m_name}_GroupQueryAttention_1";
             using IComputeGraph g = graph.CreateSubGraph(keyName);
             int seqLenQ = inputQ.Rows / batchSize;
 

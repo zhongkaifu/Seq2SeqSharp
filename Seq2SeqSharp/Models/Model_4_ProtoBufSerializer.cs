@@ -284,6 +284,8 @@ namespace Seq2SeqSharp.Models
             ExpertsPerTokenFactor = m.ExpertsPerTokenFactor;              
             PEType= m.PEType;
             NormType = m.NormType;
+            MultiHeadAttentionType = m.MultiHeadAttentionType;
+            KVGroupNum = m.KVGroupNum;
         }
         public static Model_4_ProtoBufSerializer Create(Model m) => new Model_4_ProtoBufSerializer(m);
 
