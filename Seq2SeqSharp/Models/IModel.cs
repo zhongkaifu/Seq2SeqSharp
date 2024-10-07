@@ -45,6 +45,9 @@ namespace Seq2SeqSharp
 
         public int MaxSegmentNum { get; set; }
 
+        public MultiHeadAttentionTypeEnums MultiHeadAttentionType { get; set; }
+        public int KVGroupNum { get; set; }
+
         public void AddWeights(string name, float[] weights);
 
         public float[] GetWeights(string name);
