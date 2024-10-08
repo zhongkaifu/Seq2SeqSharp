@@ -64,6 +64,9 @@ namespace TensorSharp.CUDA.DeviceCode
                 AppendTTSHalfFunc(result, "mul", "__hmul");
                 AppendTTSHalfFunc(result, "div", "__hdiv");
                 AppendTTTFunc(result, "cadd", "__hadd", DType.Float16);
+                AppendTTTFunc(result, "cmul", "__hmul", DType.Float16);
+                AppendTTTFunc(result, "cdiv", "__hdiv", DType.Float16);
+
                 AppendAtomicAdd(result, "atomicAdd", DType.Float16);
             }
 
