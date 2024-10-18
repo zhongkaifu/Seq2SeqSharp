@@ -1118,7 +1118,7 @@ namespace TensorSharp
 			}
 		}
 
-		unsafe static public void RoPE(Tensor tOut, Tensor tIn, int rows, int cols, int seqLen)
+		unsafe static public void RoPE(Tensor tOut, Tensor tIn, int rows, int cols, int seqLen, int rowOffset)
 		{
 			float* result = (float*)CpuNativeHelpers.GetBufferStart(tOut);
 			float* src = (float*)CpuNativeHelpers.GetBufferStart(tIn);
@@ -1127,7 +1127,7 @@ namespace TensorSharp
 			{
 				float* resultRow = result + j * cols;
 				float* srcRow = src + j * cols;
-				int m = j % seqLen;
+				int m = (j % seqLen) + rowOffset;
 
 				for (int id = 0; id < cols; id++)
 				{
@@ -1151,7 +1151,7 @@ namespace TensorSharp
 		}
 
 
-		unsafe static public void RoPEGrad(Tensor tOut, Tensor tIn, int rows, int cols, int seqLen)
+		unsafe static public void RoPEGrad(Tensor tOut, Tensor tIn, int rows, int cols, int seqLen, int rowOffset)
 		{
 			float* grad = (float*)CpuNativeHelpers.GetBufferStart(tOut);
 			float* adj = (float*)CpuNativeHelpers.GetBufferStart(tIn);
@@ -1160,7 +1160,7 @@ namespace TensorSharp
 			{
 				float* gradRow = grad + j * cols;
 				float* adjRow = adj + j * cols;
-				int m = j % seqLen;
+				int m = (j % seqLen) + rowOffset;
 
 				for (int id = 0; id < cols; id++)
 				{

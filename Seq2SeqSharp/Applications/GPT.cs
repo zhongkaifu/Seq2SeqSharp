@@ -217,12 +217,16 @@ namespace Seq2SeqSharp.Applications
             {   // Test mode or running validation in Training mode
                 List<List<BeamSearchStatus>> beam2batchStatus = Decoder.InitBeamSearchStatusListList(batchSize, tgtTokensList);
                 string cacheKey = GenerateCacheKey(tgtSnts);
-                Dictionary<string, IWeightTensor> cachedTensors = MemoryCache.Default[cacheKey] as Dictionary<string , IWeightTensor>;
-                if (cachedTensors == null && decodingOptions.BeamSearchSize == 1)
+                Dictionary<string, IWeightTensor> cachedTensors = null;
+                if (m_options.UseKVCache)
                 {
-                    cachedTensors = new Dictionary<string, IWeightTensor>();
+                    cachedTensors = MemoryCache.Default[cacheKey] as Dictionary<string, IWeightTensor>;
+                    if (cachedTensors == null && decodingOptions.BeamSearchSize == 1)
+                    {
+                        cachedTensors = new Dictionary<string, IWeightTensor>();
+                    }
+                    MemoryCache.Default.Remove(cacheKey);
                 }
-                MemoryCache.Default.Remove(cacheKey);
 
                 for (int i = tgtTokensList[0].Count; i < decodingOptions.MaxTgtSentLength; i++)
                 {
@@ -237,7 +241,7 @@ namespace Seq2SeqSharp.Applications
                                                                             m_modelMetaData.TgtVocab, m_paddingType, 0.0f, decodingOptions, isTraining,
                                                                             outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus,
                                                                             segmentEmbeddings: segmentEmbedding, 
-                                                                            cachedTensors: cachedTensors, amp: m_options.AMP, posEmbeddings: posEmbeddings, lossScaling: LossScaling, 
+                                                                            contextTensors: cachedTensors, amp: m_options.AMP, posEmbeddings: posEmbeddings, lossScaling: LossScaling, 
                                                                             paddingAligmentFactor: m_options.PaddingAlignmentFactor);
 
                             bssSeqList = Decoder.SwapBeamAndBatch(bssSeqList); // Swap shape: (beam_search_size, batch_size) -> (batch_size, beam_search_size)

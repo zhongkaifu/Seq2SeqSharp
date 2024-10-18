@@ -154,7 +154,7 @@ namespace Seq2SeqSharp
 
                 for (int k = 0; k < m_selfAttns.Count; k++)
                 {
-                    var tgtInputs2 = m_selfAttns[k].Perform(tgtInputs, selfMaskTensor, batchSize, subg, cachedTensors: cachedTensors);
+                    var tgtInputs2 = m_selfAttns[k].Perform(tgtInputs, selfMaskTensor, batchSize, subg, contextTensors: cachedTensors);
                     tgtInputs.ReleaseWeight();
 
                     (var tgtInputs3, attnProbs) = m_encAttns[k].Perform(tgtInputs2, encOutputBatchFirst, encOutputBatchFirst, crossMaskTensor, batchSize, subg, outputAttenWeights: (outputAttnWeights && k == m_selfAttns.Count - 1), cachedTensors: cachedTensors);

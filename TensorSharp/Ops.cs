@@ -190,8 +190,8 @@ namespace TensorSharp
         public static Tensor IndexSelectGrad(Tensor grad, Tensor adj, Tensor indice) { return (Tensor)OpRegistry.Invoke("indexselectgrad", grad, adj, indice); }
 
 
-        public static Tensor RoPE(Tensor result, Tensor src, int seqLen) { return (Tensor)OpRegistry.Invoke("rope", result, src, seqLen); }
-        public static Tensor RoPEGrad(Tensor grad, Tensor adj, int seqLen) { return (Tensor)OpRegistry.Invoke("ropegrad", grad, adj, seqLen); }
+        public static Tensor RoPE(Tensor result, Tensor src, int seqLen, int rowOffset) { return (Tensor)OpRegistry.Invoke("rope", result, src, seqLen, rowOffset); }
+        public static Tensor RoPEGrad(Tensor grad, Tensor adj, int seqLen, int rowOffset) { return (Tensor)OpRegistry.Invoke("ropegrad", grad, adj, seqLen, rowOffset); }
 
 
         public static Tensor BuildSrcTgtMask(Tensor result, Tensor srcOriginalLengths, Tensor tgtOriginalLengths, int srcPaddedSeqLength, int tgtPaddedSeqLength, float value, float maskedValue)

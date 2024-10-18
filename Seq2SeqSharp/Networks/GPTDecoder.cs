@@ -145,34 +145,34 @@ isTrainable: isTrainable, learningRateFactor: learningRateFactor, elementType: e
         /// <summary>
         /// Transformer encoder
         /// </summary>
-        /// <param name="rawInputs"></param>
+        /// <param name="tgtInputs">The input tensor. Shape: [batchSize * seqLen, hidden_dim]</param>
         /// <param name="g"></param>
         /// <returns></returns>
         /// 
 
-        public (IWeightTensor, IWeightTensor) Decode(IWeightTensor tgtInputs, IWeightTensor tgtSelfMask, int batchSize, IComputeGraph g, Dictionary<string, IWeightTensor> cachedTensors = null)
+        public (IWeightTensor, IWeightTensor) Decode(IWeightTensor tgtInputs, IWeightTensor tgtSelfMask, int batchSize, IComputeGraph g, 
+            Dictionary<string, IWeightTensor> contextTensors = null)
         {
             IWeightTensor attnProbs = null;
             IWeightTensor tgtInputsFinal = null;
             using (IComputeGraph subg = g.CreateSubGraph($"{m_name}_GPTDecoder"))
             {
-                int seqLenQ = tgtInputs.Rows / batchSize;
                 IWeightTensor selfMaskTensor = null;
                 if (tgtSelfMask != null)
                 {
-                    selfMaskTensor = subg.Expand(tgtSelfMask, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ });
+                    selfMaskTensor = subg.Expand(tgtSelfMask, dims: new long[] { tgtSelfMask.Sizes[0], m_multiHeadNum, tgtSelfMask.Sizes[2], tgtSelfMask.Sizes[3] });
                 }
 
                 for (int k = 0; k < m_selfAttns.Count; k++)
                 {
-                    var tgtInputs2 = m_selfAttns[k].Perform(tgtInputs, selfMaskTensor, batchSize, subg, cachedTensors: cachedTensors);
+                    var tgtInputs2 = m_selfAttns[k].Perform(tgtInputs, selfMaskTensor, batchSize, subg, contextTensors); // Cached K Shape: [batchSize * m_multiHeadNum, m_d, seqLenQ], Cached V Shape: [batchSize * m_multiHeadNum, seqLenQ, m_d]
                     tgtInputs.ReleaseWeight();
 
-                    tgtInputs = m_feedForwards[k].Process(tgtInputs2, batchSize, subg, cachedTensors: cachedTensors);
+                    tgtInputs = m_feedForwards[k].Process(tgtInputs2, batchSize, subg);
                     tgtInputs2.ReleaseWeight();
                 }
 
-                tgtInputsFinal = layerNorm.Norm(tgtInputs, subg);
+                tgtInputsFinal = layerNorm.Norm(tgtInputs, subg); // Shape: [batchSize * seqLen, hidden_dim]
                 tgtInputs.ReleaseWeight();
 
                 tgtInputsFinal.UnbindFromComputeGraph();

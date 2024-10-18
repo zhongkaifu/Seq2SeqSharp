@@ -486,14 +486,14 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightTensor RoPE(IWeightTensor w, int seqLen)
+        public IWeightTensor RoPE(IWeightTensor w, int seqLen, int rowOffset)
         {
             WeightTensor m = w as WeightTensor;
             WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(w.Name)}.RoPE", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
             
             VisualizeNodes(w, res);
 
-            Ops.RoPE(res.TWeight, m.TWeight, seqLen);
+            Ops.RoPE(res.TWeight, m.TWeight, seqLen, rowOffset);
             if (m_autoCheckCorruption)
             {
                 if (res.IsWeightsCorrupted())
@@ -511,7 +511,7 @@ namespace Seq2SeqSharp.Tools
                         res.ReleaseWeight();
                         Tensor resT = Ops.AsContiguous(res.TGradient);
 
-                        Ops.RoPEGrad(m.TGradient, resT, seqLen);
+                        Ops.RoPEGrad(m.TGradient, resT, seqLen, rowOffset);
                         if (m_autoCheckCorruption)
                         {
                             if (m.IsGradientCorrupted())
@@ -857,6 +857,12 @@ namespace Seq2SeqSharp.Tools
             WeightTensor m1 = w1 as WeightTensor;
             WeightTensor m2 = w2 as WeightTensor;
             WeightTensor res = null;
+
+
+            if (m1.TWeight.ElementCount() != m2.TWeight.ElementCount())
+            {
+                throw new Exception("inconsistent element count");
+            }
 
             if (inPlace)
             {

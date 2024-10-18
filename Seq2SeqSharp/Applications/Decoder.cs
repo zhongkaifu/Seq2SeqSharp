@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using TensorSharp;
 using Seq2SeqSharp.Enums;
 using ProtoBuf;
+using System.Xml.Linq;
 
 namespace Seq2SeqSharp.Applications
 {
@@ -492,7 +493,7 @@ namespace Seq2SeqSharp.Applications
 
         public static (float, List<List<BeamSearchStatus>>) GPTDecode(List<List<int>> tgtSeqs, IComputeGraph g, GPTDecoder decoder, IFeedForwardLayer decoderFFLayer,
             IWeightTensor tgtEmbedding, Vocab tgtVocab, PaddingEnums paddingType, float dropoutRatio, DecodingOptions decodingOptions, bool isTraining = true,
-            bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, Dictionary<string, IWeightTensor> cachedTensors = null,
+            bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, Dictionary<string, IWeightTensor> contextTensors = null,
             LossEnums lossType = LossEnums.CrossEntropy, float labelSmooth = 0.0f, float lossSmooth = 1e-9f, IWeightTensor segmentEmbeddings = null, bool amp = true,
             IWeightTensor posEmbeddings = null, float lossScaling = 1.0f, int paddingAligmentFactor = 0)
         {
@@ -500,30 +501,52 @@ namespace Seq2SeqSharp.Applications
             int batchSize = tgtSeqs.Count;
             var tgtOriginalLengths = BuildInTokens.PadSentences(tgtSeqs, eosTokenId, alignmentFactor: paddingAligmentFactor);
             int tgtSeqLen = tgtSeqs[0].Count;
-
             IWeightTensor tgtSelfTriMask = null;
-            if (decoder.AttentionType == AttentionTypeEnums.Classic)
+            IWeightTensor inputEmbs = null;
+
+            if (contextTensors != null && contextTensors.Count > 0)
             {
-                if (paddingType == PaddingEnums.NoPadding || paddingType == PaddingEnums.NoPaddingInTgt || batchSize == 1)
+                List<List<int>> t = new List<List<int>>();
+
+                for (int i = 0; i < tgtSeqs.Count; i++)
                 {
-                    tgtSelfTriMask = g.BuildTriMask(tgtSeqLen, batchSize, amp ? TensorSharp.DType.Float16 : TensorSharp.DType.Float32);
-                    tgtSelfTriMask = g.View(tgtSelfTriMask, new long[] { 1, 1, tgtSeqLen, tgtSeqLen });
+                    t.Add(new List<int>());
+                    t[i].Add(tgtSeqs[i][tgtSeqs[i].Count - 1]);
                 }
-                else
+                tgtSeqLen = t[0].Count;
+
+
+                inputEmbs = TensorUtils.CreateTokensEmbeddings(t, g, tgtEmbedding, segmentEmbeddings, tgtVocab, scaleFactor: (float)Math.Sqrt(tgtEmbedding.Columns), amp: amp);
+                if (posEmbeddings != null)
                 {
-                    tgtSelfTriMask = g.BuildSelfTriMask(tgtSeqLen, tgtOriginalLengths, amp ? TensorSharp.DType.Float16 : TensorSharp.DType.Float32);
-                    tgtSelfTriMask = g.View(tgtSelfTriMask, new long[] { batchSize, 1, tgtSeqLen, tgtSeqLen });
+                    inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbeddings, batchSize, inputEmbs, dropoutRatio); //Output Shape: [batchSize * seqLen, hidden_dim]
                 }
             }
-
-            IWeightTensor inputEmbs = TensorUtils.CreateTokensEmbeddings(tgtSeqs, g, tgtEmbedding, segmentEmbeddings, tgtVocab, scaleFactor: (float)Math.Sqrt(tgtEmbedding.Columns), amp: amp);
-            if (posEmbeddings != null)
+            else
             {
-                inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbeddings, batchSize, inputEmbs, dropoutRatio);
+                if (decoder.AttentionType == AttentionTypeEnums.Classic)
+                {
+                    if (paddingType == PaddingEnums.NoPadding || paddingType == PaddingEnums.NoPaddingInTgt || batchSize == 1)
+                    {
+                        tgtSelfTriMask = g.BuildTriMask(tgtSeqLen, batchSize, amp ? TensorSharp.DType.Float16 : TensorSharp.DType.Float32);
+                        tgtSelfTriMask = g.View(tgtSelfTriMask, new long[] { 1, 1, tgtSeqLen, tgtSeqLen });
+                    }
+                    else
+                    {
+                        tgtSelfTriMask = g.BuildSelfTriMask(tgtSeqLen, tgtOriginalLengths, amp ? TensorSharp.DType.Float16 : TensorSharp.DType.Float32);
+                        tgtSelfTriMask = g.View(tgtSelfTriMask, new long[] { batchSize, 1, tgtSeqLen, tgtSeqLen });
+                    }
+                }
+
+                inputEmbs = TensorUtils.CreateTokensEmbeddings(tgtSeqs, g, tgtEmbedding, segmentEmbeddings, tgtVocab, scaleFactor: (float)Math.Sqrt(tgtEmbedding.Columns), amp: amp);
+                if (posEmbeddings != null)
+                {
+                    inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbeddings, batchSize, inputEmbs, dropoutRatio); //Output Shape: [batchSize * seqLen, hidden_dim]
+                }
             }
 
             IWeightTensor decOutput;
-            (decOutput, _) = decoder.Decode(inputEmbs, tgtSelfTriMask, batchSize, g, cachedTensors: cachedTensors);
+            (decOutput, _) = decoder.Decode(inputEmbs, tgtSelfTriMask, batchSize, g, contextTensors: contextTensors);
 
             if (isTraining == false)
             {

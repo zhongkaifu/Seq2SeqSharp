@@ -2,8 +2,8 @@
   "profiles": {
     "GPTConsole": {
       "commandName": "Project",
-      "commandLineArgs": "-ConfigFilePath train_opts.json",
-      "workingDirectory": "C:\\Works\\Workspace\\YBook"
+      "commandLineArgs": "-Task Test -ModelFilePath ybook_chat_3b.model.172000 -InputTestFile test_spm.txt -OutputFile a.out -ProcessorType GPU -MaxSrcSentLength 1024 -MaxTgtSentLength 64",
+      "workingDirectory": "C:\\Works\\Workspace\\YbookChat"
     }
   }
 }

@@ -307,6 +307,9 @@ namespace Seq2SeqSharp.Applications
         [Range(-1, 9999999)]
         public int RandomSeed = -1;
 
+        [Arg("Use KV Cache in test mode. The default value is false", nameof(UseKVCache))]
+        public bool UseKVCache = false;
+
         [Arg("Initial loss Scaling when AMP is enabled. Default is 1 which is disabled.", nameof(InitLossScaling))]
         [Range(1, 65000)]
         public float InitLossScaling = 1.0f;

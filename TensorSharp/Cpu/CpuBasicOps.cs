@@ -1026,7 +1026,7 @@ namespace TensorSharp.Cpu
         }
 
         [RegisterOpStorageType("rope", typeof(CpuStorage))]
-        public Tensor RoPE(Tensor result, Tensor src, int seqLen)
+        public Tensor RoPE(Tensor result, Tensor src, int seqLen, int rowOffset)
         {
             int ndim = src.DimensionCount;
             long storageSize = TensorDimensionHelpers.GetStorageSize(src.Sizes, src.Strides);
@@ -1040,12 +1040,12 @@ namespace TensorSharp.Cpu
             long rows = storageSize / cols;
 
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
-            TensorApplyCPU.RoPE(writeTarget, src, (int)rows, (int)cols, seqLen);
+            TensorApplyCPU.RoPE(writeTarget, src, (int)rows, (int)cols, seqLen, rowOffset);
             return writeTarget;
         }
 
         [RegisterOpStorageType("ropegrad", typeof(CpuStorage))]
-        public Tensor RoPEGrad(Tensor grad_, Tensor adj_, int seqLen)
+        public Tensor RoPEGrad(Tensor grad_, Tensor adj_, int seqLen, int rowOffset)
         {
             int ndim = adj_.DimensionCount;
             long storageSize = TensorDimensionHelpers.GetStorageSize(adj_.Sizes, adj_.Strides);
@@ -1059,7 +1059,7 @@ namespace TensorSharp.Cpu
             long rows = storageSize / cols;
 
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(grad_, adj_, true, adj_.Sizes);
-            TensorApplyCPU.RoPEGrad(writeTarget, adj_, (int)rows, (int)cols, seqLen);
+            TensorApplyCPU.RoPEGrad(writeTarget, adj_, (int)rows, (int)cols, seqLen, rowOffset);
 
 
             return writeTarget;

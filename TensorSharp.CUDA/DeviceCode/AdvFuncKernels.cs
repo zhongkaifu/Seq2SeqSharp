@@ -1242,7 +1242,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
   }
 }
 
-  __global__ void RoPE(float* __restrict__ result, float* __restrict__ src, int rows, int cols, int seqLen)
+  __global__ void RoPE(float* __restrict__ result, float* __restrict__ src, int rows, int cols, int seqLen, int rowOffset)
   {
     for(int bid = 0; bid < rows; bid += gridDim.x)
     {
@@ -1251,7 +1251,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
     {
       float* resultRow = result + j * cols;
       float* srcRow = src + j * cols;
-      int m = j % seqLen;
+      int m = (j % seqLen) + rowOffset;
 
       for(int tid = 0; tid < cols; tid += blockDim.x)
       {
@@ -1278,7 +1278,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
   }
 }
 
-  __global__ void RoPEGrad(float* __restrict__ grad, float* __restrict__ adj, int rows, int cols, int seqLen)
+  __global__ void RoPEGrad(float* __restrict__ grad, float* __restrict__ adj, int rows, int cols, int seqLen, int rowOffset)
   {
     for(int bid = 0; bid < rows; bid += gridDim.x)
     {
@@ -1287,7 +1287,7 @@ __global__ void RMSProp(float* __restrict__ w, float* __restrict__ g, float* __r
     {
       float* gradRow = grad + j * cols;
       float* adjRow = adj + j * cols;
-      int m = j % seqLen;
+      int m = (j % seqLen) + rowOffset;
 
       for(int tid = 0; tid < cols; tid += blockDim.x)
       {
@@ -2032,7 +2032,7 @@ extern __shared__ float shared[];
 
 
 
-__global__ void RoPEGradHalf(__half* __restrict__ grad, __half* __restrict__ adj, int rows, int cols, int seqLen)
+__global__ void RoPEGradHalf(__half* __restrict__ grad, __half* __restrict__ adj, int rows, int cols, int seqLen, int rowOffset)
   {
     for(int bid = 0; bid < rows; bid += gridDim.x)
     {
@@ -2041,7 +2041,7 @@ __global__ void RoPEGradHalf(__half* __restrict__ grad, __half* __restrict__ adj
     {
       __half* gradRow = grad + j * cols;
       __half* adjRow = adj + j * cols;
-      int m = j % seqLen;
+      int m = (j % seqLen) + rowOffset;
 
       for(int tid = 0; tid < cols; tid += blockDim.x)
       {
@@ -2070,7 +2070,7 @@ __global__ void RoPEGradHalf(__half* __restrict__ grad, __half* __restrict__ adj
 
 
 
-  __global__ void RoPEHalf(__half* __restrict__ result, __half* __restrict__ src, int rows, int cols, int seqLen)
+  __global__ void RoPEHalf(__half* __restrict__ result, __half* __restrict__ src, int rows, int cols, int seqLen, int rowOffset)
   {
     for(int bid = 0; bid < rows; bid += gridDim.x)
     {
@@ -2079,7 +2079,7 @@ __global__ void RoPEGradHalf(__half* __restrict__ grad, __half* __restrict__ adj
     {
       __half* resultRow = result + j * cols;
       __half* srcRow = src + j * cols;
-      int m = j % seqLen;
+      int m = (j % seqLen) + rowOffset;
 
       for(int tid = 0; tid < cols; tid += blockDim.x)
       {
@@ -2760,7 +2760,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
         public Tensor RMSNormGrad(Tensor outGrad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x, Tensor alpha, Tensor beta, float eps = 1e-9f)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(inGrad);
-            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(outGrad, inGrad, false, inGrad.Sizes);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(outGrad, inGrad, true, inGrad.Sizes);
             RMSNormGrad(context, writeTarget, alphaGrad, betaGrad, inGrad, y, x, alpha, beta, eps);
 
             return writeTarget;
@@ -2808,8 +2808,8 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
         public void AddLayerNormGrad(Tensor out1Grad, Tensor out2Grad, Tensor alphaGrad, Tensor betaGrad, Tensor inGrad, Tensor y, Tensor x1, Tensor x2, Tensor alpha, Tensor beta, float eps = 1e-9f)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(inGrad);
-            Tensor writeTarget1 = TensorResultBuilder.GetWriteTarget(out1Grad, inGrad, false, inGrad.Sizes);
-            Tensor writeTarget2 = TensorResultBuilder.GetWriteTarget(out2Grad, inGrad, false, inGrad.Sizes);
+            Tensor writeTarget1 = TensorResultBuilder.GetWriteTarget(out1Grad, inGrad, true, inGrad.Sizes);
+            Tensor writeTarget2 = TensorResultBuilder.GetWriteTarget(out2Grad, inGrad, true, inGrad.Sizes);
             AddLayerNormGrad(context, writeTarget1, writeTarget2, alphaGrad, betaGrad, inGrad, y, x1, x2, alpha, beta, eps);
         }
 
@@ -2852,7 +2852,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
         public Tensor LayerNorm(Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-9f)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(src);
-            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
             LayerNorm(context, writeTarget, src, alpha, beta, eps);
 
             return writeTarget;
@@ -2899,7 +2899,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
         public Tensor RMSNorm(Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-9f)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(src);
-            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
             RMSNorm(context, writeTarget, src, alpha, beta, eps);
 
             return writeTarget;
@@ -2908,6 +2908,15 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
 
         private void RMSNorm(TSCudaContext context, Tensor result, Tensor src, Tensor alpha, Tensor beta, float eps = 1e-9f)
         {
+            if (src.IsContiguous() == false)
+            {
+                throw new Exception($"Tensor {nameof(src)} is not contiguous.");
+            }
+            if (result.IsContiguous() == false)
+            {
+                throw new Exception($"Tensor {nameof(result)} is not contiguous.");
+            }
+
             CudaContext cudaContext = context.CudaContextForTensor(src);
 
             cudaContext.SetCurrent();
@@ -2946,7 +2955,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
         public Tensor AddLayerNorm(Tensor result, Tensor src1, Tensor src2, Tensor alpha, Tensor beta, float eps = 1e-9f)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(src1);
-            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src1, false, src1.Sizes);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src1, true, src1.Sizes);
             AddLayerNorm(context, writeTarget, src1, src2, alpha, beta, eps);
 
             return writeTarget;
@@ -3180,7 +3189,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
         }
 
 
-        private void RoPE(TSCudaContext context, Tensor result, Tensor src, int seqLen)
+        private void RoPE(TSCudaContext context, Tensor result, Tensor src, long seqLen, long rowOffset)
         {
             CudaContext cudaContext = context.CudaContextForTensor(src);
 
@@ -3221,11 +3230,11 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
             }
 
 
-            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, rows, cols, seqLen);
+            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float), CUstream.NullStream, resultPtr, srcPtr, rows, cols, seqLen, rowOffset);
 
         }
 
-        private void RoPEGrad(TSCudaContext context, Tensor grad, Tensor adj, int seqLen)
+        private void RoPEGrad(TSCudaContext context, Tensor grad, Tensor adj, int seqLen, int rowOffset)
         {
             CudaContext cudaContext = context.CudaContextForTensor(adj);
 
@@ -3266,7 +3275,7 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
             }
 
 
-            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float), CUstream.NullStream, gradPtr, adjPtr, rows, cols, seqLen);
+            Invoke(context, cudaContext, kernelName, grid, block, block.x * sizeof(float), CUstream.NullStream, gradPtr, adjPtr, rows, cols, seqLen, rowOffset);
         }
 
 
@@ -3658,19 +3667,19 @@ for(int bid = 0; bid < rows; bid += gridDim.x) {
         }
 
 
-        public Tensor RoPE(Tensor result, Tensor src, int seqLen)
+        public Tensor RoPE(Tensor result, Tensor src, int seqLen, int rowOffset)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(src);
             Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, true, src.Sizes);
-            RoPE(context, writeTarget, src, seqLen);
+            RoPE(context, writeTarget, src, seqLen, rowOffset);
 
             return writeTarget;
         }
 
-        public Tensor RoPEGrad(Tensor grad, Tensor adj, int seqLen)
+        public Tensor RoPEGrad(Tensor grad, Tensor adj, int seqLen, int rowOffset)
         {
             TSCudaContext context = CudaHelpers.TSContextForTensor(adj);
-            RoPEGrad(context, grad, adj, seqLen);
+            RoPEGrad(context, grad, adj, seqLen, rowOffset);
 
             return grad;
         }

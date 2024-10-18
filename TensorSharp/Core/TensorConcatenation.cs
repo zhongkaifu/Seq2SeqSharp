@@ -25,7 +25,7 @@ namespace TensorSharp.Core
             int ndim = Math.Max(dimension, inputs.Max(x => x.DimensionCount));
             long[] size = ConcatTensorSize(ndim, dimension, inputs);
 
-            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, inputs[0], false, size);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, inputs[0], true, size);
 
 
             // Select each region of the result corresponding to each input tensor,

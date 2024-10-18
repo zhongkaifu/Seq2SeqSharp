@@ -107,7 +107,7 @@ namespace Seq2SeqSharp
 
         IWeightTensor Rsqrt(IWeightTensor w);
 
-        IWeightTensor RoPE(IWeightTensor w, int seqLen);
+        IWeightTensor RoPE(IWeightTensor w, int seqLen, int rowOffset);
 
         IWeightTensor Div(IWeightTensor w1, IWeightTensor w2);
         IWeightTensor Div(IWeightTensor w, float v, bool inPlace = false);

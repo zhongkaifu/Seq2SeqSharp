@@ -14,6 +14,7 @@ Different Activation Functions: ReLU, SiLU, SwiGLU and others
 Attention-based LSTM decoder with coverage model  
 Bi-directional LSTM encoder  
 Cross-platform support: Windows, Linux, MacOS, and others  
+KV Cache  
 Cross-architecture compatibility: X86, X64, and ARM  
 Pre-built networks for sequence-to-sequence, classification, labeling, and similarity tasks  
 Mixture of Experts: Easily train large models with reduced computational cost  

@@ -614,10 +614,10 @@ namespace TensorSharp.CUDA
 
 
         [RegisterOpStorageType("rope", typeof(CudaStorage))]
-        public Tensor RoPE(Tensor result, Tensor src, int seqLen) { return advFuncKernels.RoPE(result, src, seqLen); }
+        public Tensor RoPE(Tensor result, Tensor src, int seqLen, int rowOffset) { return advFuncKernels.RoPE(result, src, seqLen, rowOffset); }
 
         [RegisterOpStorageType("ropegrad", typeof(CudaStorage))]
-        public Tensor RoPEGrad(Tensor grad, Tensor adj, int seqLen) { return advFuncKernels.RoPEGrad(grad, adj, seqLen); }
+        public Tensor RoPEGrad(Tensor grad, Tensor adj, int seqLen, int rowOffset) { return advFuncKernels.RoPEGrad(grad, adj, seqLen, rowOffset); }
 
 
 
