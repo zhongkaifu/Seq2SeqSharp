@@ -284,7 +284,7 @@ namespace Seq2SeqConsole
             var commandLine = string.Join(" ", args);
             var strOpts = JsonConvert.SerializeObject( opts, Formatting.Indented, new JsonSerializerSettings() { NullValueHandling = NullValueHandling.Ignore, Converters = new[] { new StringEnumConverter() }, } );
 
-            Logger.WriteLine($"Seq2SeqSharp v2.7.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
+            Logger.WriteLine($"Seq2SeqSharp v2.8.16 written by Zhongkai Fu(fuzhongkai@gmail.com)");
             Logger.WriteLine($"Command Line = '{commandLine}'");
             Logger.WriteLine($"Configs: {strOpts}");
         }

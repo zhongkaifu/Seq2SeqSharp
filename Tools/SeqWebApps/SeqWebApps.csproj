@@ -14,7 +14,7 @@
     <Company>Zhongkai Fu</Company>
     <Title>SeqWebApps</Title>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>2.7.0</Version>
+    <Version>2.8.16</Version>
     <RepositoryUrl>https://github.com/zhongkaifu/Seq2SeqSharp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackAsTool>True</PackAsTool>

@@ -160,7 +160,7 @@ isTrainable: isTrainable, learningRateFactor: learningRateFactor, elementType: e
                 IWeightTensor selfMaskTensor = null;
                 if (tgtSelfMask != null)
                 {
-                    selfMaskTensor = subg.Expand(tgtSelfMask, dims: new long[] { tgtSelfMask.Sizes[0], m_multiHeadNum, tgtSelfMask.Sizes[2], tgtSelfMask.Sizes[3] });
+                    selfMaskTensor = subg.Expand(tgtSelfMask, dims: new long[] { batchSize, m_multiHeadNum, tgtSelfMask.Sizes[2], tgtSelfMask.Sizes[3] });
                 }
 
                 for (int k = 0; k < m_selfAttns.Count; k++)

@@ -16,8 +16,8 @@
     <PackageTags>GPT;LLM;.NET;ML;deep learning;CUDA;C#;GPU;transformer</PackageTags>
     <PackageReleaseNotes>The console tool for GPT style model training and testing</PackageReleaseNotes>
     <PackAsTool>True</PackAsTool>
-    <AssemblyVersion>2.7.0</AssemblyVersion>
-    <FileVersion>2.7.0</FileVersion>
+    <AssemblyVersion>2.8.16</AssemblyVersion>
+    <FileVersion>2.8.16</FileVersion>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
 
@@ -33,7 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
   <ItemGroup>

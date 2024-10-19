@@ -18,7 +18,7 @@ using TensorSharp;
 using TensorSharp.CUDA.ContextState;
 
 Logger.Initialize(Logger.Destination.Console | Logger.Destination.Logfile, Logger.Level.err | Logger.Level.warn | Logger.Level.info | Logger.Level.debug, $"{nameof(SeqWebApps)}_{Utils.GetTimeStamp(DateTime.Now)}.log");
-Logger.WriteLine($"SeqWebApps v2.7.0 written by Zhongkai Fu(fuzhongkai@gmail.com)");
+Logger.WriteLine($"SeqWebApps v2.8.16 written by Zhongkai Fu(fuzhongkai@gmail.com)");
 
 var Configuration = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
 
