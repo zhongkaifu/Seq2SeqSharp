@@ -125,13 +125,13 @@ namespace Seq2SeqSharp
 
             string cachedKName = $"{m_name}_cached_K";
             string cachedVName = $"{m_name}_cached_V";
-            int seqLenAll = seqLenQ;
+            int ropeOffset = 0;
 
             if (contextTensors != null)
             {
                 if (contextTensors.ContainsKey(cachedKName))
                 {
-                    seqLenAll = (int)contextTensors[cachedKName].Sizes[2] + seqLenQ;
+                    ropeOffset = (int)contextTensors[cachedKName].Sizes[2];
                 }
             }
 
@@ -139,7 +139,7 @@ namespace Seq2SeqSharp
             IWeightTensor Qs = g.View(g.AsContiguous(g.Transpose(allQ, 1, 2)), dims: new long[] { batchSize * m_num_heads, seqLenQ, m_head_dim });
             if (m_PEType == PositionEmbeddingEnums.RoPE)
             {
-                Qs = g.RoPE(Qs, seqLenAll, seqLenAll - seqLenQ);
+                Qs = g.RoPE(Qs, seqLenQ, ropeOffset);
             }
 
             int group_size = m_num_heads / m_num_kv_groups;
@@ -147,7 +147,7 @@ namespace Seq2SeqSharp
             if (m_PEType == PositionEmbeddingEnums.RoPE)
             {
                 Ks = g.View(g.AsContiguous(g.Transpose(allK, 1, 2)), dims: new long[] { batchSize * m_num_kv_groups, seqLenQ, m_head_dim });
-                Ks = g.RoPE(Ks, seqLenAll, seqLenAll - seqLenQ);
+                Ks = g.RoPE(Ks, seqLenQ, ropeOffset);
             }
             else
             {
