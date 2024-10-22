@@ -9,7 +9,6 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the BSD-3-Clause License for more details.
 
 using AdvUtils;
-using Microsoft.Extensions.Logging.Abstractions;
 using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
 using System;

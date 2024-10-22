@@ -12,7 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using AdvUtils;
-using Microsoft.Extensions.Caching.Memory;
+using System.Runtime.Caching;
 using Seq2SeqSharp.Enums;
 using Seq2SeqSharp.Corpus;
 using Seq2SeqSharp.Layers;
@@ -41,8 +41,6 @@ namespace Seq2SeqSharp.Applications
         private readonly PaddingEnums m_paddingType = PaddingEnums.AllowPadding;
         readonly Seq2SeqOptions m_options = null;
 
-        private MemoryCache m_memoryCache;
-
         public Seq2Seq(Seq2SeqOptions options, Vocab srcVocab = null, Vocab tgtVocab = null)
             : base(deviceIds: options.DeviceIds, processorType: options.ProcessorType, modelFilePath: options.ModelFilePath, memoryUsageRatio: options.MemoryUsageRatio, 
                   compilerOptions: options.CompilerOptions, runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq, 
@@ -56,11 +54,6 @@ namespace Seq2SeqSharp.Applications
 
             // Check if options are valided.
             m_options.ValidateOptions();
-
-            m_memoryCache = new MemoryCache(new MemoryCacheOptions
-            {
-                SizeLimit = 1024
-            });
 
             if (File.Exists(m_options.ModelFilePath))
             {
@@ -193,16 +186,15 @@ namespace Seq2SeqSharp.Applications
             //}
 
             IWeightTensor encOutput;
-            if (!isTraining && (m_options.ProcessorType == ProcessorTypeEnums.CPU))
+            if (m_options.UseKVCache)
             {
                 // Try to get src tensor from cache
                 string cacheKey = GenerateCacheKey(srcSnts);
-                if (!m_memoryCache.TryGetValue(cacheKey, out encOutput))
-                {
+                encOutput = MemoryCache.Default[cacheKey] as IWeightTensor;
+                if (encOutput == null)
+                {                
                     encOutput = Encoder.Run(computeGraph, encoder, m_modelMetaData, m_paddingType, srcEmbedding, posEmbeddings, segmentEmbedding, srcTokensList, originalSrcLengths); // Shape: [batchsize * seqLen, embedding_dim]
-
-                    var cacheEntryOptions = new MemoryCacheEntryOptions().SetSize(1);
-                    m_memoryCache.Set(cacheKey, encOutput.CopyWeightsRef($"cache_{encOutput.Name}", false, graphToBind: null), cacheEntryOptions);
+                    MemoryCache.Default.Set(cacheKey, encOutput.CopyWeightsRef($"cache_{encOutput.Name}", false, graphToBind: null), DateTimeOffset.Now + TimeSpan.FromMinutes(10));
                 }
             }
             else
@@ -265,7 +257,18 @@ namespace Seq2SeqSharp.Applications
                 }
                 else
                 {   // Test mode or running validation in Training mode
-                    Dictionary<string, IWeightTensor> cachedTensors = new Dictionary<string, IWeightTensor>();
+                    string cacheKey = GenerateCacheKey(tgtSnts);
+                    Dictionary<string, IWeightTensor> cachedTensors = null;
+                    if (m_options.UseKVCache)
+                    {
+                        cachedTensors = MemoryCache.Default[cacheKey] as Dictionary<string, IWeightTensor>;
+                        if (cachedTensors == null && decodingOptions.BeamSearchSize == 1)
+                        {
+                            cachedTensors = new Dictionary<string, IWeightTensor>();
+                        }
+                        MemoryCache.Default.Remove(cacheKey);
+                    }
+
                     List<List<BeamSearchStatus>> beam2batchStatus = Decoder.InitBeamSearchStatusListList(batchSize, tgtTokensList);
                     for (int i = tgtTokensList[0].Count; i < decodingOptions.MaxTgtSentLength; i++)
                     {
@@ -292,7 +295,7 @@ namespace Seq2SeqSharp.Applications
                                                                                 originalSrcLengths, m_modelMetaData.TgtVocab, m_paddingType, 0.0f, decodingOptions, isTraining,
                                                                                 outputSentScore: decodingOptions.BeamSearchSize > 1, previousBeamSearchResults: batchStatus,
                                                                                 pointerGenerator: pointerGenerator, srcSeqs: srcTokensList,
-                                                                                cachedTensors: cachedTensors, alignmentsToSrc: alignmentsToSrc, alignmentScoresToSrc: alignmentScores, 
+                                                                                contextTensors: cachedTensors, alignmentsToSrc: alignmentsToSrc, alignmentScoresToSrc: alignmentScores, 
                                                                                 blockedTokens: decodingOptions.BlockedTokens, segmentEmbeddings: segmentEmbedding, amp: m_options.AMP, 
                                                                                 posEmbeddings: posEmbeddings, lossScaling: LossScaling, paddingAlignmentFactor: m_options.PaddingAlignmentFactor);
 
@@ -334,10 +337,13 @@ namespace Seq2SeqSharp.Applications
 
                     if (cachedTensors != null)
                     {
+                        cacheKey = GenerateCacheKey(nr.Output[0]);
+                        Dictionary<string, IWeightTensor> newCachedTensors = new Dictionary<string, IWeightTensor>();
                         foreach (var pair in cachedTensors)
                         {
-                            pair.Value.Dispose();
+                            newCachedTensors.Add(pair.Key, pair.Value.CopyWeightsRef(pair.Value.Name, false, graphToBind: null));
                         }
+                        MemoryCache.Default.Set(cacheKey, newCachedTensors, DateTimeOffset.Now + TimeSpan.FromMinutes(10));
                     }
                 }
             }

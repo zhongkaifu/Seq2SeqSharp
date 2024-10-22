@@ -14,7 +14,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>2.8.16</Version>
+    <Version>2.7.0</Version>
     <Authors>Zhongkai Fu</Authors>
     <Company />
     <Description>A utility for common alogrithms</Description>

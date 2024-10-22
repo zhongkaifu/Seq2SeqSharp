@@ -269,7 +269,7 @@ namespace Seq2SeqSharp.Applications
 
         public static (float, List<List<BeamSearchStatus>>) DecodeTransformer(List<List<int>> tgtSeqs, IComputeGraph g, IWeightTensor encOutputs, TransformerDecoder decoder, IFeedForwardLayer decoderFFLayer,
             IWeightTensor tgtEmbedding, float[] srcOriginalLenghts, Vocab tgtVocab, PaddingEnums paddingType, float dropoutRatio, DecodingOptions decodingOptions, bool isTraining = true,
-            bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, IFeedForwardLayer pointerGenerator = null, List<List<int>> srcSeqs = null, Dictionary<string, IWeightTensor> cachedTensors = null,
+            bool outputSentScore = true, List<BeamSearchStatus> previousBeamSearchResults = null, IFeedForwardLayer pointerGenerator = null, List<List<int>> srcSeqs = null, Dictionary<string, IWeightTensor> contextTensors = null,
             List<List<int>> alignmentsToSrc = null, List<List<float>> alignmentScoresToSrc = null, bool teacherForcedAlignment = false, LossEnums lossType = LossEnums.CrossEntropy, float labelSmooth = 0.0f, float lossSmooth = 1e-9f, 
             List<int> blockedTokens = null, IWeightTensor segmentEmbeddings = null, bool amp = false, IWeightTensor posEmbeddings = null, float lossScaling = 1.0f, int paddingAlignmentFactor = 0)
         {
@@ -281,33 +281,59 @@ namespace Seq2SeqSharp.Applications
             IWeightTensor srcTgtMask = (paddingType == PaddingEnums.NoPadding || batchSize == 1) ? null : g.BuildSrcTgtMask(srcSeqLen, tgtSeqLen, tgtOriginalLengths, srcOriginalLenghts, amp ? TensorSharp.DType.Float16 : TensorSharp.DType.Float32);
             if (srcTgtMask != null)
             {
-                srcTgtMask = g.View(srcTgtMask, new long[] { srcTgtMask.Sizes[0], 1, srcTgtMask.Sizes[1], srcTgtMask.Sizes[2] });
+                srcTgtMask = g.View(srcTgtMask, new long[] { srcTgtMask.Sizes[0], 1, srcTgtMask.Sizes[1], srcTgtMask.Sizes[2] }); // Shape: [batch_size, 1, tgtSeqLen, srcSeqLen]
             }
 
             IWeightTensor tgtSelfTriMask = null;
-            if (decoder.AttentionType == AttentionTypeEnums.Classic)
+            IWeightTensor inputEmbs = null;
+            if (contextTensors != null && contextTensors.Count > 0)
             {
-                if (paddingType == PaddingEnums.NoPadding || paddingType == PaddingEnums.NoPaddingInTgt || batchSize == 1)
+                // Only add last token in the target sequence into token list and cross-mask tensor
+                if (srcTgtMask != null)
                 {
-                    tgtSelfTriMask = g.BuildTriMask(tgtSeqLen, batchSize, amp ? TensorSharp.DType.Float16 : TensorSharp.DType.Float32);
-                    tgtSelfTriMask = g.View(tgtSelfTriMask, new long[] { 1, 1, tgtSeqLen, tgtSeqLen });
+                    srcTgtMask = g.Peek(srcTgtMask, 2, tgtSeqLen - 1, 1);
                 }
-                else
+
+                List<List<int>> t = new List<List<int>>();
+                for (int i = 0; i < tgtSeqs.Count; i++)
                 {
-                    tgtSelfTriMask = g.BuildSelfTriMask(tgtSeqLen, tgtOriginalLengths, amp ? TensorSharp.DType.Float16 : TensorSharp.DType.Float32);
-                    tgtSelfTriMask = g.View(tgtSelfTriMask, new long[] { batchSize, 1, tgtSeqLen, tgtSeqLen });
+                    t.Add(new List<int>());
+                    t[i].Add(tgtSeqs[i][tgtSeqs[i].Count - 1]);
+                }
+                tgtSeqLen = t[0].Count;
+
+                inputEmbs = TensorUtils.CreateTokensEmbeddings(t, g, tgtEmbedding, segmentEmbeddings, tgtVocab, scaleFactor: (float)Math.Sqrt(tgtEmbedding.Columns), amp: amp);
+                if (posEmbeddings != null)
+                {
+                    inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbeddings, batchSize, inputEmbs, dropoutRatio); //Output Shape: [batchSize * seqLen, hidden_dim]
                 }
             }
-
-            IWeightTensor inputEmbs = TensorUtils.CreateTokensEmbeddings(tgtSeqs, g, tgtEmbedding, segmentEmbeddings, tgtVocab, scaleFactor: (float)Math.Sqrt(tgtEmbedding.Columns), amp: amp);
-            if (posEmbeddings != null)
+            else
             {
-                inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbeddings, batchSize, inputEmbs, dropoutRatio);
+                if (decoder.AttentionType == AttentionTypeEnums.Classic)
+                {
+                    if (paddingType == PaddingEnums.NoPadding || paddingType == PaddingEnums.NoPaddingInTgt || batchSize == 1)
+                    {
+                        tgtSelfTriMask = g.BuildTriMask(tgtSeqLen, batchSize, amp ? TensorSharp.DType.Float16 : TensorSharp.DType.Float32);
+                        tgtSelfTriMask = g.View(tgtSelfTriMask, new long[] { 1, 1, tgtSeqLen, tgtSeqLen });
+                    }
+                    else
+                    {
+                        tgtSelfTriMask = g.BuildSelfTriMask(tgtSeqLen, tgtOriginalLengths, amp ? TensorSharp.DType.Float16 : TensorSharp.DType.Float32);
+                        tgtSelfTriMask = g.View(tgtSelfTriMask, new long[] { batchSize, 1, tgtSeqLen, tgtSeqLen });
+                    }
+                }
+
+                inputEmbs = TensorUtils.CreateTokensEmbeddings(tgtSeqs, g, tgtEmbedding, segmentEmbeddings, tgtVocab, scaleFactor: (float)Math.Sqrt(tgtEmbedding.Columns), amp: amp);
+                if (posEmbeddings != null)
+                {
+                    inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbeddings, batchSize, inputEmbs, dropoutRatio);
+                }
             }
 
             IWeightTensor decOutput;
             IWeightTensor decEncAttnProbs;           
-            (decOutput, decEncAttnProbs) = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g, outputAttnWeights: pointerGenerator != null, cachedTensors: cachedTensors);
+            (decOutput, decEncAttnProbs) = decoder.Decode(inputEmbs, encOutputs, tgtSelfTriMask, srcTgtMask, batchSize, g, outputAttnWeights: pointerGenerator != null, cachedTensors: contextTensors);
 
             if (isTraining == false && teacherForcedAlignment == false)
             {

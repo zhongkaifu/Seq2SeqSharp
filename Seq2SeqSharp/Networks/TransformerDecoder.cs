@@ -135,21 +135,16 @@ namespace Seq2SeqSharp
             IWeightTensor attnProbs = null;
             using (IComputeGraph subg = g.CreateSubGraph($"{m_name}_Decoder"))
             {
-                int seqLenQ = tgtInputs.Rows / batchSize;
-
-                // SeqLenK must be euqal to SeqLenV
-                int seqLenK = encOutputBatchFirst.Rows / batchSize;
-
                 IWeightTensor selfMaskTensor = null;
                 if (tgtSelfMask != null)
                 {
-                    selfMaskTensor = subg.Expand(tgtSelfMask, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenQ });
+                    selfMaskTensor = subg.Expand(tgtSelfMask, dims: new long[] { batchSize, m_multiHeadNum, tgtSelfMask.Sizes[2], tgtSelfMask.Sizes[3] });
                 }
 
                 IWeightTensor crossMaskTensor = null;
                 if (srcTgtMask != null)
                 {
-                    crossMaskTensor = subg.Expand(srcTgtMask, dims: new long[] { batchSize, m_multiHeadNum, seqLenQ, seqLenK });
+                    crossMaskTensor = subg.Expand(srcTgtMask, dims: new long[] { batchSize, m_multiHeadNum, srcTgtMask.Sizes[2], srcTgtMask.Sizes[3] });
                 }
 
                 for (int k = 0; k < m_selfAttns.Count; k++)
