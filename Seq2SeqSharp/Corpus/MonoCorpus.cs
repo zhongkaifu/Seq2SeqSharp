@@ -49,6 +49,8 @@ namespace Seq2SeqSharp.Tools
         private int m_batchNumInTotal = 0;
         private int m_startBatchId = 0;
 
+        private string m_dataPassword = String.Empty;
+
         public List<Dictionary<string, long>> CountTokenFreqs()
         {
             List<Dictionary<string, long>> td = new List<Dictionary<string, long>>();
@@ -201,15 +203,6 @@ namespace Seq2SeqSharp.Tools
                 indexDatas[i].len2offsets= len2offsets;
                 indexDatas[i].filePath = binaryDataSetFilePath;
             });
-
-
-
-
-
-
-
-            
-
             Logger.WriteLine(Logger.Level.debug, $"Shuffled '{corpusSize}' sentence pairs.");
 
             if (tooLongTgtSntCnt > 0)
@@ -369,72 +362,96 @@ namespace Seq2SeqSharp.Tools
 
             int batchIdx = 0;
             int currentBatchPercent = 0;
-
-            using (MemoryMappedFile mmf = MemoryMappedFile.CreateFromFile(m_indexedDataSetFilePath))
-            using (MemoryMappedViewStream mms = mmf.CreateViewStream())
+            MemoryMappedFile mmf = null;
+            MemoryMappedViewStream mms = null;
+            ZipDecompressor decompressor = null;
+            if (m_indexedDataSetFilePath.ToLower().EndsWith(".zip"))
             {
-                using (BinaryReader br = new BinaryReader(mms))
+                Logger.WriteLine($"The data set is a zip archive.");
+                decompressor = new ZipDecompressor(m_indexedDataSetFilePath, m_dataPassword);
+                mms = decompressor.GetMemoryMappedViewStream();
+            }
+            else
+            {
+                mmf = MemoryMappedFile.CreateFromFile(m_indexedDataSetFilePath);
+                mms = mmf.CreateViewStream();
+            }
+
+            using (BinaryReader br = new BinaryReader(mms))
+            {
+                while (true)
                 {
-                    while (true)
+                    int sizeInBatch = br.ReadInt32();
+                    if (sizeInBatch < 0)
                     {
-                        int sizeInBatch = br.ReadInt32();
-                        if (sizeInBatch < 0)
+                        break;
+                    }
+
+                    List<IPair> outputs = new List<IPair>();
+                    string[] tgtLines = br.ReadString().Split("\n");
+                    batchIdx++;
+
+                    if (batchIdx < m_startBatchId)
+                    {
+                        continue;
+                    }
+
+                    if (batchIdx % 10000 == 0)
+                    {
+                        Logger.WriteLine($"Processing batch '{batchIdx}'");
+                    }
+
+                    T batch;
+                    int currentTokenCountsInBatch = 0;
+                    for (int i = 0; i < sizeInBatch; i++)
+                    {
+                        var tgtLine = tgtLines[i];
+
+                        if (m_batchNumInTotal > 0)
                         {
-                            break;
-                        }
-
-                        List<IPair> outputs = new List<IPair>();
-                        string[] tgtLines = br.ReadString().Split("\n");
-                        batchIdx++;
-
-                        if (batchIdx < m_startBatchId)
-                        {
-                            continue;
-                        }
-
-                        if (batchIdx % 10000 == 0)
-                        {
-                            Logger.WriteLine($"Processing batch '{batchIdx}'");
-                        }
-
-                        T batch;
-                        int currentTokenCountsInBatch = 0;
-                        for (int i = 0; i < sizeInBatch; i++)
-                        {
-                            var tgtLine = tgtLines[i];
-
-                            if (m_batchNumInTotal > 0)
+                            if ((100 * batchIdx / m_batchNumInTotal) > currentBatchPercent)
                             {
-                                if ((100 * batchIdx / m_batchNumInTotal) > currentBatchPercent)
-                                {
-                                    Logger.WriteLine($"Processing batch '{batchIdx}/{m_batchNumInTotal}'."); // The '{i}th' record in this batch is: Target = '{tgtLine}'");
-                                    currentBatchPercent++;
-                                }
-                            }                            
-
-                            IPair sntPair = new SntPair(tgtLine, tgtLine);
-                            currentTokenCountsInBatch += sntPair.GetTgtTokenCount();
-                            outputs.Add(sntPair);
-
-                            if (currentTokenCountsInBatch >= m_maxTokenSizePerBatch)
-                            {
-                                batch = new T();
-                                batch.CreateBatch(outputs);
-                                yield return batch;
-
-                                outputs = new List<IPair>();
-                                currentTokenCountsInBatch = 0;
+                                Logger.WriteLine($"Processing batch '{batchIdx}/{m_batchNumInTotal}'."); // The '{i}th' record in this batch is: Target = '{tgtLine}'");
+                                currentBatchPercent++;
                             }
                         }
 
-                        if (outputs.Count > 0)
+                        IPair sntPair = new SntPair(tgtLine, tgtLine);
+                        currentTokenCountsInBatch += sntPair.GetTgtTokenCount();
+                        outputs.Add(sntPair);
+
+                        if (currentTokenCountsInBatch >= m_maxTokenSizePerBatch)
                         {
                             batch = new T();
                             batch.CreateBatch(outputs);
                             yield return batch;
+
+                            outputs = new List<IPair>();
+                            currentTokenCountsInBatch = 0;
                         }
                     }
+
+                    if (outputs.Count > 0)
+                    {
+                        batch = new T();
+                        batch.CreateBatch(outputs);
+                        yield return batch;
+                    }
                 }
+            }
+
+            if (mms != null)
+            {
+                mms.Dispose();
+            }
+            if (mmf != null)
+            {
+                mmf.Dispose();
+            }
+
+            if (decompressor != null)
+            {
+                decompressor.Dispose();
             }
 
             File.Delete(m_indexedDataSetFilePath);
@@ -450,9 +467,9 @@ namespace Seq2SeqSharp.Tools
 
         }
 
-        public MonoCorpus(string corpusFilePath, string tgtLangName, int maxTokenSizePerBatch, int maxTgtSentLength = 32, PaddingEnums paddingEnums = PaddingEnums.AllowPadding, TooLongSequence tooLongSequence = TooLongSequence.Ignore, string indexedFilePath = "", int startBatchId = 0)
+        public MonoCorpus(string corpusFilePath, string tgtLangName, int maxTokenSizePerBatch, int maxTgtSentLength = 32, PaddingEnums paddingEnums = PaddingEnums.AllowPadding, TooLongSequence tooLongSequence = TooLongSequence.Ignore, string indexedFilePath = "", int startBatchId = 0, string dataPassword = "")
         {
-            Logger.WriteLine($"Loading mono corpus from '{corpusFilePath}' Files search pattern '*.{tgtLangName}.snt' MaxTgtSentLength = '{maxTgtSentLength}', Token Padding Type = '{paddingEnums}', TooLongSequence = '{tooLongSequence}'");
+            Logger.WriteLine($"Loading mono corpus from '{corpusFilePath}' Files search pattern '*.{tgtLangName}.snt' MaxTgtSentLength = '{maxTgtSentLength}', Token Padding Type = '{paddingEnums}', TooLongSequence = '{tooLongSequence}', Encrypted data set = '{!String.IsNullOrEmpty(dataPassword)}'");
             m_maxTokenSizePerBatch = maxTokenSizePerBatch;
             m_maxTgtTokenSize = maxTgtSentLength;
             m_tooLongSequence = tooLongSequence;
@@ -460,6 +477,7 @@ namespace Seq2SeqSharp.Tools
             CorpusName = corpusFilePath;
             m_indexedDataSetFilePath = indexedFilePath;
             m_startBatchId = startBatchId;
+            m_dataPassword = dataPassword;
 
             m_tgtFileList = new List<string>();
             string[] files = Directory.GetFiles(corpusFilePath, $"*.{tgtLangName}.snt", SearchOption.TopDirectoryOnly);

@@ -238,6 +238,9 @@ namespace Seq2SeqSharp.Applications
         [Range(0, 9999999)]
         public int StartBatchId = 0;
 
+        [Arg("Zip password for dataset. The defulat value is empty", nameof(DataPassword))]
+        public string DataPassword = "";
+
         [Arg("The max degress of parallelism in task. Default is 1", nameof(TaskParallelism))]
         [Range(1, 999)]
         public int TaskParallelism = 1;
@@ -307,8 +310,8 @@ namespace Seq2SeqSharp.Applications
         [Range(-1, 9999999)]
         public int RandomSeed = -1;
 
-        [Arg("Use KV Cache in test mode. The default value is false", nameof(UseKVCache))]
-        public bool UseKVCache = false;
+        [Arg("Use KV Cache in test mode. The default value is true", nameof(UseKVCache))]
+        public bool UseKVCache = true;
 
         [Arg("Initial loss Scaling when AMP is enabled. Default is 1 which is disabled.", nameof(InitLossScaling))]
         [Range(1, 65000)]

@@ -79,7 +79,7 @@ namespace Seq2SeqSharp.Utils
     }
 
     public static class Misc
-    {
+    {       
         public static void AppendNewBatch(List<List<string>> inputBatchs, string line, int maxTokenLength)
         {
             List<string> tokens = line.Trim().Split(' ').ToList();

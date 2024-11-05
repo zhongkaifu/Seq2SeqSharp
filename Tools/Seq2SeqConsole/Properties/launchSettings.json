@@ -2,7 +2,7 @@
   "profiles": {
     "Seq2SeqConsole": {
       "commandName": "Project",
-      "commandLineArgs": "-ConfigFilePath train_opts.json",
+      "commandLineArgs": "-ConfigFilePath train_opts.json -DataPassword abc",
       "workingDirectory": "C:\\Works\\Workspace\\MT\\ENU_CHS",
       "environmentVariables": {
         "MKL_ENABLE_INSTRUCTIONS": "AVX2"

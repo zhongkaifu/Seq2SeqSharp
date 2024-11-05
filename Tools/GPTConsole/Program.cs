@@ -48,11 +48,15 @@ namespace GPTConsole
                 {
                     Console.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
                     opts = JsonConvert.DeserializeObject<Seq2SeqOptions>(File.ReadAllText(opts.ConfigFilePath));
+                    argParser.RewriteSettings(args, opts);
                 }
 
                 Logger.Initialize(opts.LogDestination, opts.LogLevel, $"{nameof(GPTConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log");
 
-                ShowOptions(args, opts);
+                if ((opts.LogLevel & Logger.Level.debug) == Logger.Level.debug)
+                {
+                    ShowOptions(args, opts);
+                }
 
                 DecodingOptions decodingOptions = opts.CreateDecodingOptions();
                 GPT ss = null;
@@ -60,7 +64,7 @@ namespace GPTConsole
                 {
                     // Load train corpus
                     var trainCorpus = new SeqCorpus(corpusFilePath: opts.TrainCorpusPath, tgtLangName: opts.TgtLang, maxTokenSizePerBatch: opts.MaxTokenSizePerBatch,
-                        maxTgtSentLength: opts.MaxTgtSentLength, paddingEnums: opts.PaddingType, tooLongSequence: opts.TooLongSequence, indexedFilePath: opts.IndexedCorpusPath, startBatchId: opts.StartBatchId);
+                        maxTgtSentLength: opts.MaxTgtSentLength, paddingEnums: opts.PaddingType, tooLongSequence: opts.TooLongSequence, indexedFilePath: opts.IndexedCorpusPath, startBatchId: opts.StartBatchId, dataPassword: opts.DataPassword);
 
                     // Create learning rate
                     ILearningRate learningRate = null;
