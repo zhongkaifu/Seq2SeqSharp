@@ -241,7 +241,7 @@ namespace Seq2SeqSharp.Models
                 Name2Weights = new Dictionary<string, float[]>();
             }
 
-            Name2WeightsHalf = m.Name2WeightsHalf;
+            Name2WeightsHalf = m.Name2WeightsHalf.usDict;
             if (Name2WeightsHalf == null)
             {
                 Name2WeightsHalf = new Dictionary<string, ushort[]>();
