@@ -54,7 +54,7 @@ namespace Seq2SeqConsole
                     try
                     {
                         opts = JsonConvert.DeserializeObject<Seq2SeqOptions>(File.ReadAllText(opts.ConfigFilePath));
-                        argParser.RewriteSettings(args, opts);
+                        argParser = new ArgParser(args, opts);
                     }
                     catch(Exception ex)
                     {

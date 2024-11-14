@@ -48,7 +48,7 @@ namespace GPTConsole
                 {
                     Console.WriteLine($"Loading config file from '{opts.ConfigFilePath}'");
                     opts = JsonConvert.DeserializeObject<Seq2SeqOptions>(File.ReadAllText(opts.ConfigFilePath));
-                    argParser.RewriteSettings(args, opts);
+                    argParser = new ArgParser(args, opts);
                 }
 
                 Logger.Initialize(opts.LogDestination, opts.LogLevel, $"{nameof(GPTConsole)}_{opts.Task}_{Utils.GetTimeStamp(DateTime.Now)}.log");

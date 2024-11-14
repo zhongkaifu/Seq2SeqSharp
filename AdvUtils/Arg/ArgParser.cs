@@ -10,24 +10,24 @@ namespace AdvUtils
         object m_o;
         List<ArgField> m_arrayArgs;
 
-        public static void UpdateFieldValue(object obj, string fieldName, string newValue)
-        {
-            // Get the Type of the object
-            Type objType = obj.GetType();
+        //public static void UpdateFieldValue(object obj, string fieldName, string newValue)
+        //{
+        //    // Get the Type of the object
+        //    Type objType = obj.GetType();
 
-            // Get the FieldInfo for the specified field name
-            FieldInfo fieldInfo = objType.GetField(fieldName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        //    // Get the FieldInfo for the specified field name
+        //    FieldInfo fieldInfo = objType.GetField(fieldName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 
-            // If the field is found, set the new value
-            if (fieldInfo != null)
-            {
-                fieldInfo.SetValue(obj, newValue);
-            }
-            else
-            {
-                Console.WriteLine($"Field '{fieldName}' not found in the class.");
-            }
-        }
+        //    // If the field is found, set the new value
+        //    if (fieldInfo != null)
+        //    {
+        //        fieldInfo.SetValue(obj, newValue);
+        //    }
+        //    else
+        //    {
+        //        Console.WriteLine($"Field '{fieldName}' not found in the class.");
+        //    }
+        //}
 
         public ArgParser(string[] args, object o)
         {
@@ -43,11 +43,6 @@ namespace AdvUtils
                 }
             }
 
-            RewriteSettings(args, o);
-        }
-
-        public void RewriteSettings(string[] args, object o)
-        {
             try
             {
                 for (int i = 0; i < args.Length; i++)
@@ -64,10 +59,6 @@ namespace AdvUtils
                         }
 
                         intarg.Set(strArgValue);
-
-                        Console.WriteLine($"Rewrite field '{strArgName}' value.");
-                        UpdateFieldValue(o, strArgName, strArgValue);
-
                         i++;
                     }
                 }
