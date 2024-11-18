@@ -18,6 +18,7 @@ using Seq2SeqSharp.Utils;
 using Seq2SeqSharp.Enums;
 using TensorSharp;
 using System.Runtime.InteropServices;
+using System.Data;
 
 namespace Seq2SeqSharp.Models
 {
@@ -26,6 +27,23 @@ namespace Seq2SeqSharp.Models
     {
         [FieldOffset(0)] public Dictionary<string, ushort[]> usDict;
         [FieldOffset(0)] public Dictionary<string, half[]> halfDict;
+
+        public Name2WeightsHalf()
+        {
+            usDict = new Dictionary<string, ushort[]>();
+        }
+
+        public void Clear()
+        {
+            if (usDict != null)
+            {
+                usDict.Clear();
+            }
+            else
+            {
+                usDict = new Dictionary<string, ushort[]>();
+            }
+        }
     }
 
     [Serializable]
@@ -390,7 +408,7 @@ namespace Seq2SeqSharp.Models
             Name2WeightsVQ.Clear();
             Name2CodeBook.Clear();
             Name2Weights.Clear();
-            Name2WeightsHalf.halfDict.Clear();
+            Name2WeightsHalf.Clear();
         }
 
         public void ShowModelInfo()
