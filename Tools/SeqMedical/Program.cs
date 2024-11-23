@@ -147,10 +147,6 @@ do
 
     Logger.WriteLine(Logger.Level.info, ep.Color, ep.Message);
   }
-  if (opts.Task == ModeEnums.Train)
-  {
-    break;
-  }
 }
 while (!training);
 
