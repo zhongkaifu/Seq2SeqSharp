@@ -30,4 +30,11 @@ namespace Seq2SeqSharp
         public List<IMetric> Metrics;
         public bool BetterModel;
     }
+
+    public class KVCacheRemoveEventArg : EventArgs
+    {
+        public string Key;
+        public object Value;
+        public string Reason;
+    }
 }

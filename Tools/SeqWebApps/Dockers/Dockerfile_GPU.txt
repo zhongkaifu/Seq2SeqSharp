@@ -10,8 +10,8 @@ RUN apt install -y zip
 
 # Install .NET SDK
 RUN apt-get update
-RUN apt-get install -y dotnet-sdk-7.0
-RUN apt-get install -y aspnetcore-runtime-7.0
+RUN apt-get install -y dotnet-sdk-8.0
+RUN apt-get install -y aspnetcore-runtime-8.0
 RUN apt-get install -y cmake
 RUN apt-get install -y git-lfs
 

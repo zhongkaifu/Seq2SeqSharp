@@ -16,8 +16,8 @@ RUN rm packages-microsoft-prod.deb
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh
 
 RUN apt-get update
-RUN apt-get install -y dotnet-sdk-7.0
-RUN apt-get install -y aspnetcore-runtime-7.0
+RUN apt-get install -y dotnet-sdk-8.0
+RUN apt-get install -y aspnetcore-runtime-8.0
 RUN apt-get install -y cmake
 RUN apt-get install -y git-lfs
 

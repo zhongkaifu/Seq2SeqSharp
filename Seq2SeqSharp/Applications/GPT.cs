@@ -35,6 +35,8 @@ namespace Seq2SeqSharp.Applications
         private readonly PaddingEnums m_paddingType = PaddingEnums.AllowPadding;
         readonly Seq2SeqOptions m_options = null;
 
+        public event EventHandler KVCacheRemoveWatcher;
+
         public GPT(Seq2SeqOptions options, Vocab tgtVocab = null)
             : base(deviceIds: options.DeviceIds, processorType: options.ProcessorType, modelFilePath: options.ModelFilePath, memoryUsageRatio: options.MemoryUsageRatio,
                   compilerOptions: options.CompilerOptions, runValidEveryUpdates: options.RunValidEveryUpdates, updateFreq: options.UpdateFreq,
@@ -299,7 +301,14 @@ namespace Seq2SeqSharp.Applications
                     {
                         newCachedTensors.Add(pair.Key, pair.Value.CopyWeightsRef(pair.Value.Name, false, graphToBind: null));
                     }
-                    MemoryCache.Default.Set(cacheKey, newCachedTensors, DateTimeOffset.Now + TimeSpan.FromMinutes(10));
+
+                    var cacheEntryOptions = new CacheItemPolicy
+                    {
+                        AbsoluteExpiration = DateTimeOffset.Now + TimeSpan.FromMinutes(10),
+                        RemovedCallback = CacheItemRemoveCallback
+                    };
+
+                    MemoryCache.Default.Set(cacheKey, newCachedTensors, cacheEntryOptions);
                 }
             }
 
@@ -307,6 +316,19 @@ namespace Seq2SeqSharp.Applications
 
             nrs.Add(nr);
             return nrs;
+        }
+
+        private void CacheItemRemoveCallback(CacheEntryRemovedArguments arguments)
+        {
+            if (KVCacheRemoveWatcher != null)
+            {
+                KVCacheRemoveWatcher(this, new KVCacheRemoveEventArg()
+                {
+                    Key = arguments.CacheItem.Key,
+                    Value = arguments.CacheItem.Value,
+                    Reason = arguments.RemovedReason.ToString()
+                });
+            }
         }
 
         public void DumpVocabToFiles(string outputTgtVocab)

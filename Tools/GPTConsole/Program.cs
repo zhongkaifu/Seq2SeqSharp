@@ -38,6 +38,16 @@ namespace GPTConsole
             }
         }
 
+
+        private static void Ss_KVCacheRemoveWatcher(object sender, EventArgs e)
+        {
+            KVCacheRemoveEventArg ep = e as KVCacheRemoveEventArg;
+            if (ep.Reason != "Removed")
+            {
+                Logger.WriteLine(Logger.Level.debug, $"KV Cache Removed due to '{ep.Reason}' Key = '{ep.Key}'");
+            }
+        }
+
         private static void Main(string[] args)
         {
             try
@@ -130,6 +140,7 @@ namespace GPTConsole
 
                     //Test trained model
                     ss = new GPT(opts);
+                    ss.KVCacheRemoveWatcher += Ss_KVCacheRemoveWatcher;
                     Stopwatch stopwatch = Stopwatch.StartNew();
 
                     if (String.IsNullOrEmpty(opts.OutputPromptFile))
@@ -181,7 +192,6 @@ namespace GPTConsole
                 Logger.WriteLine($"Call stack: '{err.StackTrace}'");
             }
         }
-
 
         private static void ShowOptions(string[] args, Seq2SeqOptions opts)
         {
