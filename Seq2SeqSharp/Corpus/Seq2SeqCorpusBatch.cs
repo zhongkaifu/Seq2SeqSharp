@@ -115,7 +115,7 @@ namespace Seq2SeqSharp.Corpus
         public List<string> SrcTokens;
         public List<string> TgtTokens;
 
-        public SntPair(string srcLine, string tgtLine)
+        public SntPair(string srcLine, string tgtLine, int maxSrcLength = -1, int maxTgtLength = -1)
         {
             SrcTokens = new List<string>();
             TgtTokens = new List<string>();
@@ -123,11 +123,19 @@ namespace Seq2SeqSharp.Corpus
             if (String.IsNullOrEmpty(srcLine) == false)
             {
                 SrcTokens = srcLine.Split(' ').ToList();
+                if (maxSrcLength >= 0 && SrcTokens.Count > maxSrcLength)
+                {
+                    SrcTokens = SrcTokens.GetRange(0, maxSrcLength);
+                }
             }
 
             if (String.IsNullOrEmpty(tgtLine) == false)
             {
                 TgtTokens = tgtLine.Split(' ').ToList();
+                if (maxTgtLength >= 0 && TgtTokens.Count > maxTgtLength)
+                {
+                    TgtTokens = TgtTokens.GetRange(0, maxTgtLength);
+                }
             }
         }
 

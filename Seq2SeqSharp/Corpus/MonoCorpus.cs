@@ -416,7 +416,7 @@ namespace Seq2SeqSharp.Tools
                             }
                         }
 
-                        IPair sntPair = new SntPair(tgtLine, tgtLine);
+                        IPair sntPair = new SntPair(tgtLine, tgtLine, maxSrcLength: m_maxTgtTokenSize, maxTgtLength: m_maxTgtTokenSize);
                         currentTokenCountsInBatch += sntPair.GetTgtTokenCount();
                         outputs.Add(sntPair);
 
