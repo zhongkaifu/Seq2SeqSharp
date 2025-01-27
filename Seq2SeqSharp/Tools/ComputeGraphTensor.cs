@@ -15,6 +15,7 @@ using TensorSharp;
 using Seq2SeqSharp.Utils;
 using TensorSharp.Cpu;
 using AdvUtils;
+using static System.Reflection.Metadata.BlobBuilder;
 
 /// <summary>
 /// Tensor based computing graph written by Zhongkai Fu.
@@ -783,6 +784,45 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+        public IWeightTensor UpdateGradientByMask(IWeightTensor w1, IWeightTensor mask1)
+        {
+            WeightTensor w = w1 as WeightTensor;
+            WeightTensor mask = mask1 as WeightTensor;
+            var res = w.CopyWeightsRef("UpdateGradientByMask", w.NeedGradient, this);
+
+            if (m_needsBackprop)
+            {
+                Tensor maskW = null;
+                if (w.NeedGradient)
+                {
+                    maskW = mask.TWeight.CopyRef();
+                }
+
+                void backward()
+                {
+                    res.ReleaseWeight();
+                    if (w.NeedGradient)
+                    {
+                        w.AddMulGradient(res.TGradient, maskW);
+                        maskW.Dispose();
+                        if (m_autoCheckCorruption)
+                        {
+                            if (w.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{w.Name}' is corrupted.");
+                            }
+                        }
+                    }
+
+                    res.Dispose();
+                }
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
+
         public IWeightTensor EltMul(IWeightTensor w1, IWeightTensor w2)
         {
             WeightTensor m1 = w1 as WeightTensor;
@@ -1032,10 +1072,10 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightTensor Log(IWeightTensor w)
+        public IWeightTensor Log(IWeightTensor w, bool needGradient = true)
         {
             WeightTensor m = w as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Log", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m.Sizes, m_deviceId, name: $"{GetHashString(m.Name)}.Log", graphToBind: this, needGradient: m.NeedGradient && needGradient, dtype: m.ElementType);
 
             Ops.Log(res.TWeight, m.TWeight);
             if (m_autoCheckCorruption)
@@ -1046,7 +1086,7 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
-            if (m_needsBackprop)
+            if (m_needsBackprop && needGradient)
             {
                 Tensor mTWeight = null;
                 //if (m_saveGPUMemoryMode)
@@ -1282,11 +1322,11 @@ namespace Seq2SeqSharp.Tools
         }
 
 
-        public IWeightTensor Sub(IWeightTensor w0, IWeightTensor w1)
+        public IWeightTensor Sub(IWeightTensor w0, IWeightTensor w1, bool needGradient = true)
         {
             WeightTensor m0 = w0 as WeightTensor;
             WeightTensor m1 = w1 as WeightTensor;
-            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w0.Name)}_{GetHashString(w1.Name)}.SubTT", graphToBind: this, needGradient: m0.NeedGradient || m1.NeedGradient, dtype: m0.ElementType);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(m1.Sizes, m_deviceId, name: $"{GetHashString(w0.Name)}_{GetHashString(w1.Name)}.SubTT", graphToBind: this, needGradient: needGradient && (m0.NeedGradient || m1.NeedGradient), dtype: m0.ElementType);
 
             VisualizeNodes(new IWeightTensor[] { w1 }, res);
 
@@ -1299,7 +1339,7 @@ namespace Seq2SeqSharp.Tools
                 }
             }
 
-            if (m_needsBackprop)
+            if (m_needsBackprop && needGradient)
             {
                 void backward()
                 {
@@ -3948,22 +3988,23 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
-        public IWeightTensor BuildMaskUntil(List<List<int>> paddedTokensList, int maskEndId, DType elementType = DType.Float32)
+        public IWeightTensor BuildMaskAfter(List<List<int>> paddedTokensList, int maskTokenId, DType elementType = DType.Float32)
         {
             int batchSize = paddedTokensList.Count;
             int seqLength = paddedTokensList[0].Count;
 
             float[] buf = new float[batchSize * seqLength];
-            Array.Fill(buf, 1.0f);
+            Array.Fill(buf, 0.0f);
 
             for (int batchIdx = 0; batchIdx < batchSize; batchIdx++)
             {
                 for (int tokenIdx = 0; tokenIdx < seqLength; tokenIdx++)
                 {
                     int token = paddedTokensList[batchIdx][tokenIdx];
-                    if (token == maskEndId)
+                    if (token == maskTokenId && seqLength - tokenIdx - 1 > 0)
                     {
-                        Array.Fill(buf, 0.0f, batchIdx * seqLength, tokenIdx);
+                        Array.Fill(buf, 1.0f, batchIdx * seqLength + tokenIdx + 1, seqLength - tokenIdx - 1);
+                        break;
                     }
                 }
             }
@@ -3993,6 +4034,40 @@ namespace Seq2SeqSharp.Tools
             return res;
         }
 
+
+        public (float, float, float) DPOLoss(IWeightTensor policy_chosen_logps, IWeightTensor policy_rejected_logps, IWeightTensor reference_chosen_logps, IWeightTensor reference_rejected_logps, float graident = 1.0f, float smooth = 0.0f, float beta = 0.5f)
+        {
+            float num_classes = policy_chosen_logps.Sizes[1];
+            float N = policy_chosen_logps.Sizes[0];
+
+            var pi_logratios = Sub(policy_chosen_logps, policy_rejected_logps);
+            var ref_logratios = Sub(reference_chosen_logps, reference_rejected_logps);
+
+            var logits = Sub(pi_logratios, ref_logratios);
+
+            IWeightTensor loss = null;
+            //DPO Loss
+            if (smooth > 0.0f)
+            {
+                loss = Mul(Log(Add(Sigmoid(Mul(logits, beta)), smooth)), -1.0f);
+            }
+            else
+            {
+                loss = Mul(Log(Sigmoid(Mul(logits, beta))), -1.0f);
+            }
+
+            var lossValue = loss.ToWeightArray().Sum() / (N * num_classes);
+
+            loss.FillGradient(graident);
+
+            var chosen_rewards = Sub(policy_chosen_logps, reference_chosen_logps, needGradient: false);
+            float cr = chosen_rewards.ToWeightArray().Sum() / (N * num_classes);
+
+            var rejected_rewards = Sub(policy_rejected_logps, reference_rejected_logps, needGradient: false);
+            float rr = rejected_rewards.ToWeightArray().Sum() / (N * num_classes);
+
+            return (lossValue, cr, rr);
+        }
 
 
         private (float, IWeightTensor) CalculateEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float smooth, float labelSmooth)

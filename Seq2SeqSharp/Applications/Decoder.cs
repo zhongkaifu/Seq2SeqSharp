@@ -19,12 +19,13 @@ using TensorSharp;
 using Seq2SeqSharp.Enums;
 using ProtoBuf;
 using System.Xml.Linq;
+using System.IO;
 
 namespace Seq2SeqSharp.Applications
 {
     public class Decoder
     {
-        public static MultiProcessorNetworkWrapper<IDecoder> CreateDecoders(IModel model, Seq2SeqOptions options, RoundArray<int> raDeviceIds, DType elementType = DType.Float32)
+        public static MultiProcessorNetworkWrapper<IDecoder> CreateDecoders(IModel model, Seq2SeqOptions options, RoundArray<int> raDeviceIds, bool isTrainable, bool isSavable = true, DType elementType = DType.Float32)
         {
             MultiProcessorNetworkWrapper<IDecoder> decoder;
             if (model.DecoderType == DecoderTypeEnums.AttentionLSTM)
@@ -32,22 +33,22 @@ namespace Seq2SeqSharp.Applications
                 decoder = new MultiProcessorNetworkWrapper<IDecoder>(
                      new AttentionDecoder("AttnLSTMDecoder", model.HiddenDim, model.DecoderEmbeddingDim, model.HiddenDim,
                      options.DropoutRatio, model.DecoderLayerDepth, raDeviceIds.GetNextItem(), model.EnableCoverageModel, 
-                     isTrainable: options.IsDecoderTrainable && (options.Task == ModeEnums.Train), elementType: elementType), raDeviceIds.ToArray());
+                     isTrainable: isTrainable, elementType: elementType), raDeviceIds.ToArray(), savableWeights: isSavable);
             }
             else if (model.DecoderType == DecoderTypeEnums.GPTDecoder)
             {
                 decoder = new MultiProcessorNetworkWrapper<IDecoder>(
                     new GPTDecoder("GPTDecoder", model.MultiHeadNum, model.HiddenDim, model.IntermediateDim, model.DecoderEmbeddingDim, model.DecoderLayerDepth, options.DropoutRatio, raDeviceIds.GetNextItem(),
-                    isTrainable: options.IsDecoderTrainable && (options.Task == ModeEnums.Train), learningRateFactor: options.DecoderStartLearningRateFactor, activateFunc: model.ActivateFunc, expertNum: model.ExpertNum, 
+                    isTrainable: isTrainable, learningRateFactor: options.DecoderStartLearningRateFactor, activateFunc: model.ActivateFunc, expertNum: model.ExpertNum, 
                     expertsPerTokenFactor: model.ExpertsPerTokenFactor, elementType: elementType, peType:model.PEType, normType: model.NormType, attentionType: options.AttentionType, multiHeadAttentionType: model.MultiHeadAttentionType, 
-                    KVGroupNum: model.KVGroupNum), raDeviceIds.ToArray());
+                    KVGroupNum: model.KVGroupNum), raDeviceIds.ToArray(), savableWeights: isSavable);
             }
             else
             {
                 decoder = new MultiProcessorNetworkWrapper<IDecoder>(
                     new TransformerDecoder("TransformerDecoder", model.MultiHeadNum, model.HiddenDim, model.IntermediateDim, model.DecoderEmbeddingDim, model.DecoderLayerDepth, options.DropoutRatio, raDeviceIds.GetNextItem(),
-                    isTrainable: options.IsDecoderTrainable && (options.Task == ModeEnums.Train), learningRateFactor: options.DecoderStartLearningRateFactor, activateFunc: model.ActivateFunc, expertNum: model.ExpertNum, 
-                    expertsPerTokenFactor: model.ExpertsPerTokenFactor, elementType: elementType, peType:model.PEType, normType: model.NormType, attentionType: options.AttentionType), raDeviceIds.ToArray());
+                    isTrainable: isTrainable, learningRateFactor: options.DecoderStartLearningRateFactor, activateFunc: model.ActivateFunc, expertNum: model.ExpertNum, 
+                    expertsPerTokenFactor: model.ExpertsPerTokenFactor, elementType: elementType, peType:model.PEType, normType: model.NormType, attentionType: options.AttentionType), raDeviceIds.ToArray(), savableWeights: isSavable);
             }
 
             return decoder;
@@ -515,6 +516,133 @@ namespace Seq2SeqSharp.Applications
                 return (0.0f, bssSeqList);
             }
         }
+
+
+        public static (float, float, float) DPODecoderTrainer(List<List<int>> chosenSeqs, List<List<int>> rejectedSeqs, IComputeGraph g, GPTDecoder decoder, GPTDecoder refDecoder, IFeedForwardLayer decoderFFLayer, IFeedForwardLayer refDecoderFFLayer, 
+           IWeightTensor tgtEmbedding, IWeightTensor refTgtEmbedding, Vocab tgtVocab, PaddingEnums paddingType, float dropoutRatio, IWeightTensor segmentEmbeddings = null, IWeightTensor refSegmentEmbeddings = null, bool amp = true,
+           IWeightTensor posEmbeddings = null, IWeightTensor refPosEmbeddings = null, float lossScaling = 1.0f, int paddingAligmentFactor = 0, float lossSmooth = 0.0f, float beta = 0.5f, IWeightTensor chosenMasks = null, IWeightTensor rejectedMasks = null)
+        {
+            var chosenProbs = DecoderLogist(chosenSeqs, g, decoder, decoderFFLayer, tgtEmbedding, tgtVocab, paddingType, dropoutRatio, segmentEmbeddings, amp, posEmbeddings, paddingAligmentFactor);
+            var rejectedProbs = DecoderLogist(rejectedSeqs, g, decoder, decoderFFLayer, tgtEmbedding, tgtVocab, paddingType, dropoutRatio, segmentEmbeddings, amp, posEmbeddings, paddingAligmentFactor);
+
+            var refChosenProbs = DecoderLogist(chosenSeqs, g, refDecoder, refDecoderFFLayer, refTgtEmbedding, tgtVocab, paddingType, dropoutRatio, refSegmentEmbeddings, amp, refPosEmbeddings, paddingAligmentFactor);
+            var refRejectedProbs = DecoderLogist(rejectedSeqs, g, refDecoder, refDecoderFFLayer, refTgtEmbedding, tgtVocab, paddingType, dropoutRatio, refSegmentEmbeddings, amp, refPosEmbeddings, paddingAligmentFactor);
+
+
+            var batchSize = chosenSeqs.Count;
+            var seqLen = chosenSeqs[0].Count;
+            var dim = chosenProbs.Sizes[^1];
+            chosenMasks = g.View(chosenMasks, new long[] { batchSize, seqLen, 1 });
+            chosenMasks = g.AsContiguous(g.Expand(chosenMasks, new long[] { batchSize, seqLen, dim }));
+            chosenMasks = g.View(chosenMasks, chosenProbs.Sizes);
+
+            if (lossSmooth > 0)
+            {
+                chosenProbs = g.Add(chosenProbs, lossSmooth);
+            }
+            chosenProbs = g.Log(chosenProbs);
+            chosenProbs = g.EltMul(chosenProbs, chosenMasks);
+
+            chosenProbs = g.View(chosenProbs, dims: new long[] { batchSize, seqLen, -1 });
+            chosenProbs = g.Sum(chosenProbs, dim: 1);
+            chosenProbs = g.View(chosenProbs, dims: new long[] { batchSize, -1 });
+
+            if (lossSmooth > 0)
+            {
+                refChosenProbs = g.Add(refChosenProbs, lossSmooth);
+            }
+            refChosenProbs = g.Log(refChosenProbs);
+            refChosenProbs = g.EltMul(refChosenProbs, chosenMasks);
+
+            refChosenProbs = g.View(refChosenProbs, dims: new long[] { batchSize, seqLen, -1 });
+            refChosenProbs = g.Sum(refChosenProbs, dim: 1);
+            refChosenProbs = g.View(refChosenProbs, dims: new long[] { batchSize, -1 });
+
+
+            seqLen = rejectedSeqs[0].Count;
+            rejectedMasks = g.View(rejectedMasks, new long[] { batchSize, seqLen, 1 });
+            rejectedMasks = g.AsContiguous(g.Expand(rejectedMasks, new long[] { batchSize, seqLen, dim }));
+            rejectedMasks = g.View(rejectedMasks, rejectedProbs.Sizes);
+
+            if (lossSmooth > 0)
+            {
+                rejectedProbs = g.Add(rejectedProbs, lossSmooth);
+            }
+            rejectedProbs = g.Log(rejectedProbs);
+            rejectedProbs = g.EltMul(rejectedProbs, rejectedMasks);
+
+
+            rejectedProbs = g.View(rejectedProbs, dims: new long[] { batchSize, seqLen, -1 });
+            rejectedProbs = g.Sum(rejectedProbs, dim: 1);
+            rejectedProbs = g.View(rejectedProbs, dims: new long[] { batchSize, -1 });
+
+            if (lossSmooth > 0)
+            {
+                refRejectedProbs = g.Add(refRejectedProbs, lossSmooth);
+            }
+            refRejectedProbs = g.Log(refRejectedProbs);
+            refRejectedProbs = g.EltMul(refRejectedProbs, rejectedMasks);
+
+            refRejectedProbs = g.View(refRejectedProbs, dims: new long[] { batchSize, seqLen, -1 });
+            refRejectedProbs = g.Sum(refRejectedProbs, dim: 1);
+            refRejectedProbs = g.View(refRejectedProbs, dims: new long[] { batchSize, -1 });
+
+
+            (var lossValue, var chosen_rewards, var rejected_rewards) = g.DPOLoss(chosenProbs, rejectedProbs, refChosenProbs, refRejectedProbs, lossScaling, lossSmooth, beta);
+
+            return (lossValue, chosen_rewards, rejected_rewards);
+        }
+
+
+        public static IWeightTensor DecoderLogist(List<List<int>> tgtSeqs, IComputeGraph g, GPTDecoder decoder, IFeedForwardLayer decoderFFLayer,
+           IWeightTensor tgtEmbedding, Vocab tgtVocab, PaddingEnums paddingType, float dropoutRatio, IWeightTensor segmentEmbeddings = null, bool amp = true,
+           IWeightTensor posEmbeddings = null, int paddingAligmentFactor = 0)
+        {
+            int eosTokenId = tgtVocab.GetWordIndex(BuildInTokens.EOS, logUnk: true);
+            int batchSize = tgtSeqs.Count;
+            var tgtOriginalLengths = BuildInTokens.PadSentences(tgtSeqs, eosTokenId, alignmentFactor: paddingAligmentFactor);
+            int tgtSeqLen = tgtSeqs[0].Count;
+            IWeightTensor tgtSelfTriMask = null;
+            IWeightTensor inputEmbs = null;
+
+
+                if (decoder.AttentionType == AttentionTypeEnums.Classic)
+                {
+                    if (paddingType == PaddingEnums.NoPadding || paddingType == PaddingEnums.NoPaddingInTgt || batchSize == 1)
+                    {
+                        tgtSelfTriMask = g.BuildTriMask(tgtSeqLen, batchSize, amp ? TensorSharp.DType.Float16 : TensorSharp.DType.Float32);
+                        tgtSelfTriMask = g.View(tgtSelfTriMask, new long[] { 1, 1, tgtSeqLen, tgtSeqLen });
+                    }
+                    else
+                    {
+                        tgtSelfTriMask = g.BuildSelfTriMask(tgtSeqLen, tgtOriginalLengths, amp ? TensorSharp.DType.Float16 : TensorSharp.DType.Float32);
+                        tgtSelfTriMask = g.View(tgtSelfTriMask, new long[] { batchSize, 1, tgtSeqLen, tgtSeqLen });
+                    }
+                }
+
+                inputEmbs = TensorUtils.CreateTokensEmbeddings(tgtSeqs, g, tgtEmbedding, segmentEmbeddings, tgtVocab, scaleFactor: (float)Math.Sqrt(tgtEmbedding.Columns), amp: amp);
+                if (posEmbeddings != null)
+                {
+                    inputEmbs = PositionEmbedding.AddPositionEmbedding(g, posEmbeddings, batchSize, inputEmbs, dropoutRatio); //Output Shape: [batchSize * seqLen, hidden_dim]
+                }
+            
+
+            IWeightTensor decOutput;
+            (decOutput, _) = decoder.Decode(inputEmbs, tgtSelfTriMask, batchSize, g);
+            IWeightTensor ffLayer = decoderFFLayer.Process(decOutput, batchSize, g);
+
+            if (amp)
+            {
+                var tmp = ffLayer;
+                ffLayer = g.Half2Float(ffLayer);
+                tmp.ReleaseWeight();
+            }
+
+            IWeightTensor probs = g.Softmax(ffLayer, inPlace: true);
+
+            return probs;
+        }
+
 
 
         public static (float, List<List<BeamSearchStatus>>) GPTDecode(List<List<int>> tgtSeqs, IComputeGraph g, GPTDecoder decoder, IFeedForwardLayer decoderFFLayer,

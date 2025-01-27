@@ -103,7 +103,7 @@ namespace Seq2SeqSharp.Applications
             DType elementType = m_options.AMP ? DType.Float16 : DType.Float32;
 
             m_encoder = Encoder.CreateEncoders(model, m_options, raDeviceIds, elementType: elementType);
-            m_decoder = Decoder.CreateDecoders(model, m_options, raDeviceIds, elementType: elementType);
+            m_decoder = Decoder.CreateDecoders(model, m_options, raDeviceIds, isTrainable: m_options.IsDecoderTrainable && (m_options.Task == ModeEnums.Train), elementType: elementType);
             m_decoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("FeedForward_Decoder_0", model.HiddenDim, model.TgtVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),
                 isTrainable: true, learningRateFactor: m_options.DecoderStartLearningRateFactor, elementType: elementType), DeviceIds);
             (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, model.HiddenDim, Math.Max(Math.Max(m_options.MaxSrcSentLength, m_options.MaxValidSrcSentLength), Math.Max(m_options.MaxTgtSentLength, m_options.MaxValidTgtSentLength)), model, 

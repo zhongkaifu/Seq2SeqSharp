@@ -19,6 +19,7 @@ namespace Seq2SeqSharp.Enums
         DumpVocab,
         UpdateVocab,
         VQModel,
+        DPO,
         Help
     }
 

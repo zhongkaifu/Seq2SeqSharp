@@ -23,17 +23,19 @@ namespace Seq2SeqSharp
         private readonly int m_defaultDeviceId;
     //    private readonly T m_networkOnDefaultDevice;
         private readonly bool m_isStaticWeights;
+        private readonly bool m_savableWeights;
         private bool m_weightsSynced;
 
         private Dictionary<string, int> m_weightName2DefaultDeviceId = new Dictionary<string, int>();
         private Dictionary<int, T> m_deviceId2Network = new Dictionary<int, T>();
 
-        public MultiProcessorNetworkWrapper(T networkOnDefaultDevice, int[] deviceIds, bool isStaticWeights = false)
+        public MultiProcessorNetworkWrapper(T networkOnDefaultDevice, int[] deviceIds, bool isStaticWeights = false, bool savableWeights = true)
         {
             m_networks = new T[deviceIds.Length];
             m_defaultDeviceId = networkOnDefaultDevice.GetDeviceId();
             //  m_networkOnDefaultDevice = networkOnDefaultDevice;
             m_isStaticWeights = isStaticWeights;
+            m_savableWeights = savableWeights;
             m_weightsSynced = false;
 
             for (int i = 0; i < deviceIds.Length; i++)
@@ -226,7 +228,7 @@ namespace Seq2SeqSharp
         /// <param name="model"></param>
         public void Save(IModel model)
         {
-            if (m_isStaticWeights == false)
+            if (m_isStaticWeights == false && m_savableWeights)
             {
                 m_networks[0].Save(model);
             }

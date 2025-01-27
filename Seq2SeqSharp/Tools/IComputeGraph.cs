@@ -84,7 +84,7 @@ namespace Seq2SeqSharp
         IWeightTensor ScatterAdd(IWeightTensor source, IWeightTensor indices, int dim, params long[] shape);
 
         (IWeightTensor, IWeightTensor) TopK(IWeightTensor src, int k);
-        IWeightTensor Sub(IWeightTensor w0, IWeightTensor w1);
+        IWeightTensor Sub(IWeightTensor w0, IWeightTensor w1, bool needGradient = true);
         IWeightTensor Sub(float v, IWeightTensor w1);
 
         #region Operations for masking
@@ -93,6 +93,10 @@ namespace Seq2SeqSharp
         IWeightTensor BuildPadSelfMask(int paddedLength, float[] originalLengths, DType elementType = DType.Float32);
 
         IWeightTensor BuildSelfTriMask(int paddedLength, float[] originalLengths, DType elementType = DType.Float32);
+
+        IWeightTensor BuildMaskAfter(List<List<int>> paddedTokensList, int maskEndId, DType elementType = DType.Float32);
+
+        IWeightTensor UpdateGradientByMask(IWeightTensor w1, IWeightTensor mask1);
 
         #endregion
 
@@ -103,7 +107,7 @@ namespace Seq2SeqSharp
 
         IWeightTensor Sum(IWeightTensor w, int dim);
         IWeightTensor Mean(IWeightTensor w, int dim);
-        IWeightTensor Log(IWeightTensor w);
+        IWeightTensor Log(IWeightTensor w, bool needGradient = true);
 
         IWeightTensor Rsqrt(IWeightTensor w);
 
@@ -117,6 +121,8 @@ namespace Seq2SeqSharp
         float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f, float labelSmooth = 0.0f);
         float CrossEntropyLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, IWeightTensor graident, float smooth = 0.0f, float labelSmooth = 0.0f);
         float NLLLoss(IWeightTensor probs, IWeightTensor truthTgtSeqs, float graident = 1.0f, float smooth = 0.0f);
+
+        (float, float, float) DPOLoss(IWeightTensor preferredLogist, IWeightTensor nonPreferredLogist, IWeightTensor refPreferredLogist, IWeightTensor refNonPreferredLogist, float graident = 1.0f, float smooth = 0.0f, float beta = 0.5f);
 
         IWeightTensor CreateUniformRandomTensor(long[] sizes, float minVal, float maxVal, DType dtype);
 

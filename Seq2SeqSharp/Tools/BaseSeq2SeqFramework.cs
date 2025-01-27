@@ -43,6 +43,8 @@ namespace Seq2SeqSharp.Tools
     public class NetworkResult
     {
         public float Cost;
+        public float ChosenRewards = 0.0f;
+        public float RejectedRewards = 0.0f;
         public List<List<List<string>>> Output; // (beam_size, batch_size, seq_len)
         public List<List<List<int>>> Alignments; // (beam_size, batch_size, seq_len)
         public List<List<List<float>>> AlignmentScores; // (beam_size, batch_size, seq_len)
@@ -380,12 +382,12 @@ namespace Seq2SeqSharp.Tools
             return (srcEmbeddings, tgtEmbeddings);
         }
 
-        internal MultiProcessorNetworkWrapper<IWeightTensor> CreateTgtEmbeddings(IModel modelMetaData, RoundArray<int> raDeviceIds, bool isTgtEmbeddingTrainable, float decoderStartLearningRateFactor, DType elementType = DType.Float32)
+        internal MultiProcessorNetworkWrapper<IWeightTensor> CreateTgtEmbeddings(IModel modelMetaData, RoundArray<int> raDeviceIds, bool isTgtEmbeddingTrainable, float decoderStartLearningRateFactor, DType elementType = DType.Float32, bool isSavable = true)
         {
             Logger.WriteLine(Logger.Level.debug, $"Creating embeddings for target side. Shape = '({modelMetaData.TgtVocab.Count} ,{modelMetaData.DecoderEmbeddingDim})'");
 
             var tgtEmbeddings = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { modelMetaData.TgtVocab.Count, modelMetaData.DecoderEmbeddingDim },
-                raDeviceIds.GetNextItem(), initType: RandomInitType.Uniform, fanOut: true, name: "TgtEmbeddings", isTrainable: isTgtEmbeddingTrainable, learningRateFactor: decoderStartLearningRateFactor, dtype: elementType), DeviceIds);
+                raDeviceIds.GetNextItem(), initType: RandomInitType.Uniform, fanOut: true, name: "TgtEmbeddings", isTrainable: isTgtEmbeddingTrainable, learningRateFactor: decoderStartLearningRateFactor, dtype: elementType), DeviceIds, savableWeights: isSavable);
 
             return tgtEmbeddings;
         }
@@ -450,9 +452,11 @@ namespace Seq2SeqSharp.Tools
             DateTime startDateTime = DateTime.Now;
             DateTime lastCheckpointSaveDateTime = startDateTime;
             double costInTotal = 0.0;
+            double chosenRewardsInTotal = 0.0;
+            double rejectedRewardsInTotal = 0.0;
             long srcWordCntsInTotal = 0;
             long tgtWordCntsInTotal = 0;
-            double avgCostPerWordInTotal = 0.0;
+            double avgCostPerTokenInTotal = 0.0;
             int updatesInOneEpoch = 0;
             float lr = 0.0f;
             int contiSuccUpdate = 0;
@@ -476,7 +480,7 @@ namespace Seq2SeqSharp.Tools
                     {
                         try
                         {
-                            (float cost, int sWordCnt, int tWordCnt, int processedLine) = RunNetwork(forwardOnSingleDevice, sntPairBatchs, batchSplitFactor, decodingOptions, true);
+                            (float cost, float chosenReward, float rejectedReward, int sWordCnt, int tWordCnt, int processedLine) = RunNetwork(forwardOnSingleDevice, sntPairBatchs, batchSplitFactor, decodingOptions, true);
 
                             if (float.IsNaN(cost))
                             {
@@ -539,14 +543,21 @@ namespace Seq2SeqSharp.Tools
                             }
 
                             costInTotal += cost;
+                            chosenRewardsInTotal += chosenReward;
+                            rejectedRewardsInTotal += rejectedReward;
                             updatesInOneEpoch++;
-                            avgCostPerWordInTotal = costInTotal / updatesInOneEpoch;
+                            avgCostPerTokenInTotal = costInTotal / updatesInOneEpoch;
+                            double avgChosenRewardPerTokenInTotal = chosenRewardsInTotal / updatesInOneEpoch;
+                            double avgRejectedRewardPerTokenInTotal = rejectedRewardsInTotal / updatesInOneEpoch;
+
                             if (StatusUpdateWatcher != null && m_weightsUpdateCount % 100 == 0)
                             {
                                 StatusUpdateWatcher(this, new CostEventArg()
                                 {
                                     LearningRate = lr,
-                                    AvgCostInTotal = avgCostPerWordInTotal,
+                                    AvgCostInTotal = avgCostPerTokenInTotal,
+                                    AvgChosenRewardInTotal = avgChosenRewardPerTokenInTotal,
+                                    AvgRejectedRewardInTotal = avgRejectedRewardPerTokenInTotal,
                                     Epoch = ep,
                                     Update = m_weightsUpdateCount,
                                     ProcessedSentencesInTotal = processedLineInTotal,
@@ -636,22 +647,22 @@ namespace Seq2SeqSharp.Tools
 
                     if (runNetwordSuccssed == true)
                     {
-                        CreateCheckPoint(validCorpusList, taskId2metrics, decodingOptions, forwardOnSingleDevice, avgCostPerWordInTotal);
+                        CreateCheckPoint(validCorpusList, taskId2metrics, decodingOptions, forwardOnSingleDevice, avgCostPerTokenInTotal);
                     }
 
                     sntPairBatchs.Clear();
                 }
             }
 
-            Logger.WriteLine(Logger.Level.info, ConsoleColor.Green, $"Epoch '{ep}' took '{DateTime.Now - startDateTime}' time to finish. AvgCost = {avgCostPerWordInTotal.ToString("e4")}, AvgCostInLastEpoch = {m_avgCostPerWordInTotalInLastEpoch.ToString("e4")}");
-            m_avgCostPerWordInTotalInLastEpoch = avgCostPerWordInTotal;
+            Logger.WriteLine(Logger.Level.info, ConsoleColor.Green, $"Epoch '{ep}' took '{DateTime.Now - startDateTime}' time to finish. AvgCost = {avgCostPerTokenInTotal.ToString("e4")}, AvgCostInLastEpoch = {m_avgCostPerWordInTotalInLastEpoch.ToString("e4")}");
+            m_avgCostPerWordInTotalInLastEpoch = avgCostPerTokenInTotal;
 
             if (EpochEndWatcher != null)
             {
                 EpochEndWatcher(this, new CostEventArg()
                 {
                     LearningRate = lr,
-                    AvgCostInTotal = avgCostPerWordInTotal,
+                    AvgCostInTotal = avgCostPerTokenInTotal,
                     Epoch = ep,
                     Update = m_weightsUpdateCount,
                     ProcessedSentencesInTotal = processedLineInTotal,
@@ -694,9 +705,11 @@ namespace Seq2SeqSharp.Tools
             return batchSplitFactor;
         }
 
-        private (float, int, int, int) RunNetwork(Func<IComputeGraph, IPairBatch, DecodingOptions, bool, List<NetworkResult>> ForwardOnSingleDevice, List<IPairBatch> sntPairBatchs, int batchSplitFactor, DecodingOptions decodingOptions, bool isTraining)
+        private (float, float, float, int, int, int) RunNetwork(Func<IComputeGraph, IPairBatch, DecodingOptions, bool, List<NetworkResult>> ForwardOnSingleDevice, List<IPairBatch> sntPairBatchs, int batchSplitFactor, DecodingOptions decodingOptions, bool isTraining)
         {
             float cost = 0.0f;
+            float chosenRewards = 0.0f;
+            float rejecteRewards = 0.0f;
             int processedLine = 0;
             int srcWordCnts = 0;
             int tgtWordCnts = 0;
@@ -745,6 +758,8 @@ namespace Seq2SeqSharp.Tools
                                     foreach (var nr in nrs)
                                     {
                                         cost += nr.Cost;
+                                        chosenRewards += nr.ChosenRewards;
+                                        rejecteRewards += nr.RejectedRewards;
                                     }
 
                                     srcWordCnts += sntPairBatch_i.SrcTokenCount;
@@ -802,7 +817,7 @@ namespace Seq2SeqSharp.Tools
                 }
             });
 
-            return (cost / processedLine, srcWordCnts, tgtWordCnts, processedLine);
+            return (cost / processedLine, chosenRewards / processedLine, rejecteRewards / processedLine, srcWordCnts, tgtWordCnts, processedLine);
         }
 
         private void CreateCheckPoint(ICorpus<IPairBatch>[] validCorpusList, Dictionary<int, List<IMetric>> taskId2metrics, DecodingOptions decodingOptions, Func<IComputeGraph, IPairBatch, DecodingOptions, bool, List<NetworkResult>> forwardOnSingleDevice, double avgCostPerWordInTotal)

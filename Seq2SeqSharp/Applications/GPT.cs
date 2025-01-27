@@ -121,7 +121,7 @@ namespace Seq2SeqSharp.Applications
 
             DType elementType = m_options.AMP ? DType.Float16 : DType.Float32;
 
-            m_decoder = Decoder.CreateDecoders(model, m_options, raDeviceIds, elementType);
+            m_decoder = Decoder.CreateDecoders(model, m_options, raDeviceIds, isTrainable: m_options.IsDecoderTrainable && (m_options.Task == ModeEnums.Train), elementType: elementType);
             m_decoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("FeedForward_Decoder_0", model.HiddenDim, model.TgtVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),
                 isTrainable: (m_options.Task == ModeEnums.Train), learningRateFactor: m_options.DecoderStartLearningRateFactor, elementType), DeviceIds);
 

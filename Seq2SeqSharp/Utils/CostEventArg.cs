@@ -8,6 +8,9 @@ namespace Seq2SeqSharp
     {
         public double AvgCostInTotal { get; set; }
 
+        public double AvgChosenRewardInTotal { get; set; }
+        public double AvgRejectedRewardInTotal { get; set; }
+
         public int Epoch { get; set; }
         public int Update { get; set; }
 

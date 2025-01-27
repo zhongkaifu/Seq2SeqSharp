@@ -207,7 +207,7 @@ namespace Seq2SeqSharp.Applications
         public int PaddingAlignmentFactor = 0;
 
         [Arg("Task to execute. It supports Train, Valid, Test, DumpVocab, UpdateVocab and Help", nameof(Task))]
-        [RegularExpression("Train|Valid|Test|Alignment|DumpVocab|UpdateVocab|VQModel|Help")]
+        [RegularExpression("Train|Valid|Test|Alignment|DumpVocab|UpdateVocab|VQModel|DPO|Help")]
         public ModeEnums Task = ModeEnums.Help;
 
         [Arg("How to deal with too long sequence. It can be Ignore or Truncation", nameof(TooLongSequence))]
@@ -345,8 +345,14 @@ namespace Seq2SeqSharp.Applications
         public Logger.Level LogLevel = (Logger.Level.err | Logger.Level.warn | Logger.Level.info | Logger.Level.debug);
 
         [Arg("It indicates if checking tensor corrupted is enabled. Default is disabled.", nameof(CheckTensorCorrupted))]
-        public bool CheckTensorCorrupted = false;        
+        public bool CheckTensorCorrupted = false;
 
+        [Arg("The beta value for DPO loss calulcation", nameof(DPOBeta))]
+        [Range(0.0f, 1.0f)]
+        public float DPOBeta = 0.5f;
+
+        [Arg("The token should be masked and all content of it", nameof(DPOMaskedToken))]
+        public string DPOMaskedToken = "[message]";
         public void ValidateOptions()
         {
             if (AMP == true && ProcessorType != ProcessorTypeEnums.GPU)

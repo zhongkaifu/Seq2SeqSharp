@@ -130,6 +130,44 @@ namespace GPTConsole
                     // Kick off training
                     ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: null, learningRate: learningRate, optimizer: optimizer, metrics: null, decodingOptions: decodingOptions);
                 }
+                else if (opts.Task == ModeEnums.DPO)
+                {
+                    Logger.WriteLine($"Starting to run DPO against model '{opts.ModelFilePath}'");
+
+
+                    if (opts.ModelFilePath.IsNullOrEmpty() || !File.Exists(opts.ModelFilePath))
+                    {
+                        Logger.WriteLine(Logger.Level.err, $"Model '{opts.ModelFilePath}' doesn't exist.");
+                        return;
+                    }
+                    // Load train corpus
+                    var trainCorpus = new DPOCorpus(corpusFilePath: opts.TrainCorpusPath, srcLangName: opts.SrcLang, tgtLangName: opts.TgtLang, maxTokenSizePerBatch: opts.MaxTokenSizePerBatch,
+                    maxSrcSentLength: opts.MaxSrcSentLength, maxTgtSentLength: opts.MaxTgtSentLength, paddingEnums: opts.PaddingType, tooLongSequence: opts.TooLongSequence, indexedFilePath: opts.IndexedCorpusPath,
+                    startBatchId: opts.StartBatchId, dataPassword: opts.DataPassword);
+
+                    // Create learning rate
+                    ILearningRate learningRate = null;
+
+                    if (opts.LearningRateType == LearningRateTypeEnums.CosineDecay)
+                    {
+                        learningRate = new CosineDecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.LearningRateDecaySteps, opts.WeightsUpdateCount);
+                    }
+                    else
+                    {
+                        learningRate = new DecayLearningRate(opts.StartLearningRate, opts.WarmUpSteps, opts.WeightsUpdateCount, opts.LearningRateStepDownFactor, opts.UpdateNumToStepDownLearningRate);
+                    }
+
+                    // Create optimizer
+                    IOptimizer optimizer = Misc.CreateOptimizer(opts);
+
+                    DPO trainer = new DPO(opts);
+
+                    // Add event handler for monitoring
+                    trainer.StatusUpdateWatcher += Misc.Ss_StatusUpdateWatcherDPO;
+                    trainer.EvaluationWatcher += Ss_EvaluationWatcher;
+
+                    trainer.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: null, learningRate: learningRate, optimizer: optimizer, metrics: null, decodingOptions: decodingOptions);
+                }
                 else if (opts.Task == ModeEnums.Test)
                 {
                     if (File.Exists(opts.OutputFile))
