@@ -68,6 +68,8 @@ namespace Seq2SeqSharp.Tools
 
         private readonly DType m_elementType  =  DType.Float32;
 
+        private string m_weightTmpFilePath = String.Empty;
+
         public long ElementCount
         {
             get
@@ -76,11 +78,25 @@ namespace Seq2SeqSharp.Tools
             }
         }
 
-
         public Tensor TWeight
         {
             get
             {
+                if (String.IsNullOrEmpty(m_weightTmpFilePath) == false)
+                {
+                    string weightTmpFilePath = m_weightTmpFilePath;
+                    m_weightTmpFilePath = String.Empty;
+                    Logger.WriteLine($"Loading weight '{Name}' from file '{weightTmpFilePath}'");
+                    if (ElementType == DType.Float32)
+                    {
+                        LoadWeightsFromFile(weightTmpFilePath);
+                    }
+                    else
+                    {
+                        LoadWeightsFromFileHalf(weightTmpFilePath);
+                    }
+                }
+
                 if (m_TWeight == null)
                 {
                     m_TWeight = new Tensor(m_allocator, m_elementType, Sizes);
@@ -573,6 +589,72 @@ namespace Seq2SeqSharp.Tools
             model.AddWeights(Name, ToWeightArray());
         }
 
+
+        private string SaveWeightsToTempFile(float[] weights)
+        {
+            string tmpFilePath = Path.GetTempFileName();
+
+            // Writing the float array to a binary file
+            using (BinaryWriter writer = new BinaryWriter(File.Open(tmpFilePath, FileMode.Create)))
+            {
+                foreach (float value in weights)
+                {
+                    writer.Write(value);
+                }
+            }
+
+            return tmpFilePath;
+        }
+
+        private string SaveWeightsToTempFile(half[] weights)
+        {
+            string tmpFilePath = Path.GetTempFileName();
+
+            // Writing the float array to a binary file
+            using (BinaryWriter writer = new BinaryWriter(File.Open(tmpFilePath, FileMode.Create)))
+            {
+                for (int i = 0; i < weights.Length; i++)
+                {                   
+                    writer.Write(weights[i].x);
+                }
+            }
+
+            return tmpFilePath;
+        }
+
+        private void LoadWeightsFromFile(string fileName)
+        {
+            float[] readFloatArray;
+            using (BinaryReader reader = new BinaryReader(File.Open(fileName, FileMode.Open)))
+            {
+                int count = (int)(reader.BaseStream.Length / sizeof(float));
+                readFloatArray = new float[count];
+                for (int i = 0; i < count; i++)
+                {
+                    readFloatArray[i] = reader.ReadSingle();
+                }
+            }
+
+            SetWeightArray(readFloatArray);
+        }
+
+
+        private void LoadWeightsFromFileHalf(string fileName)
+        {
+            half[] readFloatArray;
+            using (BinaryReader reader = new BinaryReader(File.Open(fileName, FileMode.Open)))
+            {
+                int count = (int)(reader.BaseStream.Length / sizeof(ushort));
+                readFloatArray = new half[count];
+                for (int i = 0; i < count; i++)
+                {
+                    readFloatArray[i] = new half(reader.ReadUInt16());
+                }
+            }
+
+            SetWeightArray(readFloatArray);
+        }
+
         public void Load(IModel model)
         {
             Logger.WriteLine(Logger.Level.debug, $"Loading weights '{Name}' from the model to device '{DeviceId}'...");
@@ -582,7 +664,9 @@ namespace Seq2SeqSharp.Tools
                 var weights = model.GetWeightsHalfType(Name);
                 if (weights != null)
                 {
-                    SetWeightArray(weights);
+                    m_weightTmpFilePath = SaveWeightsToTempFile(weights);
+                    Logger.WriteLine($"Saved weight '{Name}' to file '{m_weightTmpFilePath}'");
+                    //SetWeightArray(weights);
                 }
                 else
                 {
@@ -594,7 +678,9 @@ namespace Seq2SeqSharp.Tools
                 var weights = model.GetWeights(Name);
                 if (weights != null)
                 {
-                    SetWeightArray(weights);
+                    m_weightTmpFilePath = SaveWeightsToTempFile(weights);
+                    Logger.WriteLine($"Saved weight '{Name}' to file '{m_weightTmpFilePath}'");
+                    //SetWeightArray(weights);
                 }
                 else
                 {

@@ -409,6 +409,8 @@ namespace Seq2SeqSharp.Models
             Name2CodeBook.Clear();
             Name2Weights.Clear();
             Name2WeightsHalf.Clear();
+
+            GC.Collect();
         }
 
         public void ShowModelInfo()
