@@ -93,11 +93,11 @@ Parameters:
 **-ProcessorType**: Processor type: CPU or GPU(Cuda)  
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
 **-TaskParallelism**: The max degress of parallelism in task. Default is 1  
-**-MaxEpochNum**: Maxmium epoch number during training. Default is 100  
-**-MaxSrcSentLength**: Maxmium source sentence length on training and test set. Default is 110 tokens  
-**-MaxTgtSentLength**: Maxmium target sentence length on training and test set. Default is 110 tokens  
-**-MaxValidSrcSentLength**: Maxmium source sentence length on valid set. Default is 110 tokens  
-**-MaxValidTgtSentLength**: Maxmium target sentence length on valid set. Default is 110 tokens  
+**-MaxEpochNum**: Maximum epoch number during training. Default is 100  
+**-MaxSrcSentLength**: Maximum source sentence length on training and test set. Default is 110 tokens  
+**-MaxTgtSentLength**: Maximum target sentence length on training and test set. Default is 110 tokens  
+**-MaxValidSrcSentLength**: Maximum source sentence length on valid set. Default is 110 tokens  
+**-MaxValidTgtSentLength**: Maximum target sentence length on valid set. Default is 110 tokens  
 **-WarmUpSteps**: The number of steps for warming up. Default is 8,000  
 **-EnableTagEmbeddings**: Enable tag embeddings in encoder. The tag embeddings will be added to token embeddings. Default is false  
 **-CompilerOptions**: The options for CUDA NVRTC compiler. Options are split by space. For example: "--use_fast_math --gpu-architecture=compute_60" means to use fast math libs and run on Pascal and above GPUs  
