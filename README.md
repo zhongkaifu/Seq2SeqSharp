@@ -133,8 +133,8 @@ Parameters:
 **-ProcessorType**: Architecture type: CPU or GPU 
 **-DeviceIds**: Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2  
 **-BeamSearchSize**: Beam search size. Default is 1  
-**-MaxSrcSentLength**: Maxmium source sentence length on valid/test set. Default is 110 tokens  
-**-MaxTgtSentLength**: Maxmium target sentence length on valid/test set. Default is 110 tokens  
+**-MaxSrcSentLength**: Maximum source sentence length on valid/test set. Default is 110 tokens  
+**-MaxTgtSentLength**: Maximum target sentence length on valid/test set. Default is 110 tokens  
 
 Example: Seq2SeqConsole.exe -Task Test -ModelFilePath seq2seq.model -InputTestFile test.txt -OutputFile result.txt -ProcessorType CPU -BeamSearchSize 5 -MaxSrcSentLength 100 -MaxTgtSentLength 100  
 
