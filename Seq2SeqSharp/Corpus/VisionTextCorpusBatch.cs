@@ -21,7 +21,7 @@ namespace Seq2SeqSharp.Corpus
 
         public int GetSrcTokenCount()
         {
-            throw new NotImplementedException();
+            return VisionTextCorpusBatch.DefaultSrcTokenCount;
         }
 
         public int GetTgtTokenCount()
@@ -36,7 +36,7 @@ namespace Seq2SeqSharp.Corpus
 
         public string PrintTgtTokens()
         {
-            return string.Join(" ", TgtTokens.Count);
+            return string.Join(" ", TgtTokens);
         }
 
     }
@@ -48,7 +48,9 @@ namespace Seq2SeqSharp.Corpus
 
         public int BatchSize => SrcBatchPaths.Count;
 
-        public int SrcTokenCount { get; set; } = 256;
+        public const int DefaultSrcTokenCount = 256;
+
+        public int SrcTokenCount { get; set; } = DefaultSrcTokenCount;
         public int TgtTokenCount { get; set; }
 
         public IPairBatch CloneSrcTokens()

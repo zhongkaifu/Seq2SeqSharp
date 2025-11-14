@@ -74,6 +74,20 @@ namespace Seq2SeqSharp.Applications
         [Arg("The file path that outputs alignment to source sequence", nameof(OutputAlignmentsFile))]
         public string OutputAlignmentsFile = null;
 
+        [Arg("Square size that images are resized to before tokenization in vision caption tasks", nameof(VisionImageSize))]
+        [Range(8, 4096)]
+        public int VisionImageSize = 224;
+
+        [Arg("Patch size (in pixels) used to split the resized image", nameof(VisionPatchSize))]
+        [Range(1, 512)]
+        public int VisionPatchSize = 16;
+
+        [Arg("Comma separated RGB mean used to normalize image patches", nameof(VisionChannelMean))]
+        public string VisionChannelMean = "0.485,0.456,0.406";
+
+        [Arg("Comma separated RGB std-dev used to normalize image patches", nameof(VisionChannelStd))]
+        public string VisionChannelStd = "0.229,0.224,0.225";
+
         public DecodingOptions CreateDecodingOptions()
         {
             DecodingOptions decodingOptions = new DecodingOptions();
