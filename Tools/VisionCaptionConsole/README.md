@@ -102,7 +102,7 @@ Launch the console with:
 
 1. Keep all image paths absolute or relative to the working directory where you launch the console.
 2. Pre-tokenize captions into space-delimited tokens and lowercase them to stabilize the vocabulary.
-3. The encoder follows the Vision Transformer (ViT) patching scheme: each `VisionPatchSize × VisionPatchSize` tile is flattened (RGB order) and projected with a learnable linear layer. The number of visual tokens is `(VisionImageSize / VisionPatchSize)^2`, so adjust `VisionPatchSize` if your GPU memory is limited (larger patches → fewer tokens per image, smaller patches → richer spatial detail).
+3. The encoder follows the Vision Transformer (ViT) patching scheme: each `VisionPatchSize × VisionPatchSize` tile is flattened (RGB order), projected with a learnable linear layer, normalized, and scaled to match the decoder's embedding range. A learnable `[CLS]` token is prepended to provide a global summary of the image. The number of visual tokens is therefore `(VisionImageSize / VisionPatchSize)^2 + 1` (extra 1 for `[CLS]`), so adjust `VisionPatchSize` if your GPU memory is limited (larger patches → fewer tokens per image, smaller patches → richer spatial detail).
 4. To reuse a prebuilt vocabulary, set `--TgtVocab` to the `.vocab` file exported from a prior run.
 
 ## Support Modes

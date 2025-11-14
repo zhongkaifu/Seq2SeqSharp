@@ -27,14 +27,17 @@ namespace Seq2SeqSharp.Applications
         private readonly Seq2SeqOptions m_options;
         private readonly VisionImageProcessor m_imageProcessor;
         private readonly PaddingEnums m_paddingType = PaddingEnums.AllowPadding;
+        private readonly int m_visualTokenCount;
 
         private MultiProcessorNetworkWrapper<IEncoder> m_encoder;
         private MultiProcessorNetworkWrapper<IDecoder> m_decoder;
         private MultiProcessorNetworkWrapper<IFeedForwardLayer> m_decoderFFLayer;
         private MultiProcessorNetworkWrapper<IFeedForwardLayer> m_patchEmbedding;
+        private MultiProcessorNetworkWrapper<INormalization> m_patchNorm;
         private MultiProcessorNetworkWrapper<IWeightTensor> m_tgtEmbedding;
         private MultiProcessorNetworkWrapper<IWeightTensor> m_posEmbedding;
         private MultiProcessorNetworkWrapper<IWeightTensor> m_segmentEmbedding;
+        private MultiProcessorNetworkWrapper<IWeightTensor> m_clsToken;
         private MultiProcessorNetworkWrapper<IFeedForwardLayer> m_pointerGenerator;
 
         public VisionCaption(Seq2SeqOptions options, Vocab tgtVocab = null)
@@ -48,6 +51,7 @@ namespace Seq2SeqSharp.Applications
             m_options = options;
             m_imageProcessor = new VisionImageProcessor(options);
             m_paddingType = options.PaddingType;
+            m_visualTokenCount = m_imageProcessor.PatchCount + 1; // prepend CLS token
 
             m_options.ValidateOptions();
 
@@ -98,10 +102,14 @@ namespace Seq2SeqSharp.Applications
             m_decoderFFLayer = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("FeedForward_Decoder_0", model.HiddenDim, model.TgtVocab.Count, dropoutRatio: 0.0f, deviceId: raDeviceIds.GetNextItem(),
                 isTrainable: true, learningRateFactor: m_options.DecoderStartLearningRateFactor, elementType: elementType), DeviceIds);
 
-            (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, model.HiddenDim, m_imageProcessor.PatchCount, model, elementType: elementType, createAPE: (model.PEType == PositionEmbeddingEnums.APE));
+            (m_posEmbedding, m_segmentEmbedding) = Misc.CreateAuxEmbeddings(raDeviceIds, model.HiddenDim, m_visualTokenCount, model, elementType: elementType, createAPE: (model.PEType == PositionEmbeddingEnums.APE));
 
             m_patchEmbedding = new MultiProcessorNetworkWrapper<IFeedForwardLayer>(new FeedForwardLayer("VisionPatchEmbedding", m_imageProcessor.FeatureSize, model.HiddenDim, m_options.DropoutRatio, raDeviceIds.GetNextItem(),
                 isTrainable: m_options.IsSrcEmbeddingTrainable, learningRateFactor: m_options.EncoderStartLearningRateFactor, elementType: elementType), DeviceIds);
+            m_patchNorm = new MultiProcessorNetworkWrapper<INormalization>(new LayerNormalization("VisionPatchNorm", model.HiddenDim, raDeviceIds.GetNextItem(), isTrainable: true,
+                learningRateFactor: m_options.EncoderStartLearningRateFactor, elementType: elementType), DeviceIds);
+            m_clsToken = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { 1, model.HiddenDim }, raDeviceIds.GetNextItem(),
+                initType: RandomInitType.Uniform, name: "VisionCLSToken", isTrainable: true, learningRateFactor: m_options.EncoderStartLearningRateFactor, dtype: elementType), DeviceIds, needDispose: true);
 
             m_tgtEmbedding = CreateTgtEmbeddings(model, raDeviceIds, m_options.IsTgtEmbeddingTrainable, m_options.DecoderStartLearningRateFactor, elementType);
 
@@ -115,7 +123,7 @@ namespace Seq2SeqSharp.Applications
             return true;
         }
 
-        private (IEncoder, IDecoder, IFeedForwardLayer, IFeedForwardLayer, IWeightTensor, IWeightTensor, IFeedForwardLayer, IWeightTensor) GetNetworksOnDeviceAt(int deviceId)
+        private (IEncoder, IDecoder, IFeedForwardLayer, IFeedForwardLayer, IWeightTensor, IWeightTensor, IFeedForwardLayer, IWeightTensor, INormalization, IWeightTensor) GetNetworksOnDeviceAt(int deviceId)
         {
             var deviceIdIdx = TensorAllocator.GetDeviceIdIndex(deviceId);
             return (m_encoder.GetNetworkOnDevice(deviceIdIdx),
@@ -125,10 +133,12 @@ namespace Seq2SeqSharp.Applications
                     m_tgtEmbedding.GetNetworkOnDevice(deviceIdIdx),
                     m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx),
                     m_pointerGenerator?.GetNetworkOnDevice(deviceIdIdx),
-                    m_posEmbedding?.GetNetworkOnDevice(deviceIdIdx));
+                    m_posEmbedding?.GetNetworkOnDevice(deviceIdIdx),
+                    m_patchNorm?.GetNetworkOnDevice(deviceIdIdx),
+                    m_clsToken?.GetNetworkOnDevice(deviceIdIdx));
         }
 
-        private IWeightTensor BuildVisionEmbeddings(IComputeGraph computeGraph, List<string> srcImagePaths, IFeedForwardLayer patchEmbedding, IWeightTensor posEmbeddings)
+        private IWeightTensor BuildVisionEmbeddings(IComputeGraph computeGraph, List<string> srcImagePaths, IFeedForwardLayer patchEmbedding, INormalization patchNorm, IWeightTensor posEmbeddings, IWeightTensor clsToken)
         {
             var features = m_imageProcessor.BuildPatchFeatures(srcImagePaths);
             var factory = computeGraph.GetWeightFactory();
@@ -138,9 +148,25 @@ namespace Seq2SeqSharp.Applications
             featureTensor.SetWeightArray(features);
 
             var embeddings = patchEmbedding.Process(featureTensor, srcImagePaths.Count, computeGraph);
+            embeddings = patchNorm?.Norm(embeddings, computeGraph) ?? embeddings;
+            embeddings = computeGraph.Mul(embeddings, (float)Math.Sqrt(embeddings.Columns), inPlace: true);
+
+            int batchSize = srcImagePaths.Count;
+            int hiddenDim = embeddings.Columns;
+            embeddings = computeGraph.View(embeddings, dims: new long[] { batchSize, m_imageProcessor.PatchCount, hiddenDim });
+
+            if (clsToken != null)
+            {
+                using var clsView = computeGraph.View(clsToken, dims: new long[] { 1, 1, hiddenDim });
+                using var clsBatch = computeGraph.Expand(clsView, dims: new long[] { batchSize, 1, hiddenDim });
+                embeddings = computeGraph.Concate(new List<IWeightTensor> { clsBatch, embeddings }, 1);
+            }
+
+            embeddings = computeGraph.View(embeddings, dims: new long[] { batchSize * m_visualTokenCount, hiddenDim });
+
             if (posEmbeddings != null)
             {
-                embeddings = PositionEmbedding.AddPositionEmbedding(computeGraph, posEmbeddings, srcImagePaths.Count, embeddings, m_options.DropoutRatio);
+                embeddings = PositionEmbedding.AddPositionEmbedding(computeGraph, posEmbeddings, batchSize, embeddings, m_options.DropoutRatio);
             }
 
             return embeddings;
@@ -153,14 +179,16 @@ namespace Seq2SeqSharp.Applications
                 throw new ArgumentException("VisionCaption expects VisionTextCorpusBatch instances.");
             }
 
-            (var encoder, var decoder, var decoderFFLayer, var patchEmbedding, var tgtEmbedding, var segmentEmbedding, var pointerGenerator, var posEmbeddings) = GetNetworksOnDeviceAt(computeGraph.DeviceId);
+            visionBatch.SrcTokenCount = visionBatch.BatchSize * m_visualTokenCount;
+
+            (var encoder, var decoder, var decoderFFLayer, var patchEmbedding, var tgtEmbedding, var segmentEmbedding, var pointerGenerator, var posEmbeddings, var patchNorm, var clsToken) = GetNetworksOnDeviceAt(computeGraph.DeviceId);
 
             if (pointerGenerator != null)
             {
                 throw new InvalidOperationException("Pointer generator is disabled for vision captioning, but a pointer generator network was found.");
             }
 
-            var encInput = BuildVisionEmbeddings(computeGraph, visionBatch.SrcBatchPaths, patchEmbedding, posEmbeddings);
+            var encInput = BuildVisionEmbeddings(computeGraph, visionBatch.SrcBatchPaths, patchEmbedding, patchNorm, posEmbeddings, clsToken);
             var srcLengths = BuildSrcLengths(visionBatch.BatchSize);
 
             encoder.Reset(computeGraph.GetWeightFactory(), visionBatch.BatchSize);
@@ -281,7 +309,7 @@ namespace Seq2SeqSharp.Applications
             var lengths = new float[batchSize];
             for (int i = 0; i < batchSize; i++)
             {
-                lengths[i] = m_imageProcessor.PatchCount;
+                lengths[i] = m_visualTokenCount;
             }
 
             return lengths;
