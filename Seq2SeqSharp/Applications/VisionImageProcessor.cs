@@ -24,13 +24,14 @@ namespace Seq2SeqSharp.Applications
         private readonly int m_imageSize;
         private readonly int m_patchSize;
         private readonly int m_gridSize;
+        private readonly int m_patchFeatureSize;
         private readonly float[] m_mean;
         private readonly float[] m_std;
 
         private const int ChannelCount = 3;
 
         public int PatchCount => m_gridSize * m_gridSize;
-        public int FeatureSize => ChannelCount;
+        public int FeatureSize => m_patchFeatureSize;
 
         public VisionImageProcessor(Seq2SeqOptions options)
         {
@@ -52,6 +53,7 @@ namespace Seq2SeqSharp.Applications
             m_imageSize = options.VisionImageSize;
             m_patchSize = options.VisionPatchSize;
             m_gridSize = options.VisionImageSize / options.VisionPatchSize;
+            m_patchFeatureSize = m_patchSize * m_patchSize * ChannelCount;
 
             m_mean = ParseVector(options.VisionChannelMean, new[] { 0.485f, 0.456f, 0.406f }, nameof(options.VisionChannelMean));
             m_std = ParseVector(options.VisionChannelStd, new[] { 0.229f, 0.224f, 0.225f }, nameof(options.VisionChannelStd));
@@ -92,33 +94,24 @@ namespace Seq2SeqSharp.Applications
                 Sampler = KnownResamplers.Bicubic
             }));
 
-            int pixelsPerPatch = m_patchSize * m_patchSize;
-            float inv = 1.0f / pixelsPerPatch;
-
             for (int gridY = 0; gridY < m_gridSize; gridY++)
             {
                 for (int gridX = 0; gridX < m_gridSize; gridX++)
                 {
-                    float r = 0;
-                    float g = 0;
-                    float b = 0;
+                    int patchIndex = gridY * m_gridSize + gridX;
+                    int baseIndex = (batchIndex * PatchCount + patchIndex) * FeatureSize;
 
+                    int spanIndex = 0;
                     for (int y = 0; y < m_patchSize; y++)
                     {
                         for (int x = 0; x < m_patchSize; x++)
                         {
                             var pixel = image[gridX * m_patchSize + x, gridY * m_patchSize + y];
-                            r += pixel.R / 255f;
-                            g += pixel.G / 255f;
-                            b += pixel.B / 255f;
+                            buffer[baseIndex + spanIndex++] = Normalize(pixel.R / 255f, 0);
+                            buffer[baseIndex + spanIndex++] = Normalize(pixel.G / 255f, 1);
+                            buffer[baseIndex + spanIndex++] = Normalize(pixel.B / 255f, 2);
                         }
                     }
-
-                    int patchIndex = gridY * m_gridSize + gridX;
-                    int baseIndex = (batchIndex * PatchCount + patchIndex) * FeatureSize;
-                    buffer[baseIndex + 0] = Normalize(r * inv, 0);
-                    buffer[baseIndex + 1] = Normalize(g * inv, 1);
-                    buffer[baseIndex + 2] = Normalize(b * inv, 2);
                 }
             }
         }

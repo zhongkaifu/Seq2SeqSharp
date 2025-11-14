@@ -24,7 +24,7 @@ The console accepts the same option set as the text-based Seq2Seq console, plus 
 | Option | Description |
 | --- | --- |
 | `--VisionImageSize` | Square size, in pixels, that images are resized to before patching (default: `224`). |
-| `--VisionPatchSize` | Pixel width/height of each patch extracted from the resized image (default: `16`). |
+| `--VisionPatchSize` | Pixel width/height of each ViT-style patch extracted from the resized image (default: `16`). |
 | `--VisionChannelMean` / `--VisionChannelStd` | Comma-separated RGB mean/std vectors used for per-channel normalization. |
 
 ### Training
@@ -102,7 +102,7 @@ Launch the console with:
 
 1. Keep all image paths absolute or relative to the working directory where you launch the console.
 2. Pre-tokenize captions into space-delimited tokens and lowercase them to stabilize the vocabulary.
-3. The default patch grid is `(VisionImageSize / VisionPatchSize)^2`. Adjust `VisionPatchSize` if your GPU memory is limited (larger patches → fewer tokens per image).
+3. The encoder follows the Vision Transformer (ViT) patching scheme: each `VisionPatchSize × VisionPatchSize` tile is flattened (RGB order) and projected with a learnable linear layer. The number of visual tokens is `(VisionImageSize / VisionPatchSize)^2`, so adjust `VisionPatchSize` if your GPU memory is limited (larger patches → fewer tokens per image, smaller patches → richer spatial detail).
 4. To reuse a prebuilt vocabulary, set `--TgtVocab` to the `.vocab` file exported from a prior run.
 
 ## Support Modes
