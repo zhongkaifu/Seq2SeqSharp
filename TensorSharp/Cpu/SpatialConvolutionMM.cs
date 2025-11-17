@@ -266,4 +266,26 @@ namespace TensorSharp.Cpu
             Ops.Sum(gradBias, gradOutput2d, 1);
         }
     }
+
+    [OpsClass]
+    public class CpuConvolutionOps
+    {
+        [RegisterOpStorageType("conv2dforward", typeof(CpuStorage))]
+        public static void Conv2DForward(Tensor input, Tensor output, Tensor weight, Tensor bias, Tensor finput, ConvolutionDesc2d cd)
+        {
+            SpatialConvolutionMM.Conv2Forward(input, output, weight, bias, finput, cd);
+        }
+
+        [RegisterOpStorageType("conv2dbackwardinput", typeof(CpuStorage))]
+        public static void Conv2DBackwardInput(Tensor input, Tensor gradOutput, Tensor gradInput, Tensor weight, Tensor finput, Tensor fgradInput, ConvolutionDesc2d cd)
+        {
+            SpatialConvolutionMM.Conv2BackwardInput(input, gradOutput, gradInput, weight, finput, fgradInput, cd);
+        }
+
+        [RegisterOpStorageType("conv2dbackwardfilter", typeof(CpuStorage))]
+        public static void Conv2DBackwardFilter(Tensor input, Tensor gradOutput, Tensor gradWeight, Tensor gradBias, Tensor finput, Tensor fgradInput, ConvolutionDesc2d cd)
+        {
+            SpatialConvolutionMM.Conv2BackwardFilter(input, gradOutput, gradWeight, gradBias, finput, fgradInput, cd);
+        }
+    }
 }
