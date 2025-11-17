@@ -47,11 +47,19 @@ namespace Seq2SeqSharp.Applications
                 encoder = new MultiProcessorNetworkWrapper<IEncoder>(
                     new BiEncoder("BiLSTMEncoder", model.HiddenDim, model.EncoderEmbeddingDim, model.EncoderLayerDepth, raDeviceIds.GetNextItem(), isTrainable: options.IsEncoderTrainable), raDeviceIds.ToArray());
             }
+            else if (model.EncoderType == EncoderTypeEnums.CNN)
+            {
+                var channelSchedule = options.BuildCnnChannelSchedule(model.EncoderLayerDepth);
+                encoder = new MultiProcessorNetworkWrapper<IEncoder>(
+                    new CNNEncoder("CNNEncoder", model.HiddenDim, model.EncoderLayerDepth, options.CnnKernelSize, options.DropoutRatio,
+                        raDeviceIds.GetNextItem(), isTrainable: options.IsEncoderTrainable, learningRateFactor: options.EncoderStartLearningRateFactor,
+                        elementType: elementType, normType: model.NormType, channelSchedule: channelSchedule), raDeviceIds.ToArray());
+            }
             else
             {
                 encoder = new MultiProcessorNetworkWrapper<IEncoder>(
                     new TransformerEncoder("TransformerEncoder", model.MultiHeadNum, model.HiddenDim, model.IntermediateDim, model.EncoderEmbeddingDim, model.EncoderLayerDepth, options.DropoutRatio, raDeviceIds.GetNextItem(),
-                    isTrainable: options.IsEncoderTrainable, learningRateFactor: options.EncoderStartLearningRateFactor, activateFunc: model.ActivateFunc, expertNum: model.ExpertNum, expertsPerTokenFactor: model.ExpertsPerTokenFactor, 
+                    isTrainable: options.IsEncoderTrainable, learningRateFactor: options.EncoderStartLearningRateFactor, activateFunc: model.ActivateFunc, expertNum: model.ExpertNum, expertsPerTokenFactor: model.ExpertsPerTokenFactor,
                     elementType, peType: model.PEType, normType: model.NormType), raDeviceIds.ToArray());
             }
 
