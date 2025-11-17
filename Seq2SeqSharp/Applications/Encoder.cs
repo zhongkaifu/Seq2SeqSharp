@@ -49,10 +49,11 @@ namespace Seq2SeqSharp.Applications
             }
             else if (model.EncoderType == EncoderTypeEnums.CNN)
             {
+                var channelSchedule = options.BuildCnnChannelSchedule(model.EncoderLayerDepth);
                 encoder = new MultiProcessorNetworkWrapper<IEncoder>(
                     new CNNEncoder("CNNEncoder", model.HiddenDim, model.EncoderLayerDepth, options.CnnKernelSize, options.DropoutRatio,
                         raDeviceIds.GetNextItem(), isTrainable: options.IsEncoderTrainable, learningRateFactor: options.EncoderStartLearningRateFactor,
-                        elementType: elementType, normType: model.NormType), raDeviceIds.ToArray());
+                        elementType: elementType, normType: model.NormType, channelSchedule: channelSchedule), raDeviceIds.ToArray());
             }
             else
             {

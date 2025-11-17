@@ -13,8 +13,10 @@ using Seq2SeqSharp.Enums;
 using Seq2SeqSharp.Tools;
 using Seq2SeqSharp.Utils;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
+using System.Linq;
 using TensorSharp.CUDA.ContextState;
 
 namespace Seq2SeqSharp.Applications
@@ -111,6 +113,9 @@ namespace Seq2SeqSharp.Applications
         [Range(1, 511)]
         public int CnnKernelSize = 3;
 
+        [Arg("Optional comma-separated output channel sizes for each CNN encoder layer. Leave empty to use the adaptive default schedule.", nameof(CnnChannelSchedule))]
+        public string CnnChannelSchedule = string.Empty;
+
         [Arg("Label Smoothing. Default is 0.1f", nameof(LabelSmooth))]
         [Range(0.0f, 1.0f)]
         public float LabelSmooth = 0.1f;
@@ -197,6 +202,33 @@ namespace Seq2SeqSharp.Applications
         [Arg("The decay steps of learning rate", nameof(LearningRateDecaySteps))]
         [Range(1, 999999999)]
         public int LearningRateDecaySteps = 500000; // 500K
+
+        public IReadOnlyList<int> BuildCnnChannelSchedule(int encoderDepth)
+        {
+            if (string.IsNullOrWhiteSpace(CnnChannelSchedule))
+            {
+                return null;
+            }
+
+            var parts = CnnChannelSchedule.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length != encoderDepth)
+            {
+                throw new ArgumentException($"CnnChannelSchedule expects {encoderDepth} comma-separated values to match EncoderLayerDepth, but received {parts.Length}.");
+            }
+
+            var parsed = new List<int>(parts.Length);
+            foreach (var raw in parts)
+            {
+                if (!int.TryParse(raw.Trim(), out int value) || value <= 0)
+                {
+                    throw new ArgumentException($"Invalid CNN channel size '{raw}'. Only positive integers are allowed.");
+                }
+
+                parsed.Add(value);
+            }
+
+            return parsed;
+        }
 
         [Arg("The type of learning rate", nameof(LearningRateType))]
         [RegularExpression("Decay|CosineDecay")]
