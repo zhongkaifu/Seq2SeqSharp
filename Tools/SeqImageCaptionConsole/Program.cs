@@ -66,7 +66,7 @@ namespace SeqImageCaptionConsole
                 ShowOptions(args, opts);
 
                 DecodingOptions decodingOptions = opts.CreateDecodingOptions();
-                Seq2Seq ss = null;
+                ImageCaption imageCaption = null;
 
                 if (opts.Task == ModeEnums.Train)
                 {
@@ -92,7 +92,7 @@ namespace SeqImageCaptionConsole
 
                     if (!opts.ModelFilePath.IsNullOrEmpty() && File.Exists(opts.ModelFilePath))
                     {
-                        ss = new Seq2Seq(opts);
+                        imageCaption = new ImageCaption(opts);
                     }
                     else
                     {
@@ -107,13 +107,13 @@ namespace SeqImageCaptionConsole
                             tgtVocab.DumpVocab(opts.ModelFilePath + ".tgt_vocab");
                         }
 
-                        ss = new Seq2Seq(opts, null, tgtVocab);
+                        imageCaption = new ImageCaption(opts, tgtVocab);
                     }
 
-                    ss.StatusUpdateWatcher += Misc.Ss_StatusUpdateWatcher;
-                    ss.EvaluationWatcher += Ss_EvaluationWatcher;
+                    imageCaption.StatusUpdateWatcher += Misc.Ss_StatusUpdateWatcher;
+                    imageCaption.EvaluationWatcher += Ss_EvaluationWatcher;
 
-                    ss.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate,
+                    imageCaption.Train(maxTrainingEpoch: opts.MaxEpochNum, trainCorpus: trainCorpus, validCorpusList: validCorpusList.ToArray(), learningRate: learningRate,
                         optimizer: optimizer, metrics: metrics.ToArray(), decodingOptions: decodingOptions);
                 }
                 else if (opts.Task == ModeEnums.Valid)
@@ -121,9 +121,9 @@ namespace SeqImageCaptionConsole
                     var validCorpus = new VisionTextCorpus<VisionTextCorpusBatch>(opts.ValidCorpusPaths, opts.SrcLang, opts.TgtLang,
                         opts.ValMaxTokenSizePerBatch, opts.MaxValidSrcSentLength, opts.MaxValidTgtSentLength, opts.PaddingType, opts.TooLongSequence);
 
-                    ss = new Seq2Seq(opts);
-                    ss.EvaluationWatcher += Ss_EvaluationWatcher;
-                    ss.ValidVision(validCorpus, CreateMetrics(), decodingOptions);
+                    imageCaption = new ImageCaption(opts);
+                    imageCaption.EvaluationWatcher += Ss_EvaluationWatcher;
+                    imageCaption.ValidVision(validCorpus, CreateMetrics(), decodingOptions);
                 }
                 else if (opts.Task == ModeEnums.Test)
                 {
@@ -133,16 +133,16 @@ namespace SeqImageCaptionConsole
                         File.Delete(opts.OutputFile);
                     }
 
-                    ss = new Seq2Seq(opts);
+                    imageCaption = new ImageCaption(opts);
                     Stopwatch stopwatch = Stopwatch.StartNew();
-                    ss.TestVision(opts.InputTestFile, opts.OutputFile, opts.BatchSize, decodingOptions, opts.TgtSentencePieceModelPath, opts.OutputAlignmentsFile);
+                    imageCaption.TestVision(opts.InputTestFile, opts.OutputFile, opts.BatchSize, decodingOptions, opts.TgtSentencePieceModelPath, opts.OutputAlignmentsFile);
                     stopwatch.Stop();
                     Logger.WriteLine($"Test mode execution time elapsed: '{stopwatch.Elapsed}'");
                 }
                 else if (opts.Task == ModeEnums.DumpVocab)
                 {
-                    ss = new Seq2Seq(opts);
-                    ss.DumpVocabToFiles(opts.ModelFilePath + ".src_vocab", opts.ModelFilePath + ".tgt_vocab");
+                    imageCaption = new ImageCaption(opts);
+                    imageCaption.DumpVocabToFiles(opts.ModelFilePath + ".src_vocab", opts.ModelFilePath + ".tgt_vocab");
                 }
                 else if (opts.Task == ModeEnums.UpdateVocab)
                 {
@@ -151,8 +151,8 @@ namespace SeqImageCaptionConsole
                         throw new ArgumentException("--TgtVocab must be provided when updating vocabularies.");
                     }
 
-                    ss = new Seq2Seq(opts);
-                    ss.UpdateVocabs(null, new Vocab(opts.TgtVocab));
+                    imageCaption = new ImageCaption(opts);
+                    imageCaption.UpdateVocabs(null, new Vocab(opts.TgtVocab));
                 }
                 else if (opts.Task == ModeEnums.Help)
                 {
