@@ -41,7 +41,7 @@ namespace Seq2SeqSharp.Corpus
 
     }
 
-    public class VisionTextCorpusBatch : IVisionSntPairBatch
+    public class VisionTextCorpusBatch : ISntPairBatch
     {
         public List<string> SrcBatchPaths = null;
         public List<List<string>> TgtBatchTokens = null; // shape [batch_size, seq_size]

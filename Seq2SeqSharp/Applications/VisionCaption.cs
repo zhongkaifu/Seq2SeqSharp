@@ -109,7 +109,7 @@ namespace Seq2SeqSharp.Applications
             m_patchNorm = new MultiProcessorNetworkWrapper<INormalization>(new LayerNormalization("VisionPatchNorm", model.HiddenDim, raDeviceIds.GetNextItem(), isTrainable: true,
                 learningRateFactor: m_options.EncoderStartLearningRateFactor, elementType: elementType), DeviceIds);
             m_clsToken = new MultiProcessorNetworkWrapper<IWeightTensor>(new WeightTensor(new long[2] { 1, model.HiddenDim }, raDeviceIds.GetNextItem(),
-                initType: RandomInitType.Uniform, name: "VisionCLSToken", isTrainable: true, learningRateFactor: m_options.EncoderStartLearningRateFactor, dtype: elementType), DeviceIds, needDispose: true);
+                initType: RandomInitType.Uniform, name: "VisionCLSToken", isTrainable: true, learningRateFactor: m_options.EncoderStartLearningRateFactor, dtype: elementType), DeviceIds);
 
             m_tgtEmbedding = CreateTgtEmbeddings(model, raDeviceIds, m_options.IsTgtEmbeddingTrainable, m_options.DecoderStartLearningRateFactor, elementType);
 

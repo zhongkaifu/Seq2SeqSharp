@@ -29,7 +29,7 @@ namespace Seq2SeqSharp.Corpus
     /// Tgt side are the aligned text
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class VisionTextCorpus<T> : ICorpus<T> where T : IVisionSntPairBatch, new()
+    public class VisionTextCorpus<T> : ICorpus<T> where T : ISntPairBatch, new()
     {
         internal int m_maxSrcTokenSize = 32;
         internal int m_maxTgtTokenSize = 32;
