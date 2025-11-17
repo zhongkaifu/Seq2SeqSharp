@@ -1,9 +1,0 @@
-{
-  "profiles": {
-    "ImgSeqConsole": {
-      "commandName": "Project",
-      "commandLineArgs": "-ConfigFilePath train_opts.json",
-      "workingDirectory": "C:\\Works\\Workspace\\ImgSeq"
-    }
-  }
-}
