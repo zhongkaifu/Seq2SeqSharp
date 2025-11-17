@@ -18,6 +18,8 @@ namespace TensorSharp.CUDA
             var geometry = ConvGeometry.Build(input, weight, cd);
             geometry.ValidateForwardBuffers(output, finput, bias);
 
+            using var weight2d = geometry.ViewKernelAsMatrix(weight);
+
             for (long batchIndex = 0; batchIndex < geometry.BatchSize; ++batchIndex)
             {
                 using var inputSlice = input.Select(0, batchIndex);
@@ -49,7 +51,7 @@ namespace TensorSharp.CUDA
                     1,
                     1);
 
-                Ops.Addmm(output2d, 1.0f, output2d, 1.0f, weight, finput);
+                Ops.Addmm(output2d, 1.0f, output2d, 1.0f, weight2d, finput);
             }
         }
 
@@ -58,7 +60,8 @@ namespace TensorSharp.CUDA
             var geometry = ConvGeometry.Build(input, weight, cd);
             geometry.ValidateBackwardInputBuffers(gradOutput, gradInput, fgradInput);
 
-            using var weightT = weight.Transpose();
+            using var weight2d = geometry.ViewKernelAsMatrix(weight);
+            using var weightT = weight2d.Transpose();
 
             for (long batchIndex = 0; batchIndex < geometry.BatchSize; ++batchIndex)
             {
@@ -90,6 +93,8 @@ namespace TensorSharp.CUDA
             var geometry = ConvGeometry.Build(input, gradWeight, cd);
             geometry.ValidateBackwardFilterBuffers(gradOutput, gradWeight, gradBias);
 
+            using var gradWeight2d = geometry.ViewKernelAsMatrix(gradWeight);
+
             for (long batchIndex = 0; batchIndex < geometry.BatchSize; ++batchIndex)
             {
                 using var inputSlice = input.Select(0, batchIndex);
@@ -113,7 +118,7 @@ namespace TensorSharp.CUDA
                 using var gradOutput2d = gradOutputSlice.View(geometry.OutputPlanes, geometry.OutputSpatialSize);
                 using var finputT = finput.Transpose();
 
-                Ops.Addmm(gradWeight, 1.0f, gradWeight, 1.0f, gradOutput2d, finputT);
+                Ops.Addmm(gradWeight2d, 1.0f, gradWeight2d, 1.0f, gradOutput2d, finputT);
 
                 if (gradBias != null)
                 {
@@ -169,7 +174,12 @@ namespace TensorSharp.CUDA
                 var inHeight = input.Sizes[2];
                 var inWidth = input.Sizes[3];
                 var outPlane = weight.Sizes[0];
-                var kernelInput = weight.Sizes[1];
+                if (outPlane <= 0)
+                {
+                    throw new InvalidOperationException("Convolution weight must have a positive number of output channels.");
+                }
+
+                var kernelInput = weight.ElementCount() / outPlane;
                 var expectedKernelInput = (long)cd.kW * cd.kH * inPlane;
 
                 if (kernelInput != expectedKernelInput)
@@ -248,7 +258,7 @@ namespace TensorSharp.CUDA
                 }
 
                 if (gradWeight.Sizes[0] != OutputPlanes ||
-                    gradWeight.Sizes[1] != KernelSize * InputPlanes)
+                    gradWeight.ElementCount() / gradWeight.Sizes[0] != KernelSize * InputPlanes)
                 {
                     throw new InvalidOperationException("gradWeight is incorrect size");
                 }
@@ -257,6 +267,22 @@ namespace TensorSharp.CUDA
                 {
                     throw new InvalidOperationException("gradBias is incorrect size");
                 }
+            }
+
+            public Tensor ViewKernelAsMatrix(Tensor kernel)
+            {
+                if (kernel.Sizes[0] != OutputPlanes)
+                {
+                    throw new InvalidOperationException("Kernel has incorrect number of output channels.");
+                }
+
+                var flattened = kernel.ElementCount() / kernel.Sizes[0];
+                if (flattened != KernelSize * InputPlanes)
+                {
+                    throw new InvalidOperationException("Kernel has incorrect flattened size.");
+                }
+
+                return kernel.View(OutputPlanes, flattened);
             }
         }
     }
