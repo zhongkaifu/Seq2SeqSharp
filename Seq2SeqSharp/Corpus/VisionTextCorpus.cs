@@ -410,9 +410,8 @@ namespace Seq2SeqSharp.Corpus
         /// <param name="vocabSize"></param>
         public Vocab BuildVocabs(int tgtVocabSize = 45000, int minFreq = 1)
         {
-            CorpusBatch.t_ds = CountTokenFreqs();
-
-            (var srcVocabs, var tgtVocabs) = CorpusBatch.GenerateVocabs(0, tgtVocabSize, minFreq);
+            VisionTextCorpusBatch.t_ds = CountTokenFreqs();
+            var tgtVocabs = VisionTextCorpusBatch.GenerateVocabs(tgtVocabSize, minFreq);
             return tgtVocabs[0];
         }
 

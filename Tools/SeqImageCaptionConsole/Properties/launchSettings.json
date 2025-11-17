@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "SeqImageCaptionConsole": {
+      "commandName": "Project",
+      "commandLineArgs": "--Task Help"
+    }
+  }
+}

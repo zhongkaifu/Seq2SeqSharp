@@ -33,9 +33,15 @@ namespace Seq2SeqSharp
         public int IntermediateDim { get; set; }
         public bool EnableSegmentEmbeddings { get; set; }
         public int MultiHeadNum { get; set; }
+        public int ImageHeight { get; set; }
+        public int ImageWidth { get; set; }
+        public int ImageChannels { get; set; }
+        public int CnnKernelSize { get; set; }
+        public int CnnStride { get; set; }
+        public int CnnChannelBase { get; set; }
         public Vocab SrcVocab { get; set; }
         public Vocab TgtVocab { get; set; }
-		public List<Vocab> ClsVocabs { get; set; }
+                public List<Vocab> ClsVocabs { get; set; }
         public bool EnableCoverageModel { get; set; }
         public bool SharedEmbeddings { get; set; }
 

@@ -30,6 +30,18 @@ namespace Seq2SeqSharp
             EnableCoverageModel = opts.EnableCoverageModel;
             SharedEmbeddings = opts.SharedEmbeddings;
             PointerGenerator = opts.PointerGenerator;
+
+            if (opts is ImageCaptionOptions imageOpts)
+            {
+                ImageHeight = imageOpts.ImageHeight;
+                ImageWidth = imageOpts.ImageWidth;
+                ImageChannels = imageOpts.ImageChannels;
+                CnnKernelSize = imageOpts.CnnKernelSize;
+                CnnStride = imageOpts.CnnStride;
+                CnnChannelBase = imageOpts.CnnChannelBase;
+                ImageNormalizeMean = imageOpts.ParsedImageNormalizeMean?.ToArray() ?? Array.Empty<float>();
+                ImageNormalizeStd = imageOpts.ParsedImageNormalizeStd?.ToArray() ?? Array.Empty<float>();
+            }
         }
 
         public Seq2SeqModel(Model_4_ProtoBufSerializer m)

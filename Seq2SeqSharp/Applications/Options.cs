@@ -353,7 +353,7 @@ namespace Seq2SeqSharp.Applications
 
         [Arg("The token should be masked and all content of it", nameof(DPOMaskedToken))]
         public string DPOMaskedToken = "[message]";
-        public void ValidateOptions()
+        public virtual void ValidateOptions()
         {
             if (AMP == true && ProcessorType != ProcessorTypeEnums.GPU)
             {

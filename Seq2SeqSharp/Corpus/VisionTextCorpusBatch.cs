@@ -15,13 +15,25 @@ namespace Seq2SeqSharp.Corpus
 
         public VisionSntPair(string srcLine, string tgtLine)
         {
-            visPath = srcLine;
-            TgtTokens = tgtLine.Split(' ').ToList();
+            if (string.IsNullOrWhiteSpace(srcLine))
+            {
+                throw new ArgumentNullException(nameof(srcLine));
+            }
+
+            visPath = srcLine.Trim();
+            if (string.IsNullOrWhiteSpace(tgtLine))
+            {
+                TgtTokens = new List<string>();
+            }
+            else
+            {
+                TgtTokens = tgtLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+            }
         }
 
         public int GetSrcTokenCount()
         {
-            throw new NotImplementedException();
+            return string.IsNullOrEmpty(visPath) ? 0 : 1;
         }
 
         public int GetTgtTokenCount()
@@ -36,7 +48,7 @@ namespace Seq2SeqSharp.Corpus
 
         public string PrintTgtTokens()
         {
-            return string.Join(" ", TgtTokens.Count);
+            return string.Join(" ", TgtTokens);
         }
 
     }
@@ -46,7 +58,7 @@ namespace Seq2SeqSharp.Corpus
         public List<string> SrcBatchPaths = null;
         public List<List<string>> TgtBatchTokens = null; // shape [batch_size, seq_size]
 
-        public int BatchSize => SrcBatchPaths.Count;
+        public int BatchSize => SrcBatchPaths?.Count ?? 0;
 
         public int SrcTokenCount { get; set; } = 256;
         public int TgtTokenCount { get; set; }
@@ -54,7 +66,7 @@ namespace Seq2SeqSharp.Corpus
         public IPairBatch CloneSrcTokens()
         {
             VisionTextCorpusBatch spb = new VisionTextCorpusBatch();
-            spb.SrcBatchPaths = SrcBatchPaths;
+            spb.SrcBatchPaths = new List<string>(SrcBatchPaths);
             spb.TgtBatchTokens = InitializeHypTokens(BuildInTokens.BOS);
 
             return spb;
@@ -103,14 +115,12 @@ namespace Seq2SeqSharp.Corpus
             SrcBatchPaths = new List<string>();
             TgtBatchTokens = new List<List<string>>();
 
-            int tgtTknsGroupNum = TgtBatchTokens.Count;
-
             for (int i = 0; i < sntPairs.Count; i++)
             {
                 VisionSntPair pair = sntPairs[i] as VisionSntPair;
-
                 SrcBatchPaths.Add(pair.visPath);
                 TgtBatchTokens.Add(pair.TgtTokens);
+                SrcTokenCount += string.IsNullOrEmpty(pair.visPath) ? 0 : 1;
                 TgtTokenCount += pair.TgtTokens.Count;
             }
 
@@ -129,7 +139,17 @@ namespace Seq2SeqSharp.Corpus
 
         public List<List<string>> GetSrcTokens()
         {
-            return new List<List<string>> { SrcBatchPaths };
+            List<List<string>> tokens = new List<List<string>>();
+            foreach (var path in SrcBatchPaths)
+            {
+                tokens.Add(new List<string> { path });
+            }
+            return tokens;
+        }
+
+        public List<string> GetImagePaths()
+        {
+            return SrcBatchPaths;
         }
 
         public List<List<string>> GetTgtTokens()
@@ -265,13 +285,17 @@ namespace Seq2SeqSharp.Corpus
             SrcBatchPaths = new List<string>();
             foreach (var src in srcTokens)
             {
-                SrcBatchPaths.Add(src[0]);
+                if (src != null && src.Count > 0)
+                {
+                    SrcBatchPaths.Add(src[0]);
+                }
             }
 
             if (tgtTokens != null)
             {
                 TgtBatchTokens = tgtTokens;
                 TryAddPrefix(TgtBatchTokens, BuildInTokens.BOS);
+                TryAddSuffix(TgtBatchTokens, BuildInTokens.EOS);
             }
             else
             {
