@@ -24,6 +24,9 @@ namespace Seq2SeqSharp
         private readonly string m_name;
         private readonly bool m_isTrainable;
         private readonly int m_channelBase;
+        private readonly List<LayerNormalization> m_normLayers = new List<LayerNormalization>();
+        private readonly List<int> m_outputHeightsPerLayer = new List<int>();
+        private readonly List<int> m_outputWidthsPerLayer = new List<int>();
         private int m_outputHeight;
         private int m_outputWidth;
 
@@ -82,12 +85,16 @@ namespace Seq2SeqSharp
 
                 var weight = new WeightTensor(new long[] { plannedChannels, inChannels, m_kernelSize, m_kernelSize }, m_deviceId, name: $"{m_name}.ConvW_{i}", isTrainable: m_isTrainable, initType: RandomInitType.Normal, fanIn: true, fanOut: true);
                 var bias = new WeightTensor(new long[] { plannedChannels }, m_deviceId, name: $"{m_name}.ConvB_{i}", isTrainable: m_isTrainable, initType: RandomInitType.Uniform);
+                var norm = new LayerNormalization($"{m_name}.ConvNorm_{i}", plannedChannels, m_deviceId, m_isTrainable);
 
                 m_convWeights.Add(weight);
                 m_convBiases.Add(bias);
+                m_normLayers.Add(norm);
 
                 height = ComputeConvDim(height);
                 width = ComputeConvDim(width);
+                m_outputHeightsPerLayer.Add(height);
+                m_outputWidthsPerLayer.Add(width);
                 inChannels = plannedChannels;
             }
 
@@ -129,9 +136,25 @@ namespace Seq2SeqSharp
             IWeightTensor current = rawInput;
             for (int i = 0; i < m_convWeights.Count; i++)
             {
-                var next = g.Conv2D(current, m_convWeights[i], m_convBiases[i], strideW: m_stride, strideH: m_stride, padW: m_padding, padH: m_padding);
+                var conv = g.Conv2D(current, m_convWeights[i], m_convBiases[i], strideW: m_stride, strideH: m_stride, padW: m_padding, padH: m_padding);
                 current.ReleaseWeight();
-                current = g.SiLU(next, inPlace: true);
+
+                long[] convShape = (long[])conv.Sizes.Clone();
+                long flattenedLength = (long)batchSize * m_outputHeightsPerLayer[i] * m_outputWidthsPerLayer[i];
+                long channelSize = convShape[1];
+                var flattened = g.View(conv, new long[] { flattenedLength, channelSize });
+                var normalized = m_normLayers[i].Norm(flattened, g);
+                flattened.ReleaseWeight();
+                var reshaped = g.View(normalized, convShape);
+                conv.ReleaseWeight();
+                normalized.ReleaseWeight();
+                var activated = g.SiLU(reshaped, inPlace: true);
+                if (!object.ReferenceEquals(activated, reshaped))
+                {
+                    reshaped.ReleaseWeight();
+                }
+
+                current = activated;
             }
 
             if (m_dropoutRatio > 0)
@@ -156,6 +179,10 @@ namespace Seq2SeqSharp
             List<IWeightTensor> tensors = new List<IWeightTensor>();
             tensors.AddRange(m_convWeights);
             tensors.AddRange(m_convBiases);
+            foreach (var norm in m_normLayers)
+            {
+                tensors.AddRange(norm.GetParams());
+            }
             return tensors;
         }
 
@@ -170,6 +197,11 @@ namespace Seq2SeqSharp
             {
                 tensor.Save(model);
             }
+
+            foreach (var norm in m_normLayers)
+            {
+                norm.Save(model);
+            }
         }
 
         public void Load(IModel model)
@@ -182,6 +214,11 @@ namespace Seq2SeqSharp
             foreach (var tensor in m_convBiases)
             {
                 tensor.Load(model);
+            }
+
+            foreach (var norm in m_normLayers)
+            {
+                norm.Load(model);
             }
         }
     }
