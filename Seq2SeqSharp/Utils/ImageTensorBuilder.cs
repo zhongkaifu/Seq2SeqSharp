@@ -35,10 +35,9 @@ namespace Seq2SeqSharp.Utils
                 int baseOffset = i * channels * height * width;
                 for (int y = 0; y < height; y++)
                 {
-                    Span<Rgba32> rowSpan = image.GetPixelRowSpan(y);
                     for (int x = 0; x < width; x++)
                     {
-                        Rgba32 pixel = rowSpan[x];
+                        Rgba32 pixel = image[x, y];
                         float r = pixel.R / 255f;
                         float g = pixel.G / 255f;
                         float b = pixel.B / 255f;

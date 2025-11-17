@@ -37,6 +37,7 @@ namespace Seq2SeqSharp
         IWeightTensor TransposeBatch(IWeightTensor m, int batchSize);
         IWeightTensor AsContiguous(IWeightTensor w, bool shareTensor = true);
         IWeightTensor View(IWeightTensor w, params long[] dims);
+        IWeightTensor Permute(IWeightTensor w, params int[] dims);
         IWeightTensor Expand(IWeightTensor w, params long[] dims);
         IWeightTensor AddTanh(IWeightTensor w1, IWeightTensor w2);
         IWeightTensor AddTanh(IWeightTensor w1, IWeightTensor w2, IWeightTensor w3);
@@ -54,6 +55,8 @@ namespace Seq2SeqSharp
         IWeightTensor Mul(IWeightTensor w, float v, bool inPlace = false);
         IWeightTensor LayerNorm(IWeightTensor src, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-9f);
         IWeightTensor RMSNorm(IWeightTensor src, IWeightTensor alpha, IWeightTensor beta, float eps = 1e-9f);
+
+        IWeightTensor Conv2D(IWeightTensor input, IWeightTensor kernel, IWeightTensor bias, int strideW = 1, int strideH = 1, int padW = 0, int padH = 0);
 
         IWeightTensor Select(IWeightTensor src, int dim, int index);
         void Backward();
