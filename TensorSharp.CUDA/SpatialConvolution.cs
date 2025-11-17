@@ -10,7 +10,12 @@ namespace TensorSharp.CUDA
 
         public static long[] FInputSize(long[] inputSizes, long[] outputSizes, ConvolutionDesc2d cd)
         {
-            return new long[] { cd.kW * cd.kH * inputSizes[1], outputSizes[2] * outputSizes[3] };
+            return new long[]
+            {
+                inputSizes[0],
+                cd.kW * cd.kH * inputSizes[1],
+                outputSizes[2] * outputSizes[3]
+            };
         }
 
         public void Conv2Forward(Tensor input, Tensor output, Tensor weight, Tensor bias, Tensor finput, ConvolutionDesc2d cd)
@@ -25,6 +30,7 @@ namespace TensorSharp.CUDA
                 using var inputSlice = input.Select(0, batchIndex);
                 using var outputSlice = output.Select(0, batchIndex);
                 using var output2d = outputSlice.View(geometry.OutputPlanes, geometry.OutputSpatialSize);
+                using var finputSlice = finput.Select(0, batchIndex);
 
                 if (bias != null)
                 {
@@ -38,7 +44,7 @@ namespace TensorSharp.CUDA
 
                 im2colKernels.Im2Col(
                     inputSlice,
-                    finput,
+                    finputSlice,
                     (int)geometry.InputPlanes,
                     (int)geometry.InputHeight,
                     (int)geometry.InputWidth,
@@ -51,7 +57,7 @@ namespace TensorSharp.CUDA
                     1,
                     1);
 
-                Ops.Addmm(output2d, 1.0f, output2d, 1.0f, weight2d, finput);
+                Ops.Addmm(output2d, 1.0f, output2d, 1.0f, weight2d, finputSlice);
             }
         }
 
@@ -68,11 +74,12 @@ namespace TensorSharp.CUDA
                 using var gradInputSlice = gradInput.Select(0, batchIndex);
                 using var gradOutputSlice = gradOutput.Select(0, batchIndex);
                 using var gradOutput2d = gradOutputSlice.View(geometry.OutputPlanes, geometry.OutputSpatialSize);
+                using var fgradInputSlice = fgradInput.Select(0, batchIndex);
 
-                Ops.Addmm(fgradInput, 0.0f, fgradInput, 1.0f, weightT, gradOutput2d);
+                Ops.Addmm(fgradInputSlice, 0.0f, fgradInputSlice, 1.0f, weightT, gradOutput2d);
 
                 im2colKernels.Col2Im(
-                    fgradInput,
+                    fgradInputSlice,
                     gradInputSlice,
                     (int)geometry.InputPlanes,
                     (int)geometry.InputHeight,
@@ -99,10 +106,11 @@ namespace TensorSharp.CUDA
             {
                 using var inputSlice = input.Select(0, batchIndex);
                 using var gradOutputSlice = gradOutput.Select(0, batchIndex);
+                using var finputSlice = finput.Select(0, batchIndex);
 
                 im2colKernels.Im2Col(
                     inputSlice,
-                    finput,
+                    finputSlice,
                     (int)geometry.InputPlanes,
                     (int)geometry.InputHeight,
                     (int)geometry.InputWidth,
@@ -116,7 +124,7 @@ namespace TensorSharp.CUDA
                     1);
 
                 using var gradOutput2d = gradOutputSlice.View(geometry.OutputPlanes, geometry.OutputSpatialSize);
-                using var finputT = finput.Transpose();
+                using var finputT = finputSlice.Transpose();
 
                 Ops.Addmm(gradWeight2d, 1.0f, gradWeight2d, 1.0f, gradOutput2d, finputT);
 
@@ -210,8 +218,9 @@ namespace TensorSharp.CUDA
                     throw new InvalidOperationException("output is incorrect size");
                 }
 
-                if (finput.Sizes[0] != KernelSize * InputPlanes ||
-                    finput.Sizes[1] != OutputSpatialSize)
+                if (finput.Sizes[0] != BatchSize ||
+                    finput.Sizes[1] != KernelSize * InputPlanes ||
+                    finput.Sizes[2] != OutputSpatialSize)
                 {
                     throw new InvalidOperationException("finput is incorrect size");
                 }
@@ -240,8 +249,9 @@ namespace TensorSharp.CUDA
                     throw new InvalidOperationException("gradInput is incorrect size");
                 }
 
-                if (fgradInput.Sizes[0] != KernelSize * InputPlanes ||
-                    fgradInput.Sizes[1] != OutputSpatialSize)
+                if (fgradInput.Sizes[0] != BatchSize ||
+                    fgradInput.Sizes[1] != KernelSize * InputPlanes ||
+                    fgradInput.Sizes[2] != OutputSpatialSize)
                 {
                     throw new InvalidOperationException("fgradInput is incorrect size");
                 }
