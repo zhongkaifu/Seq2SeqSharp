@@ -78,6 +78,7 @@ Parameters:
 **-EncoderType**: The type of encoder. It supports BiLSTM, Transformer, and CNN (lightweight convolution blocks for tasks such as vision captioning).
 **-CnnKernelSize**: Kernel size for the CNN encoder (must be an odd value). Increase it to widen the receptive field when `--EncoderType CNN` is active.
 **-CnnChannelSchedule**: Optional comma-separated list of output channels for each CNN encoder layer. Leave it empty to use the adaptive width schedule or provide values such as `768,1024,1280,1024,768` to widen the middle layers.
+**(Automatic)**: Each CNN encoder block now applies batch normalization before the activation/residual step, which keeps training stable even with aggressive kernel sizes or widening schedules.
 **-DecoderType**: The type of decoder. It supports AttentionLSTM and Transformer.
 **-MultiHeadNum**: The number of multi-heads in Transformer encoder and decoder.  
 **-ModelFilePath**: The model file path for training and testing.  

@@ -21,6 +21,7 @@ namespace Seq2SeqSharp
     internal sealed class CNNEncoder : IEncoder
     {
         private readonly List<IFeedForwardLayer> m_convLayers = new List<IFeedForwardLayer>();
+        private readonly List<BatchNormalization> m_batchNormLayers = new List<BatchNormalization>();
         private readonly List<INormalization> m_normLayers = new List<INormalization>();
         private readonly List<IFeedForwardLayer> m_residualProjections = new List<IFeedForwardLayer>();
         private readonly List<int> m_layerInputDims = new List<int>();
@@ -81,6 +82,8 @@ namespace Seq2SeqSharp
                 m_layerOutputDims.Add(outputDim);
 
                 m_convLayers.Add(new FeedForwardLayer($"{name}.Conv_{i}", previousDim * kernelSize, outputDim, dropoutRatio, deviceId, isTrainable,
+                    learningRateFactor: learningRateFactor, elementType: elementType));
+                m_batchNormLayers.Add(new BatchNormalization($"{name}.BN_{i}", outputDim, deviceId, isTrainable,
                     learningRateFactor: learningRateFactor, elementType: elementType));
 
                 if (previousDim != outputDim)
@@ -149,7 +152,9 @@ namespace Seq2SeqSharp
                 var conv = m_convLayers[layerId].Process(windows, batchSize * seqLen, subGraph);
                 windows.ReleaseWeight();
 
-                conv = subGraph.ReLU(conv, inPlace: true);
+                var convWithBatchNorm = m_batchNormLayers[layerId].Norm(conv, subGraph);
+                conv.ReleaseWeight();
+                conv = subGraph.ReLU(convWithBatchNorm, inPlace: true);
                 IWeightTensor residual = states;
                 if (m_residualProjections[layerId] != null)
                 {
@@ -272,6 +277,11 @@ namespace Seq2SeqSharp
                 response.AddRange(conv.GetParams());
             }
 
+            foreach (var bn in m_batchNormLayers)
+            {
+                response.AddRange(bn.GetParams());
+            }
+
             foreach (var proj in m_residualProjections)
             {
                 if (proj != null)
@@ -300,6 +310,11 @@ namespace Seq2SeqSharp
                 conv.Save(stream);
             }
 
+            foreach (var bn in m_batchNormLayers)
+            {
+                bn.Save(stream);
+            }
+
             foreach (var proj in m_residualProjections)
             {
                 proj?.Save(stream);
@@ -318,6 +333,11 @@ namespace Seq2SeqSharp
             foreach (var conv in m_convLayers)
             {
                 conv.Load(stream);
+            }
+
+            foreach (var bn in m_batchNormLayers)
+            {
+                bn.Load(stream);
             }
 
             foreach (var proj in m_residualProjections)

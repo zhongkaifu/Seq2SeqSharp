@@ -27,7 +27,7 @@ The console accepts the same option set as the text-based Seq2Seq console, plus 
 | `--VisionPatchSize` | Pixel width/height of each ViT-style patch extracted from the resized image (default: `16`). |
 | `--VisionChannelMean` / `--VisionChannelStd` | Comma-separated RGB mean/std vectors used for per-channel normalization. |
 
-> **Tip:** Set `--EncoderType CNN --CnnKernelSize 5` to swap the ViT-style transformer encoder for the new lightweight CNN encoder. Combine it with `--CnnChannelSchedule 768,1024,1280,1024,768` (matching your encoder depth) to widen intermediate layers while keeping the first/last layers aligned with the model hidden size.
+> **Tip:** Set `--EncoderType CNN --CnnKernelSize 5` to swap the ViT-style transformer encoder for the new lightweight CNN encoder. Combine it with `--CnnChannelSchedule 768,1024,1280,1024,768` (matching your encoder depth) to widen intermediate layers while keeping the first/last layers aligned with the model hidden size. Every CNN block now includes batch normalization automatically, so the wider stages stay numerically stable without extra flags.
 
 ### Training
 
