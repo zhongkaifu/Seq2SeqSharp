@@ -27,6 +27,8 @@ The console accepts the same option set as the text-based Seq2Seq console, plus 
 | `--VisionPatchSize` | Pixel width/height of each ViT-style patch extracted from the resized image (default: `16`). |
 | `--VisionChannelMean` / `--VisionChannelStd` | Comma-separated RGB mean/std vectors used for per-channel normalization. |
 
+> **Tip:** Set `--EncoderType CNN --CnnKernelSize 5` to swap the ViT-style transformer encoder for the new lightweight CNN encoder. The kernel size (must be odd) controls how many neighboring patches are aggregated into each visual token.
+
 ### Training
 
 ```bash

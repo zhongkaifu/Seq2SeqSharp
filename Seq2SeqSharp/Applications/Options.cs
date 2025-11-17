@@ -104,8 +104,12 @@ namespace Seq2SeqSharp.Applications
         [Range(0.0f, 1.0f)]
         public float EncoderStartLearningRateFactor = 1.0f;
 
-        [Arg("Encoder type: None, LSTM, BiLSTM, Transformer", nameof(EncoderType))]
+        [Arg("Encoder type: None, BiLSTM, Transformer, CNN", nameof(EncoderType))]
         public EncoderTypeEnums EncoderType = EncoderTypeEnums.Transformer;
+
+        [Arg("Kernel size used by the CNN encoder (must be an odd value).", nameof(CnnKernelSize))]
+        [Range(1, 511)]
+        public int CnnKernelSize = 3;
 
         [Arg("Label Smoothing. Default is 0.1f", nameof(LabelSmooth))]
         [Range(0.0f, 1.0f)]
@@ -374,6 +378,11 @@ namespace Seq2SeqSharp.Applications
             if (AttentionType == AttentionTypeEnums.FlashAttentionV2 && ProcessorType != ProcessorTypeEnums.GPU)
             {
                 throw new ArgumentException("FlashAttentionV2 runs on GPU only, please use the classic attention layer instead.");
+            }
+
+            if (EncoderType == EncoderTypeEnums.CNN && (CnnKernelSize % 2 == 0))
+            {
+                throw new ArgumentException("CnnKernelSize must be an odd value so the CNN encoder can pad inputs symmetrically.");
             }
         }
     }

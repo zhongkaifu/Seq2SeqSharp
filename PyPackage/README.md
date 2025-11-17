@@ -73,7 +73,8 @@ Parameters:
 **-LearningRate**: Learning rate. Default is 0.001  
 **-EncoderLayerDepth**: The network depth in encoder. The default depth is 1.  
 **-DecoderLayerDepth**: The network depth in decoder. The default depth is 1.  
-**-EncoderType**: The type of encoder. It supports BiLSTM and Transformer.  
+**-EncoderType**: The type of encoder. It supports BiLSTM, Transformer, and CNN (lightweight convolution blocks for tasks such as vision captioning).
+**-CnnKernelSize**: Kernel size for the CNN encoder (must be an odd value). Increase it to widen the receptive field when `--EncoderType CNN` is active.
 **-DecoderType**: The type of decoder. It supports AttentionLSTM and Transformer.  
 **-MultiHeadNum**: The number of multi-heads in Transformer encoder and decoder.  
 **-ModelFilePath**: The model file path for training and testing.  
