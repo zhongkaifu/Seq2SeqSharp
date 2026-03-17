@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace TensorSharp.GGML
 {
 
-internal enum GgmlBackendType
+public enum GgmlBackendType
 {
     Metal = 1,
     Cpu = 2,
