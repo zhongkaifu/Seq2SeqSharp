@@ -14,7 +14,7 @@ namespace TensorSharp.GGML
             this.deviceId = deviceId;
         }
 
-        public BlasEnum BlasEnum => BlasEnum.GGML;
+        public BlasEnum BlasEnum => BlasEnum.GGML_METAL;
 
         public int DeviceId => deviceId;
 

@@ -169,9 +169,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("The prompt for output. It's a input file along with InputTestFile", nameof(OutputPromptFile))]
         public string OutputPromptFile = null;
 
-        [Arg("The processor type: GPU, CPU, CPU_MKL, GGML", nameof(ProcessorType))]
-        [RegularExpression("GPU|CPU|CPU_MKL|GGML")]
-        public ProcessorTypeEnums ProcessorType = ProcessorTypeEnums.GPU;
+        [Arg("The processor type: CUDA, CPU, CPU_MKL, GGML_METAL", nameof(ProcessorType))]
+        [RegularExpression("CUDA|CPU|CPU_MKL|GGML_METAL")]
+        public ProcessorTypeEnums ProcessorType = ProcessorTypeEnums.CUDA;
 
         [Arg("The instructions used in CPU_MKL processor type", nameof(MKLInstructions))]
         [RegularExpression("AVX|AVX2|AVX2_E1|AVX512|AVX512_E1|AVX512_E2|AVX512_E3|AVX512_E4|SSE4_2")]

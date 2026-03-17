@@ -62,8 +62,8 @@ namespace Seq2SeqSharp.Tests
             using var cpuResult = runCpu(ProcessorTypeEnums.CPU);
             var cpuArr = ReadTensor(cpuResult);
 
-            TensorAllocator.InitDevices(ProcessorTypeEnums.GGML, new[] { 0 });
-            using var ggmlResult = runGgml(ProcessorTypeEnums.GGML);
+            TensorAllocator.InitDevices(ProcessorTypeEnums.GGML_METAL, new[] { 0 });
+            using var ggmlResult = runGgml(ProcessorTypeEnums.GGML_METAL);
             var ggmlArr = ReadTensor(ggmlResult);
 
             AssertTensorsClose(cpuArr, ggmlArr, opName, contiguous ? "contiguous" : "non-contiguous");

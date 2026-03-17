@@ -2,17 +2,17 @@ namespace Seq2SeqSharp.Utils
 {
     public enum ProcessorTypeEnums
     {
-        GPU,
+        CUDA,
         CPU,
         CPU_MKL,
-        GGML
+        GGML_METAL
     }
 
     public static class ProcessorTypeEnumExtensions
     {
         public static bool IsCuda(this ProcessorTypeEnums processorType)
         {
-            return processorType == ProcessorTypeEnums.GPU;
+            return processorType == ProcessorTypeEnums.CUDA;
         }
 
         public static bool IsCpu(this ProcessorTypeEnums processorType)
@@ -22,12 +22,12 @@ namespace Seq2SeqSharp.Utils
 
         public static bool IsGGML(this ProcessorTypeEnums processorType)
         {
-            return processorType == ProcessorTypeEnums.GGML;
+            return processorType == ProcessorTypeEnums.GGML_METAL;
         }
 
         public static bool UsesAccelerator(this ProcessorTypeEnums processorType)
         {
-            return processorType == ProcessorTypeEnums.GPU || processorType == ProcessorTypeEnums.GGML;
+            return processorType == ProcessorTypeEnums.CUDA || processorType == ProcessorTypeEnums.GGML_METAL;
         }
     }
 
