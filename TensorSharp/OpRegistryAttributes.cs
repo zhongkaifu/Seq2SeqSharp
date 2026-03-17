@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 
 namespace TensorSharp
 {
@@ -17,6 +18,19 @@ namespace TensorSharp
         public RegisterOp(string opName)
         {
             OpName = opName;
+        }
+
+        protected static object InvokeRegisteredMethod(object instance, MethodInfo method, object[] args)
+        {
+            try
+            {
+                return method.Invoke(instance, args);
+            }
+            catch (TargetInvocationException ex) when (ex.InnerException != null)
+            {
+                ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                throw;
+            }
         }
 
         public abstract void DoRegister(object instance, MethodInfo method, IEnumerable<OpConstraint> paramConstraints);
@@ -38,7 +52,7 @@ namespace TensorSharp
             constraints.AddRange(paramConstraints);
             constraints.Add(new ArgCountConstraint(method.GetParameters().Length));
 
-            OpRegistry.Register(OpName, args => method.Invoke(instance, args), constraints);
+            OpRegistry.Register(OpName, args => InvokeRegisteredMethod(instance, method, args), constraints);
         }
     }
 
@@ -68,7 +82,7 @@ namespace TensorSharp
                 }
             }
 
-            OpRegistry.Register(OpName, args => method.Invoke(instance, args), constraints);
+            OpRegistry.Register(OpName, args => InvokeRegisteredMethod(instance, method, args), constraints);
         }
     }
 

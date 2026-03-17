@@ -1,4 +1,4 @@
-﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// Copyright (c) Zhongkai Fu. All rights reserved.
 // https://github.com/zhongkaifu/Seq2SeqSharp
 //
 // This file is part of Seq2SeqSharp.
@@ -12,6 +12,7 @@ using AdvUtils;
 using System;
 using System.Data;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using TensorSharp.Core;
 
 namespace TensorSharp.Cpu
@@ -184,13 +185,27 @@ namespace TensorSharp.Cpu
 
 
 
+        private static bool UseCpuOpsNative => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+
         private readonly MethodInfo abs_func = NativeWrapper.GetMethod("TS_Abs");
         [RegisterOpStorageType("abs", typeof(CpuStorage))]
-        public Tensor Abs(Tensor result, Tensor src) { return NativeWrapper.InvokeNullableResultElementwise(abs_func, result, src); }
+        public Tensor Abs(Tensor result, Tensor src)
+        {
+            if (UseCpuOpsNative) return NativeWrapper.InvokeNullableResultElementwise(abs_func, result, src);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
+            TensorApplyCPU.Abs(writeTarget, src);
+            return writeTarget;
+        }
 
         private readonly MethodInfo neg_func = NativeWrapper.GetMethod("TS_Neg");
         [RegisterOpStorageType("neg", typeof(CpuStorage))]
-        public Tensor Neg(Tensor result, Tensor src) { return NativeWrapper.InvokeNullableResultElementwise(neg_func, result, src); }
+        public Tensor Neg(Tensor result, Tensor src)
+        {
+            if (UseCpuOpsNative) return NativeWrapper.InvokeNullableResultElementwise(neg_func, result, src);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
+            TensorApplyCPU.Neg(writeTarget, src);
+            return writeTarget;
+        }
 
         private readonly MethodInfo sign_func = NativeWrapper.GetMethod("TS_Sign");
         [RegisterOpStorageType("sign", typeof(CpuStorage))]
@@ -199,7 +214,13 @@ namespace TensorSharp.Cpu
 
         private readonly MethodInfo sqrt_func = NativeWrapper.GetMethod("TS_Sqrt");
         [RegisterOpStorageType("sqrt", typeof(CpuStorage))]
-        public Tensor Sqrt(Tensor result, Tensor src) { return NativeWrapper.InvokeNullableResultElementwise(sqrt_func, result, src); }
+        public Tensor Sqrt(Tensor result, Tensor src)
+        {
+            if (UseCpuOpsNative) return NativeWrapper.InvokeNullableResultElementwise(sqrt_func, result, src);
+            Tensor writeTarget = TensorResultBuilder.GetWriteTarget(result, src, false, src.Sizes);
+            TensorApplyCPU.Sqrt(writeTarget, src);
+            return writeTarget;
+        }
 
 
         [RegisterOpStorageType("rsqrt", typeof(CpuStorage))]

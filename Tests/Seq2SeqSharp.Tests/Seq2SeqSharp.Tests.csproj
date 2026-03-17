@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -20,6 +20,12 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Seq2SeqSharp\Seq2SeqSharp.csproj" />
   </ItemGroup>
+
+  <Target Name="CopyGgmlNativeBinary" AfterTargets="Build" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)/../../TensorSharp.GGML.Native/build/libGgmlOps.dylib"
+          DestinationFolder="$(OutputPath)"
+          SkipUnchangedFiles="true" />
+  </Target>
 
   <ItemGroup>
     <None Update="enuSpm.vocab">

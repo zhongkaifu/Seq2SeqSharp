@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -24,6 +24,15 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TensorSharp", "TensorSharp\TensorSharp.csproj", "{75332198-952C-48DE-9F2B-21F49BC68ED2}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TensorSharp.CUDA", "TensorSharp.CUDA\TensorSharp.CUDA.csproj", "{95890D35-0FE3-4A20-8260-E9829A636EB1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TensorSharp.GGML", "TensorSharp.GGML\TensorSharp.GGML.csproj", "{E9B8AA1F-1A23-4C53-91E7-5E6F3F87AB11}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TensorSharp.GGML.Native", "TensorSharp.GGML.Native", "{9C2BDEB4-8E9F-4A84-B460-0D6F2C7A2190}"
+	ProjectSection(SolutionItems) = preProject
+		TensorSharp.GGML.Native\build-macos.sh = TensorSharp.GGML.Native\build-macos.sh
+		TensorSharp.GGML.Native\CMakeLists.txt = TensorSharp.GGML.Native\CMakeLists.txt
+		TensorSharp.GGML.Native\ggml_ops.cpp = TensorSharp.GGML.Native\ggml_ops.cpp
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CpuOps", "CpuOps\CpuOps.vcxproj", "{920E488B-9DDE-4AC0-863D-448645F9A15D}"
 EndProject
@@ -105,6 +114,12 @@ Global
 		{95890D35-0FE3-4A20-8260-E9829A636EB1}.Release|Any CPU.Build.0 = Release|Any CPU
 		{95890D35-0FE3-4A20-8260-E9829A636EB1}.ReleaseCpuOnly|Any CPU.ActiveCfg = Release|Any CPU
 		{95890D35-0FE3-4A20-8260-E9829A636EB1}.ReleaseCpuOnly|Any CPU.Build.0 = Release|Any CPU
+		{E9B8AA1F-1A23-4C53-91E7-5E6F3F87AB11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9B8AA1F-1A23-4C53-91E7-5E6F3F87AB11}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9B8AA1F-1A23-4C53-91E7-5E6F3F87AB11}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9B8AA1F-1A23-4C53-91E7-5E6F3F87AB11}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E9B8AA1F-1A23-4C53-91E7-5E6F3F87AB11}.ReleaseCpuOnly|Any CPU.ActiveCfg = ReleaseCpuOnly|Any CPU
+		{E9B8AA1F-1A23-4C53-91E7-5E6F3F87AB11}.ReleaseCpuOnly|Any CPU.Build.0 = ReleaseCpuOnly|Any CPU
 		{920E488B-9DDE-4AC0-863D-448645F9A15D}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{920E488B-9DDE-4AC0-863D-448645F9A15D}.Release|Any CPU.ActiveCfg = Release|Win32
 		{920E488B-9DDE-4AC0-863D-448645F9A15D}.ReleaseCpuOnly|Any CPU.ActiveCfg = ReleaseCpuOnly|Win32

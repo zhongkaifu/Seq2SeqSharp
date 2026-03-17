@@ -1,4 +1,4 @@
-﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// Copyright (c) Zhongkai Fu. All rights reserved.
 // https://github.com/zhongkaifu/Seq2SeqSharp
 //
 // This file is part of Seq2SeqSharp.
@@ -19,6 +19,7 @@ using System.Threading.Tasks;
 using TensorSharp;
 using TensorSharp.Cpu;
 using TensorSharp.CUDA;
+using TensorSharp.GGML;
 
 namespace Seq2SeqSharp.Optimizer
 {
@@ -72,10 +73,15 @@ namespace Seq2SeqSharp.Optimizer
 
                 if (m_cacheName2V.ContainsKey(item.Name) == false)
                 {
-                    m_cacheName2V[item.Name] = new Tensor((m_saveGPUMemoryLevel > 0) ? new CpuAllocator(BlasEnum.DotNet) : item.Allocator, DType.Float32, item.Sizes);
+                    // Keep m and v on device for GGML to avoid host/device copies each step
+                    bool keepOnDevice = item.Allocator is GgmlAllocator;
+                    IAllocator vAlloc = (keepOnDevice || m_saveGPUMemoryLevel == 0) ? item.Allocator : new CpuAllocator(BlasEnum.DotNet);
+                    IAllocator mAlloc = (keepOnDevice || m_saveGPUMemoryLevel <= 1) ? item.Allocator : new CpuAllocator(BlasEnum.DotNet);
+
+                    m_cacheName2V[item.Name] = new Tensor(vAlloc, DType.Float32, item.Sizes);
                     Ops.Fill(m_cacheName2V[item.Name], 0.0f);
 
-                    m_cacheName2M[item.Name] = new Tensor((m_saveGPUMemoryLevel > 1) ? new CpuAllocator(BlasEnum.DotNet) : item.Allocator, DType.Float32, item.Sizes);
+                    m_cacheName2M[item.Name] = new Tensor(mAlloc, DType.Float32, item.Sizes);
                     Ops.Fill(m_cacheName2M[item.Name], 0.0f);
 
                     Logger.WriteLine(Logger.Level.debug, $"Added weight '{item.Name}' to optimizer. Learning rate factor = '{item.LearningRateFactor}'");

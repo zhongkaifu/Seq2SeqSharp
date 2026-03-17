@@ -1,4 +1,4 @@
-﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// Copyright (c) Zhongkai Fu. All rights reserved.
 // https://github.com/zhongkaifu/Seq2SeqSharp
 //
 // This file is part of Seq2SeqSharp.
@@ -671,6 +671,33 @@ namespace TensorSharp
 			}
 		}
 
+
+		unsafe static public void Abs(Tensor result, Tensor src)
+		{
+			unsafe void func(float* r, float* s)
+			{
+				*r = Math.Abs(*s);
+			}
+			Apply2(result, src, func);
+		}
+
+		unsafe static public void Neg(Tensor result, Tensor src)
+		{
+			unsafe void func(float* r, float* s)
+			{
+				*r = -(*s);
+			}
+			Apply2(result, src, func);
+		}
+
+		unsafe static public void Sqrt(Tensor result, Tensor src)
+		{
+			unsafe void func(float* r, float* s)
+			{
+				*r = (float)Math.Sqrt(*s);
+			}
+			Apply2(result, src, func);
+		}
 
 		unsafe static public void Rsqrt(Tensor result, Tensor src)
 		{
@@ -1687,7 +1714,7 @@ namespace TensorSharp
 				{
 					if (sg[i] != 0.0)
 					{
-						float g2 = sg[i] / gradNormFactor;
+						float g2 = sg[i] * gradNormFactor;
 
 						if (g2 > clipval)
 						{

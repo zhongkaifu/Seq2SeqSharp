@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
 	<EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
     <TargetFramework>net8.0</TargetFramework>
@@ -42,6 +42,8 @@
 	  </ProjectReference>
 	  <ProjectReference Include="..\TensorSharp.CUDA\TensorSharp.CUDA.csproj">
 	  </ProjectReference>
+	  <ProjectReference Include="..\TensorSharp.GGML\TensorSharp.GGML.csproj">
+	  </ProjectReference>
 	  <ProjectReference Include="..\TensorSharp\TensorSharp.csproj">
 	  </ProjectReference>
   </ItemGroup>
@@ -62,9 +64,21 @@
       <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <None Include="..\TensorSharp.GGML.Native\build\libGgmlOps.dylib">
+      <Pack>True</Pack>
+      <PackagePath>runtimes\osx-arm64\native\</PackagePath>
+    </None>
+  </ItemGroup>
 	<Target DependsOnTargets="ResolveReferences" Name="CopyProjectReferencesToPackage">
 		<ItemGroup>
 			<BuildOutputInPackage Include="@(ReferenceCopyLocalPaths-&gt;WithMetadataValue('ReferenceSourceTarget', 'ProjectReference'))" />
 		</ItemGroup>
 	</Target>
+  <Target Name="CopyGgmlNativeBinary" AfterTargets="Build" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <ItemGroup>
+      <GgmlNativeBinary Include="$(MSBuildProjectDirectory)/../TensorSharp.GGML.Native/build/libGgmlOps.dylib" />
+    </ItemGroup>
+    <Copy SourceFiles="@(GgmlNativeBinary)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

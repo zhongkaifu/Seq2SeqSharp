@@ -1,4 +1,4 @@
-﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// Copyright (c) Zhongkai Fu. All rights reserved.
 // https://github.com/zhongkaifu/Seq2SeqSharp
 //
 // This file is part of Seq2SeqSharp.
@@ -67,7 +67,7 @@ namespace Seq2SeqSharp.Applications
         [Range(0.0f, 999.0f)]
         public float DecodingRepeatPenalty = 2.0f;
 
-        [Arg("Device ids for training in GPU mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2", nameof(DeviceIds))]
+        [Arg("Device ids for accelerator mode. Default is 0. For multi devices, ids are split by comma, for example: 0,1,2. GGML currently supports a single device id.", nameof(DeviceIds))]
         public string DeviceIds = "0";
 
         [Arg("Dropout ratio", nameof(DropoutRatio))]
@@ -169,8 +169,8 @@ namespace Seq2SeqSharp.Applications
         [Arg("The prompt for output. It's a input file along with InputTestFile", nameof(OutputPromptFile))]
         public string OutputPromptFile = null;
 
-        [Arg("The processor type: GPU, CPU, CPU_MKL", nameof(ProcessorType))]
-        [RegularExpression("GPU|CPU|CPU_MKL")]
+        [Arg("The processor type: GPU, CPU, CPU_MKL, GGML", nameof(ProcessorType))]
+        [RegularExpression("GPU|CPU|CPU_MKL|GGML")]
         public ProcessorTypeEnums ProcessorType = ProcessorTypeEnums.GPU;
 
         [Arg("The instructions used in CPU_MKL processor type", nameof(MKLInstructions))]
@@ -355,14 +355,27 @@ namespace Seq2SeqSharp.Applications
         public string DPOMaskedToken = "[message]";
         public void ValidateOptions()
         {
-            if (AMP == true && ProcessorType != ProcessorTypeEnums.GPU)
+            if (AMP == true && !ProcessorType.IsCuda())
             {
-                throw new ArgumentException($"AMP (automatic mixed precesion) is only available for GPUs now. AMP has not supported CPUs yet.");
+                throw new ArgumentException($"AMP (automatic mixed precesion) is only available for the CUDA GPU backend now. Disable AMP when using CPU or GGML.");
             }
 
-            if (ProcessorType == ProcessorTypeEnums.GPU && CompilerOptions.Contains("--include-path") == false && AMP == true)
+            if (ProcessorType.IsCuda() && AMP == true && (string.IsNullOrEmpty(CompilerOptions) || CompilerOptions.Contains("--include-path") == false))
             {
                 throw new ArgumentException($"Option --include-path is required in CompilerOptions for GPU tasks. It should points to installed CUDA SDK include path in this machine.");
+            }
+
+            if (ProcessorType.IsGGML())
+            {
+                if (!OperatingSystem.IsMacOS())
+                {
+                    throw new PlatformNotSupportedException("The GGML backend uses ggml-metal and is available on macOS only.");
+                }
+
+                if (DeviceIds.Contains(','))
+                {
+                    throw new ArgumentException("The GGML backend currently supports a single device id only.");
+                }
             }
 
             // Model must exist if current task is not for training
@@ -371,7 +384,7 @@ namespace Seq2SeqSharp.Applications
                 throw new FileNotFoundException($"Model '{ModelFilePath}' doesn't exist for task '{Task}'");
             }
 
-            if (AttentionType == AttentionTypeEnums.FlashAttentionV2 && ProcessorType != ProcessorTypeEnums.GPU)
+            if (AttentionType == AttentionTypeEnums.FlashAttentionV2 && !ProcessorType.IsCuda())
             {
                 throw new ArgumentException("FlashAttentionV2 runs on GPU only, please use the classic attention layer instead.");
             }

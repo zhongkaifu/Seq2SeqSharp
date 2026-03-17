@@ -1,4 +1,4 @@
-﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// Copyright (c) Zhongkai Fu. All rights reserved.
 // https://github.com/zhongkaifu/Seq2SeqSharp
 //
 // This file is part of Seq2SeqSharp.
@@ -93,7 +93,7 @@ namespace Seq2SeqWebApps
             }
 
 
-            if (opts.ProcessorType != ProcessorTypeEnums.GPU)
+            if (!opts.ProcessorType.UsesAccelerator())
             {
                 sm = new Semaphore(Environment.ProcessorCount, Environment.ProcessorCount);
             }

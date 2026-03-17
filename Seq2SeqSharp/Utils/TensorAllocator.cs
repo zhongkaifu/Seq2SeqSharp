@@ -1,4 +1,4 @@
-﻿// Copyright (c) Zhongkai Fu. All rights reserved.
+// Copyright (c) Zhongkai Fu. All rights reserved.
 // https://github.com/zhongkaifu/Seq2SeqSharp
 //
 // This file is part of Seq2SeqSharp.
@@ -15,6 +15,7 @@ using TensorSharp.Cpu;
 using TensorSharp.CUDA;
 using TensorSharp.CUDA.ContextState;
 using TensorSharp.CUDA.MatrixMul;
+using TensorSharp.GGML;
 using Seq2SeqSharp.Utils;
 
 namespace Seq2SeqSharp.Utils
@@ -23,6 +24,7 @@ namespace Seq2SeqSharp.Utils
     {
         private static IAllocator[] m_allocator = null;
         private static TSCudaContext m_cudaContext = null;
+        private static GgmlContext m_ggmlContext = null;
         private static int[] m_deviceIds;
         private static ProcessorTypeEnums m_archType;
 
@@ -40,7 +42,7 @@ namespace Seq2SeqSharp.Utils
             m_allocator = new IAllocator[m_deviceIds.Length];
             CudaMatrixMulMM.EnableTensorCore = enableTensorCore;
 
-            if (m_archType == ProcessorTypeEnums.GPU)
+            if (m_archType.IsCuda())
             {
                 m_cudaContext = new TSCudaContext(m_deviceIds, memoryUsageRatio, compilerOptions, allocatorType, elementType, useFlashAttention: attentionTypeEnums == AttentionTypeEnums.FlashAttentionV2);
                 m_cudaContext.Precompile();
@@ -53,6 +55,16 @@ namespace Seq2SeqSharp.Utils
                     m_allocator[idx] = new CudaAllocator(m_cudaContext, deviceId);
                 }
 
+            }
+            else if (m_archType.IsGGML())
+            {
+                m_ggmlContext = new GgmlContext(m_deviceIds);
+                foreach (int deviceId in m_deviceIds)
+                {
+                    Logger.WriteLine($"Initialize GGML Metal device '{deviceId}'");
+                    int idx = GetDeviceIdIndex(deviceId);
+                    m_allocator[idx] = new GgmlAllocator(m_ggmlContext, deviceId);
+                }
             }
             else
             {

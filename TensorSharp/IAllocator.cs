@@ -1,10 +1,11 @@
-﻿namespace TensorSharp
+namespace TensorSharp
 {
     public enum BlasEnum
     {
         DotNet,
         MKL,
-        CUDA
+        CUDA,
+        GGML
     }
 
 

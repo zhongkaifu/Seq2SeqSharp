@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace TensorSharp
 {
@@ -61,7 +61,7 @@ namespace TensorSharp
             }
 
             Storage argStorage = ((Tensor)args[argIndex]).Storage;
-            return requiredType.IsAssignableFrom(argStorage.GetType());
+            return argStorage.GetType() == requiredType;
         }
     }
 }
