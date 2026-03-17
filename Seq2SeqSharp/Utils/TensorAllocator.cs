@@ -58,10 +58,11 @@ namespace Seq2SeqSharp.Utils
             }
             else if (m_archType.IsGGML())
             {
-                m_ggmlContext = new GgmlContext(m_deviceIds);
+                m_ggmlContext = new GgmlContext(m_deviceIds, m_archType.IsGGMLMetal() ? GgmlBackendType.Metal : GgmlBackendType.Cpu);
                 foreach (int deviceId in m_deviceIds)
                 {
-                    Logger.WriteLine($"Initialize GGML Metal device '{deviceId}'");
+                    string backendName = m_archType.IsGGMLMetal() ? "GGML Metal" : "GGML CPU";
+                    Logger.WriteLine($"Initialize {backendName} device '{deviceId}'");
                     int idx = GetDeviceIdIndex(deviceId);
                     m_allocator[idx] = new GgmlAllocator(m_ggmlContext, deviceId);
                 }

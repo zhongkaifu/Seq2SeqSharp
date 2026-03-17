@@ -5,7 +5,8 @@ namespace TensorSharp
         DotNet,
         MKL,
         CUDA,
-        GGML_METAL
+        GGML_METAL,
+        GGML_CPU
     }
 
 

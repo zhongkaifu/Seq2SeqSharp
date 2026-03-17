@@ -6,6 +6,13 @@ using System.Runtime.InteropServices;
 
 namespace TensorSharp.GGML
 {
+
+internal enum GgmlBackendType
+{
+    Metal = 1,
+    Cpu = 2,
+}
+
     [StructLayout(LayoutKind.Sequential)]
     internal readonly struct GgmlTensorView2D
     {
@@ -168,6 +175,9 @@ internal enum GgmlIndexReductionOp
         private static extern int TSGgml_IsMetalAvailable();
 
         [DllImport(DllName, CallingConvention = CallingConventionType)]
+        private static extern int TSGgml_IsBackendAvailable(int backendType);
+
+        [DllImport(DllName, CallingConvention = CallingConventionType)]
         private static extern int TSGgml_AddmmF32(
             GgmlTensorView2D result,
             GgmlTensorView2D src,
@@ -320,18 +330,19 @@ internal enum GgmlIndexReductionOp
             int addToResult,
             int invertPositions);
 
-        public static void EnsureAvailable()
+        public static void EnsureAvailable(GgmlBackendType backendType)
         {
-            if (!OperatingSystem.IsMacOS())
+            if (backendType == GgmlBackendType.Metal && !OperatingSystem.IsMacOS())
             {
                 throw new PlatformNotSupportedException("The GGML Metal backend is available on macOS only.");
             }
 
             try
             {
-                if (TSGgml_IsMetalAvailable() == 0)
+                if (TSGgml_IsBackendAvailable((int)backendType) == 0)
                 {
-                    throw new InvalidOperationException($"Failed to initialize ggml-metal. {GetLastErrorMessage("Build the native GGML bridge and ensure Metal is available on this Mac.")}");
+                    string backendName = backendType == GgmlBackendType.Metal ? "ggml-metal" : "ggml-cpu";
+                    throw new InvalidOperationException($"Failed to initialize {backendName}. {GetLastErrorMessage("Build the native GGML bridge and ensure the requested GGML backend is available.")}");
                 }
             }
             catch (DllNotFoundException ex)
