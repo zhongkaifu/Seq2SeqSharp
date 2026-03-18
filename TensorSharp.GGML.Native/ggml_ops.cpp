@@ -10,6 +10,7 @@
 #include "ggml.h"
 #include "ggml-backend.h"
 #include "ggml-metal.h"
+#include "ggml-cpu.h"
 
 // GGML context memory pool: reuse mem_buffers to avoid per-op allocation overhead
 namespace ggml_pool
@@ -210,6 +211,7 @@ namespace
     thread_local std::string g_last_error;
     std::once_flag g_backend_init_once;
     ggml_backend_t g_backend = nullptr;
+    int g_backend_type = 0;
 
     void set_last_error(const std::string& message)
     {
@@ -221,22 +223,66 @@ namespace
         g_last_error.clear();
     }
 
+    constexpr int BACKEND_TYPE_METAL = 1;
+    constexpr int BACKEND_TYPE_CPU = 2;
+
     void initialize_backend()
     {
         clear_last_error();
-        g_backend = ggml_backend_metal_init();
-        if (g_backend == nullptr)
+
+        if (g_backend_type == BACKEND_TYPE_METAL)
         {
-            set_last_error("ggml-metal backend initialization failed.");
+            g_backend = ggml_backend_metal_init();
+            if (g_backend == nullptr)
+            {
+                set_last_error("ggml-metal backend initialization failed.");
+                return;
+            }
+        }
+        else if (g_backend_type == BACKEND_TYPE_CPU)
+        {
+            g_backend = ggml_backend_cpu_init();
+            if (g_backend == nullptr)
+            {
+                set_last_error("ggml-cpu backend initialization failed.");
+                return;
+            }
+        }
+        else
+        {
+            set_last_error("Unknown GGML backend type requested.");
             return;
         }
+
         ggml_pool::ensure_initial_pool();
+    }
+
+    bool ensure_backend(int backend_type)
+    {
+        if (backend_type != BACKEND_TYPE_METAL && backend_type != BACKEND_TYPE_CPU)
+        {
+            set_last_error("Invalid GGML backend type.");
+            return false;
+        }
+
+        if (g_backend_type == 0)
+        {
+            g_backend_type = backend_type;
+        }
+        else if (g_backend_type != backend_type)
+        {
+            set_last_error("A different GGML backend was already initialized in this process.");
+            return false;
+        }
+
+        std::call_once(g_backend_init_once, initialize_backend);
+        return g_backend != nullptr;
     }
 
     bool ensure_backend()
     {
-        std::call_once(g_backend_init_once, initialize_backend);
-        return g_backend != nullptr;
+        const int backend_type = (g_backend_type == 0) ? BACKEND_TYPE_METAL : g_backend_type;
+        return ensure_backend(backend_type);
     }
 
     bool backend_supports_op(ggml_tensor* op)
@@ -4642,7 +4688,13 @@ TSG_EXPORT const char* TSGgml_GetLastError()
 TSG_EXPORT int TSGgml_IsMetalAvailable()
 {
     clear_last_error();
-    return ensure_backend() ? 1 : 0;
+    return ensure_backend(BACKEND_TYPE_METAL) ? 1 : 0;
+}
+
+TSG_EXPORT int TSGgml_IsBackendAvailable(int backendType)
+{
+    clear_last_error();
+    return ensure_backend(backendType) ? 1 : 0;
 }
 
 TSG_EXPORT int TSGgml_AddmmF32(

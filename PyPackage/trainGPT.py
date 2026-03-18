@@ -6,7 +6,7 @@ def ParseOptions(config_json):
     opts = Seq2SeqOptions()
     opts.Task = ModeEnums.Train
     opts.PaddingType = PaddingEnums.AllowPadding
-    opts.ProcessorType = ProcessorTypeEnums.GPU
+    opts.ProcessorType = ProcessorTypeEnums.CUDA
     opts.DecoderType = DecoderTypeEnums.GPTDecoder
     opts.ModelFilePath = "gpt_test.model"
     opts.RunValidEveryUpdates = int(config_json['RunValidEveryUpdates'])

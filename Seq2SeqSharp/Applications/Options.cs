@@ -169,9 +169,9 @@ namespace Seq2SeqSharp.Applications
         [Arg("The prompt for output. It's a input file along with InputTestFile", nameof(OutputPromptFile))]
         public string OutputPromptFile = null;
 
-        [Arg("The processor type: GPU, CPU, CPU_MKL, GGML", nameof(ProcessorType))]
-        [RegularExpression("GPU|CPU|CPU_MKL|GGML")]
-        public ProcessorTypeEnums ProcessorType = ProcessorTypeEnums.GPU;
+        [Arg("The processor type: CUDA, CPU, CPU_MKL, GGML_METAL, GGML_CPU", nameof(ProcessorType))]
+        [RegularExpression("CUDA|CPU|CPU_MKL|GGML_METAL|GGML_CPU")]
+        public ProcessorTypeEnums ProcessorType = ProcessorTypeEnums.CUDA;
 
         [Arg("The instructions used in CPU_MKL processor type", nameof(MKLInstructions))]
         [RegularExpression("AVX|AVX2|AVX2_E1|AVX512|AVX512_E1|AVX512_E2|AVX512_E3|AVX512_E4|SSE4_2")]
@@ -357,7 +357,7 @@ namespace Seq2SeqSharp.Applications
         {
             if (AMP == true && !ProcessorType.IsCuda())
             {
-                throw new ArgumentException($"AMP (automatic mixed precesion) is only available for the CUDA GPU backend now. Disable AMP when using CPU or GGML.");
+                throw new ArgumentException($"AMP (automatic mixed precesion) is only available for the CUDA GPU backend now. Disable AMP when using CPU or GGML backends.");
             }
 
             if (ProcessorType.IsCuda() && AMP == true && (string.IsNullOrEmpty(CompilerOptions) || CompilerOptions.Contains("--include-path") == false))
@@ -367,14 +367,14 @@ namespace Seq2SeqSharp.Applications
 
             if (ProcessorType.IsGGML())
             {
-                if (!OperatingSystem.IsMacOS())
+                if (ProcessorType.IsGGMLMetal() && !OperatingSystem.IsMacOS())
                 {
-                    throw new PlatformNotSupportedException("The GGML backend uses ggml-metal and is available on macOS only.");
+                    throw new PlatformNotSupportedException("The GGML_METAL backend uses ggml-metal and is available on macOS only.");
                 }
 
                 if (DeviceIds.Contains(','))
                 {
-                    throw new ArgumentException("The GGML backend currently supports a single device id only.");
+                    throw new ArgumentException("GGML backends currently support a single device id only.");
                 }
             }
 

@@ -7,7 +7,7 @@ namespace TensorSharp.GGML
     {
         internal GgmlMemoryPool MemoryPool { get; }
 
-        public GgmlContext(int[] deviceIds)
+        public GgmlContext(int[] deviceIds, GgmlBackendType backendType)
         {
             if (deviceIds == null || deviceIds.Length == 0)
             {
@@ -16,16 +16,19 @@ namespace TensorSharp.GGML
 
             if (deviceIds.Length != 1)
             {
-                throw new NotSupportedException("The GGML Metal backend currently supports a single device only.");
+                throw new NotSupportedException("GGML backends currently support a single device only.");
             }
 
             DeviceId = deviceIds[0];
             MemoryPool = new GgmlMemoryPool();
             MemoryPool.EnsureInitialBlocks();
-            GgmlNative.EnsureAvailable();
+            BackendType = backendType;
+            GgmlNative.EnsureAvailable(backendType);
             OpRegistry.RegisterAssembly(Assembly.GetExecutingAssembly());
         }
 
         public int DeviceId { get; }
+
+        public GgmlBackendType BackendType { get; }
     }
 }
