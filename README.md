@@ -2,7 +2,7 @@
 
 [![.NET](https://github.com/zhongkaifu/Seq2SeqSharp/actions/workflows/dotnet.yml/badge.svg)](https://github.com/zhongkaifu/Seq2SeqSharp/actions/workflows/dotnet.yml)
 # Seq2SeqSharp  
-Seq2SeqSharp is a high-performance, tensor-based deep neural network framework built in .NET (C#). Designed for sequence-to-sequence, sequence-labeling, sequence-classification tasks, and more, it supports both text and image processing. Seq2SeqSharp is compatible with CPUs and GPUs, running cross-platform on Windows and Linux (x86, x64, and ARM) without modification or recompilation.  
+Seq2SeqSharp is a high-performance, tensor-based deep neural network framework built in .NET (C#). Designed for sequence-to-sequence, sequence-labeling, sequence-classification tasks, and more, it supports both text and image processing. Seq2SeqSharp is compatible with CPUs and GPUs, running cross-platform on Windows, Linux and MacOS (x86, x64, Apple Silicon M-series and ARM) without modification or recompilation.  
 
 # Features  
 Pure C# framework   
@@ -13,14 +13,13 @@ Multi-Head Attention and Group Query Attention
 Different Activation Functions: ReLU, SiLU, SwiGLU and others  
 Attention-based LSTM decoder with coverage model  
 Bi-directional LSTM encoder  
-Cross-platform support: Windows, Linux, MacOS, and others  
-KV Cache  
-Cross-architecture compatibility: X86, X64, and ARM  
+Multi-backends over Windows/Linux/MacOS on different architectures (x86/x64, Cuda, Apple Silicon/Metal and others)  
 Pre-built networks for sequence-to-sequence, classification, labeling, and similarity tasks  
 Mixture of Experts: Easily train large models with reduced computational cost  
 Automatic Mixed Precision (FP16) support  
 SentencePiece integration for tokenization  
 Rotary Positional Embeddings  
+KV Cache  
 Layer Normalization and RMS Norm  
 Python package supported  
 Tags embeddings mechanism  
@@ -29,7 +28,6 @@ Includes console tools and web application and api services
 Graph-based neural network  
 Automatic differentiation  
 Tensor-based operations  
-Supports both CPUs (via Intel MKL) and multi-GPUs (CUDA)  
 Optimized CUDA memory management for enhanced performance  
 Multiple text generation strategies: ArgMax, Beam Search, Top-P Sampling  
 RMSProp and Adam optimizers  
