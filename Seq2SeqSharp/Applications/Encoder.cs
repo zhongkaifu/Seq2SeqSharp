@@ -47,6 +47,12 @@ namespace Seq2SeqSharp.Applications
                 encoder = new MultiProcessorNetworkWrapper<IEncoder>(
                     new BiEncoder("BiLSTMEncoder", model.HiddenDim, model.EncoderEmbeddingDim, model.EncoderLayerDepth, raDeviceIds.GetNextItem(), isTrainable: options.IsEncoderTrainable), raDeviceIds.ToArray());
             }
+            else if (model.EncoderType == EncoderTypeEnums.VisionCNN)
+            {
+                encoder = new MultiProcessorNetworkWrapper<IEncoder>(
+                    new CnnEncoder("CnnEncoder", model.ImageChannels, model.HiddenDim, model.EncoderLayerDepth, model.CnnKernelSize, model.CnnStride, model.CnnChannelBase,
+                        model.ImageHeight, model.ImageWidth, options.DropoutRatio, raDeviceIds.GetNextItem(), options.IsEncoderTrainable), raDeviceIds.ToArray());
+            }
             else
             {
                 encoder = new MultiProcessorNetworkWrapper<IEncoder>(

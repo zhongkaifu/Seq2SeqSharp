@@ -16,5 +16,6 @@ namespace Seq2SeqSharp.Tools
     public interface IWeightFactory : IDisposable
     {
         WeightTensor CreateWeightTensor(int row, int column, int deviceId, DType dtype, bool cleanWeights = false, string name = "", bool isTrainable = false, IComputeGraph graphToBind = null, RandomInitType normType = RandomInitType.None, bool needGradient = true);
+        WeightTensor CreateWeightTensor(long[] sizes, int deviceId, DType dtype, bool cleanWeights = false, string name = "", IComputeGraph graphToBind = null, RandomInitType normType = RandomInitType.None, bool needGradient = true);
     }
 }

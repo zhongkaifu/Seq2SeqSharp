@@ -37,5 +37,6 @@ namespace Seq2SeqSharp.Corpus
 
     public interface IVisionSntPairBatch : IPairBatch
     {
+        List<string> GetImagePaths();
     }
 }

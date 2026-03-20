@@ -2971,6 +2971,92 @@ namespace Seq2SeqSharp.Tools
 
             return res;
         }
+
+        public IWeightTensor Conv2D(IWeightTensor input, IWeightTensor kernel, IWeightTensor bias, int strideW = 1, int strideH = 1, int padW = 0, int padH = 0)
+        {
+            WeightTensor x = input as WeightTensor;
+            WeightTensor w = kernel as WeightTensor;
+            WeightTensor b = bias as WeightTensor;
+
+            if (x.ElementType != DType.Float32 || w.ElementType != DType.Float32 || (b != null && b.ElementType != DType.Float32))
+            {
+                throw new NotSupportedException("Conv2D currently supports Float32 tensors only.");
+            }
+
+            if (x.Sizes.Length != 4)
+            {
+                throw new ArgumentException("Input tensor for Conv2D must be 4D [batch, channels, height, width].");
+            }
+
+            var cd = new ConvolutionDesc2d((int)w.Sizes[3], (int)w.Sizes[2], strideW, strideH, padW, padH);
+            var outputSizes = SpatialConvolutionMM.OutputSize(x.Sizes, w.Sizes, cd);
+
+            bool needGradient = x.NeedGradient || w.NeedGradient || (b != null && b.NeedGradient);
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(outputSizes, m_deviceId, name: $"{GetHashString(input.Name, kernel.Name)}.Conv2D", graphToBind: this, needGradient: needGradient, dtype: x.ElementType);
+            VisualizeNodes(new IWeightTensor[] { input, kernel }, res);
+
+            ConvolutionOps.Conv2DForward(x.TWeight, res.TWeight, w.TWeight, b?.TWeight, cd);
+
+            if (m_autoCheckCorruption && res.IsWeightsCorrupted())
+            {
+                throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+            }
+
+            if (m_needsBackprop)
+            {
+                void backward()
+                {
+                    res.ReleaseWeight();
+
+                    if (x.NeedGradient)
+                    {
+                        using Tensor gradInput = new Tensor(x.Allocator, x.ElementType, x.Sizes);
+                        ConvolutionOps.Conv2DBackwardInput(x.TWeight, res.TGradient, gradInput, w.TWeight, cd);
+                        x.CopyOrAddGradient(gradInput, res.Name);
+
+                        if (m_autoCheckCorruption && x.IsGradientCorrupted())
+                        {
+                            throw new WeightsCorruptedException($"Gradient '{x.Name}' is corrupted.");
+                        }
+                    }
+
+                    if (w.NeedGradient)
+                    {
+                        using Tensor gradWeight = new Tensor(w.Allocator, w.ElementType, w.Sizes);
+                        Tensor gradBiasTensor = null;
+                        if (b != null)
+                        {
+                            gradBiasTensor = new Tensor(b.Allocator, b.ElementType, b.Sizes);
+                        }
+
+                        ConvolutionOps.Conv2DBackwardFilter(x.TWeight, res.TGradient, gradWeight, gradBiasTensor, cd);
+                        w.CopyOrAddGradient(gradWeight, res.Name);
+
+                        if (m_autoCheckCorruption && w.IsGradientCorrupted())
+                        {
+                            throw new WeightsCorruptedException($"Gradient '{w.Name}' is corrupted.");
+                        }
+
+                        if (b != null)
+                        {
+                            b.CopyOrAddGradient(gradBiasTensor, res.Name);
+                            gradBiasTensor.Dispose();
+
+                            if (m_autoCheckCorruption && b.IsGradientCorrupted())
+                            {
+                                throw new WeightsCorruptedException($"Gradient '{b.Name}' is corrupted.");
+                            }
+                        }
+                    }
+
+                    res.Dispose();
+                }
+
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
        
         public List<IWeightTensor> SplitColumns2(IWeightTensor w, params int[] sizes)
         {
@@ -3162,6 +3248,76 @@ namespace Seq2SeqSharp.Tools
                     }
                     res.Dispose();
                 }
+                m_backprop.Add(backward);
+            }
+
+            return res;
+        }
+
+        public IWeightTensor Permute(IWeightTensor w, params int[] dims)
+        {
+            WeightTensor m = w as WeightTensor;
+            if (dims.Length != m.Sizes.Length)
+            {
+                throw new ArgumentException("Permutation dimensions must match tensor rank.");
+            }
+
+            long[] newSizes = new long[dims.Length];
+            bool[] seen = new bool[dims.Length];
+            for (int i = 0; i < dims.Length; i++)
+            {
+                int dim = dims[i];
+                if (dim < 0 || dim >= dims.Length)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(dims), "Permutation index is out of range.");
+                }
+
+                if (seen[dim])
+                {
+                    throw new ArgumentException("Permutation contains duplicate indices.");
+                }
+
+                seen[dim] = true;
+                newSizes[i] = m.Sizes[dim];
+            }
+
+            WeightTensor res = m_weightTensorFactory.CreateWeightTensor(newSizes, m_deviceId, name: $"{GetHashString(w.Name)}.Permute", graphToBind: this, needGradient: m.NeedGradient, dtype: m.ElementType);
+            VisualizeNodes(w, res);
+
+            using Tensor permuted = m.TWeight.Permute(dims);
+            res.TWeight = Ops.AsContiguous(permuted);
+
+            if (m_autoCheckCorruption && res.IsWeightsCorrupted())
+            {
+                throw new WeightsCorruptedException($"Weight '{res.Name}' is corrupted.");
+            }
+
+            if (m_needsBackprop)
+            {
+                int[] inverse = new int[dims.Length];
+                for (int i = 0; i < dims.Length; i++)
+                {
+                    inverse[dims[i]] = i;
+                }
+
+                void backward()
+                {
+                    if (m.NeedGradient)
+                    {
+                        res.ReleaseWeight();
+                        using Tensor permGrad = res.TGradient.Permute(inverse);
+                        using Tensor grad = Ops.AsContiguous(permGrad);
+                        m.CopyOrAddGradient(grad, res.Name);
+
+                        if (m_autoCheckCorruption && m.IsGradientCorrupted())
+                        {
+                            throw new WeightsCorruptedException($"Gradient '{m.Name}' is corrupted.");
+                        }
+                    }
+
+                    res.Dispose();
+                }
+
                 m_backprop.Add(backward);
             }
 

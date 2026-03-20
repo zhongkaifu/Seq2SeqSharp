@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using AdvUtils;
+using System.Linq;
 using System.Runtime.Caching;
 using Seq2SeqSharp.Enums;
 using Seq2SeqSharp.Corpus;
@@ -37,6 +38,7 @@ namespace Seq2SeqSharp.Applications
         private MultiProcessorNetworkWrapper<IWeightTensor> m_segmentEmbedding;
 
         private MultiProcessorNetworkWrapper<IFeedForwardLayer> m_pointerGenerator;
+        private readonly bool m_isVisionTask;
 
         private readonly PaddingEnums m_paddingType = PaddingEnums.AllowPadding;
         readonly Seq2SeqOptions m_options = null;
@@ -51,6 +53,20 @@ namespace Seq2SeqSharp.Applications
         {
             m_paddingType = options.PaddingType;
             m_options = options;
+            m_isVisionTask = options.EncoderType == EncoderTypeEnums.VisionCNN;
+
+            if (m_isVisionTask)
+            {
+                if (options.PointerGenerator)
+                {
+                    throw new ArgumentException("Pointer generator is not available for vision tasks.");
+                }
+
+                if (options.AMP)
+                {
+                    throw new ArgumentException("AMP is not supported by the current vision pipeline.");
+                }
+            }
 
             // Check if options are valided.
             m_options.ValidateOptions();
@@ -143,11 +159,15 @@ namespace Seq2SeqSharp.Applications
         private (IEncoder, IDecoder, IFeedForwardLayer, IWeightTensor, IWeightTensor, IWeightTensor, IFeedForwardLayer, IWeightTensor) GetNetworksOnDeviceAt(int deviceId)
         {
             var deviceIdIdx = TensorAllocator.GetDeviceIdIndex(deviceId);
+            var srcEmbedding = m_srcEmbedding?.GetNetworkOnDevice(deviceIdIdx);
+            var tgtEmbedding = m_modelMetaData.SharedEmbeddings ? srcEmbedding : m_tgtEmbedding.GetNetworkOnDevice(deviceIdIdx);
+            tgtEmbedding ??= m_tgtEmbedding?.GetNetworkOnDevice(deviceIdIdx);
+
             return (m_encoder.GetNetworkOnDevice(deviceIdIdx),
                     m_decoder.GetNetworkOnDevice(deviceIdIdx),
                     m_decoderFFLayer.GetNetworkOnDevice(deviceIdIdx),
-                    m_srcEmbedding.GetNetworkOnDevice(deviceIdIdx),
-                    m_modelMetaData.SharedEmbeddings ? m_srcEmbedding.GetNetworkOnDevice(deviceIdIdx) : m_tgtEmbedding.GetNetworkOnDevice(deviceIdIdx),
+                    srcEmbedding,
+                    tgtEmbedding,
                     m_segmentEmbedding?.GetNetworkOnDevice(deviceIdIdx), m_pointerGenerator?.GetNetworkOnDevice(deviceIdIdx), m_posEmbedding?.GetNetworkOnDevice(deviceIdIdx));
         }
 
@@ -163,6 +183,16 @@ namespace Seq2SeqSharp.Applications
             return string.Join("\t", r);
         }
 
+        private IWeightTensor EncodeVisionInputs(IComputeGraph computeGraph, IEncoder encoder, IReadOnlyList<string> imagePaths, int batchSize)
+        {
+            encoder.Reset(computeGraph.GetWeightFactory(), batchSize);
+            var visionInput = ImageTensorBuilder.BuildTensor(computeGraph, imagePaths, m_modelMetaData.ImageChannels, m_modelMetaData.ImageHeight, m_modelMetaData.ImageWidth,
+                m_modelMetaData.ImageNormalizeMean, m_modelMetaData.ImageNormalizeStd, $"VisionInput_{computeGraph.DeviceId}");
+            var encOutput = encoder.Encode(visionInput, batchSize, computeGraph, null);
+            visionInput.Dispose();
+            return encOutput;
+        }
+
 
         /// <summary>
         /// Run forward part on given single device
@@ -176,47 +206,59 @@ namespace Seq2SeqSharp.Applications
         {
             (var encoder, var decoder, var decoderFFLayer, var srcEmbedding, var tgtEmbedding, var segmentEmbedding, var pointerGenerator, var posEmbeddings) = GetNetworksOnDeviceAt(computeGraph.DeviceId);
 
-            var srcSnts = sntPairBatch.GetSrcTokens();
-            var originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
-            var srcTokensList = m_modelMetaData.SrcVocab.GetWordIndex(srcSnts);
-
-            //if (isTraining && srcSnts[0].Count > m_options.MaxSrcSentLength + 2)
-            //{
-            //    throw new InvalidDataException($"The source sentence is too long. Its length = '{srcSnts[0].Count}', but MaxSrcSentLength is '{m_options.MaxSrcSentLength}'. The sentence is '{string.Join(" ", srcSnts[0])}'");
-            //}
-
             IWeightTensor encOutput;
-            if (m_options.UseKVCache)
+            List<List<string>> srcSnts = null;
+            List<List<int>> srcTokensList = null;
+            int batchSize = sntPairBatch.BatchSize;
+            float[] originalSrcLengths;
+
+            if (m_isVisionTask)
             {
-                // Try to get src tensor from cache
-                string cacheKey = GenerateCacheKey(srcSnts);
-                encOutput = MemoryCache.Default[cacheKey] as IWeightTensor;
-                if (encOutput == null)
-                {                
-                    encOutput = Encoder.Run(computeGraph, encoder, m_modelMetaData, m_paddingType, srcEmbedding, posEmbeddings, segmentEmbedding, srcTokensList, originalSrcLengths); // Shape: [batchsize * seqLen, embedding_dim]
-                    MemoryCache.Default.Set(cacheKey, encOutput.CopyWeightsRef($"cache_{encOutput.Name}", false, graphToBind: null), DateTimeOffset.Now + TimeSpan.FromMinutes(10));
+                if (sntPairBatch is not IVisionSntPairBatch visionBatch)
+                {
+                    throw new ArgumentException("Vision task expects batches that expose image paths.");
                 }
+
+                var imagePaths = visionBatch.GetImagePaths();
+                encOutput = EncodeVisionInputs(computeGraph, encoder, imagePaths, batchSize);
+                int srcSeqLen = encOutput.Rows / batchSize;
+                originalSrcLengths = Enumerable.Repeat((float)srcSeqLen, batchSize).ToArray();
             }
             else
             {
-                // Compute src tensor
-                encOutput = Encoder.Run(computeGraph, encoder, m_modelMetaData, m_paddingType, srcEmbedding, posEmbeddings, segmentEmbedding, srcTokensList, originalSrcLengths, amp:m_options.AMP);
+                srcSnts = sntPairBatch.GetSrcTokens();
+                originalSrcLengths = BuildInTokens.PadSentences(srcSnts);
+                srcTokensList = m_modelMetaData.SrcVocab.GetWordIndex(srcSnts);
+
+                if (m_options.UseKVCache)
+                {
+                    string cacheKey = GenerateCacheKey(srcSnts);
+                    encOutput = MemoryCache.Default[cacheKey] as IWeightTensor;
+                    if (encOutput == null)
+                    {
+                        encOutput = Encoder.Run(computeGraph, encoder, m_modelMetaData, m_paddingType, srcEmbedding, posEmbeddings, segmentEmbedding, srcTokensList, originalSrcLengths);
+                        MemoryCache.Default.Set(cacheKey, encOutput.CopyWeightsRef($"cache_{encOutput.Name}", false, graphToBind: null), DateTimeOffset.Now + TimeSpan.FromMinutes(10));
+                    }
+                }
+                else
+                {
+                    encOutput = Encoder.Run(computeGraph, encoder, m_modelMetaData, m_paddingType, srcEmbedding, posEmbeddings, segmentEmbedding, srcTokensList, originalSrcLengths, amp: m_options.AMP);
+                }
             }
 
             List<NetworkResult> nrs = new List<NetworkResult>();
 
             // Generate output decoder sentences
-            int batchSize = srcSnts.Count;
             var tgtSnts = sntPairBatch.GetTgtTokens();
             var tgtTokensList = m_modelMetaData.TgtVocab.GetWordIndex(tgtSnts);
             NetworkResult nr = new NetworkResult();
             nr.Status = NetworkResultStatus.SUCCEED;
 
-            decoder.Reset(computeGraph.GetWeightFactory(), srcSnts.Count);
+            decoder.Reset(computeGraph.GetWeightFactory(), batchSize);
 
             if (decoder is AttentionDecoder)
             {
-                nr.Cost = Decoder.DecodeAttentionLSTM(tgtTokensList, computeGraph, encOutput, decoder as AttentionDecoder, decoderFFLayer, tgtEmbedding, m_modelMetaData.TgtVocab, srcSnts.Count, isTraining);
+                nr.Cost = Decoder.DecodeAttentionLSTM(tgtTokensList, computeGraph, encOutput, decoder as AttentionDecoder, decoderFFLayer, tgtEmbedding, m_modelMetaData.TgtVocab, batchSize, isTraining);
                 nr.Output = new List<List<List<string>>>
                 {
                     m_modelMetaData.TgtVocab.ConvertIdsToString(tgtTokensList)
@@ -356,8 +398,31 @@ namespace Seq2SeqSharp.Applications
 
         public void DumpVocabToFiles(string outputSrcVocab, string outputTgtVocab)
         {
-            m_modelMetaData.SrcVocab.DumpVocab(outputSrcVocab);
-            m_modelMetaData.TgtVocab.DumpVocab(outputTgtVocab);
+            if (!string.IsNullOrEmpty(outputSrcVocab))
+            {
+                if (m_modelMetaData.SrcVocab != null)
+                {
+                    m_modelMetaData.SrcVocab.DumpVocab(outputSrcVocab);
+                }
+                else
+                {
+                    Logger.WriteLine(Logger.Level.warn, "Source vocabulary is unavailable for this model. Skip dumping src vocab file.");
+                }
+            }
+
+            if (!string.IsNullOrEmpty(outputTgtVocab) && m_modelMetaData.TgtVocab != null)
+            {
+                m_modelMetaData.TgtVocab.DumpVocab(outputTgtVocab);
+            }
+        }
+
+        public void ValidVision(ICorpus<IVisionSntPairBatch> validCorpus, List<IMetric> metrics, DecodingOptions decodingOptions)
+        {
+            Dictionary<int, List<IMetric>> taskId2metrics = new Dictionary<int, List<IMetric>>
+            {
+                { 0, metrics }
+            };
+            RunValid(validCorpus, RunForwardOnSingleDevice, taskId2metrics, decodingOptions, true);
         }
 
         public void Test(string inputTestFile, string outputFile, int batchSize, DecodingOptions decodingOptions, string srcSpmPath, string tgtSpmPath, string outputAlignmentFile = null)
@@ -368,6 +433,18 @@ namespace Seq2SeqSharp.Applications
         public void Test(string inputTestFile, string inputPromptFile, string outputFile, int batchSize, DecodingOptions decodingOptions, string srcSpmPath, string tgtSpmPath, string outputAlignmentFile = null)
         {
             Test<Seq2SeqCorpusBatch>(inputTestFile, inputPromptFile, outputFile, batchSize, decodingOptions, srcSpmPath, tgtSpmPath, outputAlignmentFile);
+        }
+
+        public void TestVision(string inputImageListFile, string outputFile, int batchSize, DecodingOptions decodingOptions, string tgtSpmPath, string outputAlignmentFile = null)
+        {
+            if (!m_isVisionTask)
+            {
+                throw new InvalidOperationException("Vision testing is only available for CNN encoder models.");
+            }
+
+            var reader = new VisionBatchStreamReader<VisionTextCorpusBatch>(inputImageListFile, batchSize);
+            var writer = new SntBatchStreamWriter(outputFile, tgtSpmPath, outputAlignmentFile);
+            RunTest(reader, writer, decodingOptions, RunForwardOnSingleDevice);
         }
     }
 }

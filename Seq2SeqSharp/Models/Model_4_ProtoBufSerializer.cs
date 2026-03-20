@@ -281,11 +281,19 @@ namespace Seq2SeqSharp.Models
             MaxSegmentNum = m.MaxSegmentNum;
             PointerGenerator = m.PointerGenerator;
             ExpertNum = m.ExpertNum;
-            ExpertsPerTokenFactor = m.ExpertsPerTokenFactor;              
+            ExpertsPerTokenFactor = m.ExpertsPerTokenFactor;
             PEType= m.PEType;
             NormType = m.NormType;
             MultiHeadAttentionType = m.MultiHeadAttentionType;
             KVGroupNum = m.KVGroupNum;
+            ImageHeight = m.ImageHeight;
+            ImageWidth = m.ImageWidth;
+            ImageChannels = m.ImageChannels;
+            CnnKernelSize = m.CnnKernelSize;
+            CnnStride = m.CnnStride;
+            CnnChannelBase = m.CnnChannelBase;
+            ImageNormalizeMean = m.ImageNormalizeMean;
+            ImageNormalizeStd = m.ImageNormalizeStd;
         }
         public static Model_4_ProtoBufSerializer Create(Model m) => new Model_4_ProtoBufSerializer(m);
 
@@ -321,5 +329,13 @@ namespace Seq2SeqSharp.Models
         [ProtoMember(29)] public NormEnums NormType { get; set; }
         [ProtoMember(30)] public MultiHeadAttentionTypeEnums MultiHeadAttentionType { get; set; }
         [ProtoMember(31)] public int KVGroupNum { get; set; }
+        [ProtoMember(32)] public int ImageHeight { get; set; }
+        [ProtoMember(33)] public int ImageWidth { get; set; }
+        [ProtoMember(34)] public int ImageChannels { get; set; }
+        [ProtoMember(35)] public int CnnKernelSize { get; set; }
+        [ProtoMember(36)] public int CnnStride { get; set; }
+        [ProtoMember(37)] public int CnnChannelBase { get; set; }
+        [ProtoMember(38)] public float[] ImageNormalizeMean { get; set; }
+        [ProtoMember(39)] public float[] ImageNormalizeStd { get; set; }
     }
 }

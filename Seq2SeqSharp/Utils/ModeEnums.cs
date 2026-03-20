@@ -28,6 +28,7 @@ namespace Seq2SeqSharp.Enums
         None = -1,
         BiLSTM = 0,
         Transformer = 1,
+        VisionCNN = 2,
     }
 
     public enum DecoderTypeEnums

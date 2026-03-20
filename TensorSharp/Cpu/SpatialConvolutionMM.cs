@@ -59,6 +59,12 @@ namespace TensorSharp.Cpu
             long inputWidth = input.Sizes[dimw];
             long inputHeight = input.Sizes[dimh];
             long nOutputPlane = weight.Sizes[0];
+            if (nOutputPlane <= 0)
+            {
+                throw new InvalidOperationException("weight must have a positive number of output channels");
+            }
+
+            long kernelInput = weight.ElementCount() / nOutputPlane;
 
             long outputWidth = (inputWidth + 2 * cd.padW - cd.kW) / cd.dW + 1;
             long outputHeight = (inputHeight + 2 * cd.padH - cd.kH) / cd.dH + 1;
@@ -74,10 +80,10 @@ namespace TensorSharp.Cpu
                     "Output size too small; calculated output size = ({0}x{1}x{2}", nOutputPlane, outputHeight, outputWidth));
             }
 
-            if (nInputPlane * cd.kW * cd.kH != weight.Sizes[1])
+            if (nInputPlane * cd.kW * cd.kH != kernelInput)
             {
                 throw new InvalidOperationException(
-                    string.Format("Input has incorrect number of channels. Got {0}, expected {1}", nInputPlane, weight.Sizes[1] / ((float)(cd.kW * cd.kH))));
+                    string.Format("Input has incorrect number of channels. Got {0}, expected {1}", nInputPlane, kernelInput / ((float)(cd.kW * cd.kH))));
             }
 
             if (input.DimensionCount != 4)
@@ -95,19 +101,21 @@ namespace TensorSharp.Cpu
                 throw new InvalidOperationException("output is incorrect size");
             }
 
+            using Tensor weight2d = ViewWeightAsMatrix(weight);
+
             for (int i = 0; i < n; ++i)
             {
                 using Tensor input_i = input.Select(0, i);
                 using Tensor output_i = output.Select(0, i);
                 using Tensor finput_i = finput.Select(0, i);
-                Conv2ForwardFrame(input_i, output_i, weight, bias, finput_i,
+                Conv2ForwardFrame(input_i, output_i, weight2d, bias, finput_i,
                     cd.kW, cd.kH, cd.dW, cd.dW, cd.padW, cd.padH,
                     nInputPlane, inputWidth, inputHeight,
                     nOutputPlane, outputWidth, outputHeight);
             }
         }
 
-        private static void Conv2ForwardFrame(Tensor input, Tensor output, Tensor weight, Tensor bias, Tensor finput,
+        private static void Conv2ForwardFrame(Tensor input, Tensor output, Tensor weight2d, Tensor bias, Tensor finput,
           int kW,
           int kH,
           int dW,
@@ -144,7 +152,7 @@ namespace TensorSharp.Cpu
                     Ops.Fill(output, 0);
                 }
 
-                Ops.Addmm(output2d, 1, output2d, 1, weight, finput);
+                Ops.Addmm(output2d, 1, output2d, 1, weight2d, finput);
             }
             finally
             {
@@ -175,7 +183,8 @@ namespace TensorSharp.Cpu
                 throw new InvalidOperationException("stride should be greater than zero");
             }
 
-            using Tensor weightT = weight.Transpose();
+            using Tensor weight2d = ViewWeightAsMatrix(weight);
+            using Tensor weightT = weight2d.Transpose();
             long n = input.Sizes[0];
 
             for (int i = 0; i < n; ++i)
@@ -225,29 +234,26 @@ namespace TensorSharp.Cpu
                 throw new InvalidOperationException("stride should be greater than zero");
             }
 
+            using Tensor gradWeight2d = ViewWeightAsMatrix(gradWeight);
+
             for (int i = 0; i < n; ++i)
             {
                 using Tensor gradOutput_i = gradOutput.Select(0, i);
                 using Tensor finput_i = finput.Select(0, i);
-                Conv2BackwardFilterFrame(gradOutput_i, gradWeight, gradBias, finput_i, cd);
+                Conv2BackwardFilterFrame(gradOutput_i, gradWeight2d, gradBias, finput_i, cd);
             }
         }
 
-        private static void Conv2BackwardFilterFrame(Tensor gradOutput, Tensor gradWeight, Tensor gradBias, Tensor finput, ConvolutionDesc2d cd)
+        private static void Conv2BackwardFilterFrame(Tensor gradOutput, Tensor gradWeight2d, Tensor gradBias, Tensor finput, ConvolutionDesc2d cd)
         {
             if (gradOutput is null)
             {
                 throw new ArgumentNullException(nameof(gradOutput));
             }
 
-            if (gradWeight is null)
+            if (gradWeight2d is null)
             {
-                throw new ArgumentNullException(nameof(gradWeight));
-            }
-
-            if (gradBias is null)
-            {
-                throw new ArgumentNullException(nameof(gradBias));
+                throw new ArgumentNullException(nameof(gradWeight2d));
             }
 
             if (finput is null)
@@ -262,8 +268,46 @@ namespace TensorSharp.Cpu
 
             using Tensor gradOutput2d = gradOutput.View(gradOutput.Sizes[0], gradOutput.Sizes[1] * gradOutput.Sizes[2]);
             using Tensor finputT = finput.Transpose();
-            Ops.Addmm(gradWeight, 1, gradWeight, 1, gradOutput2d, finputT);
-            Ops.Sum(gradBias, gradOutput2d, 1);
+            Ops.Addmm(gradWeight2d, 1, gradWeight2d, 1, gradOutput2d, finputT);
+
+            if (gradBias != null)
+            {
+                Ops.Sum(gradBias, gradOutput2d, 1);
+            }
+        }
+
+        private static Tensor ViewWeightAsMatrix(Tensor weight)
+        {
+            long outPlane = weight.Sizes[0];
+            if (outPlane <= 0)
+            {
+                throw new InvalidOperationException("weight must have a positive number of output channels");
+            }
+
+            long flattened = weight.ElementCount() / outPlane;
+            return weight.View(outPlane, flattened);
+        }
+    }
+
+    [OpsClass]
+    public class CpuConvolutionOps
+    {
+        [RegisterOpStorageType("conv2dforward", typeof(CpuStorage))]
+        public static void Conv2DForward(Tensor input, Tensor output, Tensor weight, Tensor bias, Tensor finput, ConvolutionDesc2d cd)
+        {
+            SpatialConvolutionMM.Conv2Forward(input, output, weight, bias, finput, cd);
+        }
+
+        [RegisterOpStorageType("conv2dbackwardinput", typeof(CpuStorage))]
+        public static void Conv2DBackwardInput(Tensor input, Tensor gradOutput, Tensor gradInput, Tensor weight, Tensor finput, Tensor fgradInput, ConvolutionDesc2d cd)
+        {
+            SpatialConvolutionMM.Conv2BackwardInput(input, gradOutput, gradInput, weight, finput, fgradInput, cd);
+        }
+
+        [RegisterOpStorageType("conv2dbackwardfilter", typeof(CpuStorage))]
+        public static void Conv2DBackwardFilter(Tensor input, Tensor gradOutput, Tensor gradWeight, Tensor gradBias, Tensor finput, Tensor fgradInput, ConvolutionDesc2d cd)
+        {
+            SpatialConvolutionMM.Conv2BackwardFilter(input, gradOutput, gradWeight, gradBias, finput, fgradInput, cd);
         }
     }
 }

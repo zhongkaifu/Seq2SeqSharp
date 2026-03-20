@@ -65,9 +65,17 @@ namespace Seq2SeqSharp.Models
         public int IntermediateDim { get; set; }
         public bool EnableSegmentEmbeddings { get; set; }
         public int MultiHeadNum { get; set; }
+        public int ImageHeight { get; set; }
+        public int ImageWidth { get; set; }
+        public int ImageChannels { get; set; }
+        public int CnnKernelSize { get; set; }
+        public int CnnStride { get; set; }
+        public int CnnChannelBase { get; set; }
+        public float[] ImageNormalizeMean { get; set; }
+        public float[] ImageNormalizeStd { get; set; }
         public Vocab SrcVocab { get; set; }
         public Vocab TgtVocab { get; set; }
-		public List<Vocab> ClsVocabs { get; set; }
+                public List<Vocab> ClsVocabs { get; set; }
         public bool EnableCoverageModel { get; set; }
         public bool SharedEmbeddings { get; set; }
 
@@ -121,6 +129,8 @@ namespace Seq2SeqSharp.Models
             Name2WeightsHalf = new Name2WeightsHalf();
             Name2WeightsVQ = new Dictionary<string, byte[]>();
             Name2CodeBook = new Dictionary<string, double[]>();
+            ImageNormalizeMean = Array.Empty<float>();
+            ImageNormalizeStd = Array.Empty<float>();
         }
 
         public Model(Model_4_ProtoBufSerializer m)
@@ -130,6 +140,12 @@ namespace Seq2SeqSharp.Models
             EncoderLayerDepth = m.EncoderLayerDepth; ;
             EncoderType = m.EncoderType;
             MultiHeadNum = m.MultiHeadNum;
+            ImageHeight = m.ImageHeight;
+            ImageWidth = m.ImageWidth;
+            ImageChannels = m.ImageChannels;
+            CnnKernelSize = m.CnnKernelSize;
+            CnnStride = m.CnnStride;
+            CnnChannelBase = m.CnnChannelBase;
             SrcVocab = m.SrcVocab?.ToVocab();
             TgtVocab= m.TgtVocab?.ToVocab();
             EncoderEmbeddingDim = m.EncoderEmbeddingDim;
@@ -147,6 +163,8 @@ namespace Seq2SeqSharp.Models
             Name2WeightsHalf.usDict = m.Name2WeightsHalf;
             Name2WeightsVQ = m.Name2WeightsVQ;
             Name2CodeBook = m.Name2CodeBook;
+            ImageNormalizeMean = m.ImageNormalizeMean ?? Array.Empty<float>();
+            ImageNormalizeStd = m.ImageNormalizeStd ?? Array.Empty<float>();
             PEType = m.PEType;
             NormType = m.NormType;
 
@@ -431,6 +449,11 @@ namespace Seq2SeqSharp.Models
             Logger.WriteLine(Logger.Level.debug, $"Experts per token factor: '{ExpertsPerTokenFactor}'");
             Logger.WriteLine(Logger.Level.debug, $"Codebook size for model vector quantization: '{VQType}'");
             Logger.WriteLine(Logger.Level.debug, $"Positional Embedding Type: '{PEType}'");
+            if (EncoderType == EncoderTypeEnums.VisionCNN)
+            {
+                Logger.WriteLine(Logger.Level.debug, $"Vision encoder image size: '{ImageChannels}x{ImageHeight}x{ImageWidth}'");
+                Logger.WriteLine(Logger.Level.debug, $"CNN kernel size: '{CnnKernelSize}', stride: '{CnnStride}', channel base: '{CnnChannelBase}'");
+            }
 
 
             if (!SimilarityType.IsNullOrEmpty())
